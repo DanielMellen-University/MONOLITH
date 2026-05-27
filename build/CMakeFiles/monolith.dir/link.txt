@@ -1,0 +1,1 @@
+/usr/bin/c++ CMakeFiles/monolith.dir/src/main.cpp.o -o monolith  /usr/lib/x86_64-linux-gnu/libSDL2.so 
