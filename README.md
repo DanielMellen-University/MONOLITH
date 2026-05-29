@@ -57,4 +57,4 @@ The resulting binary will be at `build/monolith`.
 
 ## License
 
-See [LICENSE](LICENSE) for details.
+See [LICENSE](LICENSE) for details. 
