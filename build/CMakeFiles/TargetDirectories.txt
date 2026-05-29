@@ -1,3 +1,0 @@
-/home/daniel/Documents/GitHub/MONOLITH/build/CMakeFiles/monolith.dir
-/home/daniel/Documents/GitHub/MONOLITH/build/CMakeFiles/edit_cache.dir
-/home/daniel/Documents/GitHub/MONOLITH/build/CMakeFiles/rebuild_cache.dir

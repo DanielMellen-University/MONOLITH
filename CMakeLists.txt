@@ -10,6 +10,7 @@ find_package(SDL2 REQUIRED)
 
 add_executable(monolith
     src/main.cpp
+    src/window/WindowManager.cpp
 )
 
 target_link_libraries(monolith

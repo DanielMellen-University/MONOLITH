@@ -1,6 +1,8 @@
 #include <SDL2/SDL.h>
 #include <iostream>
 
+#include "window/WindowManager.hpp"
+
 int main(int /*argc*/, char* /*argv*/[])
 {
     if (SDL_Init(SDL_INIT_VIDEO) != 0) {
@@ -35,6 +37,14 @@ int main(int /*argc*/, char* /*argv*/[])
         return 1;
     }
 
+    // === Window Manager Setup ===
+    monolith::window::WindowManager wm;
+
+    // Create some test windows so we can see the system working
+    wm.createWindow("Terminal", 100, 100, 500, 350);
+    wm.createWindow("Filesystem", 300, 180, 420, 280);
+    wm.createWindow("Editor", 550, 80, 480, 400);
+
     bool running = true;
     SDL_Event event;
 
@@ -43,13 +53,19 @@ int main(int /*argc*/, char* /*argv*/[])
             if (event.type == SDL_QUIT) {
                 running = false;
             }
+
+            // Pass events to the Window Manager
+            wm.handleEvent(event);
         }
 
-        // Clear to a dark background
-        SDL_SetRenderDrawColor(renderer, 20, 20, 25, 255);
+        wm.update();
+
+        // Clear background (desktop color)
+        SDL_SetRenderDrawColor(renderer, 25, 25, 30, 255);
         SDL_RenderClear(renderer);
 
-        // TODO: All drawing will go here later
+        // Render all windows (title bars + content areas)
+        wm.render(renderer);
 
         SDL_RenderPresent(renderer);
     }
