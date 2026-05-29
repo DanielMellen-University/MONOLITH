@@ -89,8 +89,8 @@ void WindowManager::update() {
 }
 
 void WindowManager::render(SDL_Renderer* renderer) {
-    // Draw from back to front (so the focused window is drawn last)
-    for (auto it = m_windows.rbegin(); it != m_windows.rend(); ++it) {
+    // Draw from back to front so the focused window (last in vector) is drawn last and appears on top
+    for (auto it = m_windows.begin(); it != m_windows.end(); ++it) {
         Window& win = **it;
 
         if (win.minimized) continue;
