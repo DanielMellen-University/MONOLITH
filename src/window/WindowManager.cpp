@@ -29,12 +29,12 @@ void WindowManager::handleEvent(const SDL_Event& event) {
         m_mouseY = event.motion.y;
     }
 
+    const int logicalMouseY = screenToLogicalY(m_mouseY);
+
     if (event.type == SDL_MOUSEBUTTONDOWN && event.button.button == SDL_BUTTON_LEFT) {
         m_mouseDown = true;
         m_mouseX = event.button.x;
         m_mouseY = event.button.y;
-
-        const int logicalMouseY = screenToLogicalY(m_mouseY);
 
         Window* clicked = getWindowAt(m_mouseX, m_mouseY);
         if (!clicked) return;
@@ -63,6 +63,35 @@ void WindowManager::handleEvent(const SDL_Event& event) {
             clicked->dragOffsetX = m_mouseX - clicked->rect.x;
             clicked->dragOffsetY = logicalMouseY - clicked->rect.y;
             return;
+        }
+    }
+
+    // === Taskbar clicks (restore minimized windows) ===
+    if (event.type == SDL_MOUSEBUTTONDOWN && event.button.button == SDL_BUTTON_LEFT) {
+        const int taskbarHeight = 28;
+        const int taskbarY = m_logicalHeight - taskbarHeight;
+
+        if (logicalMouseY >= taskbarY && logicalMouseY < m_logicalHeight) {
+            // Rebuild the list of minimized windows in the same order as render
+            std::vector<Window*> minimizedWindows;
+            for (auto& w : m_windows) {
+                if (w->minimized) minimizedWindows.push_back(w.get());
+            }
+
+            int x = 8;
+            const int spacing = 6;
+
+            for (Window* mw : minimizedWindows) {
+                int btnWidth = std::max(80, static_cast<int>(mw->title.length() * 7));
+                if (m_mouseX >= x && m_mouseX < x + btnWidth &&
+                    logicalMouseY >= taskbarY && logicalMouseY < taskbarY + taskbarHeight) {
+                    // Restore this window
+                    mw->minimized = false;
+                    bringToFront(mw);
+                    return;
+                }
+                x += btnWidth + spacing;
+            }
         }
     }
 
@@ -95,6 +124,23 @@ void WindowManager::update() {
     if (m_resizingWindow && m_mouseDown) {
         applyResize(m_resizingWindow, m_mouseX, logicalMouseY);
         clampSingleWindow(*m_resizingWindow);
+    }
+
+    // Enforce maximized windows fill the full logical area (minus taskbar if present)
+    bool hasMinimized = false;
+    for (auto& w : m_windows) {
+        if (w->minimized) hasMinimized = true;
+    }
+
+    const int bottomReserved = hasMinimized ? 28 : 0;  // leave space for taskbar
+
+    for (auto& w : m_windows) {
+        if (w->maximized && !w->minimized) {
+            w->rect.x = 0;
+            w->rect.y = 0;
+            w->rect.w = m_logicalWidth;
+            w->rect.h = m_logicalHeight - bottomReserved;
+        }
     }
 }
 
@@ -157,31 +203,94 @@ void WindowManager::render(SDL_Renderer* renderer) {
             }
         }
 
-        // === Fake window buttons (close, minimize, maximize) ===
+        // === Window buttons (close, minimize, maximize) with simple symbols ===
         int buttonSize = static_cast<int>(16 * m_contentScale);
+        if (buttonSize < 10) buttonSize = 10; // minimum usable size
         int buttonY = screenY + (scaledTitleH - buttonSize) / 2;
         int buttonSpacing = static_cast<int>(6 * m_contentScale);
         int rightEdge = screenX + scaledW - static_cast<int>(10 * m_contentScale);
 
-        // Close button (red)
+        // Close button (red) - draw white X
         SDL_SetRenderDrawColor(renderer, 200, 60, 60, 255);
         SDL_Rect closeBtn = {rightEdge - buttonSize, buttonY, buttonSize, buttonSize};
         SDL_RenderFillRect(renderer, &closeBtn);
+        SDL_SetRenderDrawColor(renderer, 255, 255, 255, 255);
+        SDL_RenderDrawLine(renderer, closeBtn.x + 3, closeBtn.y + 3, closeBtn.x + buttonSize - 4, closeBtn.y + buttonSize - 4);
+        SDL_RenderDrawLine(renderer, closeBtn.x + buttonSize - 4, closeBtn.y + 3, closeBtn.x + 3, closeBtn.y + buttonSize - 4);
 
-        // Maximize (green)
+        // Maximize (green) - draw white square outline
         SDL_SetRenderDrawColor(renderer, 60, 170, 80, 255);
         SDL_Rect maxBtn = {rightEdge - buttonSize * 2 - buttonSpacing, buttonY, buttonSize, buttonSize};
         SDL_RenderFillRect(renderer, &maxBtn);
+        SDL_SetRenderDrawColor(renderer, 255, 255, 255, 255);
+        SDL_Rect maxSymbol = {maxBtn.x + 3, maxBtn.y + 3, buttonSize - 7, buttonSize - 7};
+        SDL_RenderDrawRect(renderer, &maxSymbol);
 
-        // Minimize (yellow/orange)
+        // Minimize (yellow/orange) - draw white horizontal line
         SDL_SetRenderDrawColor(renderer, 200, 170, 60, 255);
         SDL_Rect minBtn = {rightEdge - buttonSize * 3 - buttonSpacing * 2, buttonY, buttonSize, buttonSize};
         SDL_RenderFillRect(renderer, &minBtn);
+        SDL_SetRenderDrawColor(renderer, 255, 255, 255, 255);
+        int minLineY = minBtn.y + buttonSize / 2;
+        SDL_RenderDrawLine(renderer, minBtn.x + 3, minLineY, minBtn.x + buttonSize - 4, minLineY);
 
         // === Window border (drawn in screen coordinates) ===
         SDL_Rect screenRect = {screenX, screenY, scaledW, scaledH};
         SDL_SetRenderDrawColor(renderer, 30, 30, 35, 255);
         SDL_RenderDrawRect(renderer, &screenRect);
+    }
+
+    // === Very basic taskbar for minimized windows (temporary until proper taskbar exists) ===
+    std::vector<Window*> minimizedWindows;
+    for (auto& w : m_windows) {
+        if (w->minimized) minimizedWindows.push_back(w.get());
+    }
+
+    if (!minimizedWindows.empty()) {
+        const int taskbarHeight = 28;
+        const int taskbarY = m_logicalHeight - taskbarHeight; // bottom of logical area
+
+        // Draw taskbar background
+        SDL_SetRenderDrawColor(renderer, 35, 35, 40, 255);
+        SDL_Rect taskbarRect = {
+            logicalToScreenX(0),
+            logicalToScreenY(taskbarY),
+            static_cast<int>(m_logicalWidth * m_contentScale),
+            static_cast<int>(taskbarHeight * m_contentScale)
+        };
+        SDL_RenderFillRect(renderer, &taskbarRect);
+
+        // Draw minimized window buttons
+        int x = logicalToScreenX(8);
+        const int btnHeight = static_cast<int>(22 * m_contentScale);
+        const int btnY = logicalToScreenY(taskbarY) + (taskbarRect.h - btnHeight) / 2;
+
+        for (Window* mw : minimizedWindows) {
+            int btnWidth = std::max(80, static_cast<int>(mw->title.length() * 7 * m_contentScale));
+            SDL_SetRenderDrawColor(renderer, 70, 70, 80, 255);
+            SDL_Rect btnRect = {x, btnY, btnWidth, btnHeight};
+            SDL_RenderFillRect(renderer, &btnRect);
+
+            // Simple text for now (using the same font if available)
+            if (m_font) {
+                SDL_Color textCol = {230, 230, 235, 255};
+                SDL_Surface* s = TTF_RenderText_Blended(m_font, mw->title.c_str(), textCol);
+                if (s) {
+                    SDL_Texture* t = SDL_CreateTextureFromSurface(renderer, s);
+                    if (t) {
+                        SDL_Rect textDst = {x + 6, btnY + (btnHeight - s->h) / 2, s->w, s->h};
+                        if (textDst.w > btnWidth - 12) textDst.w = btnWidth - 12;
+                        SDL_RenderCopy(renderer, t, nullptr, &textDst);
+                        SDL_DestroyTexture(t);
+                    }
+                    SDL_FreeSurface(s);
+                }
+            }
+
+            // Store clickable area for later hit testing (simple approach: store in a temp vector)
+            // For now we'll handle clicks in handleEvent by checking y range and x ranges.
+            x += btnWidth + static_cast<int>(6 * m_contentScale);
+        }
     }
 }
 
@@ -282,17 +391,19 @@ bool WindowManager::handleTitleBarButtons(Window* window, int mouseX, int mouseY
 
     if (SDL_PointInRect(&mouse, &maxBtn)) {
         if (window->maximized) {
-            // Restore
+            // Restore previous size/position
             window->rect = window->previousRect;
             window->maximized = false;
         } else {
-            // Maximize
+            // Maximize to fill the entire current logical desktop
+            // (the title bar will sit at the top of the logical area, content fills the rest)
             window->previousRect = window->rect;
-            // For now, maximize to a large area inside the app window (we'll improve bounds later)
-            window->rect.x = 20;
-            window->rect.y = 20;
-            window->rect.w = 1200;
-            window->rect.h = 680;
+
+            window->rect.x = 0;
+            window->rect.y = 0;
+            window->rect.w = m_logicalWidth;
+            window->rect.h = m_logicalHeight;
+
             window->maximized = true;
         }
         return true;

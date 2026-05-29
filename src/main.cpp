@@ -17,15 +17,15 @@ int main(int /*argc*/, char* /*argv*/[])
         return 1;
     }
 
-    // Fixed comfortable size for now (similar to the original default).
-    // GNOME header compensation so content sits below the title bar.
-    // No higher internal resolution or scaling yet — we'll do that properly later in Settings.
+    // Fixed comfortable size (similar to the original default).
+    // No extra GNOME header compensation added to the window height anymore —
+    // the internal content will start right at the top of the SDL client area
+    // (underneath GNOME's title bar). We can tune this later if needed.
     const int LOGICAL_WIDTH = 1280;
     const int LOGICAL_HEIGHT = 720;
-    const int GNOME_HEADER_COMPENSATION = 36;   // Approximate height of GNOME header bar
 
     const int WINDOW_WIDTH  = LOGICAL_WIDTH;
-    const int WINDOW_HEIGHT = LOGICAL_HEIGHT + GNOME_HEADER_COMPENSATION; // 756
+    const int WINDOW_HEIGHT = LOGICAL_HEIGHT;   // Clean 1280x720 outer window
 
     // Outer application window is fixed size. There is deliberately no resizing logic for it.
     SDL_Window* window = SDL_CreateWindow(
@@ -42,6 +42,9 @@ int main(int /*argc*/, char* /*argv*/[])
         SDL_Quit();
         return 1;
     }
+
+    // Explicitly tell SDL/WM this window must not be resizable (more reliable than just omitting the flag on Linux)
+    SDL_SetWindowResizable(window, SDL_FALSE);
 
     SDL_Renderer* renderer = SDL_CreateRenderer(
         window,
@@ -66,14 +69,26 @@ int main(int /*argc*/, char* /*argv*/[])
     // === Window Manager Setup ===
     monolith::window::WindowManager wm;
 
-    // Load font for window titles
-    // TODO: Move this path to a config or make it more robust later
-    const char* fontPath = "assets/fonts/DejaVuSans.ttf";
-    TTF_Font* titleFont = TTF_OpenFont(fontPath, 14);
+    // Load font for window titles — try several common locations
+    TTF_Font* titleFont = nullptr;
+    const char* fontCandidates[] = {
+        "assets/fonts/DejaVuSans.ttf",
+        "/usr/share/fonts/truetype/dejavu/DejaVuSans.ttf",
+        "/usr/share/fonts/dejavu/DejaVuSans.ttf",
+        "/usr/share/fonts/truetype/DejaVuSans.ttf",
+        nullptr
+    };
+
+    for (int i = 0; fontCandidates[i] && !titleFont; ++i) {
+        titleFont = TTF_OpenFont(fontCandidates[i], 14);
+        if (titleFont) {
+            std::cout << "Loaded font from: " << fontCandidates[i] << std::endl;
+        }
+    }
+
     if (!titleFont) {
-        std::cerr << "Warning: Failed to load font at '" << fontPath << "'\n"
-                  << "         Window titles will not render until a font is provided.\n"
-                  << "         Error: " << TTF_GetError() << std::endl;
+        std::cerr << "Warning: Could not find DejaVuSans.ttf in any standard location.\n"
+                  << "         Window titles will not render. Copy a .ttf font to assets/fonts/ or install fonts-dejavu.\n";
     } else {
         wm.setFont(titleFont);
     }
@@ -84,7 +99,7 @@ int main(int /*argc*/, char* /*argv*/[])
     wm.createWindow("Editor", 550, 80, 480, 400);
 
     wm.setLogicalDesktopSize(LOGICAL_WIDTH, LOGICAL_HEIGHT);
-    wm.setHeaderOffset(GNOME_HEADER_COMPENSATION);
+    wm.setHeaderOffset(0);   // No artificial offset — content starts right at top of client area
     // No content scaling for now — logical size matches the window content area 1:1.
 
     bool running = true;
