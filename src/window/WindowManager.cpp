@@ -225,6 +225,19 @@ void WindowManager::setDesktopSize(int width, int height) {
     clampWindowsToDesktop();
 }
 
+ResizeDirection WindowManager::getResizeDirectionAt(int mouseX, int mouseY) const {
+    // Check from front to back
+    for (auto it = m_windows.rbegin(); it != m_windows.rend(); ++it) {
+        Window& win = **it;
+        if (win.minimized || win.maximized) continue;
+
+        if (SDL_PointInRect(new SDL_Point{mouseX, mouseY}, &win.rect)) {
+            return getResizeDirection(win, mouseX, mouseY);
+        }
+    }
+    return ResizeDirection::None;
+}
+
 bool WindowManager::handleTitleBarButtons(Window* window, int mouseX, int mouseY) {
     if (!window) return false;
 

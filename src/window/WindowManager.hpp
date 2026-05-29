@@ -49,6 +49,9 @@ public:
     // Tell the WindowManager the current size of the outer application window / desktop
     void setDesktopSize(int width, int height);
 
+    // Returns the resize direction at the given screen point (for cursor feedback)
+    ResizeDirection getResizeDirectionAt(int mouseX, int mouseY) const;
+
     // Close a specific window
     void closeWindow(Window* window);
 

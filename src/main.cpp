@@ -32,6 +32,7 @@ int main(int /*argc*/, char* /*argv*/[])
     }
 
     // Set a reasonable minimum size for the application window (like Linux DEs)
+    // Note: SDL_SetWindowMinimumSize is unreliable on some Linux WMs, so we enforce it manually too.
     SDL_SetWindowMinimumSize(window, 800, 600);
 
     SDL_Renderer* renderer = SDL_CreateRenderer(
@@ -46,6 +47,13 @@ int main(int /*argc*/, char* /*argv*/[])
         SDL_Quit();
         return 1;
     }
+
+    // Create system cursors for resize feedback (we'll switch these based on hover)
+    SDL_Cursor* cursorArrow     = SDL_CreateSystemCursor(SDL_SYSTEM_CURSOR_ARROW);
+    SDL_Cursor* cursorSizeWE    = SDL_CreateSystemCursor(SDL_SYSTEM_CURSOR_SIZEWE);    // left/right
+    SDL_Cursor* cursorSizeNS    = SDL_CreateSystemCursor(SDL_SYSTEM_CURSOR_SIZENS);    // top/bottom
+    SDL_Cursor* cursorSizeNWSE  = SDL_CreateSystemCursor(SDL_SYSTEM_CURSOR_SIZENWSE);  // top-left / bottom-right
+    SDL_Cursor* cursorSizeNESW  = SDL_CreateSystemCursor(SDL_SYSTEM_CURSOR_SIZENESW);  // top-right / bottom-left
 
     // === Window Manager Setup ===
     monolith::window::WindowManager wm;
@@ -81,15 +89,58 @@ int main(int /*argc*/, char* /*argv*/[])
                 running = false;
             }
 
-            // Handle outer window resizing
-            if (event.type == SDL_WINDOWEVENT && event.window.event == SDL_WINDOWEVENT_RESIZED) {
-                desktopWidth = event.window.data1;
-                desktopHeight = event.window.data2;
+            // Handle outer window resizing + enforce minimum size (SDL minimum size is flaky on Linux)
+            if (event.type == SDL_WINDOWEVENT && event.window.event == SDL_WINDOWEVENT_SIZE_CHANGED) {
+                int newW = event.window.data1;
+                int newH = event.window.data2;
+
+                const int MIN_APP_WIDTH  = 800;
+                const int MIN_APP_HEIGHT = 600;
+
+                if (newW < MIN_APP_WIDTH || newH < MIN_APP_HEIGHT) {
+                    newW = std::max(newW, MIN_APP_WIDTH);
+                    newH = std::max(newH, MIN_APP_HEIGHT);
+                    SDL_SetWindowSize(window, newW, newH);
+                }
+
+                desktopWidth = newW;
+                desktopHeight = newH;
                 wm.setDesktopSize(desktopWidth, desktopHeight);
             }
 
             // Pass events to the Window Manager
             wm.handleEvent(event);
+
+            // Update mouse cursor based on hover over internal window resize zones
+            if (event.type == SDL_MOUSEMOTION) {
+                auto dir = wm.getResizeDirectionAt(event.motion.x, event.motion.y);
+
+                SDL_Cursor* targetCursor = cursorArrow;
+
+                switch (dir) {
+                    case monolith::window::ResizeDirection::Left:
+                    case monolith::window::ResizeDirection::Right:
+                        targetCursor = cursorSizeWE;
+                        break;
+                    case monolith::window::ResizeDirection::Top:
+                    case monolith::window::ResizeDirection::Bottom:
+                        targetCursor = cursorSizeNS;
+                        break;
+                    case monolith::window::ResizeDirection::TopLeft:
+                    case monolith::window::ResizeDirection::BottomRight:
+                        targetCursor = cursorSizeNWSE;
+                        break;
+                    case monolith::window::ResizeDirection::TopRight:
+                    case monolith::window::ResizeDirection::BottomLeft:
+                        targetCursor = cursorSizeNESW;
+                        break;
+                    default:
+                        targetCursor = cursorArrow;
+                        break;
+                }
+
+                SDL_SetCursor(targetCursor);
+            }
         }
 
         wm.update();
@@ -108,6 +159,14 @@ int main(int /*argc*/, char* /*argv*/[])
         TTF_CloseFont(titleFont);
     }
     TTF_Quit();
+
+    // Clean up custom cursors
+    SDL_FreeCursor(cursorArrow);
+    SDL_FreeCursor(cursorSizeWE);
+    SDL_FreeCursor(cursorSizeNS);
+    SDL_FreeCursor(cursorSizeNWSE);
+    SDL_FreeCursor(cursorSizeNESW);
+
     SDL_DestroyRenderer(renderer);
     SDL_DestroyWindow(window);
     SDL_Quit();
