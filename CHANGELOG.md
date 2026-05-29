@@ -1,27 +1,27 @@
 # Changelog
 
-## Latest Changes (Technical Debt Cleanup)
+## Latest Changes
 
-### Fixed / Removed
-- **Major stability improvement: Title texture caching**
-  - Window titles (and taskbar text) are no longer recreated from scratch every single frame.
-  - Added a simple per-window title texture cache. Textures are only regenerated when the title text or focus state actually changes.
-  - This directly eliminates the X11 `BadAlloc` crash that occurred after ~30 seconds of runtime due to excessive texture/surface allocation.
+### Desktop Shell Improvements
 
-- **Memory leaks eliminated**
-  - Removed all instances of `new SDL_Point` in hot paths (`getWindowAt`, `isInTitleBar`, `getResizeDirectionAt`).
-  - Replaced with stack-allocated `SDL_Point` to prevent leaks on every mouse event and render frame.
+- **Taskbar is now always visible** (like a real desktop environment)
+  - Left: "Start" button (placeholder menu with basic items)
+  - Center: Buttons for currently minimized windows
+  - Right: Live system clock (12-hour AM/PM format)
 
-- **Cleaned up compiler warnings**
-  - Removed unused `btnHeight` variable.
+- **Click to restore minimized windows now works reliably**
+  - Clicking a minimized window's entry in the taskbar now correctly restores it and brings it to the front.
+  - Fixed by reordering mouse-down handling so global UI elements (taskbar + Start Menu) are checked *before* any internal window hit testing.
 
-### Improved
-- `setFont()` now properly invalidates the title texture cache when the font changes.
-- `closeWindow()` now correctly destroys any cached title texture for the closed window.
+- **Start Menu placeholder**
+  - Clicking the Start button toggles a simple popup menu.
+  - Clicking outside the menu or on the taskbar closes it.
+  - Contains placeholder items for future functionality.
 
-### Impact
-- Significantly reduced CPU and GPU resource usage during normal operation.
-- Long-running sessions are now stable (no more sudden X11 resource exhaustion).
-- Better foundation for future performance work.
+- **Improved taskbar click handling**
+  - Uses exact screen-space rectangles recorded during rendering for accurate hit testing.
+  - Start Menu and taskbar interactions no longer conflict with internal window dragging/resizing.
 
-All outer window resize/min-size logic remains removed (as previously cleaned up). Internal window system (8-direction resize, buttons, taskbar, etc.) is unchanged.
+### Notes
+- Internal window system (8-direction resize, drag, z-order, title bar buttons, etc.) remains fully functional.
+- All outer application window resizing logic continues to be disabled (fixed-size window mode).

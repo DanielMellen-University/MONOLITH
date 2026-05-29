@@ -120,8 +120,18 @@ private:
     // Pixels from top of SDL window that are occupied by GNOME's client-side title bar
     int m_headerOffset = 36;
 
-    // Scale to map logical 1920x1080 content into the actual window size
+    // Scale to map logical content into the actual window size
     float m_contentScale = 1.0f;
+
+    // Taskbar button hit testing (populated during render each frame)
+    struct TaskbarEntry {
+        SDL_Rect rect;
+        Window* window;
+    };
+    std::vector<TaskbarEntry> m_taskbarEntries;
+
+    // Start menu state (placeholder)
+    bool m_showStartMenu = false;
 
     // Bring a window to the front of the z-order
     void bringToFront(Window* window);

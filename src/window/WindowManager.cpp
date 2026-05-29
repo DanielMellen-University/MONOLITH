@@ -31,6 +31,47 @@ void WindowManager::handleEvent(const SDL_Event& event) {
 
     const int logicalMouseY = screenToLogicalY(m_mouseY);
 
+    // === Global UI first: Taskbar + Start Menu (must be checked even if click misses all windows) ===
+    if (event.type == SDL_MOUSEBUTTONDOWN && event.button.button == SDL_BUTTON_LEFT) {
+        m_mouseDown = true;
+        m_mouseX = event.button.x;
+        m_mouseY = event.button.y;
+
+        const int taskbarHeight = 28;
+        const int taskbarScreenY = logicalToScreenY(m_logicalHeight - taskbarHeight);
+        const int taskbarScreenBottom = logicalToScreenY(m_logicalHeight);
+
+        if (m_mouseY >= taskbarScreenY && m_mouseY < taskbarScreenBottom) {
+            // Start button
+            int startBtnScreenWidth = static_cast<int>(70 * m_contentScale);
+            int startBtnScreenX = logicalToScreenX(8);
+
+            if (m_mouseX >= startBtnScreenX && m_mouseX < startBtnScreenX + startBtnScreenWidth) {
+                m_showStartMenu = !m_showStartMenu;
+                return;
+            }
+
+            // Minimized windows in taskbar
+            for (const auto& entry : m_taskbarEntries) {
+                SDL_Point p = {m_mouseX, m_mouseY};
+                if (SDL_PointInRect(&p, &entry.rect)) {
+                    if (entry.window) {
+                        entry.window->minimized = false;
+                        bringToFront(entry.window);
+                        m_showStartMenu = false;
+                    }
+                    return;
+                }
+            }
+
+            m_showStartMenu = false;
+            return;
+        } else {
+            m_showStartMenu = false;
+        }
+    }
+
+    // === Normal internal window interaction ===
     if (event.type == SDL_MOUSEBUTTONDOWN && event.button.button == SDL_BUTTON_LEFT) {
         m_mouseDown = true;
         m_mouseX = event.button.x;
@@ -41,14 +82,14 @@ void WindowManager::handleEvent(const SDL_Event& event) {
 
         bringToFront(clicked);
 
-        // === Priority 1: Title bar buttons (highest priority) ===
+        // === Priority 1: Title bar buttons ===
         if (isInTitleBar(*clicked, m_mouseX, logicalMouseY)) {
             if (handleTitleBarButtons(clicked, m_mouseX, logicalMouseY)) {
-                return; // Button was clicked
+                return;
             }
         }
 
-        // === Priority 2: Resize borders (all 8 directions, including top edge/corners) ===
+        // === Priority 2: Resize borders ===
         ResizeDirection dir = getResizeDirection(*clicked, m_mouseX, logicalMouseY);
         if (dir != ResizeDirection::None && !clicked->maximized) {
             m_resizingWindow = clicked;
@@ -56,42 +97,13 @@ void WindowManager::handleEvent(const SDL_Event& event) {
             return;
         }
 
-        // === Priority 3: Title bar drag (only if not on buttons and not on resize zone) ===
+        // === Priority 3: Title bar drag ===
         if (isInTitleBar(*clicked, m_mouseX, logicalMouseY)) {
             m_draggedWindow = clicked;
             clicked->beingDragged = true;
             clicked->dragOffsetX = m_mouseX - clicked->rect.x;
             clicked->dragOffsetY = logicalMouseY - clicked->rect.y;
             return;
-        }
-    }
-
-    // === Taskbar clicks (restore minimized windows) ===
-    if (event.type == SDL_MOUSEBUTTONDOWN && event.button.button == SDL_BUTTON_LEFT) {
-        const int taskbarHeight = 28;
-        const int taskbarY = m_logicalHeight - taskbarHeight;
-
-        if (logicalMouseY >= taskbarY && logicalMouseY < m_logicalHeight) {
-            // Rebuild the list of minimized windows in the same order as render
-            std::vector<Window*> minimizedWindows;
-            for (auto& w : m_windows) {
-                if (w->minimized) minimizedWindows.push_back(w.get());
-            }
-
-            int x = 8;
-            const int spacing = 6;
-
-            for (Window* mw : minimizedWindows) {
-                int btnWidth = std::max(80, static_cast<int>(mw->title.length() * 7));
-                if (m_mouseX >= x && m_mouseX < x + btnWidth &&
-                    logicalMouseY >= taskbarY && logicalMouseY < taskbarY + taskbarHeight) {
-                    // Restore this window
-                    mw->minimized = false;
-                    bringToFront(mw);
-                    return;
-                }
-                x += btnWidth + spacing;
-            }
         }
     }
 
@@ -256,56 +268,140 @@ void WindowManager::render(SDL_Renderer* renderer) {
         SDL_RenderDrawRect(renderer, &screenRect);
     }
 
-    // === Very basic taskbar for minimized windows (temporary until proper taskbar exists) ===
-    std::vector<Window*> minimizedWindows;
-    for (auto& w : m_windows) {
-        if (w->minimized) minimizedWindows.push_back(w.get());
-    }
+    // === Start Menu popup (very basic placeholder) ===
+    if (m_showStartMenu) {
+        const int menuWidth = 200;
+        const int menuHeight = 280;
+        const int menuX = logicalToScreenX(8);
+        const int menuY = logicalToScreenY(m_logicalHeight - 28 - menuHeight); // above taskbar
 
-    if (!minimizedWindows.empty()) {
-        const int taskbarHeight = 28;
-        const int taskbarY = m_logicalHeight - taskbarHeight; // bottom of logical area
-
-        // Draw taskbar background
-        SDL_SetRenderDrawColor(renderer, 35, 35, 40, 255);
-        SDL_Rect taskbarRect = {
-            logicalToScreenX(0),
-            logicalToScreenY(taskbarY),
-            static_cast<int>(m_logicalWidth * m_contentScale),
-            static_cast<int>(taskbarHeight * m_contentScale)
+        SDL_SetRenderDrawColor(renderer, 45, 45, 55, 255);
+        SDL_Rect menuRect = {
+            menuX,
+            menuY,
+            static_cast<int>(menuWidth * m_contentScale),
+            static_cast<int>(menuHeight * m_contentScale)
         };
-        SDL_RenderFillRect(renderer, &taskbarRect);
+        SDL_RenderFillRect(renderer, &menuRect);
 
-        // Draw minimized window buttons
-        int x = logicalToScreenX(8);
-        const int btnHeight = static_cast<int>(22 * m_contentScale);
-        const int btnY = logicalToScreenY(taskbarY) + (taskbarRect.h - btnHeight) / 2;
+        SDL_SetRenderDrawColor(renderer, 80, 80, 90, 255);
+        SDL_RenderDrawRect(renderer, &menuRect);
 
-        for (Window* mw : minimizedWindows) {
-            int btnWidth = std::max(80, static_cast<int>(mw->title.length() * 7 * m_contentScale));
-            SDL_SetRenderDrawColor(renderer, 70, 70, 80, 255);
-            SDL_Rect btnRect = {x, btnY, btnWidth, btnHeight};
-            SDL_RenderFillRect(renderer, &btnRect);
-
-            // Simple text for now (using the same font if available)
-            if (m_font) {
-                SDL_Color textCol = {230, 230, 235, 255};
-                SDL_Surface* s = TTF_RenderText_Blended(m_font, mw->title.c_str(), textCol);
+        if (m_font) {
+            SDL_Color textCol = {230, 230, 235, 255};
+            const char* items[] = {"Terminal", "Filesystem", "Settings", "About Monolith", "Shut Down"};
+            int y = menuY + static_cast<int>(10 * m_contentScale);
+            for (const char* item : items) {
+                SDL_Surface* s = TTF_RenderText_Blended(m_font, item, textCol);
                 if (s) {
                     SDL_Texture* t = SDL_CreateTextureFromSurface(renderer, s);
                     if (t) {
-                        SDL_Rect textDst = {x + 6, btnY + (btnHeight - s->h) / 2, s->w, s->h};
-                        if (textDst.w > btnWidth - 12) textDst.w = btnWidth - 12;
-                        SDL_RenderCopy(renderer, t, nullptr, &textDst);
+                        SDL_Rect dst = {menuX + static_cast<int>(12 * m_contentScale), y, s->w, s->h};
+                        SDL_RenderCopy(renderer, t, nullptr, &dst);
                         SDL_DestroyTexture(t);
                     }
+                    y += static_cast<int>(28 * m_contentScale);
                     SDL_FreeSurface(s);
                 }
             }
+        }
+    }
 
-            // Store clickable area for later hit testing (simple approach: store in a temp vector)
-            // For now we'll handle clicks in handleEvent by checking y range and x ranges.
-            x += btnWidth + static_cast<int>(6 * m_contentScale);
+    // === Taskbar (always visible, like a real desktop) ===
+    m_taskbarEntries.clear();
+
+    const int taskbarHeight = 28;
+    const int taskbarY = m_logicalHeight - taskbarHeight;
+
+    // Draw taskbar background
+    SDL_SetRenderDrawColor(renderer, 35, 35, 40, 255);
+    SDL_Rect taskbarRect = {
+        logicalToScreenX(0),
+        logicalToScreenY(taskbarY),
+        static_cast<int>(m_logicalWidth * m_contentScale),
+        static_cast<int>(taskbarHeight * m_contentScale)
+    };
+    SDL_RenderFillRect(renderer, &taskbarRect);
+
+    // --- Left: Start Menu button (placeholder) ---
+    int x = logicalToScreenX(8);
+    const int startBtnWidth = static_cast<int>(70 * m_contentScale);
+    const int btnHeight = static_cast<int>(22 * m_contentScale);
+    const int btnY = logicalToScreenY(taskbarY) + (taskbarRect.h - btnHeight) / 2;
+
+    SDL_SetRenderDrawColor(renderer, 60, 90, 150, 255); // blue-ish start button
+    SDL_Rect startBtn = {x, btnY, startBtnWidth, btnHeight};
+    SDL_RenderFillRect(renderer, &startBtn);
+
+    if (m_font) {
+        SDL_Color textCol = {255, 255, 255, 255};
+        SDL_Surface* s = TTF_RenderText_Blended(m_font, "Start", textCol);
+        if (s) {
+            SDL_Texture* t = SDL_CreateTextureFromSurface(renderer, s);
+            if (t) {
+                SDL_Rect dst = {x + 8, btnY + (btnHeight - s->h) / 2, s->w, s->h};
+                SDL_RenderCopy(renderer, t, nullptr, &dst);
+                SDL_DestroyTexture(t);
+            }
+            SDL_FreeSurface(s);
+        }
+    }
+
+    // Store start button for clicking (we'll treat it specially)
+    // For simplicity, we'll handle it with a magic x range in handleEvent for now.
+
+    x += startBtnWidth + static_cast<int>(8 * m_contentScale);
+
+    // --- Middle: Minimized windows ---
+    for (auto& w : m_windows) {
+        if (!w->minimized) continue;
+
+        int btnWidth = std::max(90, static_cast<int>(w->title.length() * 7 * m_contentScale));
+        SDL_SetRenderDrawColor(renderer, 70, 70, 80, 255);
+        SDL_Rect btnRect = {x, btnY, btnWidth, btnHeight};
+        SDL_RenderFillRect(renderer, &btnRect);
+
+        if (m_font) {
+            SDL_Color textCol = {230, 230, 235, 255};
+            SDL_Surface* s = TTF_RenderText_Blended(m_font, w->title.c_str(), textCol);
+            if (s) {
+                SDL_Texture* t = SDL_CreateTextureFromSurface(renderer, s);
+                if (t) {
+                    SDL_Rect textDst = {x + 6, btnY + (btnHeight - s->h) / 2, s->w, s->h};
+                    if (textDst.w > btnWidth - 12) textDst.w = btnWidth - 12;
+                    SDL_RenderCopy(renderer, t, nullptr, &textDst);
+                    SDL_DestroyTexture(t);
+                }
+                SDL_FreeSurface(s);
+            }
+        }
+
+        // Record for click handling
+        m_taskbarEntries.push_back({btnRect, w.get()});
+        x += btnWidth + static_cast<int>(6 * m_contentScale);
+    }
+
+    // --- Right: System clock (12-hour AM/PM) ---
+    {
+        time_t now = time(nullptr);
+        struct tm* tm_info = localtime(&now);
+        char timeStr[32];
+        strftime(timeStr, sizeof(timeStr), "%I:%M %p", tm_info);
+
+        if (m_font) {
+            SDL_Color textCol = {230, 230, 235, 255};
+            SDL_Surface* s = TTF_RenderText_Blended(m_font, timeStr, textCol);
+            if (s) {
+                SDL_Texture* t = SDL_CreateTextureFromSurface(renderer, s);
+                if (t) {
+                    int clockX = logicalToScreenX(m_logicalWidth) - s->w - static_cast<int>(12 * m_contentScale);
+                    int clockY = btnY + (btnHeight - s->h) / 2;
+                    SDL_Rect dst = {clockX, clockY, s->w, s->h};
+                    SDL_RenderCopy(renderer, t, nullptr, &dst);
+                    SDL_DestroyTexture(t);
+                }
+                SDL_FreeSurface(s);
+            }
         }
     }
 }
