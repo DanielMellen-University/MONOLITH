@@ -46,6 +46,9 @@ public:
     // Set the font used for rendering window titles
     void setFont(TTF_Font* font);
 
+    // Tell the WindowManager the current size of the outer application window / desktop
+    void setDesktopSize(int width, int height);
+
     // Close a specific window
     void closeWindow(Window* window);
 
@@ -57,6 +60,10 @@ public:
 
     // Apply resize based on current direction
     void applyResize(Window* window, int mouseX, int mouseY);
+
+    // Ensure all windows have their title bars (and thus buttons) at least partially visible
+    void clampWindowsToDesktop();
+    void clampSingleWindow(Window& w);
 
 private:
     std::vector<std::unique_ptr<Window>> m_windows;
@@ -79,6 +86,10 @@ private:
 
     // Font used for window titles (not owned by WindowManager)
     TTF_Font* m_font = nullptr;
+
+    // Current desktop / application window size (used for clamping windows)
+    int m_desktopWidth = 1280;
+    int m_desktopHeight = 720;
 
     // Bring a window to the front of the z-order
     void bringToFront(Window* window);

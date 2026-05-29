@@ -31,6 +31,9 @@ int main(int /*argc*/, char* /*argv*/[])
         return 1;
     }
 
+    // Set a reasonable minimum size for the application window (like Linux DEs)
+    SDL_SetWindowMinimumSize(window, 800, 600);
+
     SDL_Renderer* renderer = SDL_CreateRenderer(
         window,
         -1,
@@ -64,6 +67,11 @@ int main(int /*argc*/, char* /*argv*/[])
     wm.createWindow("Filesystem", 300, 180, 420, 280);
     wm.createWindow("Editor", 550, 80, 480, 400);
 
+    // Track current desktop size (adapts when user resizes the application window)
+    int desktopWidth = 1280;
+    int desktopHeight = 720;
+    wm.setDesktopSize(desktopWidth, desktopHeight);
+
     bool running = true;
     SDL_Event event;
 
@@ -71,6 +79,13 @@ int main(int /*argc*/, char* /*argv*/[])
         while (SDL_PollEvent(&event)) {
             if (event.type == SDL_QUIT) {
                 running = false;
+            }
+
+            // Handle outer window resizing
+            if (event.type == SDL_WINDOWEVENT && event.window.event == SDL_WINDOWEVENT_RESIZED) {
+                desktopWidth = event.window.data1;
+                desktopHeight = event.window.data2;
+                wm.setDesktopSize(desktopWidth, desktopHeight);
             }
 
             // Pass events to the Window Manager

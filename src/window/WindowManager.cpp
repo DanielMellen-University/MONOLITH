@@ -39,25 +39,28 @@ void WindowManager::handleEvent(const SDL_Event& event) {
 
         bringToFront(clicked);
 
-        // === Priority 1: Title bar buttons ===
+        // === Priority 1: Title bar buttons (highest priority) ===
         if (isInTitleBar(*clicked, m_mouseX, m_mouseY)) {
             if (handleTitleBarButtons(clicked, m_mouseX, m_mouseY)) {
-                return; // Button was clicked, don't start drag/resize
+                return; // Button was clicked
             }
-
-            // Not on a button → start dragging the window
-            m_draggedWindow = clicked;
-            clicked->beingDragged = true;
-            clicked->dragOffsetX = m_mouseX - clicked->rect.x;
-            clicked->dragOffsetY = m_mouseY - clicked->rect.y;
-            return;
         }
 
-        // === Priority 2: Resize borders ===
+        // === Priority 2: Resize borders (all 8 directions, including top edge/corners) ===
+        // This check happens before title bar drag so you can resize from the top
         ResizeDirection dir = getResizeDirection(*clicked, m_mouseX, m_mouseY);
         if (dir != ResizeDirection::None && !clicked->maximized) {
             m_resizingWindow = clicked;
             m_resizeDirection = dir;
+            return;
+        }
+
+        // === Priority 3: Title bar drag (only if not on buttons and not on resize zone) ===
+        if (isInTitleBar(*clicked, m_mouseX, m_mouseY)) {
+            m_draggedWindow = clicked;
+            clicked->beingDragged = true;
+            clicked->dragOffsetX = m_mouseX - clicked->rect.x;
+            clicked->dragOffsetY = m_mouseY - clicked->rect.y;
             return;
         }
     }
@@ -81,10 +84,14 @@ void WindowManager::update() {
     if (m_draggedWindow && m_mouseDown) {
         m_draggedWindow->rect.x = m_mouseX - m_draggedWindow->dragOffsetX;
         m_draggedWindow->rect.y = m_mouseY - m_draggedWindow->dragOffsetY;
+
+        // Prevent user from dragging the window so far that buttons become inaccessible
+        clampSingleWindow(*m_draggedWindow);
     }
 
     if (m_resizingWindow && m_mouseDown) {
         applyResize(m_resizingWindow, m_mouseX, m_mouseY);
+        clampSingleWindow(*m_resizingWindow);
     }
 }
 
@@ -210,6 +217,14 @@ void WindowManager::setFont(TTF_Font* font) {
     m_font = font;
 }
 
+void WindowManager::setDesktopSize(int width, int height) {
+    m_desktopWidth = width;
+    m_desktopHeight = height;
+
+    // When the outer window is resized, make sure internal windows don't lose access to their buttons
+    clampWindowsToDesktop();
+}
+
 bool WindowManager::handleTitleBarButtons(Window* window, int mouseX, int mouseY) {
     if (!window) return false;
 
@@ -256,7 +271,7 @@ bool WindowManager::handleTitleBarButtons(Window* window, int mouseX, int mouseY
 }
 
 ResizeDirection WindowManager::getResizeDirection(const Window& window, int mouseX, int mouseY) const {
-    const int border = 6; // Resize border thickness
+    const int border = 8; // Resize border thickness (slightly generous for usability)
 
     const int left   = window.rect.x;
     const int right  = window.rect.x + window.rect.w;
@@ -331,6 +346,15 @@ void WindowManager::applyResize(Window* window, int mouseX, int mouseY) {
     // Enforce minimum size
     if (r.w < minW) r.w = minW;
     if (r.h < minH) r.h = minH;
+
+    // Keep title bar roughly in bounds while resizing (so buttons stay accessible)
+    if (r.y < 0) r.y = 0;
+    if (r.y + Window::TITLE_BAR_HEIGHT > m_desktopHeight) {
+        r.y = m_desktopHeight - Window::TITLE_BAR_HEIGHT;
+    }
+    if (r.x + r.w < 60) {
+        r.x = 60 - r.w;
+    }
 }
 
 void WindowManager::closeWindow(Window* window) {
@@ -348,6 +372,47 @@ void WindowManager::closeWindow(Window* window) {
         }
         m_windows.erase(it);
     }
+}
+
+void WindowManager::clampWindowsToDesktop() {
+    for (auto& winPtr : m_windows) {
+        if (winPtr) {
+            clampSingleWindow(*winPtr);
+        }
+    }
+}
+
+void WindowManager::clampSingleWindow(Window& w) {
+    if (w.minimized) return;
+
+    const int titleH = Window::TITLE_BAR_HEIGHT;
+    const int minButtonSpace = 80;
+
+    SDL_Rect& r = w.rect;
+
+    // Vertical - title bar fully visible
+    if (r.y < 0) r.y = 0;
+    if (r.y + titleH > m_desktopHeight) {
+        r.y = m_desktopHeight - titleH;
+    }
+
+    // Horizontal - buttons must stay visible
+    if (r.x + r.w < minButtonSpace) {
+        r.x = minButtonSpace - r.w;
+    }
+    if (r.x > m_desktopWidth - minButtonSpace) {
+        r.x = m_desktopWidth - minButtonSpace;
+    }
+
+    // Shrink if bigger than current desktop
+    if (r.w > m_desktopWidth)  r.w = std::max(Window::MIN_WIDTH, m_desktopWidth);
+    if (r.h > m_desktopHeight) r.h = std::max(Window::MIN_HEIGHT + titleH, m_desktopHeight);
+
+    // Final bounds correction
+    if (r.x < 0) r.x = 0;
+    if (r.y < 0) r.y = 0;
+    if (r.x + r.w > m_desktopWidth)  r.x = m_desktopWidth - r.w;
+    if (r.y + titleH > m_desktopHeight) r.y = m_desktopHeight - titleH;
 }
 
 } // namespace monolith::window
