@@ -17,6 +17,10 @@ struct Window {
     SDL_Rect rect{0, 0, 400, 300};
 
     bool minimized = false;
+    bool maximized = false;
+
+    // Stored rect for restoring after maximize
+    SDL_Rect previousRect{0, 0, 0, 0};
 
     // For dragging
     bool beingDragged = false;
@@ -25,6 +29,10 @@ struct Window {
 
     // Title bar height (fixed for now)
     static constexpr int TITLE_BAR_HEIGHT = 32;
+
+    // Minimum window size
+    static constexpr int MIN_WIDTH = 200;
+    static constexpr int MIN_HEIGHT = 120;
 };
 
 } // namespace monolith::window

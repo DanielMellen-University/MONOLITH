@@ -35,16 +35,30 @@ void WindowManager::handleEvent(const SDL_Event& event) {
         m_mouseY = event.button.y;
 
         Window* clicked = getWindowAt(m_mouseX, m_mouseY);
-        if (clicked) {
-            bringToFront(clicked);
+        if (!clicked) return;
 
-            // Start dragging if clicking the title bar
-            if (isInTitleBar(*clicked, m_mouseX, m_mouseY)) {
-                m_draggedWindow = clicked;
-                clicked->beingDragged = true;
-                clicked->dragOffsetX = m_mouseX - clicked->rect.x;
-                clicked->dragOffsetY = m_mouseY - clicked->rect.y;
+        bringToFront(clicked);
+
+        // === Priority 1: Title bar buttons ===
+        if (isInTitleBar(*clicked, m_mouseX, m_mouseY)) {
+            if (handleTitleBarButtons(clicked, m_mouseX, m_mouseY)) {
+                return; // Button was clicked, don't start drag/resize
             }
+
+            // Not on a button → start dragging the window
+            m_draggedWindow = clicked;
+            clicked->beingDragged = true;
+            clicked->dragOffsetX = m_mouseX - clicked->rect.x;
+            clicked->dragOffsetY = m_mouseY - clicked->rect.y;
+            return;
+        }
+
+        // === Priority 2: Resize borders ===
+        ResizeDirection dir = getResizeDirection(*clicked, m_mouseX, m_mouseY);
+        if (dir != ResizeDirection::None && !clicked->maximized) {
+            m_resizingWindow = clicked;
+            m_resizeDirection = dir;
+            return;
         }
     }
 
@@ -55,6 +69,11 @@ void WindowManager::handleEvent(const SDL_Event& event) {
             m_draggedWindow->beingDragged = false;
             m_draggedWindow = nullptr;
         }
+
+        if (m_resizingWindow) {
+            m_resizingWindow = nullptr;
+            m_resizeDirection = ResizeDirection::None;
+        }
     }
 }
 
@@ -62,6 +81,10 @@ void WindowManager::update() {
     if (m_draggedWindow && m_mouseDown) {
         m_draggedWindow->rect.x = m_mouseX - m_draggedWindow->dragOffsetX;
         m_draggedWindow->rect.y = m_mouseY - m_draggedWindow->dragOffsetY;
+    }
+
+    if (m_resizingWindow && m_mouseDown) {
+        applyResize(m_resizingWindow, m_mouseX, m_mouseY);
     }
 }
 
@@ -185,6 +208,146 @@ bool WindowManager::isInTitleBar(const Window& window, int x, int y) const {
 
 void WindowManager::setFont(TTF_Font* font) {
     m_font = font;
+}
+
+bool WindowManager::handleTitleBarButtons(Window* window, int mouseX, int mouseY) {
+    if (!window) return false;
+
+    const int buttonSize = 16;
+    const int buttonSpacing = 6;
+    const int rightEdge = window->rect.x + window->rect.w - 10;
+    const int buttonY = window->rect.y + (Window::TITLE_BAR_HEIGHT - buttonSize) / 2;
+
+    SDL_Rect closeBtn   = {rightEdge - buttonSize,                           buttonY, buttonSize, buttonSize};
+    SDL_Rect maxBtn     = {rightEdge - buttonSize * 2 - buttonSpacing,       buttonY, buttonSize, buttonSize};
+    SDL_Rect minBtn     = {rightEdge - buttonSize * 3 - buttonSpacing * 2,   buttonY, buttonSize, buttonSize};
+
+    SDL_Point mouse = {mouseX, mouseY};
+
+    if (SDL_PointInRect(&mouse, &closeBtn)) {
+        closeWindow(window);
+        return true;
+    }
+
+    if (SDL_PointInRect(&mouse, &maxBtn)) {
+        if (window->maximized) {
+            // Restore
+            window->rect = window->previousRect;
+            window->maximized = false;
+        } else {
+            // Maximize
+            window->previousRect = window->rect;
+            // For now, maximize to a large area inside the app window (we'll improve bounds later)
+            window->rect.x = 20;
+            window->rect.y = 20;
+            window->rect.w = 1200;
+            window->rect.h = 680;
+            window->maximized = true;
+        }
+        return true;
+    }
+
+    if (SDL_PointInRect(&mouse, &minBtn)) {
+        window->minimized = true;
+        return true;
+    }
+
+    return false;
+}
+
+ResizeDirection WindowManager::getResizeDirection(const Window& window, int mouseX, int mouseY) const {
+    const int border = 6; // Resize border thickness
+
+    const int left   = window.rect.x;
+    const int right  = window.rect.x + window.rect.w;
+    const int top    = window.rect.y;
+    const int bottom = window.rect.y + window.rect.h;
+
+    bool onLeft   = mouseX >= left && mouseX <= left + border;
+    bool onRight  = mouseX >= right - border && mouseX <= right;
+    bool onTop    = mouseY >= top && mouseY <= top + border;
+    bool onBottom = mouseY >= bottom - border && mouseY <= bottom;
+
+    if (onLeft && onTop)     return ResizeDirection::TopLeft;
+    if (onRight && onTop)    return ResizeDirection::TopRight;
+    if (onLeft && onBottom)  return ResizeDirection::BottomLeft;
+    if (onRight && onBottom) return ResizeDirection::BottomRight;
+
+    if (onLeft)   return ResizeDirection::Left;
+    if (onRight)  return ResizeDirection::Right;
+    if (onTop)    return ResizeDirection::Top;
+    if (onBottom) return ResizeDirection::Bottom;
+
+    return ResizeDirection::None;
+}
+
+void WindowManager::applyResize(Window* window, int mouseX, int mouseY) {
+    if (!window || m_resizeDirection == ResizeDirection::None) return;
+
+    int minW = Window::MIN_WIDTH;
+    int minH = Window::MIN_HEIGHT + Window::TITLE_BAR_HEIGHT;
+
+    SDL_Rect& r = window->rect;
+
+    switch (m_resizeDirection) {
+        case ResizeDirection::Left:
+            r.w = r.x + r.w - mouseX;
+            r.x = mouseX;
+            break;
+        case ResizeDirection::Right:
+            r.w = mouseX - r.x;
+            break;
+        case ResizeDirection::Top:
+            r.h = r.y + r.h - mouseY;
+            r.y = mouseY;
+            break;
+        case ResizeDirection::Bottom:
+            r.h = mouseY - r.y;
+            break;
+        case ResizeDirection::TopLeft:
+            r.w = r.x + r.w - mouseX;
+            r.h = r.y + r.h - mouseY;
+            r.x = mouseX;
+            r.y = mouseY;
+            break;
+        case ResizeDirection::TopRight:
+            r.w = mouseX - r.x;
+            r.h = r.y + r.h - mouseY;
+            r.y = mouseY;
+            break;
+        case ResizeDirection::BottomLeft:
+            r.w = r.x + r.w - mouseX;
+            r.h = mouseY - r.y;
+            r.x = mouseX;
+            break;
+        case ResizeDirection::BottomRight:
+            r.w = mouseX - r.x;
+            r.h = mouseY - r.y;
+            break;
+        default:
+            break;
+    }
+
+    // Enforce minimum size
+    if (r.w < minW) r.w = minW;
+    if (r.h < minH) r.h = minH;
+}
+
+void WindowManager::closeWindow(Window* window) {
+    if (!window) return;
+
+    auto it = std::find_if(m_windows.begin(), m_windows.end(),
+        [window](const auto& w) { return w.get() == window; });
+
+    if (it != m_windows.end()) {
+        if (m_focusedWindow == window) m_focusedWindow = nullptr;
+        if (m_draggedWindow == window) m_draggedWindow = nullptr;
+        if (m_resizingWindow == window) {
+            m_resizingWindow = nullptr;
+            m_resizeDirection = ResizeDirection::None;
+        }
+        m_windows.erase(it);
+    }
 }
 
 } // namespace monolith::window

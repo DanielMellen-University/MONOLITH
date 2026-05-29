@@ -8,6 +8,12 @@
 
 namespace monolith::window {
 
+enum class ResizeDirection {
+    None,
+    Left, Right, Top, Bottom,
+    TopLeft, TopRight, BottomLeft, BottomRight
+};
+
 /**
  * The WindowManager is responsible for:
  * - Owning all windows
@@ -40,6 +46,18 @@ public:
     // Set the font used for rendering window titles
     void setFont(TTF_Font* font);
 
+    // Close a specific window
+    void closeWindow(Window* window);
+
+    // Handle button clicks in title bar
+    bool handleTitleBarButtons(Window* window, int mouseX, int mouseY);
+
+    // Get which resize direction the mouse is over (if any)
+    ResizeDirection getResizeDirection(const Window& window, int mouseX, int mouseY) const;
+
+    // Apply resize based on current direction
+    void applyResize(Window* window, int mouseX, int mouseY);
+
 private:
     std::vector<std::unique_ptr<Window>> m_windows;
     int m_nextId = 0;
@@ -50,7 +68,11 @@ private:
     // Window being dragged (if any)
     Window* m_draggedWindow = nullptr;
 
-    // Mouse state for dragging
+    // Window being resized + direction
+    Window* m_resizingWindow = nullptr;
+    ResizeDirection m_resizeDirection = ResizeDirection::None;
+
+    // Mouse state
     int m_mouseX = 0;
     int m_mouseY = 0;
     bool m_mouseDown = false;
