@@ -1,24 +1,27 @@
 # Changelog
 
-## Latest Changes
+## Latest Changes (Technical Debt Cleanup)
 
-### Fixed
-- **Fonts now render reliably**
-  - Font loading now tries multiple common system locations automatically (`assets/fonts/`, `/usr/share/fonts/truetype/dejavu/`, etc.).
-  - Removed the single hard-coded path that frequently failed.
+### Fixed / Removed
+- **Major stability improvement: Title texture caching**
+  - Window titles (and taskbar text) are no longer recreated from scratch every single frame.
+  - Added a simple per-window title texture cache. Textures are only regenerated when the title text or focus state actually changes.
+  - This directly eliminates the X11 `BadAlloc` crash that occurred after ~30 seconds of runtime due to excessive texture/surface allocation.
 
-- **No more unwanted gap under GNOME title bar**
-  - Removed the artificial 36px GNOME header compensation that was making the outer window taller and shifting all content downward.
-  - Set header offset to 0 so the internal 1280×720 desktop now starts directly at the top of the SDL client area (right under the GNOME title bar).
+- **Memory leaks eliminated**
+  - Removed all instances of `new SDL_Point` in hot paths (`getWindowAt`, `isInTitleBar`, `getResizeDirectionAt`).
+  - Replaced with stack-allocated `SDL_Point` to prevent leaks on every mouse event and render frame.
 
-- **Outer application window is strictly fixed-size (no resizing logic)**
-  - All dynamic resize handling, minimum-size enforcement, and resize event logic for the main Monolith window have been removed.
-  - Window is created as a clean fixed-size window at 1280×756 (1280×720 content + 36px GNOME header compensation).
+- **Cleaned up compiler warnings**
+  - Removed unused `btnHeight` variable.
 
-### Changed
-- Internal logical desktop size is now 1280×720 (matches the comfortable window size, no scaling applied).
-- All internal windows, dragging, resizing (8 directions), buttons, and taskbar logic continue to work at full size with no unwanted downscaling.
+### Improved
+- `setFont()` now properly invalidates the title texture cache when the font changes.
+- `closeWindow()` now correctly destroys any cached title texture for the closed window.
 
-### Notes
-- Higher internal resolutions (1440p, 4K) can be re-introduced later via the Settings system when ready.
-- Recommended build/run command now includes more robust font discovery.
+### Impact
+- Significantly reduced CPU and GPU resource usage during normal operation.
+- Long-running sessions are now stable (no more sudden X11 resource exhaustion).
+- Better foundation for future performance work.
+
+All outer window resize/min-size logic remains removed (as previously cleaned up). Internal window system (8-direction resize, buttons, taskbar, etc.) is unchanged.

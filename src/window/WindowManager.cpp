@@ -173,33 +173,49 @@ void WindowManager::render(SDL_Renderer* renderer) {
         SDL_Rect titleBar = {screenX, screenY, scaledW, scaledTitleH};
         SDL_RenderFillRect(renderer, &titleBar);
 
-        // === Window title text ===
+        // === Window title text (cached) ===
         if (m_font && !win.title.empty()) {
-            SDL_Color textColor = {220, 220, 225, 255};
-            SDL_Surface* textSurface = TTF_RenderText_Blended(m_font, win.title.c_str(), textColor);
-            if (textSurface) {
-                SDL_Texture* textTexture = SDL_CreateTextureFromSurface(renderer, textSurface);
+            auto& cache = m_titleCache[win.id];
+            bool needsUpdate = (cache.texture == nullptr) ||
+                               (cache.lastTitle != win.title) ||
+                               (cache.wasFocused != isFocused);
 
-                int textWidth = textSurface->w;
-                int textHeight = textSurface->h;
+            if (needsUpdate) {
+                if (cache.texture) {
+                    SDL_DestroyTexture(cache.texture);
+                }
 
-                // Position text on the left side of the title bar with padding
+                SDL_Color textColor = isFocused ? SDL_Color{230, 230, 235, 255}
+                                                : SDL_Color{180, 180, 185, 255};
+
+                SDL_Surface* surface = TTF_RenderText_Blended(m_font, win.title.c_str(), textColor);
+                if (surface) {
+                    cache.texture = SDL_CreateTextureFromSurface(renderer, surface);
+                    SDL_FreeSurface(surface);
+                }
+                cache.lastTitle = win.title;
+                cache.wasFocused = isFocused;
+            }
+
+            if (cache.texture) {
+                int texW, texH;
+                SDL_QueryTexture(cache.texture, nullptr, nullptr, &texW, &texH);
+
                 int paddingLeft = 10;
                 int availableWidth = scaledW - 80;
 
-                int textX = screenX + paddingLeft;
-                int textY = screenY + (scaledTitleH - textHeight) / 2;
+                SDL_Rect dstRect = {
+                    screenX + paddingLeft,
+                    screenY + (scaledTitleH - texH) / 2,
+                    texW,
+                    texH
+                };
 
-                // Simple truncation if title is too long
-                SDL_Rect dstRect = {textX, textY, textWidth, textHeight};
-                if (textWidth > availableWidth) {
+                if (texW > availableWidth) {
                     dstRect.w = availableWidth;
                 }
 
-                SDL_RenderCopy(renderer, textTexture, nullptr, &dstRect);
-
-                SDL_DestroyTexture(textTexture);
-                SDL_FreeSurface(textSurface);
+                SDL_RenderCopy(renderer, cache.texture, nullptr, &dstRect);
             }
         }
 
@@ -301,10 +317,9 @@ Window* WindowManager::getWindowAt(int mouseX, int mouseY) {
     for (auto it = m_windows.rbegin(); it != m_windows.rend(); ++it) {
         Window& win = **it;
         if (!win.minimized) {
-            // Build a logical-space rect for hit testing
             SDL_Rect logicalRect = win.rect;
-            // Note: win.rect is already stored in logical coordinates
-            if (SDL_PointInRect(new SDL_Point{mouseX, logicalMouseY}, &logicalRect)) {
+            SDL_Point p = {mouseX, logicalMouseY};
+            if (SDL_PointInRect(&p, &logicalRect)) {
                 return &win;
             }
         }
@@ -334,10 +349,20 @@ bool WindowManager::isInTitleBar(const Window& window, int x, int y) const {
         window.rect.w,
         Window::TITLE_BAR_HEIGHT
     };
-    return SDL_PointInRect(new SDL_Point{x, y}, &titleBar);
+    SDL_Point p = {x, y};
+    return SDL_PointInRect(&p, &titleBar);
 }
 
 void WindowManager::setFont(TTF_Font* font) {
+    if (m_font != font) {
+        // Invalidate all title caches when font changes
+        for (auto& [id, entry] : m_titleCache) {
+            if (entry.texture) {
+                SDL_DestroyTexture(entry.texture);
+            }
+        }
+        m_titleCache.clear();
+    }
     m_font = font;
 }
 
@@ -363,7 +388,8 @@ ResizeDirection WindowManager::getResizeDirectionAt(int mouseX, int mouseY) cons
         Window& win = **it;
         if (win.minimized || win.maximized) continue;
 
-        if (SDL_PointInRect(new SDL_Point{mouseX, mouseY}, &win.rect)) {
+        SDL_Point p = {mouseX, mouseY};
+        if (SDL_PointInRect(&p, &win.rect)) {
             return getResizeDirection(win, mouseX, mouseY);
         }
     }
@@ -574,6 +600,16 @@ void WindowManager::closeWindow(Window* window) {
             m_resizingWindow = nullptr;
             m_resizeDirection = ResizeDirection::None;
         }
+
+        // Clean up cached title texture
+        auto cacheIt = m_titleCache.find(window->id);
+        if (cacheIt != m_titleCache.end()) {
+            if (cacheIt->second.texture) {
+                SDL_DestroyTexture(cacheIt->second.texture);
+            }
+            m_titleCache.erase(cacheIt);
+        }
+
         m_windows.erase(it);
     }
 }
