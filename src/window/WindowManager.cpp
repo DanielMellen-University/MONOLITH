@@ -34,21 +34,22 @@ void WindowManager::handleEvent(const SDL_Event& event) {
         m_mouseX = event.button.x;
         m_mouseY = event.button.y;
 
+        const int logicalMouseY = screenToLogicalY(m_mouseY);
+
         Window* clicked = getWindowAt(m_mouseX, m_mouseY);
         if (!clicked) return;
 
         bringToFront(clicked);
 
         // === Priority 1: Title bar buttons (highest priority) ===
-        if (isInTitleBar(*clicked, m_mouseX, m_mouseY)) {
-            if (handleTitleBarButtons(clicked, m_mouseX, m_mouseY)) {
+        if (isInTitleBar(*clicked, m_mouseX, logicalMouseY)) {
+            if (handleTitleBarButtons(clicked, m_mouseX, logicalMouseY)) {
                 return; // Button was clicked
             }
         }
 
         // === Priority 2: Resize borders (all 8 directions, including top edge/corners) ===
-        // This check happens before title bar drag so you can resize from the top
-        ResizeDirection dir = getResizeDirection(*clicked, m_mouseX, m_mouseY);
+        ResizeDirection dir = getResizeDirection(*clicked, m_mouseX, logicalMouseY);
         if (dir != ResizeDirection::None && !clicked->maximized) {
             m_resizingWindow = clicked;
             m_resizeDirection = dir;
@@ -56,11 +57,11 @@ void WindowManager::handleEvent(const SDL_Event& event) {
         }
 
         // === Priority 3: Title bar drag (only if not on buttons and not on resize zone) ===
-        if (isInTitleBar(*clicked, m_mouseX, m_mouseY)) {
+        if (isInTitleBar(*clicked, m_mouseX, logicalMouseY)) {
             m_draggedWindow = clicked;
             clicked->beingDragged = true;
             clicked->dragOffsetX = m_mouseX - clicked->rect.x;
-            clicked->dragOffsetY = m_mouseY - clicked->rect.y;
+            clicked->dragOffsetY = logicalMouseY - clicked->rect.y;
             return;
         }
     }
@@ -81,16 +82,18 @@ void WindowManager::handleEvent(const SDL_Event& event) {
 }
 
 void WindowManager::update() {
+    const int logicalMouseY = screenToLogicalY(m_mouseY);
+
     if (m_draggedWindow && m_mouseDown) {
         m_draggedWindow->rect.x = m_mouseX - m_draggedWindow->dragOffsetX;
-        m_draggedWindow->rect.y = m_mouseY - m_draggedWindow->dragOffsetY;
+        m_draggedWindow->rect.y = logicalMouseY - m_draggedWindow->dragOffsetY;
 
         // Prevent user from dragging the window so far that buttons become inaccessible
         clampSingleWindow(*m_draggedWindow);
     }
 
     if (m_resizingWindow && m_mouseDown) {
-        applyResize(m_resizingWindow, m_mouseX, m_mouseY);
+        applyResize(m_resizingWindow, m_mouseX, logicalMouseY);
         clampSingleWindow(*m_resizingWindow);
     }
 }
@@ -102,11 +105,17 @@ void WindowManager::render(SDL_Renderer* renderer) {
 
         if (win.minimized) continue;
 
+        // Convert logical window rect to screen coordinates (shifted down by GNOME header + scaled)
+        const int screenX = logicalToScreenX(win.rect.x);
+        const int screenY = logicalToScreenY(win.rect.y);
+
+        const int scaledW = static_cast<int>(win.rect.w * m_contentScale);
+        const int scaledH = static_cast<int>(win.rect.h * m_contentScale);
+        const int scaledTitleH = static_cast<int>(Window::TITLE_BAR_HEIGHT * m_contentScale);
+
         // === Window background (content area) ===
         SDL_SetRenderDrawColor(renderer, 45, 45, 50, 255);
-        SDL_Rect contentRect = win.rect;
-        contentRect.y += Window::TITLE_BAR_HEIGHT;
-        contentRect.h -= Window::TITLE_BAR_HEIGHT;
+        SDL_Rect contentRect = {screenX, screenY + scaledTitleH, scaledW, scaledH - scaledTitleH};
         SDL_RenderFillRect(renderer, &contentRect);
 
         // === Title bar ===
@@ -115,7 +124,7 @@ void WindowManager::render(SDL_Renderer* renderer) {
                                          : SDL_Color{40, 40, 48, 255};
 
         SDL_SetRenderDrawColor(renderer, titleColor.r, titleColor.g, titleColor.b, 255);
-        SDL_Rect titleBar = {win.rect.x, win.rect.y, win.rect.w, Window::TITLE_BAR_HEIGHT};
+        SDL_Rect titleBar = {screenX, screenY, scaledW, scaledTitleH};
         SDL_RenderFillRect(renderer, &titleBar);
 
         // === Window title text ===
@@ -130,10 +139,10 @@ void WindowManager::render(SDL_Renderer* renderer) {
 
                 // Position text on the left side of the title bar with padding
                 int paddingLeft = 10;
-                int availableWidth = win.rect.w - 120; // leave room for buttons
+                int availableWidth = scaledW - 80;
 
-                int textX = win.rect.x + paddingLeft;
-                int textY = win.rect.y + (Window::TITLE_BAR_HEIGHT - textHeight) / 2;
+                int textX = screenX + paddingLeft;
+                int textY = screenY + (scaledTitleH - textHeight) / 2;
 
                 // Simple truncation if title is too long
                 SDL_Rect dstRect = {textX, textY, textWidth, textHeight};
@@ -149,10 +158,10 @@ void WindowManager::render(SDL_Renderer* renderer) {
         }
 
         // === Fake window buttons (close, minimize, maximize) ===
-        int buttonSize = 16;
-        int buttonY = win.rect.y + (Window::TITLE_BAR_HEIGHT - buttonSize) / 2;
-        int buttonSpacing = 6;
-        int rightEdge = win.rect.x + win.rect.w - 10;
+        int buttonSize = static_cast<int>(16 * m_contentScale);
+        int buttonY = screenY + (scaledTitleH - buttonSize) / 2;
+        int buttonSpacing = static_cast<int>(6 * m_contentScale);
+        int rightEdge = screenX + scaledW - static_cast<int>(10 * m_contentScale);
 
         // Close button (red)
         SDL_SetRenderDrawColor(renderer, 200, 60, 60, 255);
@@ -169,20 +178,26 @@ void WindowManager::render(SDL_Renderer* renderer) {
         SDL_Rect minBtn = {rightEdge - buttonSize * 3 - buttonSpacing * 2, buttonY, buttonSize, buttonSize};
         SDL_RenderFillRect(renderer, &minBtn);
 
-        // === Window border ===
+        // === Window border (drawn in screen coordinates) ===
+        SDL_Rect screenRect = {screenX, screenY, scaledW, scaledH};
         SDL_SetRenderDrawColor(renderer, 30, 30, 35, 255);
-        SDL_RenderDrawRect(renderer, &win.rect);
+        SDL_RenderDrawRect(renderer, &screenRect);
     }
 }
 
 Window* WindowManager::getWindowAt(int mouseX, int mouseY) {
+    const int logicalMouseY = screenToLogicalY(mouseY);
+
     // Check from front to back (focused window first)
     for (auto it = m_windows.rbegin(); it != m_windows.rend(); ++it) {
         Window& win = **it;
-        if (!win.minimized && SDL_PointInRect(
-                new SDL_Point{mouseX, mouseY},
-                &win.rect)) {
-            return &win;
+        if (!win.minimized) {
+            // Build a logical-space rect for hit testing
+            SDL_Rect logicalRect = win.rect;
+            // Note: win.rect is already stored in logical coordinates
+            if (SDL_PointInRect(new SDL_Point{mouseX, logicalMouseY}, &logicalRect)) {
+                return &win;
+            }
         }
     }
     return nullptr;
@@ -217,12 +232,20 @@ void WindowManager::setFont(TTF_Font* font) {
     m_font = font;
 }
 
-void WindowManager::setDesktopSize(int width, int height) {
-    m_desktopWidth = width;
-    m_desktopHeight = height;
+void WindowManager::setLogicalDesktopSize(int width, int height) {
+    m_logicalWidth = width;
+    m_logicalHeight = height;
 
-    // When the outer window is resized, make sure internal windows don't lose access to their buttons
+    // Re-clamp when logical size changes
     clampWindowsToDesktop();
+}
+
+void WindowManager::setHeaderOffset(int offsetY) {
+    m_headerOffset = offsetY;
+}
+
+void WindowManager::setContentScale(float scale) {
+    m_contentScale = scale;
 }
 
 ResizeDirection WindowManager::getResizeDirectionAt(int mouseX, int mouseY) const {
@@ -312,58 +335,115 @@ ResizeDirection WindowManager::getResizeDirection(const Window& window, int mous
 void WindowManager::applyResize(Window* window, int mouseX, int mouseY) {
     if (!window || m_resizeDirection == ResizeDirection::None) return;
 
-    int minW = Window::MIN_WIDTH;
-    int minH = Window::MIN_HEIGHT + Window::TITLE_BAR_HEIGHT;
+    const int minW = Window::MIN_WIDTH;
+    const int minH = Window::MIN_HEIGHT + Window::TITLE_BAR_HEIGHT;
 
     SDL_Rect& r = window->rect;
 
+    // Compute new dimensions while respecting minimums.
+    // This prevents the window edge from ever moving past the min size
+    // (the edge "stops" even if the user keeps dragging the mouse).
+    int newX = r.x;
+    int newY = r.y;
+    int newW = r.w;
+    int newH = r.h;
+
     switch (m_resizeDirection) {
-        case ResizeDirection::Left:
-            r.w = r.x + r.w - mouseX;
-            r.x = mouseX;
+        case ResizeDirection::Left: {
+            int tentativeW = r.x + r.w - mouseX;
+            if (tentativeW < minW) {
+                newX = r.x + r.w - minW;
+                newW = minW;
+            } else {
+                newX = mouseX;
+                newW = tentativeW;
+            }
             break;
-        case ResizeDirection::Right:
-            r.w = mouseX - r.x;
+        }
+        case ResizeDirection::Right: {
+            int tentativeW = mouseX - r.x;
+            newW = std::max(minW, tentativeW);
             break;
-        case ResizeDirection::Top:
-            r.h = r.y + r.h - mouseY;
-            r.y = mouseY;
+        }
+        case ResizeDirection::Top: {
+            int tentativeH = r.y + r.h - mouseY;
+            if (tentativeH < minH) {
+                newY = r.y + r.h - minH;
+                newH = minH;
+            } else {
+                newY = mouseY;
+                newH = tentativeH;
+            }
             break;
-        case ResizeDirection::Bottom:
-            r.h = mouseY - r.y;
+        }
+        case ResizeDirection::Bottom: {
+            int tentativeH = mouseY - r.y;
+            newH = std::max(minH, tentativeH);
             break;
-        case ResizeDirection::TopLeft:
-            r.w = r.x + r.w - mouseX;
-            r.h = r.y + r.h - mouseY;
-            r.x = mouseX;
-            r.y = mouseY;
+        }
+        case ResizeDirection::TopLeft: {
+            // Horizontal
+            int tentativeW = r.x + r.w - mouseX;
+            if (tentativeW < minW) {
+                newX = r.x + r.w - minW;
+                newW = minW;
+            } else {
+                newX = mouseX;
+                newW = tentativeW;
+            }
+            // Vertical
+            int tentativeH = r.y + r.h - mouseY;
+            if (tentativeH < minH) {
+                newY = r.y + r.h - minH;
+                newH = minH;
+            } else {
+                newY = mouseY;
+                newH = tentativeH;
+            }
             break;
-        case ResizeDirection::TopRight:
-            r.w = mouseX - r.x;
-            r.h = r.y + r.h - mouseY;
-            r.y = mouseY;
+        }
+        case ResizeDirection::TopRight: {
+            newW = std::max(minW, mouseX - r.x);
+            int tentativeH = r.y + r.h - mouseY;
+            if (tentativeH < minH) {
+                newY = r.y + r.h - minH;
+                newH = minH;
+            } else {
+                newY = mouseY;
+                newH = tentativeH;
+            }
             break;
-        case ResizeDirection::BottomLeft:
-            r.w = r.x + r.w - mouseX;
-            r.h = mouseY - r.y;
-            r.x = mouseX;
+        }
+        case ResizeDirection::BottomLeft: {
+            int tentativeW = r.x + r.w - mouseX;
+            if (tentativeW < minW) {
+                newX = r.x + r.w - minW;
+                newW = minW;
+            } else {
+                newX = mouseX;
+                newW = tentativeW;
+            }
+            newH = std::max(minH, mouseY - r.y);
             break;
-        case ResizeDirection::BottomRight:
-            r.w = mouseX - r.x;
-            r.h = mouseY - r.y;
+        }
+        case ResizeDirection::BottomRight: {
+            newW = std::max(minW, mouseX - r.x);
+            newH = std::max(minH, mouseY - r.y);
             break;
+        }
         default:
             break;
     }
 
-    // Enforce minimum size
-    if (r.w < minW) r.w = minW;
-    if (r.h < minH) r.h = minH;
+    r.x = newX;
+    r.y = newY;
+    r.w = newW;
+    r.h = newH;
 
-    // Keep title bar roughly in bounds while resizing (so buttons stay accessible)
+    // Additional safety to keep title bar + buttons accessible
     if (r.y < 0) r.y = 0;
-    if (r.y + Window::TITLE_BAR_HEIGHT > m_desktopHeight) {
-        r.y = m_desktopHeight - Window::TITLE_BAR_HEIGHT;
+    if (r.y + Window::TITLE_BAR_HEIGHT > m_logicalHeight) {
+        r.y = m_logicalHeight - Window::TITLE_BAR_HEIGHT;
     }
     if (r.x + r.w < 60) {
         r.x = 60 - r.w;
@@ -405,27 +485,27 @@ void WindowManager::clampSingleWindow(Window& w) {
 
     // Vertical - title bar fully visible
     if (r.y < 0) r.y = 0;
-    if (r.y + titleH > m_desktopHeight) {
-        r.y = m_desktopHeight - titleH;
+    if (r.y + titleH > m_logicalHeight) {
+        r.y = m_logicalHeight - titleH;
     }
 
     // Horizontal - buttons must stay visible
     if (r.x + r.w < minButtonSpace) {
         r.x = minButtonSpace - r.w;
     }
-    if (r.x > m_desktopWidth - minButtonSpace) {
-        r.x = m_desktopWidth - minButtonSpace;
+    if (r.x > m_logicalWidth - minButtonSpace) {
+        r.x = m_logicalWidth - minButtonSpace;
     }
 
     // Shrink if bigger than current desktop
-    if (r.w > m_desktopWidth)  r.w = std::max(Window::MIN_WIDTH, m_desktopWidth);
-    if (r.h > m_desktopHeight) r.h = std::max(Window::MIN_HEIGHT + titleH, m_desktopHeight);
+    if (r.w > m_logicalWidth)  r.w = std::max(Window::MIN_WIDTH, m_logicalWidth);
+    if (r.h > m_logicalHeight) r.h = std::max(Window::MIN_HEIGHT + titleH, m_logicalHeight);
 
     // Final bounds correction
     if (r.x < 0) r.x = 0;
     if (r.y < 0) r.y = 0;
-    if (r.x + r.w > m_desktopWidth)  r.x = m_desktopWidth - r.w;
-    if (r.y + titleH > m_desktopHeight) r.y = m_desktopHeight - titleH;
+    if (r.x + r.w > m_logicalWidth)  r.x = m_logicalWidth - r.w;
+    if (r.y + titleH > m_logicalHeight) r.y = m_logicalHeight - titleH;
 }
 
 } // namespace monolith::window

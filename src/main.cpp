@@ -17,12 +17,24 @@ int main(int /*argc*/, char* /*argv*/[])
         return 1;
     }
 
+    // Fixed comfortable size for now (similar to the original default).
+    // GNOME header compensation so content sits below the title bar.
+    // No higher internal resolution or scaling yet — we'll do that properly later in Settings.
+    const int LOGICAL_WIDTH = 1280;
+    const int LOGICAL_HEIGHT = 720;
+    const int GNOME_HEADER_COMPENSATION = 36;   // Approximate height of GNOME header bar
+
+    const int WINDOW_WIDTH  = LOGICAL_WIDTH;
+    const int WINDOW_HEIGHT = LOGICAL_HEIGHT + GNOME_HEADER_COMPENSATION; // 756
+
+    // Outer application window is fixed size. There is deliberately no resizing logic for it.
     SDL_Window* window = SDL_CreateWindow(
         "Monolith",
         SDL_WINDOWPOS_CENTERED,
         SDL_WINDOWPOS_CENTERED,
-        1280, 720,
-        SDL_WINDOW_SHOWN | SDL_WINDOW_RESIZABLE
+        WINDOW_WIDTH,
+        WINDOW_HEIGHT,
+        SDL_WINDOW_SHOWN
     );
 
     if (!window) {
@@ -30,10 +42,6 @@ int main(int /*argc*/, char* /*argv*/[])
         SDL_Quit();
         return 1;
     }
-
-    // Set a reasonable minimum size for the application window (like Linux DEs)
-    // Note: SDL_SetWindowMinimumSize is unreliable on some Linux WMs, so we enforce it manually too.
-    SDL_SetWindowMinimumSize(window, 800, 600);
 
     SDL_Renderer* renderer = SDL_CreateRenderer(
         window,
@@ -75,10 +83,9 @@ int main(int /*argc*/, char* /*argv*/[])
     wm.createWindow("Filesystem", 300, 180, 420, 280);
     wm.createWindow("Editor", 550, 80, 480, 400);
 
-    // Track current desktop size (adapts when user resizes the application window)
-    int desktopWidth = 1280;
-    int desktopHeight = 720;
-    wm.setDesktopSize(desktopWidth, desktopHeight);
+    wm.setLogicalDesktopSize(LOGICAL_WIDTH, LOGICAL_HEIGHT);
+    wm.setHeaderOffset(GNOME_HEADER_COMPENSATION);
+    // No content scaling for now — logical size matches the window content area 1:1.
 
     bool running = true;
     SDL_Event event;
@@ -89,26 +96,7 @@ int main(int /*argc*/, char* /*argv*/[])
                 running = false;
             }
 
-            // Handle outer window resizing + enforce minimum size (SDL minimum size is flaky on Linux)
-            if (event.type == SDL_WINDOWEVENT && event.window.event == SDL_WINDOWEVENT_SIZE_CHANGED) {
-                int newW = event.window.data1;
-                int newH = event.window.data2;
-
-                const int MIN_APP_WIDTH  = 800;
-                const int MIN_APP_HEIGHT = 600;
-
-                if (newW < MIN_APP_WIDTH || newH < MIN_APP_HEIGHT) {
-                    newW = std::max(newW, MIN_APP_WIDTH);
-                    newH = std::max(newH, MIN_APP_HEIGHT);
-                    SDL_SetWindowSize(window, newW, newH);
-                }
-
-                desktopWidth = newW;
-                desktopHeight = newH;
-                wm.setDesktopSize(desktopWidth, desktopHeight);
-            }
-
-            // Pass events to the Window Manager
+            // Pass events to the Window Manager (internal windows only)
             wm.handleEvent(event);
 
             // Update mouse cursor based on hover over internal window resize zones

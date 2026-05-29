@@ -46,8 +46,14 @@ public:
     // Set the font used for rendering window titles
     void setFont(TTF_Font* font);
 
-    // Tell the WindowManager the current size of the outer application window / desktop
-    void setDesktopSize(int width, int height);
+    // Set the logical internal desktop size (e.g. 1920x1080)
+    void setLogicalDesktopSize(int width, int height);
+
+    // Set how many pixels from the top of the SDL window are "eaten" by GNOME's title bar
+    void setHeaderOffset(int offsetY);
+
+    // Set the scale factor to draw the logical 1920x1080 content into the actual window
+    void setContentScale(float scale);
 
     // Returns the resize direction at the given screen point (for cursor feedback)
     ResizeDirection getResizeDirectionAt(int mouseX, int mouseY) const;
@@ -67,6 +73,13 @@ public:
     // Ensure all windows have their title bars (and thus buttons) at least partially visible
     void clampWindowsToDesktop();
     void clampSingleWindow(Window& w);
+
+    // Coordinate conversion helpers (screen <-> logical internal 1920x1080 space)
+    int screenToLogicalX(int screenX) const { return static_cast<int>(screenX / m_contentScale); }
+    int screenToLogicalY(int screenY) const { return static_cast<int>((screenY - m_headerOffset) / m_contentScale); }
+
+    int logicalToScreenX(int logicalX) const { return static_cast<int>(logicalX * m_contentScale); }
+    int logicalToScreenY(int logicalY) const { return static_cast<int>(logicalY * m_contentScale + m_headerOffset); }
 
 private:
     std::vector<std::unique_ptr<Window>> m_windows;
@@ -90,9 +103,15 @@ private:
     // Font used for window titles (not owned by WindowManager)
     TTF_Font* m_font = nullptr;
 
-    // Current desktop / application window size (used for clamping windows)
-    int m_desktopWidth = 1280;
-    int m_desktopHeight = 720;
+    // Logical internal desktop size (e.g. 1920x1080)
+    int m_logicalWidth = 1920;
+    int m_logicalHeight = 1080;
+
+    // Pixels from top of SDL window that are occupied by GNOME's client-side title bar
+    int m_headerOffset = 36;
+
+    // Scale to map logical 1920x1080 content into the actual window size
+    float m_contentScale = 1.0f;
 
     // Bring a window to the front of the z-order
     void bringToFront(Window* window);
