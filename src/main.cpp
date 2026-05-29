@@ -1,4 +1,5 @@
 #include <SDL2/SDL.h>
+#include <SDL2/SDL_ttf.h>
 #include <iostream>
 
 #include "window/WindowManager.hpp"
@@ -7,6 +8,12 @@ int main(int /*argc*/, char* /*argv*/[])
 {
     if (SDL_Init(SDL_INIT_VIDEO) != 0) {
         std::cerr << "SDL_Init Error: " << SDL_GetError() << std::endl;
+        return 1;
+    }
+
+    if (TTF_Init() != 0) {
+        std::cerr << "TTF_Init Error: " << TTF_GetError() << std::endl;
+        SDL_Quit();
         return 1;
     }
 
@@ -40,6 +47,18 @@ int main(int /*argc*/, char* /*argv*/[])
     // === Window Manager Setup ===
     monolith::window::WindowManager wm;
 
+    // Load font for window titles
+    // TODO: Move this path to a config or make it more robust later
+    const char* fontPath = "assets/fonts/DejaVuSans.ttf";
+    TTF_Font* titleFont = TTF_OpenFont(fontPath, 14);
+    if (!titleFont) {
+        std::cerr << "Warning: Failed to load font at '" << fontPath << "'\n"
+                  << "         Window titles will not render until a font is provided.\n"
+                  << "         Error: " << TTF_GetError() << std::endl;
+    } else {
+        wm.setFont(titleFont);
+    }
+
     // Create some test windows so we can see the system working
     wm.createWindow("Terminal", 100, 100, 500, 350);
     wm.createWindow("Filesystem", 300, 180, 420, 280);
@@ -70,6 +89,10 @@ int main(int /*argc*/, char* /*argv*/[])
         SDL_RenderPresent(renderer);
     }
 
+    if (titleFont) {
+        TTF_CloseFont(titleFont);
+    }
+    TTF_Quit();
     SDL_DestroyRenderer(renderer);
     SDL_DestroyWindow(window);
     SDL_Quit();

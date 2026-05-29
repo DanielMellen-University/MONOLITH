@@ -88,6 +88,36 @@ void WindowManager::render(SDL_Renderer* renderer) {
         SDL_Rect titleBar = {win.rect.x, win.rect.y, win.rect.w, Window::TITLE_BAR_HEIGHT};
         SDL_RenderFillRect(renderer, &titleBar);
 
+        // === Window title text ===
+        if (m_font && !win.title.empty()) {
+            SDL_Color textColor = {220, 220, 225, 255};
+            SDL_Surface* textSurface = TTF_RenderText_Blended(m_font, win.title.c_str(), textColor);
+            if (textSurface) {
+                SDL_Texture* textTexture = SDL_CreateTextureFromSurface(renderer, textSurface);
+
+                int textWidth = textSurface->w;
+                int textHeight = textSurface->h;
+
+                // Position text on the left side of the title bar with padding
+                int paddingLeft = 10;
+                int availableWidth = win.rect.w - 120; // leave room for buttons
+
+                int textX = win.rect.x + paddingLeft;
+                int textY = win.rect.y + (Window::TITLE_BAR_HEIGHT - textHeight) / 2;
+
+                // Simple truncation if title is too long
+                SDL_Rect dstRect = {textX, textY, textWidth, textHeight};
+                if (textWidth > availableWidth) {
+                    dstRect.w = availableWidth;
+                }
+
+                SDL_RenderCopy(renderer, textTexture, nullptr, &dstRect);
+
+                SDL_DestroyTexture(textTexture);
+                SDL_FreeSurface(textSurface);
+            }
+        }
+
         // === Fake window buttons (close, minimize, maximize) ===
         int buttonSize = 16;
         int buttonY = win.rect.y + (Window::TITLE_BAR_HEIGHT - buttonSize) / 2;
@@ -151,6 +181,10 @@ bool WindowManager::isInTitleBar(const Window& window, int x, int y) const {
         Window::TITLE_BAR_HEIGHT
     };
     return SDL_PointInRect(new SDL_Point{x, y}, &titleBar);
+}
+
+void WindowManager::setFont(TTF_Font* font) {
+    m_font = font;
 }
 
 } // namespace monolith::window

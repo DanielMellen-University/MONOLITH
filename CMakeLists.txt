@@ -8,14 +8,21 @@ set(CMAKE_CXX_EXTENSIONS OFF)
 # Find SDL2
 find_package(SDL2 REQUIRED)
 
+# Find SDL2_ttf using pkg-config (more reliable across distros)
+find_package(PkgConfig REQUIRED)
+pkg_check_modules(SDL2_TTF REQUIRED SDL2_ttf)
+
 add_executable(monolith
     src/main.cpp
     src/window/WindowManager.cpp
 )
 
+target_include_directories(monolith PRIVATE ${SDL2_TTF_INCLUDE_DIRS})
+
 target_link_libraries(monolith
     PRIVATE
         SDL2::SDL2
+        ${SDL2_TTF_LIBRARIES}
 )
 
 # Helpful warnings

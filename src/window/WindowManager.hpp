@@ -2,6 +2,7 @@
 
 #include "Window.hpp"
 #include <SDL2/SDL.h>
+#include <SDL2/SDL_ttf.h>
 #include <memory>
 #include <vector>
 
@@ -36,6 +37,9 @@ public:
     // Get the window currently under the mouse (if any)
     Window* getWindowAt(int mouseX, int mouseY);
 
+    // Set the font used for rendering window titles
+    void setFont(TTF_Font* font);
+
 private:
     std::vector<std::unique_ptr<Window>> m_windows;
     int m_nextId = 0;
@@ -50,6 +54,9 @@ private:
     int m_mouseX = 0;
     int m_mouseY = 0;
     bool m_mouseDown = false;
+
+    // Font used for window titles (not owned by WindowManager)
+    TTF_Font* m_font = nullptr;
 
     // Bring a window to the front of the z-order
     void bringToFront(Window* window);
