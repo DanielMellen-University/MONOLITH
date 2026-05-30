@@ -34,7 +34,8 @@ private:
 
     TTF_Font* m_font = nullptr;
 
-    std::vector<std::string> m_history;   // All output lines (oldest first)
+    std::vector<std::string> m_history;          // Output history (what is displayed)
+    std::vector<std::string> m_commandHistory;   // Commands the user has entered (for 'history' cmd)
     std::string m_inputBuffer;
     std::string m_prompt = "> ";
 

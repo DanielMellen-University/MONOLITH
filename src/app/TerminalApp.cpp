@@ -1,6 +1,8 @@
 #include "TerminalApp.hpp"
 #include <algorithm>
 #include <cctype>
+#include <ctime>
+#include <iomanip>
 #include <sstream>
 
 namespace monolith::app {
@@ -26,6 +28,7 @@ void TerminalApp::submitInput() {
     addOutput(m_prompt + command);
 
     if (!command.empty()) {
+        m_commandHistory.push_back(command);
         executeCommand(command);
     } else {
         addOutput(""); // blank line for empty input
@@ -52,10 +55,54 @@ void TerminalApp::executeCommand(const std::string& commandLine) {
     }
     else if (cmd == "help") {
         addOutput("Available commands:");
-        addOutput("  echo <text>   - Print text");
-        addOutput("  clear         - Clear the screen");
-        addOutput("  help          - Show this message");
-        addOutput("  exit / quit   - Close this terminal");
+        addOutput("  echo <text>     - Print text");
+        addOutput("  clear           - Clear the screen");
+        addOutput("  date            - Show current date and time");
+        addOutput("  whoami          - Print current user");
+        addOutput("  version         - Show Monolith version");
+        addOutput("  ls              - List directory contents");
+        addOutput("  pwd             - Print working directory");
+        addOutput("  history         - Show command history");
+        addOutput("  help            - Show this message");
+        addOutput("  exit / quit     - Close this terminal");
+    }
+    else if (cmd == "date") {
+        std::time_t now = std::time(nullptr);
+        std::string timeStr = std::ctime(&now);
+        // ctime adds a trailing newline
+        if (!timeStr.empty() && timeStr.back() == '\n') {
+            timeStr.pop_back();
+        }
+        addOutput(timeStr);
+    }
+    else if (cmd == "whoami") {
+        addOutput("monolith");
+    }
+    else if (cmd == "version" || cmd == "ver") {
+        addOutput("Monolith Terminal v0.1");
+        addOutput("Built on SDL2 + custom window manager");
+    }
+    else if (cmd == "ls") {
+        addOutput("Documents");
+        addOutput("Desktop");
+        addOutput("Downloads");
+        addOutput("Pictures");
+        addOutput("Music");
+        addOutput("Projects");
+    }
+    else if (cmd == "pwd") {
+        addOutput("/home/monolith");
+    }
+    else if (cmd == "history") {
+        if (m_commandHistory.empty()) {
+            addOutput("No commands in history yet.");
+        } else {
+            for (size_t i = 0; i < m_commandHistory.size(); ++i) {
+                std::ostringstream line;
+                line << std::setw(4) << (i + 1) << "  " << m_commandHistory[i];
+                addOutput(line.str());
+            }
+        }
     }
     else if (cmd == "exit" || cmd == "quit") {
         if (auto* ctrl = getController()) {
