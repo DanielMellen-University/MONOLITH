@@ -1,6 +1,7 @@
 #pragma once
 
 #include "App.hpp"
+#include "../fs/Filesystem.hpp"
 #include <SDL2/SDL.h>
 #include <SDL2/SDL_ttf.h>
 #include <string>
@@ -14,7 +15,7 @@ namespace monolith::app {
  */
 class TerminalApp : public App {
 public:
-    explicit TerminalApp(TTF_Font* font);
+    TerminalApp(TTF_Font* font, monolith::fs::Filesystem* fs = nullptr);
     ~TerminalApp() override = default;
 
     void render(SDL_Renderer* renderer, const SDL_Rect& contentRect) override;
@@ -32,7 +33,13 @@ private:
     int getLineHeight() const;
     int getMaxVisibleLines(const SDL_Rect& contentRect) const;
 
+    // Filesystem helpers
+    std::string resolvePath(const std::string& path) const;
+
     TTF_Font* m_font = nullptr;
+
+    monolith::fs::Filesystem* m_fs = nullptr;
+    std::string m_cwd = "/home/monolith";
 
     std::vector<std::string> m_history;          // Output history (what is displayed)
     std::vector<std::string> m_commandHistory;   // Commands the user has entered (for 'history' cmd)

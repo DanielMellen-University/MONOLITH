@@ -18,6 +18,9 @@ add_executable(monolith
 
     # App implementations
     src/app/TerminalApp.cpp
+
+    # Filesystem
+    src/fs/Filesystem.cpp
 )
 
 target_include_directories(monolith PRIVATE ${SDL2_TTF_INCLUDE_DIRS})

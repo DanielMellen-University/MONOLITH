@@ -6,6 +6,7 @@
 #include "window/WindowManager.hpp"
 #include "app/App.hpp"
 #include "app/TerminalApp.hpp"
+#include "fs/Filesystem.hpp"
 
 int main(int /*argc*/, char* /*argv*/[])
 {
@@ -140,11 +141,27 @@ int main(int /*argc*/, char* /*argv*/[])
         }
     };
 
+    // === Filesystem (shared with Terminal) ===
+    const char* home = std::getenv("HOME");
+    std::string fsRoot = home ? std::string(home) + "/.monolith/fs" : "./monolith_fs";
+    monolith::fs::Filesystem monolithFs(fsRoot);
+    bool fsReady = monolithFs.initialize();
+    if (fsReady) {
+        std::cout << "Filesystem initialized at: " << monolithFs.hostRoot() << std::endl;
+        monolithFs.createDirectory("/home/monolith");
+        monolithFs.createDirectory("/home/monolith/documents");
+        if (!monolithFs.exists("/home/monolith/welcome.txt")) {
+            monolithFs.writeFile("/home/monolith/welcome.txt", "Welcome to Monolith's filesystem!\n");
+        }
+    } else {
+        std::cerr << "Failed to initialize filesystem at: " << fsRoot << std::endl;
+    }
+
     // Create some test windows.
-    // The first one is now a real Terminal (if font loaded successfully).
+    // The first one is now a real Terminal connected to the filesystem.
     if (titleFont) {
         wm.createWindow("Terminal", 100, 100, 520, 380,
-                        std::make_unique<monolith::app::TerminalApp>(titleFont));
+                        std::make_unique<monolith::app::TerminalApp>(titleFont, fsReady ? &monolithFs : nullptr));
     } else {
         wm.createWindow("Terminal", 100, 100, 520, 380);
     }

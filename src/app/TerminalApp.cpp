@@ -7,8 +7,8 @@
 
 namespace monolith::app {
 
-TerminalApp::TerminalApp(TTF_Font* font)
-    : m_font(font)
+TerminalApp::TerminalApp(TTF_Font* font, monolith::fs::Filesystem* fs)
+    : m_font(font), m_fs(fs)
 {
     // Welcome message
     addOutput("Monolith Terminal");
@@ -60,8 +60,10 @@ void TerminalApp::executeCommand(const std::string& commandLine) {
         addOutput("  date            - Show current date and time");
         addOutput("  whoami          - Print current user");
         addOutput("  version         - Show Monolith version");
-        addOutput("  ls              - List directory contents");
+        addOutput("  ls [path]       - List directory contents");
         addOutput("  pwd             - Print working directory");
+        addOutput("  cd [dir]        - Change directory");
+        addOutput("  cat <file>      - Show file contents");
         addOutput("  history         - Show command history");
         addOutput("  help            - Show this message");
         addOutput("  exit / quit     - Close this terminal");
@@ -83,15 +85,57 @@ void TerminalApp::executeCommand(const std::string& commandLine) {
         addOutput("Built on SDL2 + custom window manager");
     }
     else if (cmd == "ls") {
-        addOutput("Documents");
-        addOutput("Desktop");
-        addOutput("Downloads");
-        addOutput("Pictures");
-        addOutput("Music");
-        addOutput("Projects");
+        if (m_fs) {
+            std::string target = rest.empty() ? m_cwd : resolvePath(rest);
+            auto entries = m_fs->list(target);
+            if (entries.empty()) {
+                addOutput("(empty)");
+            } else {
+                for (const auto& e : entries) {
+                    addOutput(e);
+                }
+            }
+        } else {
+            addOutput("Documents");
+            addOutput("Desktop");
+            addOutput("Downloads");
+            addOutput("Pictures");
+            addOutput("Music");
+            addOutput("Projects");
+        }
     }
     else if (cmd == "pwd") {
-        addOutput("/home/monolith");
+        addOutput(m_cwd);
+    }
+    else if (cmd == "cd") {
+        if (!m_fs) {
+            addOutput("Filesystem not available");
+        } else if (rest.empty()) {
+            m_cwd = "/home/monolith";
+            addOutput(m_cwd);
+        } else {
+            std::string newPath = resolvePath(rest);
+            if (m_fs->isDirectory(newPath)) {
+                m_cwd = newPath;
+            } else {
+                addOutput("cd: " + rest + ": No such directory");
+            }
+        }
+    }
+    else if (cmd == "cat") {
+        if (m_fs && !rest.empty()) {
+            std::string path = resolvePath(rest);
+            std::string content = m_fs->readFile(path);
+            if (!content.empty() || m_fs->isFile(path)) {
+                addOutput(content);
+            } else {
+                addOutput("cat: " + rest + ": No such file");
+            }
+        } else if (!m_fs) {
+            addOutput("Filesystem not available");
+        } else {
+            addOutput("cat: missing file operand");
+        }
     }
     else if (cmd == "history") {
         if (m_commandHistory.empty()) {
@@ -165,6 +209,19 @@ int TerminalApp::getMaxVisibleLines(const SDL_Rect& contentRect) const {
     int lh = getLineHeight();
     if (lh <= 0) return 10;
     return std::max(3, (contentRect.h - 20) / lh); // small padding
+}
+
+std::string TerminalApp::resolvePath(const std::string& path) const {
+    if (!m_fs) return path;
+
+    std::string target = path;
+    if (target.empty()) target = m_cwd;
+    else if (target[0] != '/') {
+        // relative path
+        target = m_cwd + (m_cwd.back() == '/' ? "" : "/") + target;
+    }
+
+    return m_fs->normalize(target);
 }
 
 void TerminalApp::render(SDL_Renderer* renderer, const SDL_Rect& contentRect) {
