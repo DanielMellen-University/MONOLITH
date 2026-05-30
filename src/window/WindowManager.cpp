@@ -178,20 +178,16 @@ void WindowManager::update() {
         clampSingleWindow(*m_resizingWindow);
     }
 
-    // Enforce maximized windows fill the full logical area (minus taskbar if present)
-    bool hasMinimized = false;
-    for (auto& w : m_windows) {
-        if (w->minimized) hasMinimized = true;
-    }
-
-    const int bottomReserved = hasMinimized ? 28 : 0;  // leave space for taskbar
-
+    // Enforce maximized windows fill the full logical area (minus the always-visible taskbar)
+    // The taskbar is permanently at the bottom (28px), so all maximized windows must
+    // always reserve space for it. This is a general rule for the entire desktop shell,
+    // not something individual apps should have to handle.
     for (auto& w : m_windows) {
         if (w->maximized && !w->minimized) {
             w->rect.x = 0;
             w->rect.y = 0;
             w->rect.w = m_logicalWidth;
-            w->rect.h = m_logicalHeight - bottomReserved;
+            w->rect.h = m_logicalHeight - 28;   // always reserve for the taskbar
         }
     }
 }
@@ -573,14 +569,14 @@ bool WindowManager::handleTitleBarButtons(Window* window, int mouseX, int mouseY
             window->rect = window->previousRect;
             window->maximized = false;
         } else {
-            // Maximize to fill the entire current logical desktop
-            // (the title bar will sit at the top of the logical area, content fills the rest)
+            // Maximize to fill the logical desktop, leaving space for the taskbar at the bottom.
+            // (the title bar sits at the top of the logical area, content fills the rest)
             window->previousRect = window->rect;
 
             window->rect.x = 0;
             window->rect.y = 0;
             window->rect.w = m_logicalWidth;
-            window->rect.h = m_logicalHeight;
+            window->rect.h = m_logicalHeight - 28;   // reserve space for the always-visible taskbar
 
             window->maximized = true;
         }

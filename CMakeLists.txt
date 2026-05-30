@@ -16,8 +16,8 @@ add_executable(monolith
     src/main.cpp
     src/window/WindowManager.cpp
 
-    # App sources will be added here as we implement real applications
-    # (e.g. src/app/TerminalApp.cpp)
+    # App implementations
+    src/app/TerminalApp.cpp
 )
 
 target_include_directories(monolith PRIVATE ${SDL2_TTF_INCLUDE_DIRS})
