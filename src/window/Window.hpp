@@ -1,13 +1,24 @@
 #pragma once
 
 #include <SDL2/SDL.h>
+#include <memory>
 #include <string>
+
+// Forward declaration so Window can hold an App without pulling in the full definition.
+namespace monolith::app {
+class App;
+}
 
 namespace monolith::window {
 
 /**
  * Represents a single window managed by the WindowManager.
- * This is intentionally simple for the early stages.
+ *
+ * Contains geometry, window manager state (minimize/maximize, drag, etc.),
+ * and optionally an App that owns the client-area content.
+ *
+ * Apps are responsible for rendering and handling input inside the content rect
+ * (everything below the title bar). The WindowManager owns the frame and decorations.
  */
 struct Window {
     int id = -1;
@@ -33,6 +44,11 @@ struct Window {
     // Minimum window size
     static constexpr int MIN_WIDTH = 200;
     static constexpr int MIN_HEIGHT = 120;
+
+    // The application that renders and handles input for this window's client area.
+    // Owned by the window (and transitively by WindowManager).
+    // May be nullptr for placeholder / unimplemented windows.
+    std::unique_ptr<monolith::app::App> app;
 };
 
 } // namespace monolith::window

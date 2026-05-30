@@ -25,3 +25,17 @@
 ### Notes
 - Internal window system (8-direction resize, drag, z-order, title bar buttons, etc.) remains fully functional.
 - All outer application window resizing logic continues to be disabled (fixed-size window mode).
+
+## App Hosting Model (Architectural Foundation)
+
+- Introduced a proper `App` abstraction (`src/app/App.hpp`).
+  - `App` instances are now responsible for rendering and handling input inside a window's **client/content area** (everything below the title bar).
+  - `WindowManager` handles frames, decorations, z-order, dragging, resizing, taskbar, and routes client-area events to the correct app.
+- New `IWindowController` interface lets apps safely request operations on their host window (`close()`, `setTitle()`).
+- `createWindow(...)` now accepts an optional `unique_ptr<App>`.
+- Added focus gained/lost and resize notifications for apps.
+- Mouse events forwarded to apps have coordinates translated so (0,0) is the top-left of the app's content area.
+- Two demo apps added in main.cpp:
+  - `PlaceholderApp` — proves delegation + rendering.
+  - `ClickDemoApp` — interactive (click to place dots) proving input routing works.
+- Zero regression for existing/placeholder windows (they continue to work with `nullptr` apps).

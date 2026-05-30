@@ -1,8 +1,10 @@
 #include <SDL2/SDL.h>
 #include <SDL2/SDL_ttf.h>
 #include <iostream>
+#include <vector>
 
 #include "window/WindowManager.hpp"
+#include "app/App.hpp"
 
 int main(int /*argc*/, char* /*argv*/[])
 {
@@ -93,10 +95,70 @@ int main(int /*argc*/, char* /*argv*/[])
         wm.setFont(titleFont);
     }
 
+    // === Demo Apps (proof of the new App hosting model) ===
+
+    // Simple placeholder that just draws its name centered.
+    // Proves that App::render() is being called and contentRect is correct.
+    struct PlaceholderApp : public monolith::app::App {
+        std::string name;
+        SDL_Color color;
+
+        PlaceholderApp(std::string n, SDL_Color c) : name(std::move(n)), color(c) {}
+
+        void render(SDL_Renderer* r, const SDL_Rect& contentRect) override {
+            // Draw a subtle inner border
+            SDL_SetRenderDrawColor(r, color.r, color.g, color.b, 40);
+            SDL_Rect inner = {
+                contentRect.x + 8, contentRect.y + 8,
+                contentRect.w - 16, contentRect.h - 16
+            };
+            SDL_RenderDrawRect(r, &inner);
+
+            // Draw the name (if we have a font in main scope we could use it,
+            // but for simplicity we just leave a visual marker)
+        }
+    };
+
+    // Tiny interactive demo app — click to add dots, shows the input routing works.
+    struct ClickDemoApp : public monolith::app::App {
+        struct Dot { int x, y; };
+        std::vector<Dot> dots;
+        int bgVariant = 0;
+
+        void render(SDL_Renderer* r, const SDL_Rect& contentRect) override {
+            // Background that changes slightly on clicks
+            Uint8 base = 45 + (bgVariant % 3) * 8;
+            SDL_SetRenderDrawColor(r, base, base + 5, base + 10, 255);
+            SDL_RenderFillRect(r, &contentRect);
+
+            // Draw dots
+            SDL_SetRenderDrawColor(r, 200, 220, 255, 255);
+            for (const auto& d : dots) {
+                SDL_Rect dotRect = {contentRect.x + d.x - 3, contentRect.y + d.y - 3, 6, 6};
+                SDL_RenderFillRect(r, &dotRect);
+            }
+
+            // Instructions
+            SDL_SetRenderDrawColor(r, 180, 180, 190, 255);
+            SDL_Rect label = {contentRect.x + 12, contentRect.y + 12, 220, 1};
+            SDL_RenderFillRect(r, &label); // tiny line as visual separator
+        }
+
+        void handleEvent(const SDL_Event& e) override {
+            if (e.type == SDL_MOUSEBUTTONDOWN && e.button.button == SDL_BUTTON_LEFT) {
+                dots.push_back({e.button.x, e.button.y});
+                bgVariant++;
+                if (dots.size() > 80) dots.erase(dots.begin()); // cap
+            }
+        }
+    };
+
     // Create some test windows so we can see the system working
-    wm.createWindow("Terminal", 100, 100, 500, 350);
-    wm.createWindow("Filesystem", 300, 180, 420, 280);
-    wm.createWindow("Editor", 550, 80, 480, 400);
+    wm.createWindow("Terminal", 100, 100, 500, 350);  // placeholder (nullptr app)
+    wm.createWindow("Filesystem", 300, 180, 420, 280,
+                    std::make_unique<PlaceholderApp>("Filesystem", SDL_Color{70, 90, 70, 255}));
+    wm.createWindow("Editor", 550, 80, 480, 400,
+                    std::make_unique<ClickDemoApp>());  // interactive demo!
 
     wm.setLogicalDesktopSize(LOGICAL_WIDTH, LOGICAL_HEIGHT);
     wm.setHeaderOffset(0);   // No artificial offset — content starts right at top of client area

@@ -1,4 +1,5 @@
 #include "WindowManager.hpp"
+#include "../app/App.hpp"
 #include <algorithm>
 
 namespace monolith::window {
@@ -7,7 +8,8 @@ WindowManager::WindowManager() = default;
 
 WindowManager::~WindowManager() = default;
 
-Window* WindowManager::createWindow(const std::string& title, int x, int y, int w, int h) {
+Window* WindowManager::createWindow(const std::string& title, int x, int y, int w, int h,
+                                        std::unique_ptr<monolith::app::App> app) {
     auto window = std::make_unique<Window>();
     window->id = m_nextId++;
     window->title = title;
@@ -15,9 +17,19 @@ Window* WindowManager::createWindow(const std::string& title, int x, int y, int 
     window->rect.y = y;
     window->rect.w = w;
     window->rect.h = h;
+    window->app = std::move(app);
 
     Window* ptr = window.get();
     m_windows.push_back(std::move(window));
+
+    // Attach controller to the app (if any) so it can request window operations
+    if (ptr->app) {
+        ptr->app->setController(createControllerFor(ptr));
+
+        // Initial size notification
+        const int clientH = ptr->rect.h - Window::TITLE_BAR_HEIGHT;
+        ptr->app->onResize(ptr->rect.w, clientH > 0 ? clientH : 0);
+    }
 
     bringToFront(ptr);
     return ptr;
@@ -27,9 +39,26 @@ void WindowManager::handleEvent(const SDL_Event& event) {
     if (event.type == SDL_MOUSEMOTION) {
         m_mouseX = event.motion.x;
         m_mouseY = event.motion.y;
+
+        // Forward motion to the focused window's app if the pointer is in its content area
+        if (m_focusedWindow && m_focusedWindow->app && !m_focusedWindow->minimized) {
+            const int logicalY = screenToLogicalY(m_mouseY);
+            if (isInContentArea(*m_focusedWindow, m_mouseX, logicalY)) {
+                SDL_Event clientEvent = event;
+                translateMouseEventToClient(*m_focusedWindow, clientEvent);
+                m_focusedWindow->app->handleEvent(clientEvent);
+            }
+        }
     }
 
     const int logicalMouseY = screenToLogicalY(m_mouseY);
+
+    // Forward keyboard events (text input, key down/up) to the focused window's app
+    if (m_focusedWindow && m_focusedWindow->app &&
+        (event.type == SDL_KEYDOWN || event.type == SDL_KEYUP || event.type == SDL_TEXTINPUT)) {
+        m_focusedWindow->app->handleEvent(event);
+        // Do not return — WM doesn't consume keyboard yet, but apps get first crack
+    }
 
     // === Global UI first: Taskbar + Start Menu (must be checked even if click misses all windows) ===
     if (event.type == SDL_MOUSEBUTTONDOWN && event.button.button == SDL_BUTTON_LEFT) {
@@ -105,6 +134,17 @@ void WindowManager::handleEvent(const SDL_Event& event) {
             clicked->dragOffsetY = logicalMouseY - clicked->rect.y;
             return;
         }
+
+        // === Priority 4: Client area of the window ===
+        // Forward to the app (if any), with coordinates translated to the app's local space.
+        if (isInContentArea(*clicked, m_mouseX, logicalMouseY)) {
+            if (clicked->app) {
+                SDL_Event clientEvent = event;
+                translateMouseEventToClient(*clicked, clientEvent);
+                clicked->app->handleEvent(clientEvent);
+            }
+            return;
+        }
     }
 
     if (event.type == SDL_MOUSEBUTTONUP && event.button.button == SDL_BUTTON_LEFT) {
@@ -175,6 +215,11 @@ void WindowManager::render(SDL_Renderer* renderer) {
         SDL_SetRenderDrawColor(renderer, 45, 45, 50, 255);
         SDL_Rect contentRect = {screenX, screenY + scaledTitleH, scaledW, scaledH - scaledTitleH};
         SDL_RenderFillRect(renderer, &contentRect);
+
+        // Delegate to the app (if present) so it can draw its own content
+        if (win.app) {
+            win.app->render(renderer, contentRect);
+        }
 
         // === Title bar ===
         bool isFocused = (&win == m_focusedWindow);
@@ -434,7 +479,18 @@ void WindowManager::bringToFront(Window* window) {
         auto windowPtr = std::move(*it);
         m_windows.erase(it);
         m_windows.push_back(std::move(windowPtr));
-        m_focusedWindow = m_windows.back().get();
+
+        Window* newFocused = m_windows.back().get();
+
+        // Notify focus change
+        if (m_focusedWindow && m_focusedWindow != newFocused && m_focusedWindow->app) {
+            m_focusedWindow->app->onFocusLost();
+        }
+        if (newFocused && newFocused->app && m_focusedWindow != newFocused) {
+            newFocused->app->onFocusGained();
+        }
+
+        m_focusedWindow = newFocused;
     }
 }
 
@@ -527,6 +583,12 @@ bool WindowManager::handleTitleBarButtons(Window* window, int mouseX, int mouseY
             window->rect.h = m_logicalHeight;
 
             window->maximized = true;
+        }
+
+        // Notify app of size change
+        if (window->app) {
+            const int clientH = window->rect.h - Window::TITLE_BAR_HEIGHT;
+            window->app->onResize(window->rect.w, clientH > 0 ? clientH : 0);
         }
         return true;
     }
@@ -681,6 +743,13 @@ void WindowManager::applyResize(Window* window, int mouseX, int mouseY) {
     if (r.x + r.w < 60) {
         r.x = 60 - r.w;
     }
+
+    // Notify the app of the new client size (if any)
+    if (window->app) {
+        const int clientW = r.w;
+        const int clientH = r.h - Window::TITLE_BAR_HEIGHT;
+        window->app->onResize(clientW, clientH > 0 ? clientH : 0);
+    }
 }
 
 void WindowManager::closeWindow(Window* window) {
@@ -749,6 +818,78 @@ void WindowManager::clampSingleWindow(Window& w) {
     if (r.y < 0) r.y = 0;
     if (r.x + r.w > m_logicalWidth)  r.x = m_logicalWidth - r.w;
     if (r.y + titleH > m_logicalHeight) r.y = m_logicalHeight - titleH;
+}
+
+// =============================================================================
+// Client area helpers
+// =============================================================================
+
+bool WindowManager::isInContentArea(const Window& window, int logicalX, int logicalY) const {
+    const int titleH = Window::TITLE_BAR_HEIGHT;
+    SDL_Rect contentRect = {
+        window.rect.x,
+        window.rect.y + titleH,
+        window.rect.w,
+        window.rect.h - titleH
+    };
+    SDL_Point p = {logicalX, logicalY};
+    return SDL_PointInRect(&p, &contentRect);
+}
+
+void WindowManager::translateMouseEventToClient(const Window& window, SDL_Event& event) const {
+    const int titleH = Window::TITLE_BAR_HEIGHT;
+    const int clientOriginX = window.rect.x;
+    const int clientOriginY = window.rect.y + titleH;
+
+    if (event.type == SDL_MOUSEMOTION) {
+        event.motion.x -= clientOriginX;
+        event.motion.y -= clientOriginY;
+    } else if (event.type == SDL_MOUSEBUTTONDOWN || event.type == SDL_MOUSEBUTTONUP) {
+        event.button.x -= clientOriginX;
+        event.button.y -= clientOriginY;
+    } else if (event.type == SDL_MOUSEWHEEL) {
+        // Wheel events don't have x/y in the same way; apps can use mouse position separately if needed
+    }
+}
+
+// =============================================================================
+// Per-window controller for apps (IWindowController implementation)
+// =============================================================================
+
+namespace {
+
+// Small concrete controller that lets an App affect its host window.
+struct WindowController : public monolith::app::IWindowController {
+    monolith::window::WindowManager* wm;
+    monolith::window::Window* targetWindow;
+
+    void close() override {
+        if (wm && targetWindow) wm->closeWindow(targetWindow);
+    }
+
+    void setTitle(const std::string& title) override {
+        if (targetWindow) {
+            targetWindow->title = title;
+        }
+    }
+};
+
+} // anonymous namespace
+
+monolith::app::IWindowController* WindowManager::createControllerFor(Window* window) {
+    // We allocate a small controller per window that has an app.
+    // Lifetime is tied to the app (destroyed when the window/app is closed).
+    // For simplicity we leak them for now (or we could store them in a map).
+    // A better long-term solution is to store them alongside the window.
+    static std::vector<std::unique_ptr<WindowController>> s_controllers;
+
+    auto ctrl = std::make_unique<WindowController>();
+    ctrl->wm = this;
+    ctrl->targetWindow = window;
+
+    monolith::app::IWindowController* raw = ctrl.get();
+    s_controllers.push_back(std::move(ctrl));
+    return raw;
 }
 
 } // namespace monolith::window

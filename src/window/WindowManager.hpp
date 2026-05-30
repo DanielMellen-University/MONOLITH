@@ -8,6 +8,9 @@
 #include <unordered_map>
 #include <vector>
 
+// App interface for client-area delegation
+#include "../app/App.hpp"
+
 namespace monolith::window {
 
 enum class ResizeDirection {
@@ -30,8 +33,10 @@ public:
     WindowManager();
     ~WindowManager();
 
-    // Create a new window and return a pointer to it (for now)
-    Window* createWindow(const std::string& title, int x, int y, int w, int h);
+    // Create a new window (optionally with an app that renders its client area).
+    // If app is nullptr, the window gets a solid background (existing placeholder behavior).
+    Window* createWindow(const std::string& title, int x, int y, int w, int h,
+                         std::unique_ptr<monolith::app::App> app = nullptr);
 
     // Basic input handling (called every frame with SDL events)
     void handleEvent(const SDL_Event& event);
@@ -75,6 +80,15 @@ public:
     // Ensure all windows have their title bars (and thus buttons) at least partially visible
     void clampWindowsToDesktop();
     void clampSingleWindow(Window& w);
+
+    // Internal: create a controller that lets an app operate on a specific window
+    monolith::app::IWindowController* createControllerFor(Window* window);
+
+    // Client area helpers (logical coordinates)
+    bool isInContentArea(const Window& window, int logicalX, int logicalY) const;
+
+    // Translate mouse coordinates in a mouse event so (0,0) is top-left of the app's content area
+    void translateMouseEventToClient(const Window& window, SDL_Event& event) const;
 
     // Coordinate conversion helpers (screen <-> logical internal 1920x1080 space)
     int screenToLogicalX(int screenX) const { return static_cast<int>(screenX / m_contentScale); }
