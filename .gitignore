@@ -30,3 +30,6 @@ Thumbs.db
 # Logs and temporary files
 *.log
 *.tmp
+
+# Personal agent preferences (gitignored by design)
+AGENTS.md
