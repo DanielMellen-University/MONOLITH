@@ -181,6 +181,9 @@ int main(int /*argc*/, char* /*argv*/[])
 
     wm.setLogicalDesktopSize(LOGICAL_WIDTH, LOGICAL_HEIGHT);
     wm.setHeaderOffset(0);   // No artificial offset — content starts right at top of client area
+
+    // Give the WindowManager the resources it needs to launch real apps from the Start Menu
+    wm.setAppResources(titleFont, fsReady ? &monolithFs : nullptr);
     // No content scaling for now — logical size matches the window content area 1:1.
 
     bool running = true;

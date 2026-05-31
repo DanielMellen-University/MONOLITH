@@ -2,6 +2,23 @@
 
 ## Latest Changes
 
+### Desktop Shell: Functional Start Menu + XP-style Taskbar
+
+- **Start Menu is now fully functional**
+  - Clicking items launches real apps (Terminal, Text Editor, Filesystem placeholder).
+  - Multiple instances of the same app type can be opened.
+  - Menu closes after selection or when clicking elsewhere.
+
+- **Taskbar now shows all open windows** (classic Windows XP behavior)
+  - Buttons for every window (minimized or not).
+  - Visual distinction: highlighted for focused/active, darker for minimized.
+  - Clicking a taskbar button brings the window forward or minimizes it if it was already active (toggle behavior).
+
+- **Horizontal scrolling for taskbar buttons**
+  - When more windows are open than fit, left/right scroll arrows appear.
+  - Click arrows or use mouse wheel while hovering over the taskbar button area to scroll.
+  - Scroll offset is preserved while windows are open.
+
 ### Text Editor App
 - Added first real native text editor (`TextEditorApp`).
   - Basic multi-line editing with cursor (arrows, Home/End, Backspace, Delete, Enter).

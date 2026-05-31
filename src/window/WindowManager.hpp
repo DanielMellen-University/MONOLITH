@@ -11,6 +11,10 @@
 // App interface for client-area delegation
 #include "../app/App.hpp"
 
+namespace monolith::fs {
+class Filesystem;
+}
+
 namespace monolith::window {
 
 enum class ResizeDirection {
@@ -90,6 +94,13 @@ public:
     // Translate mouse coordinates in a mouse event so (0,0) is top-left of the app's content area
     void translateMouseEventToClient(const Window& window, SDL_Event& event) const;
 
+    // === Desktop shell resources & launchers (for Start Menu etc.) ===
+    void setAppResources(TTF_Font* font, monolith::fs::Filesystem* fs);
+
+    void launchTerminal();
+    void launchTextEditor(const std::string& initialPath = "");
+    void launchFilesystem();
+
     // Coordinate conversion helpers (screen <-> logical internal 1920x1080 space)
     int screenToLogicalX(int screenX) const { return static_cast<int>(screenX / m_contentScale); }
     int screenToLogicalY(int screenY) const { return static_cast<int>((screenY - m_headerOffset) / m_contentScale); }
@@ -144,8 +155,24 @@ private:
     };
     std::vector<TaskbarEntry> m_taskbarEntries;
 
-    // Start menu state (placeholder)
+    // Start menu state
     bool m_showStartMenu = false;
+
+    // Resources for creating real apps from the shell (Start Menu launchers)
+    TTF_Font* m_appFont = nullptr;
+    monolith::fs::Filesystem* m_fs = nullptr;
+
+    // Taskbar XP-style horizontal scrolling
+    int m_taskbarScrollOffset = 0;        // logical pixels, can be negative
+    int m_taskbarButtonAreaLeft = 0;      // logical left edge of button strip
+    int m_taskbarButtonAreaWidth = 0;     // logical width for buttons
+    bool m_taskbarNeedsScroll = false;
+
+    struct StartMenuItem {
+        SDL_Rect rect;  // in screen coordinates
+        int action;     // 0=Terminal, 1=Text Editor, 2=Filesystem, ...
+    };
+    std::vector<StartMenuItem> m_startMenuItems;
 
     // Bring a window to the front of the z-order
     void bringToFront(Window* window);
