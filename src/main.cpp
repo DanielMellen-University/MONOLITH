@@ -6,6 +6,7 @@
 #include "window/WindowManager.hpp"
 #include "app/App.hpp"
 #include "app/TerminalApp.hpp"
+#include "app/TextEditorApp.hpp"
 #include "fs/Filesystem.hpp"
 
 int main(int /*argc*/, char* /*argv*/[])
@@ -169,8 +170,14 @@ int main(int /*argc*/, char* /*argv*/[])
     wm.createWindow("Filesystem", 300, 180, 420, 280,
                     std::make_unique<PlaceholderApp>(SDL_Color{70, 90, 70, 255}));
 
-    wm.createWindow("Editor", 580, 100, 460, 360,
-                    std::make_unique<ClickDemoApp>());
+    // Real text editor wired to the Monolith filesystem
+    if (titleFont) {
+        auto editor = std::make_unique<monolith::app::TextEditorApp>(
+            titleFont, fsReady ? &monolithFs : nullptr, "/home/monolith/welcome.txt");
+        wm.createWindow("Editor", 620, 120, 520, 420, std::move(editor));
+    } else {
+        wm.createWindow("Editor", 620, 120, 520, 420);
+    }
 
     wm.setLogicalDesktopSize(LOGICAL_WIDTH, LOGICAL_HEIGHT);
     wm.setHeaderOffset(0);   // No artificial offset — content starts right at top of client area

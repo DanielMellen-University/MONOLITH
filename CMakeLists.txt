@@ -18,6 +18,7 @@ add_executable(monolith
 
     # App implementations
     src/app/TerminalApp.cpp
+    src/app/TextEditorApp.cpp
 
     # Filesystem
     src/fs/Filesystem.cpp

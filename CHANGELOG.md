@@ -2,6 +2,14 @@
 
 ## Latest Changes
 
+### Text Editor App
+- Added first real native text editor (`TextEditorApp`).
+  - Basic multi-line editing with cursor (arrows, Home/End, Backspace, Delete, Enter).
+  - Loads and saves files via the Monolith host-backed filesystem (Ctrl+S to save).
+  - Opens `/home/monolith/welcome.txt` by default in the initial window.
+  - Minimal status line showing filename + dirty indicator.
+  - Uses the existing App hosting model and WindowManager integration.
+
 ### Desktop Shell Improvements
 
 - **Taskbar is now always visible** (like a real desktop environment)
