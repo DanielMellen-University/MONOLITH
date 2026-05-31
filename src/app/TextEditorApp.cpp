@@ -89,6 +89,8 @@ std::string TextEditorApp::getDisplayName() const {
 }
 
 void TextEditorApp::insertChar(char c) {
+    pushUndoState();
+
     if (m_cursorRow < 0 || m_cursorRow >= static_cast<int>(m_lines.size())) return;
 
     std::string& line = m_lines[m_cursorRow];
@@ -102,6 +104,8 @@ void TextEditorApp::insertChar(char c) {
 }
 
 void TextEditorApp::insertNewline() {
+    pushUndoState();
+
     if (m_cursorRow < 0 || m_cursorRow >= static_cast<int>(m_lines.size())) return;
 
     std::string& line = m_lines[m_cursorRow];
@@ -117,6 +121,8 @@ void TextEditorApp::insertNewline() {
 }
 
 void TextEditorApp::deleteChar() {
+    pushUndoState();
+
     // Backspace
     if (m_cursorRow == 0 && m_cursorCol == 0) return;
 
@@ -261,9 +267,11 @@ void TextEditorApp::render(SDL_Renderer* renderer, const SDL_Rect& contentRect) 
 
     SDL_Color textColor = {200, 205, 210, 255};
     SDL_Color cursorColor = {180, 200, 180, 230};
+    SDL_Color lineNumColor = {100, 105, 115, 255};
 
     int visibleLines = getVisibleLineCount(contentRect);
     int y = textStartY;
+    const int lineNumWidth = 40;  // space for line numbers
 
     for (int i = 0; i < visibleLines; ++i) {
         int lineIdx = m_scrollOffset + i;
@@ -271,14 +279,33 @@ void TextEditorApp::render(SDL_Renderer* renderer, const SDL_Rect& contentRect) 
 
         const std::string& line = m_lines[lineIdx];
 
+        // Draw line number
+        std::string lineNumStr = std::to_string(lineIdx + 1);
+        SDL_Surface* numSurf = TTF_RenderText_Blended(m_font, lineNumStr.c_str(), lineNumColor);
+        if (numSurf) {
+            SDL_Texture* numTex = SDL_CreateTextureFromSurface(renderer, numSurf);
+            if (numTex) {
+                SDL_Rect numDst = {
+                    contentRect.x + padding,
+                    y,
+                    numSurf->w,
+                    numSurf->h
+                };
+                SDL_RenderCopy(renderer, numTex, nullptr, &numDst);
+                SDL_DestroyTexture(numTex);
+            }
+            SDL_FreeSurface(numSurf);
+        }
+
+        // Draw the actual line text, shifted right for line numbers
         SDL_Surface* surf = TTF_RenderText_Blended(m_font, line.c_str(), textColor);
         if (surf) {
             SDL_Texture* tex = SDL_CreateTextureFromSurface(renderer, surf);
             if (tex) {
                 SDL_Rect dst = {
-                    contentRect.x + padding,
+                    contentRect.x + padding + lineNumWidth,
                     y,
-                    std::min(surf->w, contentRect.w - padding * 2),
+                    std::min(surf->w, contentRect.w - padding * 2 - lineNumWidth),
                     surf->h
                 };
                 SDL_RenderCopy(renderer, tex, nullptr, &dst);
@@ -299,7 +326,7 @@ void TextEditorApp::render(SDL_Renderer* renderer, const SDL_Rect& contentRect) 
                 TTF_SizeText(m_font, before.c_str(), &textW, &textH);
             }
 
-            int cursorX = contentRect.x + padding + textW;
+            int cursorX = contentRect.x + padding + lineNumWidth + textW;
             int cursorY = y;
 
             // Simple vertical bar cursor
@@ -359,6 +386,21 @@ void TextEditorApp::handleEvent(const SDL_Event& event) {
             return;
         }
 
+        // Ctrl+Z undo
+        if ((key.mod & KMOD_CTRL) && key.sym == SDLK_z) {
+            undo();
+            return;
+        }
+
+        // Ctrl+F find
+        if ((key.mod & KMOD_CTRL) && key.sym == SDLK_f) {
+            m_findMode = true;
+            m_findQuery.clear();
+            m_findMatches.clear();
+            m_currentFindMatch = -1;
+            return;
+        }
+
         switch (key.sym) {
             case SDLK_RETURN:
             case SDLK_KP_ENTER:
@@ -410,6 +452,32 @@ void TextEditorApp::handleEvent(const SDL_Event& event) {
 void TextEditorApp::onResize(int clientWidth, int clientHeight) {
     m_clientWidth = clientWidth;
     m_clientHeight = clientHeight;
+    ensureCursorVisible();
+}
+
+void TextEditorApp::pushUndoState() {
+    // Limit undo stack size
+    if (m_undoStack.size() > 50) {
+        m_undoStack.erase(m_undoStack.begin());
+    }
+
+    EditorState state;
+    state.lines = m_lines;
+    state.cursorRow = m_cursorRow;
+    state.cursorCol = m_cursorCol;
+    m_undoStack.push_back(state);
+}
+
+void TextEditorApp::undo() {
+    if (m_undoStack.empty()) return;
+
+    EditorState state = m_undoStack.back();
+    m_undoStack.pop_back();
+
+    m_lines = state.lines;
+    m_cursorRow = state.cursorRow;
+    m_cursorCol = state.cursorCol;
+    m_dirty = true;
     ensureCursorVisible();
 }
 

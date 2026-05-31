@@ -111,6 +111,34 @@ void FilesystemApp::createNewFolder() {
     }
 }
 
+void FilesystemApp::createNewFile() {
+    if (!m_fs) return;
+
+    std::string base = "New File.txt";
+    std::string candidate = base;
+    int counter = 2;
+
+    while (m_fs->exists(fullPathFor(candidate))) {
+        std::ostringstream oss;
+        oss << "New File " << counter++ << ".txt";
+        candidate = oss.str();
+    }
+
+    if (m_fs->writeFile(fullPathFor(candidate), "")) {
+        refreshEntries();
+
+        for (size_t i = 0; i < m_entries.size(); ++i) {
+            if (m_entries[i].name == candidate && !m_entries[i].isDirectory) {
+                setSelection(static_cast<int>(i));
+                ensureSelectionVisible();
+                // Immediately allow renaming the new file (nice UX)
+                startRenameSelected();
+                break;
+            }
+        }
+    }
+}
+
 void FilesystemApp::deleteSelected() {
     if (!m_fs || m_selectedIndex < 0 || m_selectedIndex >= static_cast<int>(m_entries.size())) {
         return;
@@ -178,6 +206,47 @@ void FilesystemApp::finishRename(bool commit) {
     m_renaming = false;
     m_renameIndex = -1;
     m_renameBuffer.clear();
+}
+
+void FilesystemApp::startNewFileNaming() {
+    if (!m_fs) return;
+    m_namingNewFile = true;
+    m_newFileNameBuffer = "New File.txt";
+}
+
+void FilesystemApp::finishNewFileNaming(bool commit) {
+    if (!m_namingNewFile) return;
+
+    if (commit && !m_newFileNameBuffer.empty()) {
+        std::string candidate = m_newFileNameBuffer;
+        int counter = 2;
+
+        while (m_fs->exists(fullPathFor(candidate))) {
+            std::ostringstream oss;
+            size_t dot = m_newFileNameBuffer.find_last_of('.');
+            if (dot != std::string::npos) {
+                oss << m_newFileNameBuffer.substr(0, dot) << " " << counter << m_newFileNameBuffer.substr(dot);
+            } else {
+                oss << m_newFileNameBuffer << " " << counter;
+            }
+            candidate = oss.str();
+            counter++;
+        }
+
+        if (m_fs->writeFile(fullPathFor(candidate), "")) {
+            refreshEntries();
+            for (size_t i = 0; i < m_entries.size(); ++i) {
+                if (m_entries[i].name == candidate && !m_entries[i].isDirectory) {
+                    setSelection(static_cast<int>(i));
+                    ensureSelectionVisible();
+                    break;
+                }
+            }
+        }
+    }
+
+    m_namingNewFile = false;
+    m_newFileNameBuffer.clear();
 }
 
 void FilesystemApp::setSelection(int index) {
@@ -297,6 +366,10 @@ void FilesystemApp::handleMouseButton(const SDL_MouseButtonEvent& e, const SDL_R
         createNewFolder();
         return;
     }
+    if (SDL_PointInRect(&pt, &m_btnNewFile)) {
+        createNewFile();
+        return;
+    }
     if (SDL_PointInRect(&pt, &m_btnDelete)) {
         deleteSelected();
         return;
@@ -407,6 +480,10 @@ void FilesystemApp::handleKeyDown(const SDL_Keysym& keysym) {
         case SDLK_ESCAPE:
             if (m_showContextMenu) {
                 closeContextMenu();
+            } else if (m_renaming) {
+                finishRename(false);
+            } else if (m_namingNewFile) {
+                finishNewFileNaming(false);
             }
             break;
 
@@ -419,6 +496,13 @@ void FilesystemApp::handleEvent(const SDL_Event& event) {
     if (m_renaming && event.type == SDL_TEXTINPUT) {
         if (event.text.text) {
             m_renameBuffer += event.text.text;
+        }
+        return;
+    }
+
+    if (m_namingNewFile && event.type == SDL_TEXTINPUT) {
+        if (event.text.text) {
+            m_newFileNameBuffer += event.text.text;
         }
         return;
     }
@@ -549,6 +633,7 @@ void FilesystemApp::drawToolbar(SDL_Renderer* r, const SDL_Rect& contentRect) {
 
     drawButton(m_btnUp, "Up", 48);
     drawButton(m_btnNewFolder, "New Folder", 92);
+    drawButton(m_btnNewFile, "New File", 80);
     drawButton(m_btnRename, "Rename", 68);
     drawButton(m_btnDelete, "Delete", 68);
 }
@@ -770,28 +855,46 @@ void FilesystemApp::executeContextMenuAction(int menuIndex) {
     }
 
     std::string action = m_contextMenuItems[menuIndex];
+    int target = m_contextMenuTarget;   // Save before closing!
     closeContextMenu();
 
     if (action == "New Folder") {
         createNewFolder();
     } else if (action == "New File") {
-        // TODO: implement createNewFile() later
+        createNewFile();
     } else if (action == "Refresh") {
         refreshEntries();
     } else if (action == "Open") {
-        if (m_contextMenuTarget >= 0) {
-            activateEntry(m_contextMenuTarget);
+        if (target >= 0) {
+            activateEntry(target);
         }
     } else if (action == "Rename") {
-        if (m_contextMenuTarget >= 0) {
-            m_selectedIndex = m_contextMenuTarget;
+        if (target >= 0) {
+            m_selectedIndex = target;
             startRenameSelected();
         }
     } else if (action == "Delete") {
-        if (m_contextMenuTarget >= 0) {
-            m_selectedIndex = m_contextMenuTarget;
-            deleteSelected();
+        if (target >= 0) {
+            m_selectedIndex = target;
+            if (m_confirmingDelete) {
+                deleteSelected();
+                m_confirmingDelete = false;
+            } else {
+                m_confirmingDelete = true;
+                // Re-show menu with confirmation
+                int mx = m_contextMenuPos.x;
+                int my = m_contextMenuPos.y;
+                showContextMenu(mx, my, target);
+                m_contextMenuItems.clear();
+                m_contextMenuItems.push_back("Confirm Delete");
+                m_contextMenuItems.push_back("Cancel");
+            }
         }
+    } else if (action == "Confirm Delete") {
+        deleteSelected();
+        m_confirmingDelete = false;
+    } else if (action == "Cancel") {
+        m_confirmingDelete = false;
     }
 }
 

@@ -44,6 +44,10 @@ private:
     void loadInitialFile(const std::string& virtualPath);
     std::string getDisplayName() const;
 
+    // === Undo ===
+    void pushUndoState();
+    void undo();
+
     // === Rendering helpers ===
     int getLineHeight() const;
     int getVisibleLineCount(const SDL_Rect& contentRect) const;
@@ -58,6 +62,20 @@ private:
 
     std::string m_filePath;   // virtual path in Monolith FS (if set)
     bool m_dirty = false;
+
+    // Very basic undo stack (saves full state before major edits)
+    struct EditorState {
+        std::vector<std::string> lines;
+        int cursorRow;
+        int cursorCol;
+    };
+    std::vector<EditorState> m_undoStack;
+
+    // Find state (basic)
+    bool m_findMode = false;
+    std::string m_findQuery;
+    std::vector<std::pair<int, int>> m_findMatches;  // row, col starts
+    int m_currentFindMatch = -1;
 
     // Cached for layout
     int m_clientWidth = 0;

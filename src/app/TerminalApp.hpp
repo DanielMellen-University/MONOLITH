@@ -46,6 +46,13 @@ private:
     std::string m_inputBuffer;
     std::string m_prompt = "> ";
 
+    // Command history navigation
+    int m_historyIndex = -1;           // -1 means not navigating history
+    std::string m_savedInputBuffer;    // original input when starting history nav
+
+    // Input line cursor
+    int m_inputCursorPos = 0;
+
     // Simple auto-scroll: we always try to show the newest content
     // For v1 we keep all history and draw the bottom portion + input line
 };

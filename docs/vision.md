@@ -14,10 +14,7 @@ Monolith is a single Linux program that contains its own little world. It has a 
 
 It takes some inspiration from TempleOS - the idea of a personal, direct, self-contained machine that you live inside - but it is much easier because it runs as a normal application on Linux instead of being a full operating system.
 
-You don't use Monolith like a regular program.  
-You enter it.
-
----
+You don't use Monolith like a regular program. You enter it.
 
 ## What Monolith Is
 
@@ -51,8 +48,6 @@ Monolith is meant to contain several distinct apps and subsystems:
 
 New apps can be added over time, either as native features or written in the custom language.
 
----
-
 ## The Language
 
 Monolith has its own custom programming language.
@@ -65,8 +60,6 @@ The language sits at a **medium** level of power:
 
 The goal is to have a language that feels good to use for extending the system, without making the language itself overwhelmingly complex to implement and maintain.
 
----
-
 ## Core Principles
 
 - Everything lives inside one program
@@ -75,16 +68,12 @@ The goal is to have a language that feels good to use for extending the system, 
 - The system should feel solid and direct
 - It should be possible to keep expanding it for years without it becoming a mess
 
----
-
 ## Technical Direction
 
 - Written in C++ and runs on modern Linux
 - Uses SDL2 for windowing, input, graphics, and audio
 - Self-contained (single executable + supporting files)
 - Has its own internal filesystem that lives on the host machine
-
----
 
 ## Roadmap
 
@@ -113,8 +102,6 @@ The project will be built in phases, roughly in this order:
    - Whatever feels worth adding over time
 
 The priority is to make the environment feel alive and usable early, even if many apps are still missing.
-
----
 
 ## Final Note
 

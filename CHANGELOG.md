@@ -2,6 +2,24 @@
 
 ## Latest Changes
 
+### Polish Round: Filesystem Toolbar, Terminal Editing, Editor Undo + Line Numbers
+
+- **Filesystem Browser**
+  - "New File" toolbar button now fully works: creates a new file with a unique default name and immediately enters inline rename mode (same UX as the context menu "New File").
+  - Context menu Delete now has a two-step confirmation flow ("Delete" → "Confirm Delete" / "Cancel") for safety.
+  - Various robustness fixes in action handling and coordinate mapping for toolbar + menus.
+
+- **Terminal**
+  - Proper in-place cursor for the input line: left/right arrows, Home/End, character insert at cursor position, backspace at cursor.
+  - Command history navigation with Up/Down arrows (preserves current unsent input when browsing history).
+  - Multiple safety clamps on cursor position to eliminate previous crashes during history recall.
+  - Visible cursor block while typing.
+
+- **Text Editor**
+  - Added basic undo stack (Ctrl+Z). State is saved before insert, delete, and newline operations (bounded to last ~50 steps).
+  - Line numbers shown in a gutter on the left; cursor and text rendering offsets correctly account for the line number width (fixed previous misalignment after adding numbers).
+  - Skeleton for find mode (Ctrl+F) added (state tracking; full UI/behavior to come).
+
 ### Real Filesystem Browser + Editor File Coordination
 
 - **New real graphical Filesystem browser** (`FilesystemApp`)

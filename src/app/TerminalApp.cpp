@@ -23,6 +23,9 @@ void TerminalApp::addOutput(const std::string& line) {
 void TerminalApp::submitInput() {
     std::string command = m_inputBuffer;
     m_inputBuffer.clear();
+    m_inputCursorPos = 0;
+    m_historyIndex = -1;
+    m_savedInputBuffer.clear();
 
     // Echo the command as the user typed it
     addOutput(m_prompt + command);
@@ -162,8 +165,15 @@ void TerminalApp::executeCommand(const std::string& commandLine) {
 }
 
 void TerminalApp::processTextInput(const char* text) {
-    if (text) {
-        m_inputBuffer += text;
+    if (text && *text) {
+        m_inputBuffer.insert(m_inputCursorPos, text);
+        m_inputCursorPos += strlen(text);
+    }
+
+    // Safety clamp
+    if (m_inputCursorPos < 0) m_inputCursorPos = 0;
+    if (m_inputCursorPos > static_cast<int>(m_inputBuffer.size())) {
+        m_inputCursorPos = static_cast<int>(m_inputBuffer.size());
     }
 }
 
@@ -175,18 +185,69 @@ void TerminalApp::handleKeyDown(const SDL_Keysym& keysym) {
             break;
 
         case SDLK_BACKSPACE:
-            if (!m_inputBuffer.empty()) {
-                m_inputBuffer.pop_back();
+            if (m_inputCursorPos > 0) {
+                m_inputBuffer.erase(m_inputCursorPos - 1, 1);
+                m_inputCursorPos--;
             }
             break;
 
         case SDLK_ESCAPE:
             // Could clear input in future
             m_inputBuffer.clear();
+            m_historyIndex = -1;
+            break;
+
+        case SDLK_UP:
+            if (!m_commandHistory.empty()) {
+                if (m_historyIndex == -1) {
+                    m_savedInputBuffer = m_inputBuffer;
+                    m_historyIndex = static_cast<int>(m_commandHistory.size()) - 1;
+                } else if (m_historyIndex > 0) {
+                    m_historyIndex--;
+                }
+                m_inputBuffer = m_commandHistory[m_historyIndex];
+                m_inputCursorPos = static_cast<int>(m_inputBuffer.size());
+            }
+            break;
+
+        case SDLK_DOWN:
+            if (m_historyIndex != -1) {
+                m_historyIndex++;
+                if (m_historyIndex >= static_cast<int>(m_commandHistory.size())) {
+                    m_historyIndex = -1;
+                    m_inputBuffer = m_savedInputBuffer;
+                    m_inputCursorPos = static_cast<int>(m_inputBuffer.size());
+                } else {
+                    m_inputBuffer = m_commandHistory[m_historyIndex];
+                    m_inputCursorPos = static_cast<int>(m_inputBuffer.size());
+                }
+            }
+            break;
+
+        case SDLK_LEFT:
+            if (m_inputCursorPos > 0) m_inputCursorPos--;
+            break;
+
+        case SDLK_RIGHT:
+            if (m_inputCursorPos < static_cast<int>(m_inputBuffer.size())) m_inputCursorPos++;
+            break;
+
+        case SDLK_HOME:
+            m_inputCursorPos = 0;
+            break;
+
+        case SDLK_END:
+            m_inputCursorPos = static_cast<int>(m_inputBuffer.size());
             break;
 
         default:
             break;
+    }
+
+    // Safety clamp
+    if (m_inputCursorPos < 0) m_inputCursorPos = 0;
+    if (m_inputCursorPos > static_cast<int>(m_inputBuffer.size())) {
+        m_inputCursorPos = static_cast<int>(m_inputBuffer.size());
     }
 }
 
@@ -266,23 +327,43 @@ void TerminalApp::render(SDL_Renderer* renderer, const SDL_Rect& contentRect) {
 
     SDL_Color textColor = {200, 205, 210, 255};
 
-    // Draw the prompt + current input
+    // Draw the prompt + current input with cursor
     {
-        std::string inputLine = m_prompt + m_inputBuffer;
-        SDL_Surface* surf = TTF_RenderText_Blended(m_font, inputLine.c_str(), textColor);
+        std::string beforeCursor = m_prompt + m_inputBuffer.substr(0, m_inputCursorPos);
+        std::string afterCursor  = m_inputBuffer.substr(m_inputCursorPos);
+
+        // Draw text before cursor
+        SDL_Surface* surf = TTF_RenderText_Blended(m_font, beforeCursor.c_str(), textColor);
+        int cursorX = contentRect.x + padding;
         if (surf) {
             SDL_Texture* tex = SDL_CreateTextureFromSurface(renderer, surf);
             if (tex) {
-                SDL_Rect dst = {
-                    contentRect.x + padding,
-                    inputLineY,
-                    surf->w,
-                    surf->h
-                };
+                SDL_Rect dst = {cursorX, inputLineY, surf->w, surf->h};
                 SDL_RenderCopy(renderer, tex, nullptr, &dst);
+                cursorX += surf->w;
                 SDL_DestroyTexture(tex);
             }
             SDL_FreeSurface(surf);
+        }
+
+        // Draw cursor block
+        int cursorW = 8;
+        SDL_SetRenderDrawColor(renderer, 180, 200, 180, 230);
+        SDL_Rect cursorRect = {cursorX, inputLineY + 2, cursorW, lineHeight - 4};
+        SDL_RenderFillRect(renderer, &cursorRect);
+
+        // Draw text after cursor
+        if (!afterCursor.empty()) {
+            SDL_Surface* surf2 = TTF_RenderText_Blended(m_font, afterCursor.c_str(), textColor);
+            if (surf2) {
+                SDL_Texture* tex2 = SDL_CreateTextureFromSurface(renderer, surf2);
+                if (tex2) {
+                    SDL_Rect dst2 = {cursorX + cursorW, inputLineY, surf2->w, surf2->h};
+                    SDL_RenderCopy(renderer, tex2, nullptr, &dst2);
+                    SDL_DestroyTexture(tex2);
+                }
+                SDL_FreeSurface(surf2);
+            }
         }
     }
 

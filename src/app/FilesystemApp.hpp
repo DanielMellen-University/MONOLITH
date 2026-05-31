@@ -33,9 +33,13 @@ private:
 
     // === Actions ===
     void createNewFolder();
+    void createNewFile();
     void deleteSelected();
     void startRenameSelected();
     void finishRename(bool commit);  // commit = true for Enter, false for Escape
+
+    void startNewFileNaming();
+    void finishNewFileNaming(bool commit);
 
     // === Selection / Scrolling ===
     void setSelection(int index);
@@ -75,6 +79,7 @@ private:
     // Simple toolbar button hit areas (updated each render)
     SDL_Rect m_btnUp{0,0,0,0};
     SDL_Rect m_btnNewFolder{0,0,0,0};
+    SDL_Rect m_btnNewFile{0,0,0,0};
     SDL_Rect m_btnDelete{0,0,0,0};
     SDL_Rect m_btnRename{0,0,0,0};
 
@@ -82,6 +87,13 @@ private:
     bool m_renaming = false;
     int m_renameIndex = -1;
     std::string m_renameBuffer;
+
+    // Delete confirmation state
+    bool m_confirmingDelete = false;
+
+    // New File naming state (inline like rename)
+    bool m_namingNewFile = false;
+    std::string m_newFileNameBuffer;
 
     // Context menu state
     bool m_showContextMenu = false;
