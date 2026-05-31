@@ -31,6 +31,7 @@ Thumbs.db
 *.log
 *.tmp
 
-# .AGENTS.md is intentionally tracked (defines the beta/main development workflow for agents).
-# The non-hidden AGENTS.md is ignored to avoid confusion.
+# Agent instruction files (hidden + gitignored by design)
+# There should only ever be one: the hidden .AGENTS.md for local agent preferences/workflow rules.
+.AGENTS.md
 AGENTS.md
