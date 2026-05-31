@@ -31,5 +31,4 @@ Thumbs.db
 *.log
 *.tmp
 
-# Personal agent preferences (gitignored by design)
-AGENTS.md
+# Note: AGENTS.md is now tracked in the repo to define the official beta/main workflow.
