@@ -2,6 +2,15 @@
 
 ## Latest Changes
 
+### Terminal Completion & Polish
+
+- **Tab completion**: Full tab completion for built-in commands and filesystem paths (with `/` appended for directories).
+- **`cp` command**: Copy files between paths in the virtual filesystem.
+- **`rm -r` support**: Recursive directory removal via `rm -r` (or `rm -rf`).
+- **Improved prompt**: The prompt now displays the current working directory (e.g. `~> ` or `~/projects> `) and updates live on `cd`.
+- **Persistent command history**: Command history is now saved to `/home/monolith/.terminal_history` inside the virtual filesystem and automatically restored in new Terminal windows.
+- Continued Terminal robustness (UTF-8 rendering fixes for special characters, improved `ls` output with directory indicators, expanded command set).
+
 ### Polish Round: Filesystem Toolbar, Terminal Editing, Editor Undo + Line Numbers
 
 - **Filesystem Browser**

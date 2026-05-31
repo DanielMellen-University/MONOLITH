@@ -12,7 +12,7 @@ Monolith has a working desktop environment with overlapping windows:
 
 - **Window Manager**: Dragging, 8-way resizing, title bars with close/min/max, z-order, focus, taskbar with XP-style window buttons + horizontal scrolling, and a functional Start menu.
 - **Built-in Apps**:
-  - **Terminal**: Real command-line app with scrollback, command history, and integrated commands for the internal filesystem (`ls`, `cd`, `cat`, `mkdir`, `rm`, etc.).
+  - **Terminal**: Real command-line app with scrollback, command history, cursor editing, reverse search (Ctrl+R), tab completion (commands + paths), persistent history, dynamic cwd prompt, and rich built-in commands (`ls`, `cd`, `cat`, `mkdir`, `rm`, `rm -r`, `cp`, `touch`, `mv`, etc.).
   - **Text Editor**: Functional multi-line editor with cursor movement, editing, and load/save via the internal filesystem (Ctrl+S).
   - **Filesystem Browser**: Graphical directory browser with list view, navigation, inline rename (F2), right-click context menus (different options for files, folders, and empty space), status bar, and toolbar actions. Double-click files to open them in the editor.
 - **Internal Filesystem**: Host-backed (persisted under `~/.monolith/fs/`), with a clean virtual path namespace. Used by Terminal, Editor, and the graphical browser.
