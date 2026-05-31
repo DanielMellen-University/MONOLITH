@@ -2,6 +2,7 @@
 #include "../app/App.hpp"
 #include "../app/TerminalApp.hpp"
 #include "../app/TextEditorApp.hpp"
+#include "../app/FilesystemApp.hpp"
 #include <algorithm>
 
 namespace monolith::window {
@@ -939,6 +940,14 @@ void WindowManager::applyResize(Window* window, int mouseX, int mouseY) {
 void WindowManager::closeWindow(Window* window) {
     if (!window) return;
 
+    // Unregister from file editor tracking if this window was responsible for a file
+    if (!window->editedFilePath.empty()) {
+        auto fedIt = m_fileEditors.find(window->editedFilePath);
+        if (fedIt != m_fileEditors.end() && fedIt->second == window) {
+            m_fileEditors.erase(fedIt);
+        }
+    }
+
     auto it = std::find_if(m_windows.begin(), m_windows.end(),
         [window](const auto& w) { return w.get() == window; });
 
@@ -1062,42 +1071,70 @@ void WindowManager::launchTerminal() {
 void WindowManager::launchTextEditor(const std::string& initialPath) {
     if (!m_appFont) return;
 
+    // Singleton behavior: if we already have an editor open for this exact file, just focus it.
+    if (!initialPath.empty() && m_fs) {
+        std::string normalized = m_fs->normalize(initialPath);
+        auto it = m_fileEditors.find(normalized);
+        if (it != m_fileEditors.end() && it->second) {
+            bringToFront(it->second);
+            m_showStartMenu = false;
+            return;
+        }
+    }
+
     auto app = std::make_unique<monolith::app::TextEditorApp>(m_appFont, m_fs, initialPath);
 
     std::string title = "Editor";
+    std::string baseName;
     if (!initialPath.empty()) {
         size_t slash = initialPath.find_last_of('/');
-        std::string base = (slash != std::string::npos) ? initialPath.substr(slash + 1) : initialPath;
-        if (!base.empty()) title = "Editor - " + base;
+        baseName = (slash != std::string::npos) ? initialPath.substr(slash + 1) : initialPath;
+        if (!baseName.empty()) title = "Editor - " + baseName;
     } else if (!m_windows.empty()) {
         title += " " + std::to_string(m_windows.size() + 1);
     }
 
     int x = 160 + (static_cast<int>(m_windows.size()) % 6) * 30;
     int y = 90 + (static_cast<int>(m_windows.size()) % 4) * 20;
-    createWindow(title, x, y, 540, 420, std::move(app));
+    Window* w = createWindow(title, x, y, 540, 420, std::move(app));
+
+    // Register for singleton tracking if this editor is bound to a specific file
+    if (w && !initialPath.empty() && m_fs) {
+        associateEditorWithFile(w, initialPath);
+    }
+
     m_showStartMenu = false;
 }
 
 void WindowManager::launchFilesystem() {
     if (!m_appFont) return;
 
-    // Placeholder until we build a real graphical filesystem browser
-    struct SimpleFSPlaceholder : public monolith::app::App {
-        void render(SDL_Renderer* r, const SDL_Rect& contentRect) override {
-            SDL_SetRenderDrawColor(r, 40, 55, 48, 255);
-            SDL_RenderFillRect(r, &contentRect);
+    auto app = std::make_unique<monolith::app::FilesystemApp>(m_appFont, m_fs);
 
-            // Simple label
-            if (false) { /* text later */ }
-        }
-    };
+    std::string title = "Filesystem";
+    if (!m_windows.empty()) {
+        title += " " + std::to_string(m_windows.size() + 1);
+    }
 
-    auto app = std::make_unique<SimpleFSPlaceholder>();
     int x = 200 + (static_cast<int>(m_windows.size()) % 5) * 25;
     int y = 130 + (static_cast<int>(m_windows.size()) % 3) * 18;
-    createWindow("Filesystem", x, y, 460, 340, std::move(app));
+    createWindow(title, x, y, 480, 360, std::move(app));
     m_showStartMenu = false;
+}
+
+void WindowManager::associateEditorWithFile(Window* window, const std::string& virtualPath) {
+    if (!window || virtualPath.empty() || !m_fs) return;
+
+    std::string normalized = m_fs->normalize(virtualPath);
+
+    // If something else was already registered for this path, clear the old association
+    auto existing = m_fileEditors.find(normalized);
+    if (existing != m_fileEditors.end() && existing->second && existing->second != window) {
+        existing->second->editedFilePath.clear();
+    }
+
+    window->editedFilePath = normalized;
+    m_fileEditors[normalized] = window;
 }
 
 // =============================================================================
@@ -1118,6 +1155,12 @@ struct WindowController : public monolith::app::IWindowController {
     void setTitle(const std::string& title) override {
         if (targetWindow) {
             targetWindow->title = title;
+        }
+    }
+
+    void openInTextEditor(const std::string& virtualPath) override {
+        if (wm) {
+            wm->launchTextEditor(virtualPath);
         }
     }
 };

@@ -51,6 +51,18 @@ public:
     /** Lists the names of entries in a directory (not full paths). */
     std::vector<std::string> list(const std::string& virtualPath) const;
 
+    /**
+     * Entry with basic type information.
+     * Used by the graphical filesystem browser (and anything that wants to avoid N isDirectory calls).
+     */
+    struct DirEntry {
+        std::string name;
+        bool isDirectory = false;
+    };
+
+    /** Lists entries with type info (directories first, then files, both alpha-sorted). */
+    std::vector<DirEntry> listEntries(const std::string& virtualPath) const;
+
     // === Path utilities ===
 
     /** Normalizes a virtual path (handles .., ., multiple slashes, etc.) */

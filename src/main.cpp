@@ -7,6 +7,7 @@
 #include "app/App.hpp"
 #include "app/TerminalApp.hpp"
 #include "app/TextEditorApp.hpp"
+#include "app/FilesystemApp.hpp"
 #include "fs/Filesystem.hpp"
 
 int main(int /*argc*/, char* /*argv*/[])
@@ -98,50 +99,6 @@ int main(int /*argc*/, char* /*argv*/[])
         wm.setFont(titleFont);
     }
 
-    // === Demo Apps ===
-
-    // Simple placeholder that just draws a subtle border.
-    struct PlaceholderApp : public monolith::app::App {
-        SDL_Color color;
-        PlaceholderApp(SDL_Color c) : color(c) {}
-
-        void render(SDL_Renderer* r, const SDL_Rect& contentRect) override {
-            SDL_SetRenderDrawColor(r, color.r, color.g, color.b, 35);
-            SDL_Rect inner = {
-                contentRect.x + 6, contentRect.y + 6,
-                contentRect.w - 12, contentRect.h - 12
-            };
-            SDL_RenderDrawRect(r, &inner);
-        }
-    };
-
-    // Tiny interactive demo app — click to add dots.
-    struct ClickDemoApp : public monolith::app::App {
-        struct Dot { int x, y; };
-        std::vector<Dot> dots;
-        int bgVariant = 0;
-
-        void render(SDL_Renderer* r, const SDL_Rect& contentRect) override {
-            Uint8 base = 45 + (bgVariant % 3) * 8;
-            SDL_SetRenderDrawColor(r, base, base + 5, base + 10, 255);
-            SDL_RenderFillRect(r, &contentRect);
-
-            SDL_SetRenderDrawColor(r, 200, 220, 255, 255);
-            for (const auto& d : dots) {
-                SDL_Rect dotRect = {contentRect.x + d.x - 3, contentRect.y + d.y - 3, 6, 6};
-                SDL_RenderFillRect(r, &dotRect);
-            }
-        }
-
-        void handleEvent(const SDL_Event& e) override {
-            if (e.type == SDL_MOUSEBUTTONDOWN && e.button.button == SDL_BUTTON_LEFT) {
-                dots.push_back({e.button.x, e.button.y});
-                bgVariant++;
-                if (dots.size() > 80) dots.erase(dots.begin());
-            }
-        }
-    };
-
     // === Filesystem (shared with Terminal) ===
     const char* home = std::getenv("HOME");
     std::string fsRoot = home ? std::string(home) + "/.monolith/fs" : "./monolith_fs";
@@ -158,6 +115,12 @@ int main(int /*argc*/, char* /*argv*/[])
         std::cerr << "Failed to initialize filesystem at: " << fsRoot << std::endl;
     }
 
+    // Resources must be set before using any launch* helpers (they need the font and FS pointer).
+    wm.setAppResources(titleFont, fsReady ? &monolithFs : nullptr);
+
+    wm.setLogicalDesktopSize(LOGICAL_WIDTH, LOGICAL_HEIGHT);
+    wm.setHeaderOffset(0);   // No artificial offset — content starts right at top of client area
+
     // Create some test windows.
     // The first one is now a real Terminal connected to the filesystem.
     if (titleFont) {
@@ -167,23 +130,16 @@ int main(int /*argc*/, char* /*argv*/[])
         wm.createWindow("Terminal", 100, 100, 520, 380);
     }
 
-    wm.createWindow("Filesystem", 300, 180, 420, 280,
-                    std::make_unique<PlaceholderApp>(SDL_Color{70, 90, 70, 255}));
-
-    // Real text editor wired to the Monolith filesystem
     if (titleFont) {
-        auto editor = std::make_unique<monolith::app::TextEditorApp>(
-            titleFont, fsReady ? &monolithFs : nullptr, "/home/monolith/welcome.txt");
-        wm.createWindow("Editor", 620, 120, 520, 420, std::move(editor));
+        wm.createWindow("Filesystem", 300, 180, 460, 320,
+                        std::make_unique<monolith::app::FilesystemApp>(titleFont, fsReady ? &monolithFs : nullptr));
     } else {
-        wm.createWindow("Editor", 620, 120, 520, 420);
+        wm.createWindow("Filesystem", 300, 180, 460, 320);
     }
 
-    wm.setLogicalDesktopSize(LOGICAL_WIDTH, LOGICAL_HEIGHT);
-    wm.setHeaderOffset(0);   // No artificial offset — content starts right at top of client area
-
-    // Give the WindowManager the resources it needs to launch real apps from the Start Menu
-    wm.setAppResources(titleFont, fsReady ? &monolithFs : nullptr);
+    // Open the welcome file through the normal launcher path.
+    // This ensures it goes through the singleton editor tracking (no special-case association).
+    wm.launchTextEditor("/home/monolith/welcome.txt");
     // No content scaling for now — logical size matches the window content area 1:1.
 
     bool running = true;

@@ -2,6 +2,27 @@
 
 ## Latest Changes
 
+### Real Filesystem Browser + Editor File Coordination
+
+- **New real graphical Filesystem browser** (`FilesystemApp`)
+  - Scrollable list view with directories shown first (▶ indicator) and files second.
+  - Full navigation: double-click to enter folders or open files, "Up" button, keyboard arrows + Enter/Backspace.
+  - Basic actions: "New Folder" (auto-generates unique names) and "Delete selected".
+  - Double-clicking any file requests the shell to open it in a Text Editor.
+  - Added `Filesystem::listEntries()` helper (returns sorted `DirEntry` with type info) for clean UI code.
+  - Proper UTF-8 rendering fix (switched to `TTF_RenderUTF8_Blended` for all text in the browser).
+
+- **Desktop shell launchers and inter-app coordination**
+  - `WindowManager` now exposes proper `launchTerminal()`, `launchTextEditor(path)`, and `launchFilesystem()` methods.
+  - Extended `IWindowController` with `openInTextEditor(virtualPath)` so apps (especially the filesystem browser) can request the shell to open files.
+  - **Singleton editor behavior**: Attempting to open a file that is already open in an editor now brings the existing window to the front instead of creating duplicate independent copies. This prevents divergent in-memory versions of the same file.
+  - Proper registration/unregistration on window close. Startup demo editor now goes through the normal launcher path for consistency.
+
+- **Code health**
+  - Removed dead placeholder demo apps from `main.cpp`.
+  - Reordered resource initialization (`setAppResources`) so launcher methods can be used for initial windows.
+  - All editor opens (from filesystem browser, start menu, or direct) now flow through the same coordinated path.
+
 ### Desktop Shell: Functional Start Menu + XP-style Taskbar
 
 - **Start Menu is now fully functional**

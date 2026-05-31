@@ -24,6 +24,10 @@ struct Window {
     int id = -1;
     std::string title;
 
+    // If this window is a text editor associated with a specific virtual file path,
+    // this holds the normalized path. Used by WindowManager for "singleton editor" behavior.
+    std::string editedFilePath;
+
     // Position and size of the entire window (including title bar)
     SDL_Rect rect{0, 0, 400, 300};
 

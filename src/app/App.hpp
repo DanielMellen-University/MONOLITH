@@ -19,7 +19,11 @@ struct IWindowController {
     virtual void close() = 0;
     virtual void setTitle(const std::string& title) = 0;
 
-    // Future extensions (not implemented in first pass):
+    // Request that the desktop shell open the given virtual path in a text editor.
+    // Safe to call even if not supported (default is no-op).
+    virtual void openInTextEditor(const std::string& /*virtualPath*/) {}
+
+    // Future extensions:
     // virtual void minimize() = 0;
     // virtual void maximize() = 0;
     // virtual void restore() = 0;

@@ -1,5 +1,6 @@
 #include "Filesystem.hpp"
 
+#include <algorithm>
 #include <filesystem>
 #include <fstream>
 #include <iostream>
@@ -154,6 +155,41 @@ std::vector<std::string> Filesystem::list(const std::string& virtualPath) const 
         // Return empty on error
     }
     return entries;
+}
+
+std::vector<Filesystem::DirEntry> Filesystem::listEntries(const std::string& virtualPath) const {
+    std::vector<DirEntry> dirs;
+    std::vector<DirEntry> files;
+
+    try {
+        stdfs::path hostPath = toHostPath(virtualPath);
+        if (!stdfs::is_directory(hostPath)) return {};
+
+        for (const auto& entry : stdfs::directory_iterator(hostPath)) {
+            DirEntry de;
+            de.name = entry.path().filename().string();
+            de.isDirectory = entry.is_directory();
+            if (de.isDirectory) {
+                dirs.push_back(std::move(de));
+            } else {
+                files.push_back(std::move(de));
+            }
+        }
+    } catch (...) {
+        return {};
+    }
+
+    // Sort each group alphabetically (case-insensitive would be nicer but simple compare is fine)
+    std::sort(dirs.begin(), dirs.end(), [](const DirEntry& a, const DirEntry& b) {
+        return a.name < b.name;
+    });
+    std::sort(files.begin(), files.end(), [](const DirEntry& a, const DirEntry& b) {
+        return a.name < b.name;
+    });
+
+    // Directories first, then files
+    dirs.insert(dirs.end(), std::make_move_iterator(files.begin()), std::make_move_iterator(files.end()));
+    return dirs;
 }
 
 } // namespace monolith::fs

@@ -29,7 +29,7 @@ The core experience is built around **overlapping windows** with traditional des
 │  - Native C++ applications render into their window content  │
 ├─────────────────────────────────────────────────────────────┤
 │  Built-in Apps (native)                                      │
-│  - Terminal, Filesystem, Text Editor, Drawing, Settings...   │
+│  - Terminal, Filesystem Browser, Text Editor, Drawing, ...   │
 ├─────────────────────────────────────────────────────────────┤
 │  Basic Filesystem                                            │
 │  - Hierarchical, persisted on host disk                      │
@@ -75,6 +75,12 @@ Each app runs inside a window provided by the Window Manager. The app is primari
 
 The Window Manager handles the frame, decorations, and top-level input routing.
 
+### Desktop Shell & App Coordination
+
+The Window Manager also acts as a small "desktop shell". It provides launcher methods (`launchTerminal()`, `launchTextEditor(path)`, `launchFilesystem()`) used by the Start Menu and by apps.
+
+Apps can request shell actions on behalf of the user through `IWindowController` (currently `close()`, `setTitle()`, and `openInTextEditor(virtualPath)`). This enables patterns like "double-click a file in the graphical filesystem browser to open it in the text editor" without apps directly depending on each other.
+
 ### 3. Rendering
 
 - The entire environment is rendered inside a single SDL2 window.
@@ -94,9 +100,10 @@ The filesystem is **basic** by design.
 
 **Current understanding:**
 - Hierarchical directory structure
-- Simple file operations (create, read, write, delete, list)
-- Persisted on the host filesystem (likely as a directory tree inside the Monolith data folder)
-- Used by both native apps and the scripting language
+- Simple file operations (create, read, write, delete, list + typed listing)
+- Persisted on the host filesystem (under `~/.monolith/fs/`)
+- Used by Terminal, Text Editor, and the graphical Filesystem Browser
+- A real graphical browser app now exists on top of this layer
 
 Advanced features (permissions, metadata, versioning, etc.) are explicitly out of scope for the foreseeable future.
 

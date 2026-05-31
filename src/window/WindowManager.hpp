@@ -101,6 +101,10 @@ public:
     void launchTextEditor(const std::string& initialPath = "");
     void launchFilesystem();
 
+    // Associate an editor window with a file path so the WM can avoid creating duplicates.
+    // The path should be a normalized virtual path.
+    void associateEditorWithFile(Window* window, const std::string& virtualPath);
+
     // Coordinate conversion helpers (screen <-> logical internal 1920x1080 space)
     int screenToLogicalX(int screenX) const { return static_cast<int>(screenX / m_contentScale); }
     int screenToLogicalY(int screenY) const { return static_cast<int>((screenY - m_headerOffset) / m_contentScale); }
@@ -157,6 +161,9 @@ private:
 
     // Start menu state
     bool m_showStartMenu = false;
+
+    // Tracks which editor windows are responsible for which files (for singleton-per-file behavior)
+    std::unordered_map<std::string, Window*> m_fileEditors;
 
     // Resources for creating real apps from the shell (Start Menu launchers)
     TTF_Font* m_appFont = nullptr;

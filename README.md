@@ -8,12 +8,19 @@ Monolith is an experimental, self-contained environment written in C++ using SDL
 
 ## Current Status
 
-The project is in the initial skeleton stage. Right now it can:
+Monolith has a working desktop environment with overlapping windows:
 
-- Open a resizable window
-- Run a basic event loop
+- **Window Manager**: Dragging, 8-way resizing, title bars with close/min/max, z-order, focus, taskbar with XP-style window buttons + horizontal scrolling, and a functional Start menu.
+- **Built-in Apps**:
+  - **Terminal**: Real command-line app with scrollback, command history, and integrated commands for the internal filesystem (`ls`, `cd`, `cat`, `mkdir`, `rm`, etc.).
+  - **Text Editor**: Functional multi-line editor with cursor movement, editing, and load/save via the internal filesystem (Ctrl+S).
+  - **Filesystem Browser**: Graphical directory browser. Navigate folders, create/delete items, and double-click files to open them in the editor.
+- **Internal Filesystem**: Host-backed (persisted under `~/.monolith/fs/`), with a clean virtual path namespace. Used by Terminal, Editor, and the graphical browser.
+- Fixed-size outer window (1280×720) containing the full self-contained environment.
 
-There is no window manager, no apps, no filesystem, and no language yet.
+**This is still early** — no custom language yet, limited polish, and the set of apps is small. But the core "you can live inside this one program" feeling is starting to come together.
+
+The project follows the spirit of the original vision: a personal, long-term, deliberately grown environment rather than a quick productivity tool.
 
 ## Building
 

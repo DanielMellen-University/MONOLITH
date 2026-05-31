@@ -88,6 +88,8 @@ The goal is to have a language that feels good to use for extending the system, 
 
 ## Roadmap
 
+> **Note on current progress**: A basic but usable graphical Filesystem browser was implemented early (during the Core Foundation phase) because it dramatically increased the feeling of a coherent environment. The rest of the original roadmap remains a useful long-term guide.
+
 The project will be built in phases, roughly in this order:
 
 1. **Core Foundation**
