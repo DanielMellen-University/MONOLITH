@@ -34,6 +34,8 @@ private:
     // === Actions ===
     void createNewFolder();
     void deleteSelected();
+    void startRenameSelected();
+    void finishRename(bool commit);  // commit = true for Enter, false for Escape
 
     // === Selection / Scrolling ===
     void setSelection(int index);
@@ -50,6 +52,12 @@ private:
     void drawPathBar(SDL_Renderer* r, const SDL_Rect& contentRect, int& outTopY);
     void drawList(SDL_Renderer* r, const SDL_Rect& contentRect, int topY);
     void drawToolbar(SDL_Renderer* r, const SDL_Rect& contentRect);
+    void drawStatusBar(SDL_Renderer* r, const SDL_Rect& contentRect);
+    void drawContextMenu(SDL_Renderer* r, const SDL_Rect& contentRect);
+
+    void showContextMenu(int x, int y, int targetIndex);
+    void closeContextMenu();
+    void executeContextMenuAction(int menuIndex);
 
     TTF_Font* m_font = nullptr;
     monolith::fs::Filesystem* m_fs = nullptr;
@@ -68,6 +76,23 @@ private:
     SDL_Rect m_btnUp{0,0,0,0};
     SDL_Rect m_btnNewFolder{0,0,0,0};
     SDL_Rect m_btnDelete{0,0,0,0};
+    SDL_Rect m_btnRename{0,0,0,0};
+
+    // Rename state
+    bool m_renaming = false;
+    int m_renameIndex = -1;
+    std::string m_renameBuffer;
+
+    // Context menu state
+    bool m_showContextMenu = false;
+    SDL_Point m_contextMenuPos{0, 0};
+    int m_contextMenuTarget = -1;          // index in m_entries, or -1 for background
+    std::vector<std::string> m_contextMenuItems;
+    int m_contextMenuHoverIndex = -1;
+
+    // Current menu dimensions (for accurate hit testing)
+    int m_contextMenuWidth = 0;
+    int m_contextMenuHeight = 0;
 
     // For double-click detection we use SDL's built-in clicks count
 };

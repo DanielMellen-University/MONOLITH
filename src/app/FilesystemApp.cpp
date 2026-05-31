@@ -1,6 +1,7 @@
 #include "FilesystemApp.hpp"
 
 #include <algorithm>
+#include <iostream>
 #include <sstream>
 
 namespace monolith::app {
@@ -134,6 +135,51 @@ void FilesystemApp::deleteSelected() {
     }
 }
 
+void FilesystemApp::startRenameSelected() {
+    if (!m_fs || m_selectedIndex < 0 || m_selectedIndex >= static_cast<int>(m_entries.size())) {
+        return;
+    }
+
+    m_renaming = true;
+    m_renameIndex = m_selectedIndex;
+    m_renameBuffer = m_entries[m_selectedIndex].name;
+}
+
+void FilesystemApp::finishRename(bool commit) {
+    if (!m_renaming || m_renameIndex < 0 || m_renameIndex >= static_cast<int>(m_entries.size())) {
+        m_renaming = false;
+        m_renameIndex = -1;
+        m_renameBuffer.clear();
+        return;
+    }
+
+    const auto& entry = m_entries[m_renameIndex];
+    std::string oldPath = fullPathFor(entry.name);
+
+    if (commit && !m_renameBuffer.empty() && m_renameBuffer != entry.name) {
+        std::string newPath = fullPathFor(m_renameBuffer);
+
+        // Prevent naming conflicts
+        if (!m_fs->exists(newPath)) {
+            if (m_fs->rename(oldPath, newPath)) {
+                refreshEntries();
+
+                // Try to reselect the renamed item
+                for (size_t i = 0; i < m_entries.size(); ++i) {
+                    if (m_entries[i].name == m_renameBuffer) {
+                        setSelection(static_cast<int>(i));
+                        break;
+                    }
+                }
+            }
+        }
+    }
+
+    m_renaming = false;
+    m_renameIndex = -1;
+    m_renameBuffer.clear();
+}
+
 void FilesystemApp::setSelection(int index) {
     if (m_entries.empty()) {
         m_selectedIndex = -1;
@@ -162,9 +208,9 @@ int FilesystemApp::getVisibleRowCount(const SDL_Rect& contentRect) const {
     int rh = getRowHeight();
     if (rh <= 0) return 10;
 
-    // Leave some space for path bar + toolbar area at top and a little padding
+    // Leave some space for path bar + toolbar area at top and status bar at bottom
     const int reservedTop = 52;   // path bar + small toolbar strip
-    const int reservedBottom = 8;
+    const int reservedBottom = 22 + 8; // status bar + padding
     int available = contentRect.h - reservedTop - reservedBottom;
     if (available < 20) available = 20;
 
@@ -172,12 +218,76 @@ int FilesystemApp::getVisibleRowCount(const SDL_Rect& contentRect) const {
 }
 
 void FilesystemApp::handleMouseButton(const SDL_MouseButtonEvent& e, const SDL_Rect& contentRect) {
-    if (e.button != SDL_BUTTON_LEFT) return;
-
     const int mx = e.x;
     const int my = e.y;
 
-    // Check toolbar buttons first (they live near the top of contentRect)
+    // === Context menu handling (takes priority) ===
+    if (m_showContextMenu) {
+        if (e.button == SDL_BUTTON_LEFT) {
+            // Check if clicking on a menu item
+            // Menu is drawn at m_contextMenuPos (relative)
+            int menuX = m_contextMenuPos.x;
+            int menuY = m_contextMenuPos.y;
+            int itemHeight = getRowHeight() + 2;
+            int padding = 6;
+
+            int clickedItem = -1;
+            int itemY = menuY + padding;
+            for (size_t i = 0; i < m_contextMenuItems.size(); ++i) {
+                SDL_Rect itemRect = {menuX, itemY, m_contextMenuWidth, itemHeight};
+                if (mx >= itemRect.x && mx < itemRect.x + m_contextMenuWidth &&
+                    my >= itemRect.y && my < itemRect.y + itemHeight) {
+                    clickedItem = static_cast<int>(i);
+                    break;
+                }
+                itemY += itemHeight;
+            }
+
+            if (clickedItem != -1) {
+                executeContextMenuAction(clickedItem);
+            } else {
+                closeContextMenu();
+            }
+        } else if (e.button == SDL_BUTTON_RIGHT) {
+            closeContextMenu();
+        }
+        return;
+    }
+
+    // === Right click → show context menu ===
+    if (e.button == SDL_BUTTON_RIGHT) {
+        std::cout << "[FilesystemApp] RIGHT CLICK detected at relative (" << mx << "," << my << ")" << std::endl;
+
+        const int listTop = 52;
+
+        if (my >= listTop) {
+            int rowHeight = getRowHeight();
+            if (rowHeight <= 0) rowHeight = 20;
+
+            int relY = my - listTop;
+            int clickedRow = m_scrollOffset + (relY / rowHeight);
+
+            if (clickedRow >= 0 && clickedRow < static_cast<int>(m_entries.size())) {
+                setSelection(clickedRow);
+                std::cout << "[FilesystemApp] Right-click on item " << clickedRow << std::endl;
+                showContextMenu(mx, my, clickedRow);
+            } else {
+                std::cout << "[FilesystemApp] Right-click on empty space (background menu)" << std::endl;
+                m_selectedIndex = -1;
+                showContextMenu(mx, my, -1);
+            }
+        } else {
+            std::cout << "[FilesystemApp] Right-click above list (background menu)" << std::endl;
+            m_selectedIndex = -1;
+            showContextMenu(mx, my, -1);
+        }
+        return;
+    }
+
+    // === Left click handling ===
+    if (e.button != SDL_BUTTON_LEFT) return;
+
+    // Check toolbar buttons first
     SDL_Point pt { mx, my };
     if (SDL_PointInRect(&pt, &m_btnUp)) {
         goUp();
@@ -191,9 +301,18 @@ void FilesystemApp::handleMouseButton(const SDL_MouseButtonEvent& e, const SDL_R
         deleteSelected();
         return;
     }
+    if (SDL_PointInRect(&pt, &m_btnRename)) {
+        startRenameSelected();
+        return;
+    }
 
-    // Path bar area is above the list — ignore clicks there for selection
-    const int listTop = contentRect.y + 52; // must match drawPathBar + toolbar height
+    // If we click anywhere while renaming, finish (cancel) the rename
+    if (m_renaming) {
+        finishRename(false);
+    }
+
+    // Path bar + toolbar area is above the list
+    const int listTop = 52;
     if (my < listTop) return;
 
     // Compute which row was clicked
@@ -207,12 +326,10 @@ void FilesystemApp::handleMouseButton(const SDL_MouseButtonEvent& e, const SDL_R
     if (clickedRow >= 0 && clickedRow < static_cast<int>(m_entries.size())) {
         setSelection(clickedRow);
 
-        // Double-click?
         if (e.clicks >= 2) {
             activateEntry(static_cast<size_t>(clickedRow));
         }
     } else {
-        // Clicked empty space
         m_selectedIndex = -1;
     }
 }
@@ -227,6 +344,25 @@ void FilesystemApp::handleMouseWheel(const SDL_MouseWheelEvent& e) {
 }
 
 void FilesystemApp::handleKeyDown(const SDL_Keysym& keysym) {
+    if (m_renaming) {
+        // Handle rename mode specially
+        if (keysym.sym == SDLK_RETURN || keysym.sym == SDLK_KP_ENTER) {
+            finishRename(true);
+            return;
+        }
+        if (keysym.sym == SDLK_ESCAPE) {
+            finishRename(false);
+            return;
+        }
+        if (keysym.sym == SDLK_BACKSPACE) {
+            if (!m_renameBuffer.empty()) {
+                m_renameBuffer.pop_back();
+            }
+            return;
+        }
+        return; // Ignore other keys while renaming
+    }
+
     switch (keysym.sym) {
         case SDLK_UP:
             if (m_selectedIndex > 0) {
@@ -260,8 +396,18 @@ void FilesystemApp::handleKeyDown(const SDL_Keysym& keysym) {
             deleteSelected();
             break;
 
+        case SDLK_F2:
+            startRenameSelected();
+            break;
+
         case SDLK_F5:
             refreshEntries();
+            break;
+
+        case SDLK_ESCAPE:
+            if (m_showContextMenu) {
+                closeContextMenu();
+            }
             break;
 
         default:
@@ -270,9 +416,37 @@ void FilesystemApp::handleKeyDown(const SDL_Keysym& keysym) {
 }
 
 void FilesystemApp::handleEvent(const SDL_Event& event) {
+    if (m_renaming && event.type == SDL_TEXTINPUT) {
+        if (event.text.text) {
+            m_renameBuffer += event.text.text;
+        }
+        return;
+    }
+
+    if (event.type == SDL_MOUSEMOTION && m_showContextMenu) {
+        // Update hover for context menu
+        int mx = event.motion.x;
+        int my = event.motion.y;
+
+        int menuX = m_contextMenuPos.x;
+        int menuY = m_contextMenuPos.y;
+        int itemHeight = getRowHeight() + 2;
+        int padding = 6;
+
+        m_contextMenuHoverIndex = -1;
+        int itemY = menuY + padding;
+        for (size_t i = 0; i < m_contextMenuItems.size(); ++i) {
+            if (mx >= menuX && mx < menuX + 200 &&
+                my >= itemY && my < itemY + itemHeight) {
+                m_contextMenuHoverIndex = static_cast<int>(i);
+                break;
+            }
+            itemY += itemHeight;
+        }
+        return;
+    }
+
     if (event.type == SDL_MOUSEBUTTONDOWN) {
-        // We need the current content rect to do hit testing.
-        // Since we don't store it, we do a best-effort using cached client size.
         SDL_Rect fake{0, 0, m_clientWidth, m_clientHeight};
         handleMouseButton(event.button, fake);
     } else if (event.type == SDL_MOUSEWHEEL) {
@@ -324,24 +498,33 @@ void FilesystemApp::drawPathBar(SDL_Renderer* r, const SDL_Rect& contentRect, in
 }
 
 void FilesystemApp::drawToolbar(SDL_Renderer* r, const SDL_Rect& contentRect) {
-    const int y = contentRect.y + 30;
+    // Store button rects in relative coordinates (for hit testing with relative mouse events)
+    const int relY = 30;
     const int h = 20;
     const int padding = 8;
     const int gap = 6;
 
-    int x = contentRect.x + padding;
+    int relX = padding;
 
     auto drawButton = [&](SDL_Rect& outRect, const char* label, int w) {
-        outRect = {x, y, w, h};
-        x += w + gap;
+        // Store relative rect for input
+        outRect = {relX, relY, w, h};
+
+        // Draw using absolute screen coordinates
+        SDL_Rect drawRect = {
+            contentRect.x + relX,
+            contentRect.y + relY,
+            w,
+            h
+        };
 
         // Button background
         SDL_SetRenderDrawColor(r, 45, 48, 55, 255);
-        SDL_RenderFillRect(r, &outRect);
+        SDL_RenderFillRect(r, &drawRect);
 
         // Subtle border
         SDL_SetRenderDrawColor(r, 70, 75, 85, 255);
-        SDL_RenderDrawRect(r, &outRect);
+        SDL_RenderDrawRect(r, &drawRect);
 
         if (m_font) {
             SDL_Color col = {210, 215, 220, 255};
@@ -350,8 +533,8 @@ void FilesystemApp::drawToolbar(SDL_Renderer* r, const SDL_Rect& contentRect) {
                 SDL_Texture* tex = SDL_CreateTextureFromSurface(r, surf);
                 if (tex) {
                     SDL_Rect dst = {
-                        outRect.x + (outRect.w - surf->w) / 2,
-                        outRect.y + (outRect.h - surf->h) / 2,
+                        drawRect.x + (drawRect.w - surf->w) / 2,
+                        drawRect.y + (drawRect.h - surf->h) / 2,
                         surf->w, surf->h
                     };
                     SDL_RenderCopy(r, tex, nullptr, &dst);
@@ -360,10 +543,13 @@ void FilesystemApp::drawToolbar(SDL_Renderer* r, const SDL_Rect& contentRect) {
                 SDL_FreeSurface(surf);
             }
         }
+
+        relX += w + gap;
     };
 
     drawButton(m_btnUp, "Up", 48);
     drawButton(m_btnNewFolder, "New Folder", 92);
+    drawButton(m_btnRename, "Rename", 68);
     drawButton(m_btnDelete, "Delete", 68);
 }
 
@@ -376,7 +562,9 @@ void FilesystemApp::drawList(SDL_Renderer* r, const SDL_Rect& contentRect, int l
 
     const int rowH = getRowHeight();
     (void)rowH; // used via getVisibleRowCount
-    const int listHeight = contentRect.h - (listTopY - contentRect.y) - 6;
+
+    const int statusBarHeight = 22;
+    const int listHeight = contentRect.h - (listTopY - contentRect.y) - 6 - statusBarHeight;
 
     SDL_Rect listArea = {
         contentRect.x,
@@ -418,6 +606,7 @@ void FilesystemApp::drawList(SDL_Renderer* r, const SDL_Rect& contentRect, int l
 
         const auto& entry = m_entries[entryIdx];
         bool isSelected = (entryIdx == m_selectedIndex);
+        bool isRenamingThis = m_renaming && (entryIdx == m_renameIndex);
 
         SDL_Rect rowRect = {
             listArea.x,
@@ -426,8 +615,14 @@ void FilesystemApp::drawList(SDL_Renderer* r, const SDL_Rect& contentRect, int l
             rowH - 1
         };
 
-        if (isSelected) {
+        if (isSelected && !isRenamingThis) {
             SDL_SetRenderDrawColor(r, selBg.r, selBg.g, selBg.b, 255);
+            SDL_RenderFillRect(r, &rowRect);
+        }
+
+        if (isRenamingThis) {
+            // Highlight rename row more strongly
+            SDL_SetRenderDrawColor(r, 70, 90, 120, 255);
             SDL_RenderFillRect(r, &rowRect);
         }
 
@@ -449,10 +644,12 @@ void FilesystemApp::drawList(SDL_Renderer* r, const SDL_Rect& contentRect, int l
             }
         }
 
-        // Name
-        SDL_Color nameCol = isSelected ? selText : (entry.isDirectory ? textDir : textNormal);
+        // Name (or rename buffer if renaming this row)
         {
-            SDL_Surface* s = TTF_RenderUTF8_Blended(m_font, entry.name.c_str(), nameCol);
+            std::string displayText = isRenamingThis ? m_renameBuffer : entry.name;
+            SDL_Color nameCol = isRenamingThis ? selText : (isSelected ? selText : (entry.isDirectory ? textDir : textNormal));
+
+            SDL_Surface* s = TTF_RenderUTF8_Blended(m_font, displayText.c_str(), nameCol);
             if (s) {
                 SDL_Texture* t = SDL_CreateTextureFromSurface(r, s);
                 if (t) {
@@ -463,9 +660,19 @@ void FilesystemApp::drawList(SDL_Renderer* r, const SDL_Rect& contentRect, int l
                 }
                 SDL_FreeSurface(s);
             }
-        }
 
-        // (Trailing slash for directories intentionally omitted for v1 to keep layout simple)
+            // Draw a simple cursor when renaming
+            if (isRenamingThis) {
+                int textW = 0, textH = 0;
+                if (!displayText.empty()) {
+                    TTF_SizeUTF8(m_font, displayText.c_str(), &textW, &textH);
+                }
+                int cursorX = rowRect.x + 28 + textW + 1;
+                int cursorY = rowRect.y + 2;
+                SDL_SetRenderDrawColor(r, 255, 255, 255, 220);
+                SDL_RenderDrawLine(r, cursorX, cursorY, cursorX, cursorY + rowH - 6);
+            }
+        }
 
         y += rowH;
     }
@@ -487,12 +694,224 @@ void FilesystemApp::render(SDL_Renderer* renderer, const SDL_Rect& contentRect) 
     drawPathBar(renderer, contentRect, listTop);
     drawToolbar(renderer, contentRect);
     drawList(renderer, contentRect, listTop + 22);  // toolbar sits just under path bar
+    drawStatusBar(renderer, contentRect);
+
+    if (m_showContextMenu) {
+        drawContextMenu(renderer, contentRect);
+    }
 }
 
 void FilesystemApp::onResize(int clientWidth, int clientHeight) {
     m_clientWidth = clientWidth;
     m_clientHeight = clientHeight;
     ensureSelectionVisible();
+}
+
+void FilesystemApp::showContextMenu(int x, int y, int targetIndex) {
+    closeContextMenu(); // close any existing menu first
+
+    m_contextMenuPos = {x, y};
+    m_contextMenuTarget = targetIndex;
+    m_contextMenuHoverIndex = -1;
+    m_contextMenuItems.clear();
+
+    if (targetIndex == -1) {
+        // Background menu
+        m_contextMenuItems.push_back("New Folder");
+        m_contextMenuItems.push_back("New File");
+        m_contextMenuItems.push_back("Refresh");
+    } else if (targetIndex >= 0 && targetIndex < static_cast<int>(m_entries.size())) {
+        const auto& entry = m_entries[targetIndex];
+        m_contextMenuItems.push_back("Open");
+        m_contextMenuItems.push_back("Rename");
+        if (entry.isDirectory) {
+            // Could add more folder-specific options later
+        }
+        m_contextMenuItems.push_back("Delete");
+    }
+
+    // Calculate menu dimensions (same logic as drawContextMenu)
+    if (!m_contextMenuItems.empty() && m_font) {
+        const int itemHeight = getRowHeight() + 2;
+        const int padding = 6;
+        const int minWidth = 140;
+
+        int maxTextWidth = minWidth;
+        for (const auto& item : m_contextMenuItems) {
+            int w = 0, h = 0;
+            TTF_SizeUTF8(m_font, item.c_str(), &w, &h);
+            if (w > maxTextWidth) maxTextWidth = w;
+        }
+
+        m_contextMenuWidth = maxTextWidth + padding * 2 + 20;
+        m_contextMenuHeight = static_cast<int>(m_contextMenuItems.size()) * itemHeight + padding * 2;
+    } else {
+        m_contextMenuWidth = 0;
+        m_contextMenuHeight = 0;
+    }
+
+    m_showContextMenu = true;
+
+    std::cout << "[FilesystemApp] showContextMenu called for target=" << targetIndex 
+              << " at (" << x << "," << y << ") with " << m_contextMenuItems.size() << " items" << std::endl;
+}
+
+void FilesystemApp::closeContextMenu() {
+    m_showContextMenu = false;
+    m_contextMenuItems.clear();
+    m_contextMenuHoverIndex = -1;
+    m_contextMenuTarget = -1;
+}
+
+void FilesystemApp::executeContextMenuAction(int menuIndex) {
+    if (!m_showContextMenu || menuIndex < 0 || menuIndex >= static_cast<int>(m_contextMenuItems.size())) {
+        closeContextMenu();
+        return;
+    }
+
+    std::string action = m_contextMenuItems[menuIndex];
+    closeContextMenu();
+
+    if (action == "New Folder") {
+        createNewFolder();
+    } else if (action == "New File") {
+        // TODO: implement createNewFile() later
+    } else if (action == "Refresh") {
+        refreshEntries();
+    } else if (action == "Open") {
+        if (m_contextMenuTarget >= 0) {
+            activateEntry(m_contextMenuTarget);
+        }
+    } else if (action == "Rename") {
+        if (m_contextMenuTarget >= 0) {
+            m_selectedIndex = m_contextMenuTarget;
+            startRenameSelected();
+        }
+    } else if (action == "Delete") {
+        if (m_contextMenuTarget >= 0) {
+            m_selectedIndex = m_contextMenuTarget;
+            deleteSelected();
+        }
+    }
+}
+
+void FilesystemApp::drawStatusBar(SDL_Renderer* r, const SDL_Rect& contentRect) {
+    const int statusH = 22;
+    SDL_Rect bar = {
+        contentRect.x,
+        contentRect.y + contentRect.h - statusH,
+        contentRect.w,
+        statusH
+    };
+
+    SDL_SetRenderDrawColor(r, 30, 32, 38, 255);
+    SDL_RenderFillRect(r, &bar);
+
+    if (!m_font) return;
+
+    std::string status;
+
+    if (m_entries.empty()) {
+        status = "0 items";
+    } else {
+        status = std::to_string(m_entries.size()) + " items";
+    }
+
+    if (m_selectedIndex >= 0 && m_selectedIndex < static_cast<int>(m_entries.size())) {
+        const auto& sel = m_entries[m_selectedIndex];
+        status += "   |   Selected: " + sel.name;
+        if (sel.isDirectory) status += " (dir)";
+    }
+
+    SDL_Color textCol = {160, 165, 175, 255};
+    SDL_Surface* surf = TTF_RenderUTF8_Blended(m_font, status.c_str(), textCol);
+    if (surf) {
+        SDL_Texture* tex = SDL_CreateTextureFromSurface(r, surf);
+        if (tex) {
+            SDL_Rect dst = {
+                contentRect.x + 10,
+                bar.y + (statusH - surf->h) / 2,
+                surf->w,
+                surf->h
+            };
+            SDL_RenderCopy(r, tex, nullptr, &dst);
+            SDL_DestroyTexture(tex);
+        }
+        SDL_FreeSurface(surf);
+    }
+}
+
+void FilesystemApp::drawContextMenu(SDL_Renderer* r, const SDL_Rect& contentRect) {
+    if (!m_showContextMenu || m_contextMenuItems.empty() || !m_font) return;
+
+    std::cout << "[FilesystemApp] DRAWING context menu with " << m_contextMenuItems.size() 
+              << " items at relative (" << m_contextMenuPos.x << "," << m_contextMenuPos.y << ")" << std::endl;
+
+    const int itemHeight = getRowHeight() + 2;
+    const int padding = 6;
+    const int minWidth = 140;
+
+    // Calculate menu size
+    int maxTextWidth = minWidth;
+    for (const auto& item : m_contextMenuItems) {
+        int w = 0, h = 0;
+        TTF_SizeUTF8(m_font, item.c_str(), &w, &h);
+        if (w > maxTextWidth) maxTextWidth = w;
+    }
+
+    int menuWidth = maxTextWidth + padding * 2 + 20;
+    int menuHeight = static_cast<int>(m_contextMenuItems.size()) * itemHeight + padding * 2;
+
+    // Convert relative click position to absolute screen coordinates
+    int menuX = contentRect.x + m_contextMenuPos.x;
+    int menuY = contentRect.y + m_contextMenuPos.y;
+
+    // Simple clamping
+    if (menuX + menuWidth > contentRect.x + m_clientWidth)  menuX = contentRect.x + m_clientWidth - menuWidth - 4;
+    if (menuY + menuHeight > contentRect.y + m_clientHeight) menuY = contentRect.y + m_clientHeight - menuHeight - 4;
+    if (menuX < contentRect.x + 4) menuX = contentRect.x + 4;
+    if (menuY < contentRect.y + 4) menuY = contentRect.y + 4;
+
+    SDL_Rect menuRect = {menuX, menuY, menuWidth, menuHeight};
+
+    // Background
+    SDL_SetRenderDrawColor(r, 38, 40, 48, 255);
+    SDL_RenderFillRect(r, &menuRect);
+
+    // Border
+    SDL_SetRenderDrawColor(r, 70, 75, 85, 255);
+    SDL_RenderDrawRect(r, &menuRect);
+
+    // Menu items
+    int itemY = menuY + padding;
+    for (size_t i = 0; i < m_contextMenuItems.size(); ++i) {
+        bool hovered = (static_cast<int>(i) == m_contextMenuHoverIndex);
+
+        SDL_Rect itemRect = {menuX + 1, itemY, menuWidth - 2, itemHeight - 1};
+
+        if (hovered) {
+            SDL_SetRenderDrawColor(r, 60, 80, 110, 255);
+            SDL_RenderFillRect(r, &itemRect);
+        }
+
+        SDL_Color textCol = hovered ? SDL_Color{230, 235, 245, 255} : SDL_Color{200, 205, 215, 255};
+        SDL_Surface* surf = TTF_RenderUTF8_Blended(m_font, m_contextMenuItems[i].c_str(), textCol);
+        if (surf) {
+            SDL_Texture* tex = SDL_CreateTextureFromSurface(r, surf);
+            if (tex) {
+                SDL_Rect dst = {
+                    menuX + padding + 4,
+                    itemY + (itemHeight - surf->h) / 2,
+                    surf->w, surf->h
+                };
+                SDL_RenderCopy(r, tex, nullptr, &dst);
+                SDL_DestroyTexture(tex);
+            }
+            SDL_FreeSurface(surf);
+        }
+
+        itemY += itemHeight;
+    }
 }
 
 } // namespace monolith::app

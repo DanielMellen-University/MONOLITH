@@ -106,6 +106,24 @@ bool Filesystem::remove(const std::string& virtualPath) {
     }
 }
 
+bool Filesystem::rename(const std::string& oldVirtualPath, const std::string& newVirtualPath) {
+    try {
+        stdfs::path oldHost = toHostPath(oldVirtualPath);
+        stdfs::path newHost = toHostPath(newVirtualPath);
+
+        // Prevent overwriting existing files/directories
+        if (stdfs::exists(newHost)) {
+            return false;
+        }
+
+        stdfs::rename(oldHost, newHost);
+        return true;
+    } catch (const std::exception& e) {
+        std::cerr << "rename failed: " << e.what() << std::endl;
+        return false;
+    }
+}
+
 bool Filesystem::writeFile(const std::string& virtualPath, const std::string& content) {
     try {
         stdfs::path hostPath = toHostPath(virtualPath);

@@ -42,6 +42,9 @@ public:
     /** Removes a file or empty directory. Returns false on failure. */
     bool remove(const std::string& virtualPath);
 
+    /** Renames or moves a file/directory to a new virtual path. Returns false on failure. */
+    bool rename(const std::string& oldVirtualPath, const std::string& newVirtualPath);
+
     /** Writes (or overwrites) a file with the given content. */
     bool writeFile(const std::string& virtualPath, const std::string& content);
 

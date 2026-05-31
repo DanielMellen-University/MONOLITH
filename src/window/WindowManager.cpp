@@ -212,6 +212,27 @@ void WindowManager::handleEvent(const SDL_Event& event) {
         }
     }
 
+    // === Non-left mouse buttons (right-click for context menus, etc.) ===
+    // These still need to reach the app's client area, but skip all the drag/resize/titlebar logic.
+    if (event.type == SDL_MOUSEBUTTONDOWN && event.button.button != SDL_BUTTON_LEFT) {
+        m_mouseX = event.button.x;
+        m_mouseY = event.button.y;
+
+        Window* clicked = getWindowAt(m_mouseX, m_mouseY);
+        if (clicked) {
+            bringToFront(clicked);
+
+            if (isInContentArea(*clicked, m_mouseX, logicalMouseY)) {
+                if (clicked->app) {
+                    SDL_Event clientEvent = event;
+                    translateMouseEventToClient(*clicked, clientEvent);
+                    clicked->app->handleEvent(clientEvent);
+                }
+                return;
+            }
+        }
+    }
+
     if (event.type == SDL_MOUSEBUTTONUP && event.button.button == SDL_BUTTON_LEFT) {
         m_mouseDown = false;
 

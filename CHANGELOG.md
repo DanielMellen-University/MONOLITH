@@ -11,6 +11,15 @@
   - Double-clicking any file requests the shell to open it in a Text Editor.
   - Added `Filesystem::listEntries()` helper (returns sorted `DirEntry` with type info) for clean UI code.
   - Proper UTF-8 rendering fix (switched to `TTF_RenderUTF8_Blended` for all text in the browser).
+  - **Right-click context menu**:
+    - Context-sensitive menus for files, folders, and empty space.
+    - File options: Open, Rename, Delete.
+    - Folder options: Open, Rename, Delete.
+    - Background (empty space) options: New Folder, New File, Refresh.
+  - Added status bar showing item count and selected item details.
+  - Added inline rename support (F2 or via menu) with live editing.
+  - Improved toolbar button hit testing and rendering (relative vs screen coordinates).
+  - Added `Filesystem::rename()` backend support.
 
 - **Desktop shell launchers and inter-app coordination**
   - `WindowManager` now exposes proper `launchTerminal()`, `launchTextEditor(path)`, and `launchFilesystem()` methods.
