@@ -12,7 +12,7 @@
 
 Monolith is a single Linux program that contains its own little world. It has a filesystem, a custom programming language, a terminal, and multiple built-in apps. You can keep adding new apps and features to it over the years.
 
-It takes some inspiration from TempleOS — the idea of a personal, direct, self-contained machine that you live inside — but it is much easier because it runs as a normal application on Linux instead of being a full operating system.
+It takes some inspiration from TempleOS - the idea of a personal, direct, self-contained machine that you live inside - but it is much easier because it runs as a normal application on Linux instead of being a full operating system.
 
 You don't use Monolith like a regular program.  
 You enter it.
@@ -40,14 +40,14 @@ You enter it.
 
 Monolith is meant to contain several distinct apps and subsystems:
 
-- **Terminal** — The main command-line interface to the system
-- **Filesystem** — Browse, organize, and manage Monolith's internal files and directories
-- **Text Editor** — For writing and editing text and code
-- **IDE** — A simple environment for writing, running, and working with programs in Monolith's language
-- **Drawing Program** — Create graphics and images that live inside the system
-- **Wallpaper App** — Customize the background and visual environment
-- **Settings Panel** — Configure how Monolith behaves
-- **Games** — Small games that run inside Monolith
+- **Terminal** - The main command-line interface to the system
+- **Filesystem** - Browse, organize, and manage Monolith's internal files and directories
+- **Text Editor** - For writing and editing text and code
+- **IDE** - A simple environment for writing, running, and working with programs in Monolith's language
+- **Drawing Program** - Create graphics and images that live inside the system
+- **Wallpaper App** - Customize the background and visual environment
+- **Settings Panel** - Configure how Monolith behaves
+- **Games** - Small games that run inside Monolith
 
 New apps can be added over time, either as native features or written in the custom language.
 
@@ -88,8 +88,6 @@ The goal is to have a language that feels good to use for extending the system, 
 
 ## Roadmap
 
-> **Note on current progress**: A basic but usable graphical Filesystem browser was implemented early (during the Core Foundation phase) because it dramatically increased the feeling of a coherent environment. The rest of the original roadmap remains a useful long-term guide.
-
 The project will be built in phases, roughly in this order:
 
 1. **Core Foundation**
@@ -120,10 +118,4 @@ The priority is to make the environment feel alive and usable early, even if man
 
 ## Final Note
 
-Monolith is a long-term personal project.
-
-The goal isn't to build something impressive quickly.  
-The goal is to slowly build a machine that feels like it belongs to you — a place you can keep returning to and expanding for as long as you want.
-
-If it stops feeling worth it, you can stop.  
-If it keeps feeling right, you just keep adding to it.
+Monolith is intended as a long-term personal project. The aim is to build something deliberately over time rather than trying to create a complete product quickly.
