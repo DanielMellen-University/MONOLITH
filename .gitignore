@@ -31,4 +31,6 @@ Thumbs.db
 *.log
 *.tmp
 
-# Note: AGENTS.md is now tracked in the repo to define the official beta/main workflow.
+# .AGENTS.md is intentionally tracked (defines the beta/main development workflow for agents).
+# The non-hidden AGENTS.md is ignored to avoid confusion.
+AGENTS.md
