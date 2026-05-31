@@ -18,9 +18,7 @@ Monolith has a working desktop environment with overlapping windows:
 - **Internal Filesystem**: Host-backed (persisted under `~/.monolith/fs/`), with a clean virtual path namespace. Used by Terminal, Editor, and the graphical browser.
 - Fixed-size outer window (1280×720) containing the full self-contained environment.
 
-**This is still early** — no custom language yet, limited polish, and the set of apps is small. But the core "you can live inside this one program" feeling is starting to come together.
-
-The project follows the spirit of the original vision: a personal, long-term, deliberately grown environment rather than a quick productivity tool.
+**This is still early** - no custom language yet, limited polish, and the set of apps is small. The focus is on building a coherent, self-contained environment over time.
 
 ## Building
 
@@ -59,8 +57,8 @@ The resulting binary will be at `build/monolith`.
 
 ## Documentation
 
-- [Vision & Philosophy](docs/vision.md) — Original long-term goals and design philosophy
-- [Architecture](docs/architecture.md) — High-level technical structure
+- [Vision & Philosophy](docs/vision.md) - Original long-term goals and design philosophy
+- [Architecture](docs/architecture.md) - High-level technical structure
 
 ## License
 

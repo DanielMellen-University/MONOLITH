@@ -2,7 +2,7 @@
 
 ## Overview
 
-Monolith is a single Linux application that contains a complete, self-contained desktop-like environment. It is designed to feel like a small personal operating system that you "enter," while remaining a normal application on the host.
+Monolith is a single Linux application that contains a complete, self-contained desktop-like environment. It is designed to feel like a small personal operating system that the user "enters," while remaining a normal application on the host.
 
 The core experience is built around **overlapping windows** with traditional desktop behaviors. Most functionality lives in native applications that run inside these windows.
 
@@ -103,7 +103,7 @@ The filesystem is **basic** by design.
 - Simple file operations (create, read, write, delete, list + typed listing)
 - Persisted on the host filesystem (under `~/.monolith/fs/`)
 - Used by Terminal, Text Editor, and the graphical Filesystem Browser
-- A real graphical browser app now exists on top of this layer
+- A graphical browser app is built on top of this layer
 
 Advanced features (permissions, metadata, versioning, etc.) are explicitly out of scope for the foreseeable future.
 

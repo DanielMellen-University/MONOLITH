@@ -26,7 +26,7 @@
 ### Desktop Shell: Functional Start Menu + XP-style Taskbar
 
 - **Start Menu is now fully functional**
-  - Clicking items launches real apps (Terminal, Text Editor, Filesystem placeholder).
+  - Clicking items launches real apps (Terminal, Text Editor, Filesystem browser).
   - Multiple instances of the same app type can be opened.
   - Menu closes after selection or when clicking elsewhere.
 
@@ -59,10 +59,10 @@
   - Clicking a minimized window's entry in the taskbar now correctly restores it and brings it to the front.
   - Fixed by reordering mouse-down handling so global UI elements (taskbar + Start Menu) are checked *before* any internal window hit testing.
 
-- **Start Menu placeholder**
-  - Clicking the Start button toggles a simple popup menu.
+- **Start Menu**
+  - Clicking the Start button toggles a popup menu.
   - Clicking outside the menu or on the taskbar closes it.
-  - Contains placeholder items for future functionality.
+  - Contains items for launching the main applications.
 
 - **Improved taskbar click handling**
   - Uses exact screen-space rectangles recorded during rendering for accurate hit testing.
@@ -81,7 +81,5 @@
 - `createWindow(...)` now accepts an optional `unique_ptr<App>`.
 - Added focus gained/lost and resize notifications for apps.
 - Mouse events forwarded to apps have coordinates translated so (0,0) is the top-left of the app's content area.
-- Two demo apps added in main.cpp:
-  - `PlaceholderApp` — proves delegation + rendering.
-  - `ClickDemoApp` — interactive (click to place dots) proving input routing works.
+- Two early demo apps were used during development to validate the App hosting model.
 - Zero regression for existing/placeholder windows (they continue to work with `nullptr` apps).
