@@ -31,7 +31,6 @@ Thumbs.db
 *.log
 *.tmp
 
-# Agent instruction files (hidden + gitignored by design)
-# There should only ever be one: the hidden .AGENTS.md for local agent preferences/workflow rules.
+# Agent instruction file (hidden + gitignored by design)
+# There should only be one: the hidden .AGENTS.md for local agent preferences/workflow.
 .AGENTS.md
-AGENTS.md
