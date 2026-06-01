@@ -1,5 +1,33 @@
 # Changelog
 
+## Release - Advanced Filesystem Browser + Terminal & Editor Polish (June 2026)
+
+- **Filesystem Browser** — Major upgrade:
+  - New File creation (toolbar button + context menu) with immediate inline rename.
+  - Full right-click context menu (Open, Rename, Delete for items; New Folder / New File / Refresh on background).
+  - Inline rename (F2 or menu) with live editing and conflict prevention.
+  - Two-step delete confirmation for safety.
+  - Status bar showing item count and selection.
+  - Backend `Filesystem::rename()` support added.
+
+- **Terminal** — Significant quality-of-life improvements:
+  - Proper cursor editing (arrows, Home/End, insert at position).
+  - Full tab completion for commands and filesystem paths.
+  - `cp`, `rm -r` / `rm -rf`, `touch`, `mv` commands.
+  - Dynamic prompt showing current working directory.
+  - Persistent command history saved to the virtual filesystem.
+  - Robust history navigation with safety clamps.
+
+- **Text Editor**:
+  - Undo stack (Ctrl+Z, bounded history).
+  - Line number gutter with correct alignment.
+
+- Various robustness fixes, better input routing between modes (rename, new file naming, context menu), and documentation updates.
+
+This release brings the core personal environment to a much more usable state.
+
+---
+
 ## Latest Changes
 
 ### Terminal Completion & Polish
