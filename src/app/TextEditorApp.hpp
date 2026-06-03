@@ -48,6 +48,14 @@ private:
     void pushUndoState();
     void undo();
 
+    // === Find ===
+    void enterFindMode();
+    void exitFindMode();
+    void updateFindMatches();
+    void moveFindMatch(int direction);
+    void applyCurrentFindMatch();
+    int findMatchIndexAt(int row, int col) const;
+
     // === Rendering helpers ===
     int getLineHeight() const;
     int getVisibleLineCount(const SDL_Rect& contentRect) const;

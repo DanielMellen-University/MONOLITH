@@ -235,6 +235,89 @@ void TextEditorApp::ensureCursorVisible() {
     if (m_scrollOffset < 0) m_scrollOffset = 0;
 }
 
+void TextEditorApp::enterFindMode() {
+    m_findMode = true;
+    m_findQuery.clear();
+    m_findMatches.clear();
+    m_currentFindMatch = -1;
+}
+
+void TextEditorApp::exitFindMode() {
+    m_findMode = false;
+    m_findQuery.clear();
+    m_findMatches.clear();
+    m_currentFindMatch = -1;
+}
+
+void TextEditorApp::updateFindMatches() {
+    m_findMatches.clear();
+    m_currentFindMatch = -1;
+
+    if (m_findQuery.empty()) {
+        return;
+    }
+
+    for (int row = 0; row < static_cast<int>(m_lines.size()); ++row) {
+        const std::string& line = m_lines[row];
+        size_t pos = line.find(m_findQuery);
+        while (pos != std::string::npos) {
+            m_findMatches.push_back({row, static_cast<int>(pos)});
+            pos = line.find(m_findQuery, pos + 1);
+        }
+    }
+
+    if (m_findMatches.empty()) {
+        return;
+    }
+
+    m_currentFindMatch = 0;
+    for (int i = 0; i < static_cast<int>(m_findMatches.size()); ++i) {
+        const auto& match = m_findMatches[i];
+        if (match.first > m_cursorRow ||
+            (match.first == m_cursorRow && match.second >= m_cursorCol)) {
+            m_currentFindMatch = i;
+            break;
+        }
+    }
+
+    applyCurrentFindMatch();
+}
+
+void TextEditorApp::moveFindMatch(int direction) {
+    if (m_findMatches.empty()) {
+        return;
+    }
+
+    if (m_currentFindMatch < 0 || m_currentFindMatch >= static_cast<int>(m_findMatches.size())) {
+        m_currentFindMatch = 0;
+    } else {
+        int count = static_cast<int>(m_findMatches.size());
+        m_currentFindMatch = (m_currentFindMatch + direction + count) % count;
+    }
+
+    applyCurrentFindMatch();
+}
+
+void TextEditorApp::applyCurrentFindMatch() {
+    if (m_currentFindMatch < 0 || m_currentFindMatch >= static_cast<int>(m_findMatches.size())) {
+        return;
+    }
+
+    const auto& match = m_findMatches[m_currentFindMatch];
+    m_cursorRow = match.first;
+    m_cursorCol = match.second;
+    ensureCursorVisible();
+}
+
+int TextEditorApp::findMatchIndexAt(int row, int col) const {
+    for (int i = 0; i < static_cast<int>(m_findMatches.size()); ++i) {
+        if (m_findMatches[i].first == row && m_findMatches[i].second == col) {
+            return i;
+        }
+    }
+    return -1;
+}
+
 int TextEditorApp::getLineHeight() const {
     if (!m_font) return 18;
     return TTF_FontHeight(m_font);
@@ -297,6 +380,41 @@ void TextEditorApp::render(SDL_Renderer* renderer, const SDL_Rect& contentRect) 
             SDL_FreeSurface(numSurf);
         }
 
+        if (!m_findQuery.empty()) {
+            for (const auto& match : m_findMatches) {
+                if (match.first != lineIdx) {
+                    continue;
+                }
+
+                std::string before = line.substr(0, match.second);
+                std::string found = line.substr(match.second, m_findQuery.size());
+
+                int beforeW = 0, beforeH = 0;
+                int matchW = 0, matchH = 0;
+                if (!before.empty()) {
+                    TTF_SizeText(m_font, before.c_str(), &beforeW, &beforeH);
+                }
+                if (!found.empty()) {
+                    TTF_SizeText(m_font, found.c_str(), &matchW, &matchH);
+                }
+
+                int matchIndex = findMatchIndexAt(match.first, match.second);
+                if (matchIndex == m_currentFindMatch) {
+                    SDL_SetRenderDrawColor(renderer, 54, 92, 116, 230);
+                } else {
+                    SDL_SetRenderDrawColor(renderer, 36, 48, 58, 190);
+                }
+
+                SDL_Rect highlightRect = {
+                    contentRect.x + padding + lineNumWidth + beforeW,
+                    y + 1,
+                    std::max(2, matchW),
+                    lineHeight - 2
+                };
+                SDL_RenderFillRect(renderer, &highlightRect);
+            }
+        }
+
         // Draw the actual line text, shifted right for line numbers
         SDL_Surface* surf = TTF_RenderText_Blended(m_font, line.c_str(), textColor);
         if (surf) {
@@ -341,9 +459,23 @@ void TextEditorApp::render(SDL_Renderer* renderer, const SDL_Rect& contentRect) 
     // Very minimal status line at the very bottom (optional polish)
     {
         std::string status = getDisplayName();
-        if (m_dirty) status += " *";
-        if (m_fs && !m_filePath.empty()) {
-            status += "   |  Ctrl+S to save";
+        if (m_findMode) {
+            status = "Find: " + m_findQuery;
+            if (m_findQuery.empty()) {
+                status += "   |  type to search";
+            } else if (m_findMatches.empty()) {
+                status += "   |  no matches";
+            } else {
+                status += "   |  " + std::to_string(m_currentFindMatch + 1) +
+                          "/" + std::to_string(m_findMatches.size());
+            }
+            status += "   |  Enter next, Shift+Enter previous, Esc close";
+        } else {
+            if (m_dirty) status += " *";
+            if (m_fs && !m_filePath.empty()) {
+                status += "   |  Ctrl+S save";
+            }
+            status += "   |  Ctrl+F find";
         }
 
         SDL_Surface* surf = TTF_RenderText_Blended(m_font, status.c_str(), {150, 155, 160, 255});
@@ -353,7 +485,7 @@ void TextEditorApp::render(SDL_Renderer* renderer, const SDL_Rect& contentRect) 
                 SDL_Rect dst = {
                     contentRect.x + padding,
                     contentRect.y + contentRect.h - surf->h - 4,
-                    surf->w,
+                    std::min(surf->w, contentRect.w - padding * 2),
                     surf->h
                 };
                 SDL_RenderCopy(renderer, tex, nullptr, &dst);
@@ -366,6 +498,15 @@ void TextEditorApp::render(SDL_Renderer* renderer, const SDL_Rect& contentRect) 
 
 void TextEditorApp::handleEvent(const SDL_Event& event) {
     if (event.type == SDL_TEXTINPUT) {
+        if (m_findMode) {
+            const char* t = event.text.text;
+            if (t && *t) {
+                m_findQuery += t;
+                updateFindMatches();
+            }
+            return;
+        }
+
         // Insert the text (usually one char)
         const char* t = event.text.text;
         if (t && *t) {
@@ -378,6 +519,41 @@ void TextEditorApp::handleEvent(const SDL_Event& event) {
     if (event.type == SDL_KEYDOWN) {
         const SDL_Keysym& key = event.key.keysym;
 
+        // Ctrl+F find
+        if ((key.mod & KMOD_CTRL) && key.sym == SDLK_f) {
+            enterFindMode();
+            return;
+        }
+
+        if (m_findMode) {
+            switch (key.sym) {
+                case SDLK_RETURN:
+                case SDLK_KP_ENTER:
+                    moveFindMatch((key.mod & KMOD_SHIFT) ? -1 : 1);
+                    break;
+
+                case SDLK_BACKSPACE:
+                    if (!m_findQuery.empty()) {
+                        m_findQuery.pop_back();
+                        updateFindMatches();
+                    }
+                    break;
+
+                case SDLK_DELETE:
+                    m_findQuery.clear();
+                    updateFindMatches();
+                    break;
+
+                case SDLK_ESCAPE:
+                    exitFindMode();
+                    break;
+
+                default:
+                    break;
+            }
+            return;
+        }
+
         // Ctrl+S save
         if ((key.mod & KMOD_CTRL) && key.sym == SDLK_s) {
             if (saveCurrentFile()) {
@@ -389,15 +565,6 @@ void TextEditorApp::handleEvent(const SDL_Event& event) {
         // Ctrl+Z undo
         if ((key.mod & KMOD_CTRL) && key.sym == SDLK_z) {
             undo();
-            return;
-        }
-
-        // Ctrl+F find
-        if ((key.mod & KMOD_CTRL) && key.sym == SDLK_f) {
-            m_findMode = true;
-            m_findQuery.clear();
-            m_findMatches.clear();
-            m_currentFindMatch = -1;
             return;
         }
 
