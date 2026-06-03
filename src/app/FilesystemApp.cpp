@@ -1,7 +1,6 @@
 #include "FilesystemApp.hpp"
 
 #include <algorithm>
-#include <iostream>
 #include <sstream>
 
 namespace monolith::app {
@@ -286,32 +285,14 @@ int FilesystemApp::getVisibleRowCount(const SDL_Rect& contentRect) const {
     return std::max(3, available / rh);
 }
 
-void FilesystemApp::handleMouseButton(const SDL_MouseButtonEvent& e, const SDL_Rect& contentRect) {
+void FilesystemApp::handleMouseButton(const SDL_MouseButtonEvent& e) {
     const int mx = e.x;
     const int my = e.y;
 
     // === Context menu handling (takes priority) ===
     if (m_showContextMenu) {
         if (e.button == SDL_BUTTON_LEFT) {
-            // Check if clicking on a menu item
-            // Menu is drawn at m_contextMenuPos (relative)
-            int menuX = m_contextMenuPos.x;
-            int menuY = m_contextMenuPos.y;
-            int itemHeight = getRowHeight() + 2;
-            int padding = 6;
-
-            int clickedItem = -1;
-            int itemY = menuY + padding;
-            for (size_t i = 0; i < m_contextMenuItems.size(); ++i) {
-                SDL_Rect itemRect = {menuX, itemY, m_contextMenuWidth, itemHeight};
-                if (mx >= itemRect.x && mx < itemRect.x + m_contextMenuWidth &&
-                    my >= itemRect.y && my < itemRect.y + itemHeight) {
-                    clickedItem = static_cast<int>(i);
-                    break;
-                }
-                itemY += itemHeight;
-            }
-
+            int clickedItem = contextMenuItemAt(mx, my);
             if (clickedItem != -1) {
                 executeContextMenuAction(clickedItem);
             } else {
@@ -325,8 +306,6 @@ void FilesystemApp::handleMouseButton(const SDL_MouseButtonEvent& e, const SDL_R
 
     // === Right click → show context menu ===
     if (e.button == SDL_BUTTON_RIGHT) {
-        std::cout << "[FilesystemApp] RIGHT CLICK detected at relative (" << mx << "," << my << ")" << std::endl;
-
         const int listTop = 52;
 
         if (my >= listTop) {
@@ -338,15 +317,12 @@ void FilesystemApp::handleMouseButton(const SDL_MouseButtonEvent& e, const SDL_R
 
             if (clickedRow >= 0 && clickedRow < static_cast<int>(m_entries.size())) {
                 setSelection(clickedRow);
-                std::cout << "[FilesystemApp] Right-click on item " << clickedRow << std::endl;
                 showContextMenu(mx, my, clickedRow);
             } else {
-                std::cout << "[FilesystemApp] Right-click on empty space (background menu)" << std::endl;
                 m_selectedIndex = -1;
                 showContextMenu(mx, my, -1);
             }
         } else {
-            std::cout << "[FilesystemApp] Right-click above list (background menu)" << std::endl;
             m_selectedIndex = -1;
             showContextMenu(mx, my, -1);
         }
@@ -508,31 +484,12 @@ void FilesystemApp::handleEvent(const SDL_Event& event) {
     }
 
     if (event.type == SDL_MOUSEMOTION && m_showContextMenu) {
-        // Update hover for context menu
-        int mx = event.motion.x;
-        int my = event.motion.y;
-
-        int menuX = m_contextMenuPos.x;
-        int menuY = m_contextMenuPos.y;
-        int itemHeight = getRowHeight() + 2;
-        int padding = 6;
-
-        m_contextMenuHoverIndex = -1;
-        int itemY = menuY + padding;
-        for (size_t i = 0; i < m_contextMenuItems.size(); ++i) {
-            if (mx >= menuX && mx < menuX + 200 &&
-                my >= itemY && my < itemY + itemHeight) {
-                m_contextMenuHoverIndex = static_cast<int>(i);
-                break;
-            }
-            itemY += itemHeight;
-        }
+        m_contextMenuHoverIndex = contextMenuItemAt(event.motion.x, event.motion.y);
         return;
     }
 
     if (event.type == SDL_MOUSEBUTTONDOWN) {
-        SDL_Rect fake{0, 0, m_clientWidth, m_clientHeight};
-        handleMouseButton(event.button, fake);
+        handleMouseButton(event.button);
     } else if (event.type == SDL_MOUSEWHEEL) {
         handleMouseWheel(event.wheel);
     } else if (event.type == SDL_KEYDOWN) {
@@ -790,6 +747,9 @@ void FilesystemApp::onResize(int clientWidth, int clientHeight) {
     m_clientWidth = clientWidth;
     m_clientHeight = clientHeight;
     ensureSelectionVisible();
+    if (m_showContextMenu) {
+        updateContextMenuLayout();
+    }
 }
 
 void FilesystemApp::showContextMenu(int x, int y, int targetIndex) {
@@ -815,37 +775,17 @@ void FilesystemApp::showContextMenu(int x, int y, int targetIndex) {
         m_contextMenuItems.push_back("Delete");
     }
 
-    // Calculate menu dimensions (same logic as drawContextMenu)
-    if (!m_contextMenuItems.empty() && m_font) {
-        const int itemHeight = getRowHeight() + 2;
-        const int padding = 6;
-        const int minWidth = 140;
-
-        int maxTextWidth = minWidth;
-        for (const auto& item : m_contextMenuItems) {
-            int w = 0, h = 0;
-            TTF_SizeUTF8(m_font, item.c_str(), &w, &h);
-            if (w > maxTextWidth) maxTextWidth = w;
-        }
-
-        m_contextMenuWidth = maxTextWidth + padding * 2 + 20;
-        m_contextMenuHeight = static_cast<int>(m_contextMenuItems.size()) * itemHeight + padding * 2;
-    } else {
-        m_contextMenuWidth = 0;
-        m_contextMenuHeight = 0;
-    }
-
-    m_showContextMenu = true;
-
-    std::cout << "[FilesystemApp] showContextMenu called for target=" << targetIndex 
-              << " at (" << x << "," << y << ") with " << m_contextMenuItems.size() << " items" << std::endl;
+    updateContextMenuLayout();
+    m_showContextMenu = !m_contextMenuItems.empty();
 }
 
 void FilesystemApp::closeContextMenu() {
     m_showContextMenu = false;
+    m_confirmingDelete = false;
     m_contextMenuItems.clear();
     m_contextMenuHoverIndex = -1;
     m_contextMenuTarget = -1;
+    m_contextMenuRect = {0, 0, 0, 0};
 }
 
 void FilesystemApp::executeContextMenuAction(int menuIndex) {
@@ -856,6 +796,7 @@ void FilesystemApp::executeContextMenuAction(int menuIndex) {
 
     std::string action = m_contextMenuItems[menuIndex];
     int target = m_contextMenuTarget;   // Save before closing!
+    SDL_Point menuPos = m_contextMenuPos;
     closeContextMenu();
 
     if (action == "New Folder") {
@@ -876,26 +817,88 @@ void FilesystemApp::executeContextMenuAction(int menuIndex) {
     } else if (action == "Delete") {
         if (target >= 0) {
             m_selectedIndex = target;
-            if (m_confirmingDelete) {
-                deleteSelected();
-                m_confirmingDelete = false;
-            } else {
-                m_confirmingDelete = true;
-                // Re-show menu with confirmation
-                int mx = m_contextMenuPos.x;
-                int my = m_contextMenuPos.y;
-                showContextMenu(mx, my, target);
-                m_contextMenuItems.clear();
-                m_contextMenuItems.push_back("Confirm Delete");
-                m_contextMenuItems.push_back("Cancel");
-            }
+            m_confirmingDelete = true;
+            m_contextMenuPos = menuPos;
+            m_contextMenuTarget = target;
+            m_contextMenuItems.clear();
+            m_contextMenuItems.push_back("Confirm Delete");
+            m_contextMenuItems.push_back("Cancel");
+            updateContextMenuLayout();
+            m_showContextMenu = true;
         }
     } else if (action == "Confirm Delete") {
+        if (target >= 0) {
+            m_selectedIndex = target;
+        }
         deleteSelected();
         m_confirmingDelete = false;
     } else if (action == "Cancel") {
         m_confirmingDelete = false;
     }
+}
+
+void FilesystemApp::updateContextMenuLayout() {
+    const int itemHeight = getRowHeight() + 2;
+    const int padding = 6;
+    const int minWidth = 140;
+
+    if (m_contextMenuItems.empty() || !m_font) {
+        m_contextMenuRect = {0, 0, 0, 0};
+        return;
+    }
+
+    int maxTextWidth = minWidth;
+    for (const auto& item : m_contextMenuItems) {
+        int w = 0, h = 0;
+        TTF_SizeUTF8(m_font, item.c_str(), &w, &h);
+        if (w > maxTextWidth) maxTextWidth = w;
+    }
+
+    int menuWidth = maxTextWidth + padding * 2 + 20;
+    int menuHeight = static_cast<int>(m_contextMenuItems.size()) * itemHeight + padding * 2;
+    int menuX = m_contextMenuPos.x;
+    int menuY = m_contextMenuPos.y;
+
+    if (menuX + menuWidth > m_clientWidth) {
+        menuX = m_clientWidth - menuWidth - 4;
+    }
+    if (menuY + menuHeight > m_clientHeight) {
+        menuY = m_clientHeight - menuHeight - 4;
+    }
+    if (menuX < 4) menuX = 4;
+    if (menuY < 4) menuY = 4;
+
+    m_contextMenuRect = {menuX, menuY, menuWidth, menuHeight};
+}
+
+int FilesystemApp::contextMenuItemAt(int x, int y) const {
+    if (!m_showContextMenu || m_contextMenuItems.empty()) {
+        return -1;
+    }
+
+    SDL_Point point{x, y};
+    if (!SDL_PointInRect(&point, &m_contextMenuRect)) {
+        return -1;
+    }
+
+    const int itemHeight = getRowHeight() + 2;
+    const int padding = 6;
+    int itemY = m_contextMenuRect.y + padding;
+
+    for (size_t i = 0; i < m_contextMenuItems.size(); ++i) {
+        SDL_Rect itemRect = {
+            m_contextMenuRect.x,
+            itemY,
+            m_contextMenuRect.w,
+            itemHeight
+        };
+        if (SDL_PointInRect(&point, &itemRect)) {
+            return static_cast<int>(i);
+        }
+        itemY += itemHeight;
+    }
+
+    return -1;
 }
 
 void FilesystemApp::drawStatusBar(SDL_Renderer* r, const SDL_Rect& contentRect) {
@@ -947,35 +950,14 @@ void FilesystemApp::drawStatusBar(SDL_Renderer* r, const SDL_Rect& contentRect) 
 void FilesystemApp::drawContextMenu(SDL_Renderer* r, const SDL_Rect& contentRect) {
     if (!m_showContextMenu || m_contextMenuItems.empty() || !m_font) return;
 
-    std::cout << "[FilesystemApp] DRAWING context menu with " << m_contextMenuItems.size() 
-              << " items at relative (" << m_contextMenuPos.x << "," << m_contextMenuPos.y << ")" << std::endl;
-
     const int itemHeight = getRowHeight() + 2;
     const int padding = 6;
-    const int minWidth = 140;
 
-    // Calculate menu size
-    int maxTextWidth = minWidth;
-    for (const auto& item : m_contextMenuItems) {
-        int w = 0, h = 0;
-        TTF_SizeUTF8(m_font, item.c_str(), &w, &h);
-        if (w > maxTextWidth) maxTextWidth = w;
-    }
+    // Convert stored relative menu rect to absolute screen coordinates
+    int menuX = contentRect.x + m_contextMenuRect.x;
+    int menuY = contentRect.y + m_contextMenuRect.y;
 
-    int menuWidth = maxTextWidth + padding * 2 + 20;
-    int menuHeight = static_cast<int>(m_contextMenuItems.size()) * itemHeight + padding * 2;
-
-    // Convert relative click position to absolute screen coordinates
-    int menuX = contentRect.x + m_contextMenuPos.x;
-    int menuY = contentRect.y + m_contextMenuPos.y;
-
-    // Simple clamping
-    if (menuX + menuWidth > contentRect.x + m_clientWidth)  menuX = contentRect.x + m_clientWidth - menuWidth - 4;
-    if (menuY + menuHeight > contentRect.y + m_clientHeight) menuY = contentRect.y + m_clientHeight - menuHeight - 4;
-    if (menuX < contentRect.x + 4) menuX = contentRect.x + 4;
-    if (menuY < contentRect.y + 4) menuY = contentRect.y + 4;
-
-    SDL_Rect menuRect = {menuX, menuY, menuWidth, menuHeight};
+    SDL_Rect menuRect = {menuX, menuY, m_contextMenuRect.w, m_contextMenuRect.h};
 
     // Background
     SDL_SetRenderDrawColor(r, 38, 40, 48, 255);
@@ -990,7 +972,7 @@ void FilesystemApp::drawContextMenu(SDL_Renderer* r, const SDL_Rect& contentRect
     for (size_t i = 0; i < m_contextMenuItems.size(); ++i) {
         bool hovered = (static_cast<int>(i) == m_contextMenuHoverIndex);
 
-        SDL_Rect itemRect = {menuX + 1, itemY, menuWidth - 2, itemHeight - 1};
+        SDL_Rect itemRect = {menuX + 1, itemY, m_contextMenuRect.w - 2, itemHeight - 1};
 
         if (hovered) {
             SDL_SetRenderDrawColor(r, 60, 80, 110, 255);

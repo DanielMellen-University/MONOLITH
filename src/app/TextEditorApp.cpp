@@ -121,10 +121,10 @@ void TextEditorApp::insertNewline() {
 }
 
 void TextEditorApp::deleteChar() {
-    pushUndoState();
-
     // Backspace
     if (m_cursorRow == 0 && m_cursorCol == 0) return;
+
+    pushUndoState();
 
     if (m_cursorCol > 0) {
         std::string& line = m_lines[m_cursorRow];
@@ -148,6 +148,13 @@ void TextEditorApp::deleteForward() {
     if (m_cursorRow >= static_cast<int>(m_lines.size())) return;
 
     std::string& line = m_lines[m_cursorRow];
+    if (m_cursorCol >= static_cast<int>(line.size()) &&
+        m_cursorRow + 1 >= static_cast<int>(m_lines.size())) {
+        return;
+    }
+
+    pushUndoState();
+
     if (m_cursorCol < static_cast<int>(line.size())) {
         line.erase(line.begin() + m_cursorCol);
     } else if (m_cursorRow + 1 < static_cast<int>(m_lines.size())) {

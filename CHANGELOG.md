@@ -31,6 +31,17 @@ This release brings the core personal environment to a much more usable state.
 
 ## Latest Changes
 
+### Cleanup And Correctness Pass
+
+- **Text Editor**:
+  - Delete now participates correctly in undo when removing text or joining lines.
+  - Backspace and Delete no longer create undo states or dirty changes when there is nothing to edit.
+
+- **Filesystem Browser**:
+  - Removed leftover debug logging from right-click and context menu rendering.
+  - Context menu hover and click handling now use the same clamped rectangle that is drawn on screen.
+  - Delete confirmation state is cleared when the menu closes, preventing stale confirmation behavior.
+
 ### Text Editor Find Mode
 
 - **Find mode**: Ctrl+F opens an inline find state in the editor status line.

@@ -47,7 +47,7 @@ private:
     int getVisibleRowCount(const SDL_Rect& contentRect) const;
 
     // === Input helpers ===
-    void handleMouseButton(const SDL_MouseButtonEvent& e, const SDL_Rect& contentRect);
+    void handleMouseButton(const SDL_MouseButtonEvent& e);
     void handleMouseWheel(const SDL_MouseWheelEvent& e);
     void handleKeyDown(const SDL_Keysym& keysym);
 
@@ -62,6 +62,8 @@ private:
     void showContextMenu(int x, int y, int targetIndex);
     void closeContextMenu();
     void executeContextMenuAction(int menuIndex);
+    void updateContextMenuLayout();
+    int contextMenuItemAt(int x, int y) const;
 
     TTF_Font* m_font = nullptr;
     monolith::fs::Filesystem* m_fs = nullptr;
@@ -98,13 +100,10 @@ private:
     // Context menu state
     bool m_showContextMenu = false;
     SDL_Point m_contextMenuPos{0, 0};
+    SDL_Rect m_contextMenuRect{0, 0, 0, 0};
     int m_contextMenuTarget = -1;          // index in m_entries, or -1 for background
     std::vector<std::string> m_contextMenuItems;
     int m_contextMenuHoverIndex = -1;
-
-    // Current menu dimensions (for accurate hit testing)
-    int m_contextMenuWidth = 0;
-    int m_contextMenuHeight = 0;
 
     // For double-click detection we use SDL's built-in clicks count
 };
