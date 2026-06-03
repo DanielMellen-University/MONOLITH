@@ -21,6 +21,7 @@
 - **Text Editor**:
   - Undo stack (Ctrl+Z, bounded history).
   - Line number gutter with correct alignment.
+  - Find mode (Ctrl+F) with live search, highlighted matches, match count, next/previous navigation, and status-line hints.
 
 - Various robustness fixes, better input routing between modes (rename, new file naming, context menu), and documentation updates.
 
@@ -29,6 +30,14 @@ This release brings the core personal environment to a much more usable state.
 ---
 
 ## Latest Changes
+
+### Text Editor Find Mode
+
+- **Find mode**: Ctrl+F opens an inline find state in the editor status line.
+- **Live matching**: Typing a query updates matches immediately and jumps to the first match at or after the cursor.
+- **Navigation**: Enter moves to the next match; Shift+Enter moves to the previous match; Esc closes find mode.
+- **Highlighting**: All visible matches are highlighted, with a stronger but readable current-match color.
+- **Status hint**: The normal editor status line now advertises Ctrl+F find alongside Ctrl+S save.
 
 ### Terminal Completion & Polish
 

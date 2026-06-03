@@ -72,6 +72,7 @@ Each app runs inside a window provided by the Window Manager. The app is primari
 - Rendering its content area (the area inside the window frame)
 - Handling input events delivered to its client area
 - Managing its own internal state
+- Managing app-local modes such as editor find, rename prompts, or terminal search
 
 The Window Manager handles the frame, decorations, and top-level input routing.
 
