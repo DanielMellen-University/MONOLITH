@@ -154,6 +154,10 @@ int main(int /*argc*/, char* /*argv*/[])
             // Pass events to the Window Manager (internal windows only)
             wm.handleEvent(event);
 
+            if (wm.shouldQuit()) {
+                running = false;
+            }
+
             // Update mouse cursor based on hover over internal window resize zones
             if (event.type == SDL_MOUSEMOTION) {
                 auto dir = wm.getResizeDirectionAt(event.motion.x, event.motion.y);

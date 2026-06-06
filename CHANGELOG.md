@@ -31,6 +31,23 @@ This release brings the core personal environment to a much more usable state.
 
 ## Latest Changes
 
+### Start Menu (no longer a placeholder)
+
+- **Settings** app fully implemented and launched from the Start menu. Shows a clean info panel with:
+  - About section (version, engine details)
+  - Environment details (logical desktop size, real host filesystem root, virtual home path)
+  - Status / notes
+- **Shut Down** entry now performs a clean exit of the Monolith environment (WM exposes `requestQuit()` / `shouldQuit()`; main loop respects the flag).
+- Start Menu UI improvements: blue "Monolith" header accent bar at top of popup + live hover highlighting (selection background + brighter text) for classic menu feel.
+- All five entries are now fully functional; every click closes the menu and performs the corresponding action (Terminal, Text Editor, Filesystem, Settings, Shut Down).
+- **Settings rendering & layout fixes**:
+  - Switched all text rendering to `TTF_RenderUTF8_Blended` (matching Terminal and Filesystem Browser) for correct Unicode (e.g. × multiplication sign now displays properly instead of mojibake).
+  - Body/note text (sentence case under NOTES) is now styled distinctly from section headers: uses dim color, no unwanted underline.
+  - Long explanatory text (e.g. usage note) split across multiple lines and left-aligned to avoid truncation/clipping at the panel edge.
+- Default Settings window width increased slightly (460px) for better readability.
+- New source: `src/app/SettingsApp.{hpp,cpp}` + `launchSettings()` in WindowManager + wiring in CMakeLists.txt / main loop.
+- Supporting changes: quit request plumbing, Start Menu item hit-testing moved outside the taskbar-Y guard (popup lives above the taskbar), hover index tracking, etc.
+
 ### Cleanup And Correctness Pass
 
 - **Window Manager**:

@@ -29,7 +29,7 @@ The core experience is built around **overlapping windows** with traditional des
 │  - Native C++ applications render into their window content  │
 ├─────────────────────────────────────────────────────────────┤
 │  Built-in Apps (native)                                      │
-│  - Terminal, Filesystem Browser, Text Editor, Drawing, ...   │
+│  - Terminal, Filesystem Browser, Text Editor, Settings, Drawing, ...   │
 ├─────────────────────────────────────────────────────────────┤
 │  Basic Filesystem                                            │
 │  - Hierarchical, persisted on host disk                      │
