@@ -100,6 +100,11 @@ public:
     void launchTerminal();
     void launchTextEditor(const std::string& initialPath = "");
     void launchFilesystem();
+    void launchSettings();
+
+    // Request that the desktop shell / main loop exit (used by Shut Down)
+    void requestQuit();
+    bool shouldQuit() const;
 
     // Associate an editor window with a file path so the WM can avoid creating duplicates.
     // The path should be a normalized virtual path.
@@ -161,6 +166,11 @@ private:
 
     // Start menu state
     bool m_showStartMenu = false;
+    int m_startMenuHoverIndex = -1;
+    SDL_Rect m_startMenuRect{0, 0, 0, 0};  // screen coords, updated during render when visible
+
+    // Quit request (from Shut Down etc.)
+    bool m_quitRequested = false;
 
     // Tracks which editor windows are responsible for which files (for singleton-per-file behavior)
     std::unordered_map<std::string, Window*> m_fileEditors;

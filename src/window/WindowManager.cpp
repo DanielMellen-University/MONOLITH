@@ -3,6 +3,7 @@
 #include "../app/TerminalApp.hpp"
 #include "../app/TextEditorApp.hpp"
 #include "../app/FilesystemApp.hpp"
+#include "../app/SettingsApp.hpp"
 #include <algorithm>
 
 namespace monolith::window {
@@ -77,34 +78,53 @@ void WindowManager::handleEvent(const SDL_Event& event) {
         const int taskbarScreenY = logicalToScreenY(m_logicalHeight - taskbarHeight);
         const int taskbarScreenBottom = logicalToScreenY(m_logicalHeight);
 
+        // Start Menu popup lives *above* the taskbar, so we must check it for *any* click
+        // when it is open (not just clicks whose Y is inside the taskbar strip).
+        if (m_showStartMenu) {
+            // Clicking the Start button itself while menu is open should toggle it closed.
+            int startBtnScreenWidth = static_cast<int>(70 * m_contentScale);
+            int startBtnScreenX = logicalToScreenX(8);
+            if (m_mouseX >= startBtnScreenX && m_mouseX < startBtnScreenX + startBtnScreenWidth &&
+                m_mouseY >= taskbarScreenY && m_mouseY < taskbarScreenBottom) {
+                m_showStartMenu = !m_showStartMenu;
+                return;
+            }
+
+            // Check for clicks directly on menu items (the actionable rows)
+            for (const auto& item : m_startMenuItems) {
+                SDL_Point p = {m_mouseX, m_mouseY};
+                if (SDL_PointInRect(&p, &item.rect)) {
+                    switch (item.action) {
+                        case 0: launchTerminal(); break;
+                        case 1: launchTextEditor(); break;
+                        case 2: launchFilesystem(); break;
+                        case 3: launchSettings(); break;
+                        case 4: requestQuit(); break;
+                        default: break;
+                    }
+                    m_showStartMenu = false;
+                    return;
+                }
+            }
+
+            // Click inside the menu rect (header or background, not on an item) → consume, keep menu open
+            SDL_Point p = {m_mouseX, m_mouseY};
+            if (SDL_PointInRect(&p, &m_startMenuRect)) {
+                return;
+            }
+
+            // Click was completely outside the menu → close it (but do not return yet,
+            // so the click can still be processed by windows or other UI below).
+            m_showStartMenu = false;
+        }
+
         if (m_mouseY >= taskbarScreenY && m_mouseY < taskbarScreenBottom) {
-            // Start button
+            // Start button (when menu was not open, or after we handled the open case above)
             int startBtnScreenWidth = static_cast<int>(70 * m_contentScale);
             int startBtnScreenX = logicalToScreenX(8);
 
             if (m_mouseX >= startBtnScreenX && m_mouseX < startBtnScreenX + startBtnScreenWidth) {
                 m_showStartMenu = !m_showStartMenu;
-                return;
-            }
-
-            // If Start Menu is open, check for clicks on its items first
-            if (m_showStartMenu) {
-                for (const auto& item : m_startMenuItems) {
-                    SDL_Point p = {m_mouseX, m_mouseY};
-                    if (SDL_PointInRect(&p, &item.rect)) {
-                        switch (item.action) {
-                            case 0: launchTerminal(); break;
-                            case 1: launchTextEditor(); break;
-                            case 2: launchFilesystem(); break;
-                            case 3: /* Settings - placeholder */ m_showStartMenu = false; break;
-                            case 4: /* Shut Down - placeholder for now */ m_showStartMenu = false; break;
-                            default: break;
-                        }
-                        return;
-                    }
-                }
-                // Clicked elsewhere on taskbar while menu open → close it
-                m_showStartMenu = false;
                 return;
             }
 
@@ -130,8 +150,6 @@ void WindowManager::handleEvent(const SDL_Event& event) {
 
             m_showStartMenu = false;
             return;
-        } else {
-            m_showStartMenu = false;
         }
     }
 
@@ -401,6 +419,8 @@ void WindowManager::render(SDL_Renderer* renderer) {
 
     // === Start Menu popup ===
     m_startMenuItems.clear();
+    m_startMenuHoverIndex = -1;
+    m_startMenuRect = {0, 0, 0, 0};
 
     if (m_showStartMenu) {
         const int menuWidth = 210;
@@ -408,18 +428,51 @@ void WindowManager::render(SDL_Renderer* renderer) {
         const int menuX = logicalToScreenX(8);
         const int menuY = logicalToScreenY(m_logicalHeight - kTaskbarHeight - menuHeight);
 
-        SDL_SetRenderDrawColor(renderer, 40, 40, 50, 255);
+        // Menu background (slightly more XP-like dark panel)
+        SDL_SetRenderDrawColor(renderer, 38, 38, 48, 255);
         SDL_Rect menuRect = {
             menuX, menuY,
             static_cast<int>(menuWidth * m_contentScale),
             static_cast<int>(menuHeight * m_contentScale)
         };
+        m_startMenuRect = menuRect;   // save for click hit-testing (popup is above taskbar)
         SDL_RenderFillRect(renderer, &menuRect);
-        SDL_SetRenderDrawColor(renderer, 90, 90, 100, 255);
+        SDL_SetRenderDrawColor(renderer, 85, 85, 95, 255);
         SDL_RenderDrawRect(renderer, &menuRect);
+
+        // Top accent bar (subtle header area)
+        SDL_SetRenderDrawColor(renderer, 55, 85, 140, 255);
+        SDL_Rect headerAccent = {
+            menuX, menuY,
+            static_cast<int>(menuWidth * m_contentScale),
+            static_cast<int>(22 * m_contentScale)
+        };
+        SDL_RenderFillRect(renderer, &headerAccent);
+
+        if (m_font) {
+            // Small "Monolith" label in the accent area
+            SDL_Color accentText = {255, 255, 255, 255};
+            SDL_Surface* hdr = TTF_RenderText_Blended(m_font, "Monolith", accentText);
+            if (hdr) {
+                SDL_Texture* ht = SDL_CreateTextureFromSurface(renderer, hdr);
+                if (ht) {
+                    SDL_Rect dst = {
+                        menuX + static_cast<int>(10 * m_contentScale),
+                        menuY + static_cast<int>(4 * m_contentScale),
+                        hdr->w, hdr->h
+                    };
+                    SDL_RenderCopy(renderer, ht, nullptr, &dst);
+                    SDL_DestroyTexture(ht);
+                }
+                SDL_FreeSurface(hdr);
+            }
+        }
 
         if (m_font) {
             SDL_Color textCol = {235, 235, 240, 255};
+            SDL_Color hoverTextCol = {255, 255, 255, 255};
+            SDL_Color hoverBgCol = {70, 95, 145, 255};
+
             struct MenuEntry { const char* label; int action; };
             MenuEntry entries[] = {
                 {"Terminal", 0},
@@ -429,12 +482,40 @@ void WindowManager::render(SDL_Renderer* renderer) {
                 {"Shut Down", 4}
             };
 
-            int y = menuY + static_cast<int>(12 * m_contentScale);
+            // Start items below the accent header
+            int y = menuY + static_cast<int>(28 * m_contentScale);
             const int itemH = static_cast<int>(26 * m_contentScale);
-            const int itemPad = static_cast<int>(8 * m_contentScale);
+            const int itemPad = static_cast<int>(10 * m_contentScale);
 
-            for (const auto& e : entries) {
-                SDL_Surface* s = TTF_RenderText_Blended(m_font, e.label, textCol);
+            for (size_t i = 0; i < sizeof(entries)/sizeof(entries[0]); ++i) {
+                const auto& e = entries[i];
+
+                // Clickable rect (in screen space)
+                SDL_Rect itemRect = {
+                    menuX + 4,
+                    y,
+                    static_cast<int>((menuWidth - 8) * m_contentScale),
+                    itemH
+                };
+                m_startMenuItems.push_back({itemRect, e.action});
+
+                // Hover test using latest known mouse position
+                bool hovered = false;
+                SDL_Point mousePt = {m_mouseX, m_mouseY};
+                if (SDL_PointInRect(&mousePt, &itemRect)) {
+                    hovered = true;
+                    m_startMenuHoverIndex = static_cast<int>(i);
+                }
+
+                // Draw hover highlight if needed
+                if (hovered) {
+                    SDL_SetRenderDrawColor(renderer, hoverBgCol.r, hoverBgCol.g, hoverBgCol.b, 255);
+                    SDL_RenderFillRect(renderer, &itemRect);
+                }
+
+                SDL_Color useTextCol = hovered ? hoverTextCol : textCol;
+
+                SDL_Surface* s = TTF_RenderText_Blended(m_font, e.label, useTextCol);
                 if (s) {
                     SDL_Texture* t = SDL_CreateTextureFromSurface(renderer, s);
                     if (t) {
@@ -442,18 +523,9 @@ void WindowManager::render(SDL_Renderer* renderer) {
                         SDL_RenderCopy(renderer, t, nullptr, &dst);
                         SDL_DestroyTexture(t);
                     }
-
-                    // Record clickable rect (in screen space)
-                    SDL_Rect itemRect = {
-                        menuX + 4,
-                        y,
-                        static_cast<int>((menuWidth - 8) * m_contentScale),
-                        itemH
-                    };
-                    m_startMenuItems.push_back({itemRect, e.action});
-
                     SDL_FreeSurface(s);
                 }
+
                 y += itemH + static_cast<int>(2 * m_contentScale);
             }
         }
@@ -1153,6 +1225,27 @@ void WindowManager::launchFilesystem() {
     int y = 130 + (static_cast<int>(m_windows.size()) % 3) * 18;
     createWindow(title, x, y, 480, 360, std::move(app));
     m_showStartMenu = false;
+}
+
+void WindowManager::launchSettings() {
+    if (!m_appFont) return;
+
+    auto app = std::make_unique<monolith::app::SettingsApp>(m_appFont, m_fs);
+
+    // Position it a bit more to the right/center-ish
+    int x = 180 + (static_cast<int>(m_windows.size()) % 4) * 20;
+    int y = 110 + (static_cast<int>(m_windows.size()) % 3) * 15;
+    createWindow("Settings", x, y, 460, 320, std::move(app));
+    m_showStartMenu = false;
+}
+
+void WindowManager::requestQuit() {
+    m_quitRequested = true;
+    m_showStartMenu = false;
+}
+
+bool WindowManager::shouldQuit() const {
+    return m_quitRequested;
 }
 
 void WindowManager::associateEditorWithFile(Window* window, const std::string& virtualPath) {
