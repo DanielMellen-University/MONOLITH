@@ -41,6 +41,10 @@ This release brings the core personal environment to a much more usable state.
   - Removed leftover debug logging from right-click and context menu rendering.
   - Context menu hover and click handling now use the same clamped rectangle that is drawn on screen.
   - Delete confirmation state is cleared when the menu closes, preventing stale confirmation behavior.
+  - Status bar now reports create, rename, delete, refresh, navigation, and failure outcomes.
+  - Refresh and file operations preserve or clamp selection more predictably after the entry list changes.
+  - Removed unused new-file naming state now that New File uses the inline rename path.
+  - Replaced repeated browser layout numbers with named constants to keep rendering and input math aligned.
 
 ### Text Editor Find Mode
 

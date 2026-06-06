@@ -5,6 +5,18 @@
 
 namespace monolith::app {
 
+namespace {
+constexpr int kPathBarHeight = 28;
+constexpr int kToolbarY = 30;
+constexpr int kToolbarButtonHeight = 20;
+constexpr int kToolbarPadding = 8;
+constexpr int kToolbarGap = 6;
+constexpr int kListTop = 52;
+constexpr int kStatusBarHeight = 22;
+constexpr int kStatusBarPadding = 8;
+constexpr int kMinimumListHeight = 20;
+}
+
 FilesystemApp::FilesystemApp(TTF_Font* font, monolith::fs::Filesystem* fs)
     : m_font(font), m_fs(fs)
 {
@@ -24,7 +36,10 @@ FilesystemApp::FilesystemApp(TTF_Font* font, monolith::fs::Filesystem* fs)
 }
 
 void FilesystemApp::setCurrentPath(const std::string& virtualPath) {
-    if (!m_fs) return;
+    if (!m_fs) {
+        setStatus("Filesystem not available");
+        return;
+    }
 
     std::string normalized = m_fs->normalize(virtualPath);
     if (m_fs->isDirectory(normalized)) {
@@ -32,11 +47,17 @@ void FilesystemApp::setCurrentPath(const std::string& virtualPath) {
         refreshEntries();
         m_selectedIndex = -1;
         m_scrollOffset = 0;
+        setStatus("Opened: " + m_currentPath);
+    } else {
+        setStatus("Open failed: not a directory");
     }
 }
 
 void FilesystemApp::goUp() {
-    if (!m_fs) return;
+    if (!m_fs) {
+        setStatus("Filesystem not available");
+        return;
+    }
 
     if (m_currentPath == "/" || m_currentPath.empty()) return;
 
@@ -49,14 +70,27 @@ void FilesystemApp::goUp() {
 }
 
 void FilesystemApp::refreshEntries() {
+    std::string selectedName;
+    bool selectedIsDirectory = false;
+    bool hadSelection = m_selectedIndex >= 0 && m_selectedIndex < static_cast<int>(m_entries.size());
+    if (hadSelection) {
+        selectedName = m_entries[m_selectedIndex].name;
+        selectedIsDirectory = m_entries[m_selectedIndex].isDirectory;
+    }
+
     m_entries.clear();
-    if (!m_fs) return;
+    if (!m_fs) {
+        m_selectedIndex = -1;
+        return;
+    }
 
     auto raw = m_fs->listEntries(m_currentPath);
     m_entries = std::move(raw);
 
-    // Always allow ".." unless we're at root
-    // (we insert it visually at the front during render or as a real entry)
+    if (hadSelection && selectEntryNamed(selectedName, selectedIsDirectory)) {
+        return;
+    }
+    clampSelection();
 }
 
 std::string FilesystemApp::fullPathFor(const std::string& name) const {
@@ -83,7 +117,10 @@ void FilesystemApp::activateEntry(size_t index) {
 }
 
 void FilesystemApp::createNewFolder() {
-    if (!m_fs) return;
+    if (!m_fs) {
+        setStatus("Create folder failed: filesystem not available");
+        return;
+    }
 
     std::string base = "New Folder";
     std::string candidate = base;
@@ -98,20 +135,18 @@ void FilesystemApp::createNewFolder() {
 
     if (m_fs->createDirectory(fullPathFor(candidate))) {
         refreshEntries();
-
-        // Select the newly created folder
-        for (size_t i = 0; i < m_entries.size(); ++i) {
-            if (m_entries[i].name == candidate && m_entries[i].isDirectory) {
-                setSelection(static_cast<int>(i));
-                ensureSelectionVisible();
-                break;
-            }
-        }
+        selectEntryNamed(candidate, true);
+        setStatus("Created folder: " + candidate);
+    } else {
+        setStatus("Create folder failed: " + candidate);
     }
 }
 
 void FilesystemApp::createNewFile() {
-    if (!m_fs) return;
+    if (!m_fs) {
+        setStatus("Create file failed: filesystem not available");
+        return;
+    }
 
     std::string base = "New File.txt";
     std::string candidate = base;
@@ -125,28 +160,24 @@ void FilesystemApp::createNewFile() {
 
     if (m_fs->writeFile(fullPathFor(candidate), "")) {
         refreshEntries();
-
-        for (size_t i = 0; i < m_entries.size(); ++i) {
-            if (m_entries[i].name == candidate && !m_entries[i].isDirectory) {
-                setSelection(static_cast<int>(i));
-                ensureSelectionVisible();
-                // Immediately allow renaming the new file (nice UX)
-                startRenameSelected();
-                break;
-            }
+        if (selectEntryNamed(candidate, false)) {
+            startRenameSelected();
+            setStatus("Created file: " + candidate);
         }
+    } else {
+        setStatus("Create file failed: " + candidate);
     }
 }
 
 void FilesystemApp::deleteSelected() {
     if (!m_fs || m_selectedIndex < 0 || m_selectedIndex >= static_cast<int>(m_entries.size())) {
+        setStatus(m_fs ? "Delete failed: no item selected" : "Delete failed: filesystem not available");
         return;
     }
 
-    const auto& entry = m_entries[m_selectedIndex];
-    std::string target = fullPathFor(entry.name);
+    const std::string name = m_entries[m_selectedIndex].name;
+    std::string target = fullPathFor(name);
 
-    // Simple delete (no confirmation dialog for v1)
     if (m_fs->remove(target)) {
         int oldSel = m_selectedIndex;
         refreshEntries();
@@ -159,17 +190,22 @@ void FilesystemApp::deleteSelected() {
             m_selectedIndex = -1;
         }
         ensureSelectionVisible();
+        setStatus("Deleted: " + name);
+    } else {
+        setStatus("Delete failed: " + name);
     }
 }
 
 void FilesystemApp::startRenameSelected() {
     if (!m_fs || m_selectedIndex < 0 || m_selectedIndex >= static_cast<int>(m_entries.size())) {
+        setStatus(m_fs ? "Rename failed: no item selected" : "Rename failed: filesystem not available");
         return;
     }
 
     m_renaming = true;
     m_renameIndex = m_selectedIndex;
     m_renameBuffer = m_entries[m_selectedIndex].name;
+    setStatus("Renaming: " + m_renameBuffer);
 }
 
 void FilesystemApp::finishRename(bool commit) {
@@ -181,71 +217,33 @@ void FilesystemApp::finishRename(bool commit) {
     }
 
     const auto& entry = m_entries[m_renameIndex];
+    std::string oldName = entry.name;
+    bool wasDirectory = entry.isDirectory;
     std::string oldPath = fullPathFor(entry.name);
 
-    if (commit && !m_renameBuffer.empty() && m_renameBuffer != entry.name) {
+    if (commit && m_renameBuffer.empty()) {
+        setStatus("Rename failed: name cannot be empty");
+    } else if (commit && m_renameBuffer != entry.name) {
         std::string newPath = fullPathFor(m_renameBuffer);
 
-        // Prevent naming conflicts
-        if (!m_fs->exists(newPath)) {
-            if (m_fs->rename(oldPath, newPath)) {
-                refreshEntries();
-
-                // Try to reselect the renamed item
-                for (size_t i = 0; i < m_entries.size(); ++i) {
-                    if (m_entries[i].name == m_renameBuffer) {
-                        setSelection(static_cast<int>(i));
-                        break;
-                    }
-                }
-            }
+        if (m_fs->exists(newPath)) {
+            setStatus("Rename failed: name already exists");
+        } else if (m_fs->rename(oldPath, newPath)) {
+            refreshEntries();
+            selectEntryNamed(m_renameBuffer, wasDirectory);
+            setStatus("Renamed " + oldName + " to " + m_renameBuffer);
+        } else {
+            setStatus("Rename failed: " + oldName);
         }
+    } else if (!commit) {
+        setStatus("Rename canceled");
+    } else {
+        setStatus("Rename unchanged");
     }
 
     m_renaming = false;
     m_renameIndex = -1;
     m_renameBuffer.clear();
-}
-
-void FilesystemApp::startNewFileNaming() {
-    if (!m_fs) return;
-    m_namingNewFile = true;
-    m_newFileNameBuffer = "New File.txt";
-}
-
-void FilesystemApp::finishNewFileNaming(bool commit) {
-    if (!m_namingNewFile) return;
-
-    if (commit && !m_newFileNameBuffer.empty()) {
-        std::string candidate = m_newFileNameBuffer;
-        int counter = 2;
-
-        while (m_fs->exists(fullPathFor(candidate))) {
-            std::ostringstream oss;
-            size_t dot = m_newFileNameBuffer.find_last_of('.');
-            if (dot != std::string::npos) {
-                oss << m_newFileNameBuffer.substr(0, dot) << " " << counter << m_newFileNameBuffer.substr(dot);
-            } else {
-                oss << m_newFileNameBuffer << " " << counter;
-            }
-            candidate = oss.str();
-            counter++;
-        }
-
-        if (m_fs->writeFile(fullPathFor(candidate), "")) {
-            refreshEntries();
-            for (size_t i = 0; i < m_entries.size(); ++i) {
-                if (m_entries[i].name == candidate && !m_entries[i].isDirectory) {
-                    setSelection(static_cast<int>(i));
-                    ensureSelectionVisible();
-                    break;
-                }
-            }
-        }
-    }
-
-    m_namingNewFile = false;
-    m_newFileNameBuffer.clear();
 }
 
 void FilesystemApp::setSelection(int index) {
@@ -256,6 +254,32 @@ void FilesystemApp::setSelection(int index) {
     if (index < 0) index = 0;
     if (index >= static_cast<int>(m_entries.size())) index = static_cast<int>(m_entries.size()) - 1;
     m_selectedIndex = index;
+}
+
+bool FilesystemApp::selectEntryNamed(const std::string& name, bool isDirectory) {
+    for (size_t i = 0; i < m_entries.size(); ++i) {
+        if (m_entries[i].name == name && m_entries[i].isDirectory == isDirectory) {
+            setSelection(static_cast<int>(i));
+            ensureSelectionVisible();
+            return true;
+        }
+    }
+    return false;
+}
+
+void FilesystemApp::clampSelection() {
+    if (m_entries.empty()) {
+        m_selectedIndex = -1;
+        m_scrollOffset = 0;
+        return;
+    }
+    if (m_selectedIndex >= static_cast<int>(m_entries.size())) {
+        m_selectedIndex = static_cast<int>(m_entries.size()) - 1;
+    }
+    if (m_selectedIndex < -1) {
+        m_selectedIndex = -1;
+    }
+    ensureSelectionVisible();
 }
 
 void FilesystemApp::ensureSelectionVisible() {
@@ -276,11 +300,10 @@ int FilesystemApp::getVisibleRowCount(const SDL_Rect& contentRect) const {
     int rh = getRowHeight();
     if (rh <= 0) return 10;
 
-    // Leave some space for path bar + toolbar area at top and status bar at bottom
-    const int reservedTop = 52;   // path bar + small toolbar strip
-    const int reservedBottom = 22 + 8; // status bar + padding
+    const int reservedTop = kListTop;
+    const int reservedBottom = kStatusBarHeight + kStatusBarPadding;
     int available = contentRect.h - reservedTop - reservedBottom;
-    if (available < 20) available = 20;
+    if (available < kMinimumListHeight) available = kMinimumListHeight;
 
     return std::max(3, available / rh);
 }
@@ -306,13 +329,11 @@ void FilesystemApp::handleMouseButton(const SDL_MouseButtonEvent& e) {
 
     // === Right click → show context menu ===
     if (e.button == SDL_BUTTON_RIGHT) {
-        const int listTop = 52;
-
-        if (my >= listTop) {
+        if (my >= kListTop) {
             int rowHeight = getRowHeight();
             if (rowHeight <= 0) rowHeight = 20;
 
-            int relY = my - listTop;
+            int relY = my - kListTop;
             int clickedRow = m_scrollOffset + (relY / rowHeight);
 
             if (clickedRow >= 0 && clickedRow < static_cast<int>(m_entries.size())) {
@@ -361,14 +382,13 @@ void FilesystemApp::handleMouseButton(const SDL_MouseButtonEvent& e) {
     }
 
     // Path bar + toolbar area is above the list
-    const int listTop = 52;
-    if (my < listTop) return;
+    if (my < kListTop) return;
 
     // Compute which row was clicked
     int rowHeight = getRowHeight();
     if (rowHeight <= 0) rowHeight = 20;
 
-    int relY = my - listTop;
+    int relY = my - kListTop;
     if (relY < 0) return;
 
     int clickedRow = m_scrollOffset + (relY / rowHeight);
@@ -451,6 +471,7 @@ void FilesystemApp::handleKeyDown(const SDL_Keysym& keysym) {
 
         case SDLK_F5:
             refreshEntries();
+            setStatus("Refreshed");
             break;
 
         case SDLK_ESCAPE:
@@ -458,8 +479,6 @@ void FilesystemApp::handleKeyDown(const SDL_Keysym& keysym) {
                 closeContextMenu();
             } else if (m_renaming) {
                 finishRename(false);
-            } else if (m_namingNewFile) {
-                finishNewFileNaming(false);
             }
             break;
 
@@ -472,13 +491,6 @@ void FilesystemApp::handleEvent(const SDL_Event& event) {
     if (m_renaming && event.type == SDL_TEXTINPUT) {
         if (event.text.text) {
             m_renameBuffer += event.text.text;
-        }
-        return;
-    }
-
-    if (m_namingNewFile && event.type == SDL_TEXTINPUT) {
-        if (event.text.text) {
-            m_newFileNameBuffer += event.text.text;
         }
         return;
     }
@@ -503,12 +515,11 @@ int FilesystemApp::getRowHeight() const {
 }
 
 void FilesystemApp::drawPathBar(SDL_Renderer* r, const SDL_Rect& contentRect, int& outTopY) {
-    const int barHeight = 28;
     SDL_Rect bar = {
         contentRect.x,
         contentRect.y,
         contentRect.w,
-        barHeight
+        kPathBarHeight
     };
 
     // Slightly different background for the path area
@@ -524,7 +535,7 @@ void FilesystemApp::drawPathBar(SDL_Renderer* r, const SDL_Rect& contentRect, in
             if (tex) {
                 SDL_Rect dst = {
                     contentRect.x + 10,
-                    contentRect.y + (barHeight - surf->h) / 2,
+                    contentRect.y + (kPathBarHeight - surf->h) / 2,
                     std::min(surf->w, contentRect.w - 120),
                     surf->h
                 };
@@ -535,28 +546,23 @@ void FilesystemApp::drawPathBar(SDL_Renderer* r, const SDL_Rect& contentRect, in
         }
     }
 
-    outTopY = contentRect.y + barHeight;
+    outTopY = contentRect.y + kPathBarHeight;
 }
 
 void FilesystemApp::drawToolbar(SDL_Renderer* r, const SDL_Rect& contentRect) {
     // Store button rects in relative coordinates (for hit testing with relative mouse events)
-    const int relY = 30;
-    const int h = 20;
-    const int padding = 8;
-    const int gap = 6;
-
-    int relX = padding;
+    int relX = kToolbarPadding;
 
     auto drawButton = [&](SDL_Rect& outRect, const char* label, int w) {
         // Store relative rect for input
-        outRect = {relX, relY, w, h};
+        outRect = {relX, kToolbarY, w, kToolbarButtonHeight};
 
         // Draw using absolute screen coordinates
         SDL_Rect drawRect = {
             contentRect.x + relX,
-            contentRect.y + relY,
+            contentRect.y + kToolbarY,
             w,
-            h
+            kToolbarButtonHeight
         };
 
         // Button background
@@ -585,7 +591,7 @@ void FilesystemApp::drawToolbar(SDL_Renderer* r, const SDL_Rect& contentRect) {
             }
         }
 
-        relX += w + gap;
+        relX += w + kToolbarGap;
     };
 
     drawButton(m_btnUp, "Up", 48);
@@ -605,8 +611,7 @@ void FilesystemApp::drawList(SDL_Renderer* r, const SDL_Rect& contentRect, int l
     const int rowH = getRowHeight();
     (void)rowH; // used via getVisibleRowCount
 
-    const int statusBarHeight = 22;
-    const int listHeight = contentRect.h - (listTopY - contentRect.y) - 6 - statusBarHeight;
+    const int listHeight = contentRect.h - (listTopY - contentRect.y) - 6 - kStatusBarHeight;
 
     SDL_Rect listArea = {
         contentRect.x,
@@ -735,7 +740,7 @@ void FilesystemApp::render(SDL_Renderer* renderer, const SDL_Rect& contentRect) 
     int listTop = 0;
     drawPathBar(renderer, contentRect, listTop);
     drawToolbar(renderer, contentRect);
-    drawList(renderer, contentRect, listTop + 22);  // toolbar sits just under path bar
+    drawList(renderer, contentRect, contentRect.y + kListTop);
     drawStatusBar(renderer, contentRect);
 
     if (m_showContextMenu) {
@@ -902,12 +907,11 @@ int FilesystemApp::contextMenuItemAt(int x, int y) const {
 }
 
 void FilesystemApp::drawStatusBar(SDL_Renderer* r, const SDL_Rect& contentRect) {
-    const int statusH = 22;
     SDL_Rect bar = {
         contentRect.x,
-        contentRect.y + contentRect.h - statusH,
+        contentRect.y + contentRect.h - kStatusBarHeight,
         contentRect.w,
-        statusH
+        kStatusBarHeight
     };
 
     SDL_SetRenderDrawColor(r, 30, 32, 38, 255);
@@ -929,6 +933,10 @@ void FilesystemApp::drawStatusBar(SDL_Renderer* r, const SDL_Rect& contentRect) 
         if (sel.isDirectory) status += " (dir)";
     }
 
+    if (!m_statusMessage.empty()) {
+        status += "   |   " + m_statusMessage;
+    }
+
     SDL_Color textCol = {160, 165, 175, 255};
     SDL_Surface* surf = TTF_RenderUTF8_Blended(m_font, status.c_str(), textCol);
     if (surf) {
@@ -936,8 +944,8 @@ void FilesystemApp::drawStatusBar(SDL_Renderer* r, const SDL_Rect& contentRect) 
         if (tex) {
             SDL_Rect dst = {
                 contentRect.x + 10,
-                bar.y + (statusH - surf->h) / 2,
-                surf->w,
+                bar.y + (kStatusBarHeight - surf->h) / 2,
+                std::min(surf->w, contentRect.w - 20),
                 surf->h
             };
             SDL_RenderCopy(r, tex, nullptr, &dst);
@@ -945,6 +953,10 @@ void FilesystemApp::drawStatusBar(SDL_Renderer* r, const SDL_Rect& contentRect) 
         }
         SDL_FreeSurface(surf);
     }
+}
+
+void FilesystemApp::setStatus(const std::string& message) {
+    m_statusMessage = message;
 }
 
 void FilesystemApp::drawContextMenu(SDL_Renderer* r, const SDL_Rect& contentRect) {

@@ -38,11 +38,10 @@ private:
     void startRenameSelected();
     void finishRename(bool commit);  // commit = true for Enter, false for Escape
 
-    void startNewFileNaming();
-    void finishNewFileNaming(bool commit);
-
     // === Selection / Scrolling ===
     void setSelection(int index);
+    bool selectEntryNamed(const std::string& name, bool isDirectory);
+    void clampSelection();
     void ensureSelectionVisible();
     int getVisibleRowCount(const SDL_Rect& contentRect) const;
 
@@ -64,6 +63,7 @@ private:
     void executeContextMenuAction(int menuIndex);
     void updateContextMenuLayout();
     int contextMenuItemAt(int x, int y) const;
+    void setStatus(const std::string& message);
 
     TTF_Font* m_font = nullptr;
     monolith::fs::Filesystem* m_fs = nullptr;
@@ -93,10 +93,6 @@ private:
     // Delete confirmation state
     bool m_confirmingDelete = false;
 
-    // New File naming state (inline like rename)
-    bool m_namingNewFile = false;
-    std::string m_newFileNameBuffer;
-
     // Context menu state
     bool m_showContextMenu = false;
     SDL_Point m_contextMenuPos{0, 0};
@@ -104,6 +100,8 @@ private:
     int m_contextMenuTarget = -1;          // index in m_entries, or -1 for background
     std::vector<std::string> m_contextMenuItems;
     int m_contextMenuHoverIndex = -1;
+
+    std::string m_statusMessage;
 
     // For double-click detection we use SDL's built-in clicks count
 };
