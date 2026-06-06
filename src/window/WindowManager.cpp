@@ -7,6 +7,10 @@
 
 namespace monolith::window {
 
+namespace {
+constexpr int kTaskbarHeight = 28;
+}
+
 WindowManager::WindowManager() = default;
 
 WindowManager::~WindowManager() = default;
@@ -69,7 +73,7 @@ void WindowManager::handleEvent(const SDL_Event& event) {
         m_mouseX = event.button.x;
         m_mouseY = event.button.y;
 
-        const int taskbarHeight = 28;
+        const int taskbarHeight = kTaskbarHeight;
         const int taskbarScreenY = logicalToScreenY(m_logicalHeight - taskbarHeight);
         const int taskbarScreenBottom = logicalToScreenY(m_logicalHeight);
 
@@ -133,7 +137,7 @@ void WindowManager::handleEvent(const SDL_Event& event) {
 
     // === Taskbar scroll arrows (Windows XP style) ===
     if (m_taskbarNeedsScroll && event.type == SDL_MOUSEBUTTONDOWN && event.button.button == SDL_BUTTON_LEFT) {
-        const int taskbarScreenY = logicalToScreenY(m_logicalHeight - 28);
+        const int taskbarScreenY = logicalToScreenY(m_logicalHeight - kTaskbarHeight);
         const int taskbarScreenBottom = logicalToScreenY(m_logicalHeight);
 
         if (m_mouseY >= taskbarScreenY && m_mouseY < taskbarScreenBottom) {
@@ -155,7 +159,7 @@ void WindowManager::handleEvent(const SDL_Event& event) {
 
     // Mouse wheel over taskbar scrolls the window buttons
     if (event.type == SDL_MOUSEWHEEL) {
-        const int taskbarScreenY = logicalToScreenY(m_logicalHeight - 28);
+        const int taskbarScreenY = logicalToScreenY(m_logicalHeight - kTaskbarHeight);
         const int taskbarScreenBottom = logicalToScreenY(m_logicalHeight);
         if (m_mouseY >= taskbarScreenY && m_mouseY < taskbarScreenBottom && m_taskbarNeedsScroll) {
             m_taskbarScrollOffset += (event.wheel.y > 0 ? -80 : 80);
@@ -265,7 +269,7 @@ void WindowManager::update() {
     }
 
     // Enforce maximized windows fill the full logical area (minus the always-visible taskbar)
-    // The taskbar is permanently at the bottom (28px), so all maximized windows must
+    // The taskbar is permanently at the bottom, so all maximized windows must
     // always reserve space for it. This is a general rule for the entire desktop shell,
     // not something individual apps should have to handle.
     for (auto& w : m_windows) {
@@ -273,7 +277,7 @@ void WindowManager::update() {
             w->rect.x = 0;
             w->rect.y = 0;
             w->rect.w = m_logicalWidth;
-            w->rect.h = m_logicalHeight - 28;   // always reserve for the taskbar
+            w->rect.h = m_logicalHeight - kTaskbarHeight;   // always reserve for the taskbar
         }
     }
 }
@@ -402,7 +406,7 @@ void WindowManager::render(SDL_Renderer* renderer) {
         const int menuWidth = 210;
         const int menuHeight = 260;
         const int menuX = logicalToScreenX(8);
-        const int menuY = logicalToScreenY(m_logicalHeight - 28 - menuHeight);
+        const int menuY = logicalToScreenY(m_logicalHeight - kTaskbarHeight - menuHeight);
 
         SDL_SetRenderDrawColor(renderer, 40, 40, 50, 255);
         SDL_Rect menuRect = {
@@ -458,7 +462,7 @@ void WindowManager::render(SDL_Renderer* renderer) {
     // === Taskbar (always visible) ===
     m_taskbarEntries.clear();
 
-    const int taskbarHeight = 28;
+    const int taskbarHeight = kTaskbarHeight;
     const int taskbarY = m_logicalHeight - taskbarHeight;
 
     // Draw taskbar background
@@ -786,7 +790,7 @@ bool WindowManager::handleTitleBarButtons(Window* window, int mouseX, int mouseY
             window->rect.x = 0;
             window->rect.y = 0;
             window->rect.w = m_logicalWidth;
-            window->rect.h = m_logicalHeight - 28;   // reserve space for the always-visible taskbar
+            window->rect.h = m_logicalHeight - kTaskbarHeight;   // reserve space for the always-visible taskbar
 
             window->maximized = true;
         }
@@ -941,10 +945,14 @@ void WindowManager::applyResize(Window* window, int mouseX, int mouseY) {
     r.w = newW;
     r.h = newH;
 
-    // Additional safety to keep title bar + buttons accessible
+    // Additional safety to keep title bar + buttons accessible above the taskbar
+    const int desktopBottom = m_logicalHeight - kTaskbarHeight;
     if (r.y < 0) r.y = 0;
-    if (r.y + Window::TITLE_BAR_HEIGHT > m_logicalHeight) {
-        r.y = m_logicalHeight - Window::TITLE_BAR_HEIGHT;
+    if (r.y + Window::TITLE_BAR_HEIGHT > desktopBottom) {
+        r.y = desktopBottom - Window::TITLE_BAR_HEIGHT;
+    }
+    if (r.y + r.h > desktopBottom) {
+        r.h = std::max(minH, desktopBottom - r.y);
     }
     if (r.x + r.w < 60) {
         r.x = 60 - r.w;
@@ -1009,10 +1017,13 @@ void WindowManager::clampSingleWindow(Window& w) {
 
     SDL_Rect& r = w.rect;
 
-    // Vertical - title bar fully visible
+    const int desktopBottom = m_logicalHeight - kTaskbarHeight;
+    const int usableHeight = std::max(titleH, desktopBottom);
+
+    // Vertical - title bar fully visible above the taskbar
     if (r.y < 0) r.y = 0;
-    if (r.y + titleH > m_logicalHeight) {
-        r.y = m_logicalHeight - titleH;
+    if (r.y + titleH > desktopBottom) {
+        r.y = desktopBottom - titleH;
     }
 
     // Horizontal - buttons must stay visible
@@ -1025,13 +1036,14 @@ void WindowManager::clampSingleWindow(Window& w) {
 
     // Shrink if bigger than current desktop
     if (r.w > m_logicalWidth)  r.w = std::max(Window::MIN_WIDTH, m_logicalWidth);
-    if (r.h > m_logicalHeight) r.h = std::max(Window::MIN_HEIGHT + titleH, m_logicalHeight);
+    if (r.h > usableHeight) r.h = std::max(Window::MIN_HEIGHT + titleH, usableHeight);
 
     // Final bounds correction
     if (r.x < 0) r.x = 0;
     if (r.y < 0) r.y = 0;
     if (r.x + r.w > m_logicalWidth)  r.x = m_logicalWidth - r.w;
-    if (r.y + titleH > m_logicalHeight) r.y = m_logicalHeight - titleH;
+    if (r.h <= usableHeight && r.y + r.h > desktopBottom) r.y = desktopBottom - r.h;
+    if (r.y + titleH > desktopBottom) r.y = desktopBottom - titleH;
 }
 
 // =============================================================================
