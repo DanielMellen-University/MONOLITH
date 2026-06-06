@@ -33,6 +33,9 @@ This release brings the core personal environment to a much more usable state.
 
 ### Cleanup And Correctness Pass
 
+- **Window Manager**:
+  - Dragging and resizing now keep windows inside the usable desktop area above the taskbar.
+
 - **Text Editor**:
   - Delete now participates correctly in undo when removing text or joining lines.
   - Backspace and Delete no longer create undo states or dirty changes when there is nothing to edit.
