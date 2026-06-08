@@ -17,7 +17,9 @@ WindowManager::WindowManager() = default;
 WindowManager::~WindowManager() = default;
 
 Window* WindowManager::createWindow(const std::string& title, int x, int y, int w, int h,
-                                        std::unique_ptr<monolith::app::App> app) {
+                                        std::unique_ptr<monolith::app::App> app,
+                                        const std::string& appBase,
+                                        int instanceNumber) {
     auto window = std::make_unique<Window>();
     window->id = m_nextId++;
     window->title = title;
@@ -26,6 +28,13 @@ Window* WindowManager::createWindow(const std::string& title, int x, int y, int 
     window->rect.w = w;
     window->rect.h = h;
     window->app = std::move(app);
+
+    // Record instance tracking metadata (if provided by a launcher via claimNext...).
+    // This is what allows closeWindow to release the slot for reuse.
+    if (!appBase.empty() && instanceNumber > 0) {
+        window->appBaseTitle = appBase;
+        window->appInstanceNumber = instanceNumber;
+    }
 
     Window* ptr = window.get();
     m_windows.push_back(std::move(window));
@@ -48,8 +57,10 @@ void WindowManager::handleEvent(const SDL_Event& event) {
         m_mouseX = event.motion.x;
         m_mouseY = event.motion.y;
 
-        // Forward motion to the focused window's app if the pointer is in its content area
-        if (m_focusedWindow && m_focusedWindow->app && !m_focusedWindow->minimized) {
+        // Forward motion to the focused window's app if the pointer is in its content area.
+        // Do NOT forward while the Start menu is open (the popup owns input in its area
+        // and we don't want buried apps to see hovers/motion under the menu).
+        if (m_focusedWindow && m_focusedWindow->app && !m_focusedWindow->minimized && !m_showStartMenu) {
             const int logicalY = screenToLogicalY(m_mouseY);
             if (isInContentArea(*m_focusedWindow, m_mouseX, logicalY)) {
                 SDL_Event clientEvent = event;
@@ -61,8 +72,9 @@ void WindowManager::handleEvent(const SDL_Event& event) {
 
     const int logicalMouseY = screenToLogicalY(m_mouseY);
 
-    // Forward keyboard events (text input, key down/up) to the focused window's app
-    if (m_focusedWindow && m_focusedWindow->app &&
+    // Forward keyboard events (text input, key down/up) to the focused window's app.
+    // Suppress while Start menu is open so the menu (mouse-driven) owns the interaction.
+    if (m_focusedWindow && m_focusedWindow->app && !m_showStartMenu &&
         (event.type == SDL_KEYDOWN || event.type == SDL_KEYUP || event.type == SDL_TEXTINPUT)) {
         m_focusedWindow->app->handleEvent(event);
         // Do not return — WM doesn't consume keyboard yet, but apps get first crack
@@ -490,9 +502,9 @@ void WindowManager::render(SDL_Renderer* renderer) {
             for (size_t i = 0; i < sizeof(entries)/sizeof(entries[0]); ++i) {
                 const auto& e = entries[i];
 
-                // Clickable rect (in screen space)
+                // Clickable rect (in screen space). Use scaled inset for robustness if contentScale != 1.
                 SDL_Rect itemRect = {
-                    menuX + 4,
+                    menuX + static_cast<int>(4 * m_contentScale),
                     y,
                     static_cast<int>((menuWidth - 8) * m_contentScale),
                     itemH
@@ -1041,6 +1053,13 @@ void WindowManager::applyResize(Window* window, int mouseX, int mouseY) {
 void WindowManager::closeWindow(Window* window) {
     if (!window) return;
 
+    // Capture before any mutation so we know which app type (if any) needs compaction
+    // after this window is gone.
+    std::string closedBase;
+    if (!window->appBaseTitle.empty() && window->appInstanceNumber > 0) {
+        closedBase = window->appBaseTitle;
+    }
+
     // Unregister from file editor tracking if this window was responsible for a file
     if (!window->editedFilePath.empty()) {
         auto fedIt = m_fileEditors.find(window->editedFilePath);
@@ -1060,7 +1079,7 @@ void WindowManager::closeWindow(Window* window) {
             m_resizeDirection = ResizeDirection::None;
         }
 
-        // Clean up cached title texture
+        // Clean up cached title texture for the window being closed
         auto cacheIt = m_titleCache.find(window->id);
         if (cacheIt != m_titleCache.end()) {
             if (cacheIt->second.texture) {
@@ -1070,6 +1089,15 @@ void WindowManager::closeWindow(Window* window) {
         }
 
         m_windows.erase(it);
+    }
+
+    // If this was a numbered instance of an app type, re-compact the remaining
+    // live windows of the same type. This makes the numbers "adjust dynamically":
+    // e.g. closing "Settings" will turn the former "Settings 2" into plain "Settings",
+    // closing a middle one will shift higher numbers down, etc. Titles and the
+    // active set are updated for the survivors; no gaps while windows are open.
+    if (!closedBase.empty()) {
+        compactAppInstances(closedBase);
     }
 }
 
@@ -1152,6 +1180,70 @@ void WindowManager::translateMouseEventToClient(const Window& window, SDL_Event&
 
 // === Desktop shell launchers (used by Start Menu) ===
 
+// Dynamic per-type instance numbering (see plan and claimNextAppInstanceTitle doc).
+// Replaces the previous snapshot-based makeInstanceTitle logic.
+std::pair<std::string, int> WindowManager::claimNextAppInstanceTitle(const std::string& base) {
+    auto& used = m_activeAppInstances[base];
+    int n = 1;
+    while (used.count(n)) {
+        ++n;
+    }
+    used.insert(n);
+
+    std::string t = (n == 1 ? base : base + " " + std::to_string(n));
+    return {t, n};
+}
+
+void WindowManager::compactAppInstances(const std::string& base) {
+    if (base.empty()) return;
+
+    // Collect all currently live windows that belong to this app type
+    std::vector<Window*> affected;
+    for (auto& wp : m_windows) {
+        if (wp && wp->appBaseTitle == base) {
+            affected.push_back(wp.get());
+        }
+    }
+
+    if (affected.empty()) {
+        m_activeAppInstances.erase(base);
+        return;
+    }
+
+    // Sort by their *current* instance number. This preserves the relative order
+    // the user saw the windows (lower numbers before higher ones).
+    std::sort(affected.begin(), affected.end(), [](const Window* a, const Window* b) {
+        return a->appInstanceNumber < b->appInstanceNumber;
+    });
+
+    // Rebuild the active set and re-title the windows with dense numbers starting at 1
+    auto& used = m_activeAppInstances[base];
+    used.clear();
+
+    int newN = 1;
+    for (Window* w : affected) {
+        const std::string newTitle = (newN == 1 ? base : base + " " + std::to_string(newN));
+
+        const bool titleChanged = (w->title != newTitle);
+        w->appInstanceNumber = newN;
+        w->title = newTitle;
+
+        if (titleChanged) {
+            // Force the title texture to be regenerated on next render
+            auto cacheIt = m_titleCache.find(w->id);
+            if (cacheIt != m_titleCache.end()) {
+                if (cacheIt->second.texture) {
+                    SDL_DestroyTexture(cacheIt->second.texture);
+                }
+                m_titleCache.erase(cacheIt);
+            }
+        }
+
+        used.insert(newN);
+        ++newN;
+    }
+}
+
 void WindowManager::setAppResources(TTF_Font* font, monolith::fs::Filesystem* fs) {
     m_appFont = font;
     m_fs = fs;
@@ -1160,17 +1252,14 @@ void WindowManager::setAppResources(TTF_Font* font, monolith::fs::Filesystem* fs
 void WindowManager::launchTerminal() {
     if (!m_appFont) return;
 
-    std::string title = "Terminal";
-    // Give multiple instances a simple distinguishing suffix
-    if (!m_windows.empty()) {
-        title += " " + std::to_string(m_windows.size() + 1);
-    }
+    // Use the dynamic claimer so numbers are per-type and slots are released on close.
+    auto [title, inst] = claimNextAppInstanceTitle("Terminal");
 
     auto app = std::make_unique<monolith::app::TerminalApp>(m_appFont, m_fs);
     int x = 100 + (static_cast<int>(m_windows.size()) % 7) * 35;
     int y = 80 + (static_cast<int>(m_windows.size()) % 5) * 25;
-    createWindow(title, x, y, 520, 380, std::move(app));
-    m_showStartMenu = false;
+    createWindow(title, x, y, 520, 380, std::move(app), "Terminal", inst);
+    // Note: caller (e.g. Start menu click handler) is responsible for closing the menu.
 }
 
 void WindowManager::launchTextEditor(const std::string& initialPath) {
@@ -1182,33 +1271,47 @@ void WindowManager::launchTextEditor(const std::string& initialPath) {
         auto it = m_fileEditors.find(normalized);
         if (it != m_fileEditors.end() && it->second) {
             bringToFront(it->second);
-            m_showStartMenu = false;
             return;
         }
     }
 
     auto app = std::make_unique<monolith::app::TextEditorApp>(m_appFont, m_fs, initialPath);
 
-    std::string title = "Editor";
-    std::string baseName;
+    std::string title;
+    std::string appBaseForTracking;
+    int instForTracking = 0;
+
     if (!initialPath.empty()) {
         size_t slash = initialPath.find_last_of('/');
-        baseName = (slash != std::string::npos) ? initialPath.substr(slash + 1) : initialPath;
-        if (!baseName.empty()) title = "Editor - " + baseName;
-    } else if (!m_windows.empty()) {
-        title += " " + std::to_string(m_windows.size() + 1);
+        std::string baseName = (slash != std::string::npos) ? initialPath.substr(slash + 1) : initialPath;
+        if (!baseName.empty()) {
+            title = "Editor - " + baseName;
+            // File-backed editors keep their descriptive title and do not consume
+            // numbers from the bare "Editor" pool (they are already unique by path
+            // and protected by the m_fileEditors singleton).
+        } else {
+            auto [t, n] = claimNextAppInstanceTitle("Editor");
+            title = t;
+            appBaseForTracking = "Editor";
+            instForTracking = n;
+        }
+    } else {
+        auto [t, n] = claimNextAppInstanceTitle("Editor");
+        title = t;
+        appBaseForTracking = "Editor";
+        instForTracking = n;
     }
 
     int x = 160 + (static_cast<int>(m_windows.size()) % 6) * 30;
     int y = 90 + (static_cast<int>(m_windows.size()) % 4) * 20;
-    Window* w = createWindow(title, x, y, 540, 420, std::move(app));
+    Window* w = createWindow(title, x, y, 540, 420, std::move(app),
+                             appBaseForTracking, instForTracking);
 
     // Register for singleton tracking if this editor is bound to a specific file
     if (w && !initialPath.empty() && m_fs) {
         associateEditorWithFile(w, initialPath);
     }
-
-    m_showStartMenu = false;
+    // Note: caller (e.g. Start menu) is responsible for m_showStartMenu = false.
 }
 
 void WindowManager::launchFilesystem() {
@@ -1216,15 +1319,12 @@ void WindowManager::launchFilesystem() {
 
     auto app = std::make_unique<monolith::app::FilesystemApp>(m_appFont, m_fs);
 
-    std::string title = "Filesystem";
-    if (!m_windows.empty()) {
-        title += " " + std::to_string(m_windows.size() + 1);
-    }
+    auto [title, inst] = claimNextAppInstanceTitle("Filesystem");
 
     int x = 200 + (static_cast<int>(m_windows.size()) % 5) * 25;
     int y = 130 + (static_cast<int>(m_windows.size()) % 3) * 18;
-    createWindow(title, x, y, 480, 360, std::move(app));
-    m_showStartMenu = false;
+    createWindow(title, x, y, 480, 360, std::move(app), "Filesystem", inst);
+    // Note: caller (e.g. Start menu) is responsible for m_showStartMenu = false.
 }
 
 void WindowManager::launchSettings() {
@@ -1232,16 +1332,18 @@ void WindowManager::launchSettings() {
 
     auto app = std::make_unique<monolith::app::SettingsApp>(m_appFont, m_fs);
 
+    auto [title, inst] = claimNextAppInstanceTitle("Settings");
+
     // Position it a bit more to the right/center-ish
     int x = 180 + (static_cast<int>(m_windows.size()) % 4) * 20;
     int y = 110 + (static_cast<int>(m_windows.size()) % 3) * 15;
-    createWindow("Settings", x, y, 460, 320, std::move(app));
-    m_showStartMenu = false;
+    createWindow(title, x, y, 460, 320, std::move(app), "Settings", inst);
+    // Note: caller (e.g. Start menu) is responsible for m_showStartMenu = false.
 }
 
 void WindowManager::requestQuit() {
     m_quitRequested = true;
-    m_showStartMenu = false;
+    // Menu close is handled by the Start menu click handler (or caller).
 }
 
 bool WindowManager::shouldQuit() const {

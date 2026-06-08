@@ -64,6 +64,26 @@ The Window Manager is the most foundational subsystem.
 **Design Notes:**
 The Window Manager should be relatively self-contained. Individual apps should not need to know how window frames are drawn or how input is routed.
 
+### Instance Management for Multiple Windows of the Same Type
+
+The WM provides first-class support for opening many instances of the same native app (Terminal, Filesystem, Settings, bare Text Editor, future apps) without title collisions or confusing numbering.
+
+- `claimNextAppInstanceTitle(const std::string& base)` finds the lowest free positive instance number for a base ("Terminal", "Settings", "Editor" for bare editors, etc.), reserves it, and returns the display title + number.
+  - Instance 1 → bare name ("Settings").
+  - Instance 2+ → "Settings 2", etc.
+- Each `Window` carries `appBaseTitle` and `appInstanceNumber` (populated by launchers via an extended `createWindow`).
+- On `closeWindow`, if the window held a tracked instance, `compactAppInstances(base)` re-numbers all *remaining* live windows of that base contiguously from 1 (sorted by prior instance number to preserve relative order).
+  - Titles on the survivor `Window` objects are updated in place.
+  - Title caches are invalidated so the change appears immediately in title bars and the taskbar on the next render.
+  - The active set is rebuilt from the compacted numbers.
+- Result: among currently open windows there are never gaps or duplicates for a given type. Closing a lower number causes higher ones to "slide down" (e.g. "Settings" + "Settings 2"; close the first → the second becomes "Settings").
+- File-backed editors use content-derived titles ("Editor - foo") and are deliberately excluded from the bare "Editor" numbering pool (they are already unique and protected by the `m_fileEditors` singleton + `associateEditorWithFile`).
+- Direct `createWindow` calls (rare fallback paths) can opt out of tracking.
+
+Launchers are the canonical place that request instance titles. The mechanism is intentionally centralized in the desktop shell (`WindowManager`) so new app types get correct behavior for free.
+
+See `src/window/WindowManager.cpp` (`claimNextAppInstanceTitle`, `compactAppInstances`, `closeWindow`, launcher bodies) and `Window.hpp`. The design follows the same "annotate the Window + cleanup on close" pattern used for editor singletons (`editedFilePath` / `m_fileEditors`).
+
 ### 2. Application Model
 
 Core applications are written in **native C++**.

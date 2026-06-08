@@ -28,6 +28,13 @@ struct Window {
     // this holds the normalized path. Used by WindowManager for "singleton editor" behavior.
     std::string editedFilePath;
 
+    // For dynamic per-type instance titling (see WindowManager::claimNextAppInstanceTitle
+    // and closeWindow). If appBaseTitle is non-empty, this window holds a reserved
+    // instance number for that base. 1 = bare name ("Terminal"), 2+ = "Terminal 2" etc.
+    // 0 / empty = untracked (e.g. direct createWindow fallback or file-backed "Editor - foo").
+    std::string appBaseTitle;
+    int appInstanceNumber = 0;
+
     // Position and size of the entire window (including title bar)
     SDL_Rect rect{0, 0, 400, 300};
 
