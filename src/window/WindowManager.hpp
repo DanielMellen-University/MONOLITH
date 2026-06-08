@@ -4,6 +4,7 @@
 #include <SDL2/SDL.h>
 #include <SDL2/SDL_ttf.h>
 #include <memory>
+#include <set>
 #include <string>
 #include <unordered_map>
 #include <vector>
@@ -39,8 +40,14 @@ public:
 
     // Create a new window (optionally with an app that renders its client area).
     // If app is nullptr, the window gets a solid background (existing placeholder behavior).
+    //
+    // The optional appBase + instanceNumber are for dynamic per-type titling.
+    // Launchers should pass them (obtained from claimNextAppInstanceTitle) so that
+    // the WM can track and release the slot on close. Direct/fallback creates can omit them.
     Window* createWindow(const std::string& title, int x, int y, int w, int h,
-                         std::unique_ptr<monolith::app::App> app = nullptr);
+                         std::unique_ptr<monolith::app::App> app = nullptr,
+                         const std::string& appBase = "",
+                         int instanceNumber = 0);
 
     // Basic input handling (called every frame with SDL events)
     void handleEvent(const SDL_Event& event);
@@ -175,6 +182,11 @@ private:
     // Tracks which editor windows are responsible for which files (for singleton-per-file behavior)
     std::unordered_map<std::string, Window*> m_fileEditors;
 
+    // Tracks active instance numbers per app base type ("Terminal", "Filesystem", etc.)
+    // for the dynamic titling system. Populated by claimNextAppInstanceTitle and
+    // released in closeWindow (using the annotation stored on each Window).
+    std::unordered_map<std::string, std::set<int>> m_activeAppInstances;
+
     // Resources for creating real apps from the shell (Start Menu launchers)
     TTF_Font* m_appFont = nullptr;
     monolith::fs::Filesystem* m_fs = nullptr;
@@ -196,6 +208,22 @@ private:
 
     // Helper to check if a point is inside a window's title bar
     bool isInTitleBar(const Window& window, int x, int y) const;
+
+    // Claims the lowest available positive instance number for the given app base
+    // ("Terminal", "Filesystem", "Settings", "Editor" for bare editors, etc.).
+    // Reserves it in m_activeAppInstances, computes the display title
+    // (bare name for 1, "Base N" for N>1), and returns {title, instanceNumber}.
+    // The caller (launchers) must pass the returned values + base to createWindow
+    // so the Window is annotated and the slot can be released on close.
+    std::pair<std::string, int> claimNextAppInstanceTitle(const std::string& base);
+
+    // After a tracked window of `base` is closed, re-assign contiguous numbers
+    // 1..N to all *remaining* live windows of that base (sorted by their previous
+    // instance number to preserve relative ordering). Updates their titles and
+    // instance numbers, invalidates title caches, and rebuilds the active set.
+    // This makes numbers "adjust dynamically" so there are never gaps while
+    // windows are open (e.g. closing "Settings" turns the old "Settings 2" into "Settings").
+    void compactAppInstances(const std::string& base);
 };
 
 } // namespace monolith::window

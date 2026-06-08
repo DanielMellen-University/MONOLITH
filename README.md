@@ -10,7 +10,7 @@ Monolith is an experimental, self-contained environment written in C++ using SDL
 
 Monolith has a working desktop environment with overlapping windows:
 
-- **Window Manager**: Dragging, 8-way resizing, title bars with close/min/max, z-order, focus, taskbar with XP-style window buttons + horizontal scrolling, and a fully functional Start menu (including Settings and Shut Down).
+- **Window Manager**: Dragging, 8-way resizing, title bars with close/min/max, z-order, focus, taskbar with XP-style window buttons + horizontal scrolling, and a fully functional Start menu (including Settings and Shut Down). Robust dynamic instance management for multiple windows of the same app type: `claimNextAppInstanceTitle` + live compaction on close so numbers/titles of open windows automatically adjust (e.g. closing the primary "Settings" promotes "Settings 2" to "Settings" with no gaps or duplicates).
 - **Built-in Apps**:
   - **Terminal**: Real command-line app with scrollback, command history, cursor editing, reverse search (Ctrl+R), tab completion (commands + paths), persistent history, dynamic cwd prompt, and rich built-in commands (`ls`, `cd`, `cat`, `mkdir`, `rm`, `rm -r`, `cp`, `touch`, `mv`, etc.).
   - **Text Editor**: Functional multi-line editor with cursor movement, editing, undo, find mode (Ctrl+F), and load/save via the internal filesystem (Ctrl+S).

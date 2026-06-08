@@ -8,6 +8,7 @@
 #include "app/TerminalApp.hpp"
 #include "app/TextEditorApp.hpp"
 #include "app/FilesystemApp.hpp"
+#include "app/SettingsApp.hpp"
 #include "fs/Filesystem.hpp"
 
 int main(int /*argc*/, char* /*argv*/[])
@@ -121,25 +122,21 @@ int main(int /*argc*/, char* /*argv*/[])
     wm.setLogicalDesktopSize(LOGICAL_WIDTH, LOGICAL_HEIGHT);
     wm.setHeaderOffset(0);   // No artificial offset — content starts right at top of client area
 
-    // Create some test windows.
-    // The first one is now a real Terminal connected to the filesystem.
+    // Launch initial demo windows through the desktop shell launchers.
+    // This exercises the proper app creation paths (including Settings skeleton) and
+    // gives consistent titling / positioning / inter-app coordination.
     if (titleFont) {
-        wm.createWindow("Terminal", 100, 100, 520, 380,
-                        std::make_unique<monolith::app::TerminalApp>(titleFont, fsReady ? &monolithFs : nullptr));
+        wm.launchTerminal();
+        wm.launchFilesystem();
+        // Open the welcome file through the normal launcher path (singleton editor tracking).
+        wm.launchTextEditor("/home/monolith/welcome.txt");
+        wm.launchSettings();
     } else {
+        // Fallback (rare): plain windows without apps if font/launcher resources unavailable.
         wm.createWindow("Terminal", 100, 100, 520, 380);
-    }
-
-    if (titleFont) {
-        wm.createWindow("Filesystem", 300, 180, 460, 320,
-                        std::make_unique<monolith::app::FilesystemApp>(titleFont, fsReady ? &monolithFs : nullptr));
-    } else {
         wm.createWindow("Filesystem", 300, 180, 460, 320);
+        wm.launchTextEditor("/home/monolith/welcome.txt");
     }
-
-    // Open the welcome file through the normal launcher path.
-    // This ensures it goes through the singleton editor tracking (no special-case association).
-    wm.launchTextEditor("/home/monolith/welcome.txt");
     // No content scaling for now — logical size matches the window content area 1:1.
 
     bool running = true;
