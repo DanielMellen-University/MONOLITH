@@ -52,12 +52,18 @@ private:
     // Filesystem helpers
     std::string resolvePath(const std::string& path) const;
 
+    // Path helper (centralized join using normalize; used by commands, remove, and tab)
+    std::string joinPath(const std::string& base, const std::string& name) const;
+
     // Tab completion helpers
     std::vector<std::string> getCommandCompletions(const std::string& prefix) const;
     std::vector<std::string> getPathCompletions(const std::string& partial) const;
 
     // Recursive remove helper for rm -r
     bool removeRecursive(const std::string& virtualPath);
+
+    // Recursive copy helper for cp -r (Terminal-only implementation)
+    bool copyRecursive(const std::string& src, const std::string& dst);
 
     TTF_Font* m_font = nullptr;
 

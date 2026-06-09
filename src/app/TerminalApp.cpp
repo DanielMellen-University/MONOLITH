@@ -44,15 +44,24 @@ void TerminalApp::submitInput() {
 }
 
 void TerminalApp::executeCommand(const std::string& commandLine) {
-    // Very simple splitting: command + rest of line as argument
-    std::istringstream iss(commandLine);
-    std::string cmd;
-    iss >> cmd;
+    // Build arg list (simple whitespace split; enables reliable flag + operand handling for rm/cp/mv).
+    // Still no quoting for filenames containing spaces (accepted current limitation).
+    std::vector<std::string> args;
+    {
+        std::istringstream iss(commandLine);
+        std::string tok;
+        while (iss >> tok) {
+            args.push_back(tok);
+        }
+    }
 
+    std::string cmd = args.empty() ? "" : args[0];
+
+    // Rebuild a "rest" for backward compat with untouched commands (echo etc.)
     std::string rest;
-    std::getline(iss, rest);
-    if (!rest.empty() && rest[0] == ' ') {
-        rest = rest.substr(1);
+    for (size_t i = 1; i < args.size(); ++i) {
+        if (i > 1) rest += " ";
+        rest += args[i];
     }
 
     if (cmd == "echo") {
@@ -73,9 +82,9 @@ void TerminalApp::executeCommand(const std::string& commandLine) {
         addOutput("  cd [dir]        - Change directory");
         addOutput("  mkdir <dir>     - Create directory");
         addOutput("  touch <file>    - Create empty file");
-        addOutput("  cp <src> <dst>  - Copy file");
+        addOutput("  cp [-r] <src> <dst> - Copy file (or dir tree with -r); dst dir supported");
         addOutput("  rm [-r] <path>  - Remove file or directory (-r for recursive)");
-        addOutput("  mv <src> <dst>  - Move/rename file or directory");
+        addOutput("  mv <src> <dst>  - Move/rename file or directory (dst dir supported)");
         addOutput("  cat <file>      - Show file contents");
         addOutput("  history         - Show command history");
         addOutput("  help            - Show this message");
@@ -120,9 +129,9 @@ void TerminalApp::executeCommand(const std::string& commandLine) {
         if (!m_fs) {
             addOutput("Filesystem not available");
         } else {
-            std::istringstream iss(rest);
-            std::string src, dst;
-            iss >> src >> dst;
+            // Use args for clean src/dst (index 1,2); support dst-as-dir semantics
+            std::string src = (args.size() > 1 ? args[1] : "");
+            std::string dst = (args.size() > 2 ? args[2] : "");
             if (src.empty() || dst.empty()) {
                 addOutput("mv: missing file operand");
             } else {
@@ -130,10 +139,20 @@ void TerminalApp::executeCommand(const std::string& commandLine) {
                 std::string dstPath = resolvePath(dst);
                 if (!m_fs->exists(srcPath)) {
                     addOutput("mv: cannot stat '" + src + "': No such file or directory");
-                } else if (m_fs->rename(srcPath, dstPath)) {
-                    // success
                 } else {
-                    addOutput("mv: cannot move '" + src + "' to '" + dst + "'");
+                    // If dst is an existing directory, place src's basename inside it
+                    if (m_fs->isDirectory(dstPath)) {
+                        std::string base = srcPath;
+                        size_t slash = base.find_last_of('/');
+                        if (slash != std::string::npos) base = base.substr(slash + 1);
+                        if (base.empty()) base = src;  // fallback
+                        dstPath = joinPath(dstPath, base);
+                    }
+                    if (m_fs->rename(srcPath, dstPath)) {
+                        // success
+                    } else {
+                        addOutput("mv: cannot move '" + src + "' to '" + dst + "'");
+                    }
                 }
             }
         }
@@ -142,9 +161,19 @@ void TerminalApp::executeCommand(const std::string& commandLine) {
         if (!m_fs) {
             addOutput("Filesystem not available");
         } else {
-            std::istringstream iss(rest);
-            std::string src, dst;
-            iss >> src >> dst;
+            // Parse with args for -r flag support + clean operands
+            bool recursive = false;
+            std::vector<std::string> operands;
+            for (size_t i = 1; i < args.size(); ++i) {
+                const std::string& a = args[i];
+                if (a == "-r" || a == "-rf" || a == "-r") {
+                    recursive = true;
+                } else {
+                    operands.push_back(a);
+                }
+            }
+            std::string src = (operands.size() > 0 ? operands[0] : "");
+            std::string dst = (operands.size() > 1 ? operands[1] : "");
             if (src.empty() || dst.empty()) {
                 addOutput("cp: missing file operand");
             } else {
@@ -152,15 +181,30 @@ void TerminalApp::executeCommand(const std::string& commandLine) {
                 std::string dstPath = resolvePath(dst);
                 if (!m_fs->exists(srcPath)) {
                     addOutput("cp: cannot stat '" + src + "': No such file or directory");
-                } else if (m_fs->isDirectory(srcPath)) {
+                } else if (m_fs->isDirectory(srcPath) && !recursive) {
                     addOutput("cp: omitting directory '" + src + "'");
                 } else {
-                    std::string content = m_fs->readFile(srcPath);
-                    if (m_fs->writeFile(dstPath, content)) {
-                        // success
+                    // If dst exists and is a dir, place source basename inside it (standard cp behavior)
+                    if (m_fs->isDirectory(dstPath)) {
+                        std::string base = srcPath;
+                        size_t slash = base.find_last_of('/');
+                        if (slash != std::string::npos) base = base.substr(slash + 1);
+                        if (base.empty()) base = src;
+                        dstPath = joinPath(dstPath, base);
+                    }
+
+                    bool ok = false;
+                    if (recursive && m_fs->isDirectory(srcPath)) {
+                        ok = copyRecursive(srcPath, dstPath);
                     } else {
+                        // file (or non-recursive dir would have been caught above)
+                        std::string content = m_fs->readFile(srcPath);
+                        ok = m_fs->writeFile(dstPath, content);
+                    }
+                    if (!ok) {
                         addOutput("cp: cannot create '" + dst + "'");
                     }
+                    // success is silent
                 }
             }
         }
@@ -225,33 +269,35 @@ void TerminalApp::executeCommand(const std::string& commandLine) {
     else if (cmd == "rm") {
         if (!m_fs) {
             addOutput("Filesystem not available");
-        } else if (rest.empty()) {
-            addOutput("rm: missing operand");
         } else {
-            // Simple -r support
+            // Robust flag parsing from args (no more brittle substr on rest)
             bool recursive = false;
-            std::string target = rest;
-            if (rest.substr(0, 3) == "-r ") {
-                recursive = true;
-                target = rest.substr(3);
-            } else if (rest.substr(0, 4) == "-rf ") {
-                recursive = true;
-                target = rest.substr(4);
-            }
-
-            std::string path = resolvePath(target);
-            if (!m_fs->exists(path)) {
-                addOutput("rm: cannot remove '" + target + "': No such file or directory");
-            } else if (recursive) {
-                if (removeRecursive(path)) {
-                    // success
-                } else {
-                    addOutput("rm: failed to remove '" + target + "'");
+            std::string target;
+            for (size_t i = 1; i < args.size(); ++i) {
+                const std::string& a = args[i];
+                if (a == "-r" || a == "-rf") {
+                    recursive = true;
+                } else if (target.empty()) {
+                    target = a;
                 }
-            } else if (m_fs->remove(path)) {
-                // success - silent
+            }
+            if (target.empty()) {
+                addOutput("rm: missing operand");
             } else {
-                addOutput("rm: cannot remove '" + target + "' (use -r for directories)");
+                std::string path = resolvePath(target);
+                if (!m_fs->exists(path)) {
+                    addOutput("rm: cannot remove '" + target + "': No such file or directory");
+                } else if (recursive) {
+                    if (removeRecursive(path)) {
+                        // success
+                    } else {
+                        addOutput("rm: failed to remove '" + target + "'");
+                    }
+                } else if (m_fs->remove(path)) {
+                    // success - silent
+                } else {
+                    addOutput("rm: cannot remove '" + target + "' (use -r for directories)");
+                }
             }
         }
     }
@@ -548,7 +594,7 @@ bool TerminalApp::removeRecursive(const std::string& virtualPath) {
 
     auto entries = m_fs->listEntries(virtualPath);
     for (const auto& entry : entries) {
-        std::string child = virtualPath + (virtualPath.back() == '/' ? "" : "/") + entry.name;
+        std::string child = joinPath(virtualPath, entry.name);
         if (!removeRecursive(child)) {
             return false;
         }
@@ -708,10 +754,11 @@ std::string TerminalApp::resolvePath(const std::string& path) const {
     if (!m_fs) return path;
 
     std::string target = path;
-    if (target.empty()) target = m_cwd;
-    else if (target[0] != '/') {
-        // relative path
-        target = m_cwd + (m_cwd.back() == '/' ? "" : "/") + target;
+    if (target.empty()) {
+        target = m_cwd;
+    } else if (target[0] != '/') {
+        // relative path - centralize glue via joinPath
+        target = joinPath(m_cwd, target);
     }
 
     return m_fs->normalize(target);
@@ -726,6 +773,46 @@ std::string TerminalApp::getInputPrompt() const {
         displayCwd = "~" + displayCwd.substr(14);  // after /home/monolith
     }
     return displayCwd + "> ";
+}
+
+std::string TerminalApp::joinPath(const std::string& base, const std::string& name) const {
+    if (!m_fs) return name;
+    if (name.empty()) return m_fs->normalize(base.empty() ? "/" : base);
+    if (base.empty()) return m_fs->normalize(name);
+
+    std::string glued = base;
+    if (!glued.empty() && glued.back() != '/') {
+        glued += '/';
+    }
+    glued += name;
+    return m_fs->normalize(glued);
+}
+
+bool TerminalApp::copyRecursive(const std::string& src, const std::string& dst) {
+    if (!m_fs) return false;
+
+    if (m_fs->isFile(src)) {
+        std::string content = m_fs->readFile(src);
+        return m_fs->writeFile(dst, content);
+    }
+
+    if (!m_fs->isDirectory(src)) return false;
+
+    // Ensure destination dir (createDirectory is safe if it already exists as dir in our FS impl)
+    if (!m_fs->createDirectory(dst)) {
+        // If it exists but is a file, writeFile later would fail anyway; treat as failure for copy
+        if (!m_fs->isDirectory(dst)) return false;
+    }
+
+    auto entries = m_fs->listEntries(src);
+    for (const auto& entry : entries) {
+        std::string childSrc = joinPath(src, entry.name);
+        std::string childDst = joinPath(dst, entry.name);
+        if (!copyRecursive(childSrc, childDst)) {
+            return false;
+        }
+    }
+    return true;
 }
 
 void TerminalApp::render(SDL_Renderer* renderer, const SDL_Rect& contentRect) {

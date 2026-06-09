@@ -1,5 +1,24 @@
 # Changelog
 
+## 2026-06: Terminal Command Execution Polish + Path Logic Hardening
+
+Focused updates to Terminal (the primary command/FS interaction surface) and cross-consistency with the graphical Filesystem browser.
+
+- Command parsing upgraded: simple but reliable `vector<string> args` splitter (whitespace) replaces the old cmd + raw "rest" getline. Enables proper flag/operand handling without changing behavior of untouched commands.
+- `cp` now supports `-r`/`-rf` for recursive directory copies and follows standard Unix dst-dir semantics (if dst resolves to a directory, the source basename is placed inside it). Uses new private `copyRecursive` helper.
+- `rm` flag detection is now robust (scans args for `-r`/`-rf` instead of brittle `substr` prefix checks on the remainder).
+- `mv` gains the same dst-as-directory behavior.
+- Path construction centralized/hardened inside Terminal:
+  - New private `joinPath(base, name)` (glue + `Filesystem::normalize`) used by `resolvePath`, `removeRecursive`, cp/mv dst logic, etc. Removed ad-hoc `back() == '/' ? "" : "/"` gluing in FS-path sites.
+  - `removeRecursive` refactored to use the helper.
+- FilesystemApp path logic updated for consistency (no FS public API changes):
+  - `goUp()` now computes parent via `.../..` + `normalize` (more robust than raw `find_last_of` + substr).
+  - `fullPathFor` (and thus all creation, delete, rename, activate, etc. targets) always goes through `normalize` after construction.
+- Help text updated to document the new `cp [-r]` and `mv`/`rm` behaviors.
+- All changes are Terminal-private or use only existing public `Filesystem` surface (`normalize`, `listEntries`, `is*`, read/write/create/remove/rename). No impact on other apps, WM, or instance titling.
+
+Builds cleanly and launches. Full verification (including mixed Terminal + GUI sessions, `cp -r` on nested trees, dst-dir cases, `rm -r`, `..` paths, tab completion, multiple windows) performed manually in the running environment.
+
 ## 2026-06: Dynamic Multi-Window Instance Titling with Live Compaction
 
 Major improvements to the Window Manager for robust handling of multiple instances of the same app type (Terminal, Filesystem, Settings, bare Editor).
