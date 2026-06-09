@@ -61,9 +61,10 @@ void FilesystemApp::goUp() {
 
     if (m_currentPath == "/" || m_currentPath.empty()) return;
 
-    // Find parent
-    size_t lastSlash = m_currentPath.find_last_of('/');
-    std::string parent = (lastSlash == 0) ? "/" : m_currentPath.substr(0, lastSlash);
+    // Compute parent via .. + normalize (reuses FS canonicalization for robustness;
+    // matches the join+normalize style used in Terminal for consistent path rules).
+    std::string candidate = m_currentPath + "/..";
+    std::string parent = m_fs->normalize(candidate);
     if (parent.empty()) parent = "/";
 
     setCurrentPath(parent);
@@ -94,10 +95,11 @@ void FilesystemApp::refreshEntries() {
 }
 
 std::string FilesystemApp::fullPathFor(const std::string& name) const {
-    if (m_currentPath == "/") {
-        return "/" + name;
+    // Use normalize after construction for consistent rules with Terminal (no raw manual glue).
+    if (m_currentPath == "/" || m_currentPath.empty()) {
+        return m_fs ? m_fs->normalize("/" + name) : ("/" + name);
     }
-    return m_currentPath + "/" + name;
+    return m_fs ? m_fs->normalize(m_currentPath + "/" + name) : (m_currentPath + "/" + name);
 }
 
 void FilesystemApp::activateEntry(size_t index) {
