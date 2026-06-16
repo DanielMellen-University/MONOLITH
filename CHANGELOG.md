@@ -1,5 +1,17 @@
 # Changelog
 
+## 2026-06: Window Geometry Cleanup
+
+Focused Window Manager cleanup to keep taskbar, usable desktop, and title-bar button geometry consistent.
+
+- Added shared geometry helpers for the taskbar rectangle, usable desktop rectangle, usable desktop bottom edge, logical-to-screen rect conversion, and title-bar button hitboxes.
+- Window creation now clamps new windows into the usable desktop area before app resize notification.
+- Maximized windows now use the same usable desktop rectangle as drag and resize clamping.
+- Title-bar button rendering and click handling now use the same rectangle calculations, reducing drift between what is drawn and what is clickable.
+- Start menu and taskbar rendering now use the shared taskbar geometry helper.
+
+Builds cleanly.
+
 ## 2026-06: Terminal Command Execution Polish + Path Logic Hardening
 
 Focused updates to Terminal (the primary command/FS interaction surface) and cross-consistency with the graphical Filesystem browser.

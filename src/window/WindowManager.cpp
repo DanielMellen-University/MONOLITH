@@ -10,6 +10,10 @@ namespace monolith::window {
 
 namespace {
 constexpr int kTaskbarHeight = 28;
+constexpr int kWindowButtonSize = 16;
+constexpr int kWindowButtonSpacing = 6;
+constexpr int kWindowButtonRightPadding = 10;
+constexpr int kMinimumVisibleButtonSpace = 80;
 }
 
 WindowManager::WindowManager() = default;
@@ -38,6 +42,7 @@ Window* WindowManager::createWindow(const std::string& title, int x, int y, int 
 
     Window* ptr = window.get();
     m_windows.push_back(std::move(window));
+    clampSingleWindow(*ptr);
 
     // Attach controller to the app (if any) so it can request window operations
     if (ptr->app) {
@@ -86,9 +91,9 @@ void WindowManager::handleEvent(const SDL_Event& event) {
         m_mouseX = event.button.x;
         m_mouseY = event.button.y;
 
-        const int taskbarHeight = kTaskbarHeight;
-        const int taskbarScreenY = logicalToScreenY(m_logicalHeight - taskbarHeight);
-        const int taskbarScreenBottom = logicalToScreenY(m_logicalHeight);
+        const SDL_Rect taskbarScreenRect = logicalRectToScreen(getTaskbarRect());
+        const int taskbarScreenY = taskbarScreenRect.y;
+        const int taskbarScreenBottom = taskbarScreenRect.y + taskbarScreenRect.h;
 
         // Start Menu popup lives *above* the taskbar, so we must check it for *any* click
         // when it is open (not just clicks whose Y is inside the taskbar strip).
@@ -167,8 +172,9 @@ void WindowManager::handleEvent(const SDL_Event& event) {
 
     // === Taskbar scroll arrows (Windows XP style) ===
     if (m_taskbarNeedsScroll && event.type == SDL_MOUSEBUTTONDOWN && event.button.button == SDL_BUTTON_LEFT) {
-        const int taskbarScreenY = logicalToScreenY(m_logicalHeight - kTaskbarHeight);
-        const int taskbarScreenBottom = logicalToScreenY(m_logicalHeight);
+        const SDL_Rect taskbarScreenRect = logicalRectToScreen(getTaskbarRect());
+        const int taskbarScreenY = taskbarScreenRect.y;
+        const int taskbarScreenBottom = taskbarScreenRect.y + taskbarScreenRect.h;
 
         if (m_mouseY >= taskbarScreenY && m_mouseY < taskbarScreenBottom) {
             int arrowW = 16;
@@ -189,8 +195,9 @@ void WindowManager::handleEvent(const SDL_Event& event) {
 
     // Mouse wheel over taskbar scrolls the window buttons
     if (event.type == SDL_MOUSEWHEEL) {
-        const int taskbarScreenY = logicalToScreenY(m_logicalHeight - kTaskbarHeight);
-        const int taskbarScreenBottom = logicalToScreenY(m_logicalHeight);
+        const SDL_Rect taskbarScreenRect = logicalRectToScreen(getTaskbarRect());
+        const int taskbarScreenY = taskbarScreenRect.y;
+        const int taskbarScreenBottom = taskbarScreenRect.y + taskbarScreenRect.h;
         if (m_mouseY >= taskbarScreenY && m_mouseY < taskbarScreenBottom && m_taskbarNeedsScroll) {
             m_taskbarScrollOffset += (event.wheel.y > 0 ? -80 : 80);
             if (m_taskbarScrollOffset < 0) m_taskbarScrollOffset = 0;
@@ -304,10 +311,8 @@ void WindowManager::update() {
     // not something individual apps should have to handle.
     for (auto& w : m_windows) {
         if (w->maximized && !w->minimized) {
-            w->rect.x = 0;
-            w->rect.y = 0;
-            w->rect.w = m_logicalWidth;
-            w->rect.h = m_logicalHeight - kTaskbarHeight;   // always reserve for the taskbar
+            SDL_Rect usable = getUsableDesktopRect();
+            w->rect = usable;
         }
     }
 }
@@ -393,15 +398,14 @@ void WindowManager::render(SDL_Renderer* renderer) {
         }
 
         // === Window buttons (close, minimize, maximize) with simple symbols ===
-        int buttonSize = static_cast<int>(16 * m_contentScale);
-        if (buttonSize < 10) buttonSize = 10; // minimum usable size
-        int buttonY = screenY + (scaledTitleH - buttonSize) / 2;
-        int buttonSpacing = static_cast<int>(6 * m_contentScale);
-        int rightEdge = screenX + scaledW - static_cast<int>(10 * m_contentScale);
+        const TitleButtonRects logicalButtons = getTitleButtonRects(win);
+        SDL_Rect closeBtn = logicalRectToScreen(logicalButtons.close);
+        SDL_Rect maxBtn = logicalRectToScreen(logicalButtons.maximize);
+        SDL_Rect minBtn = logicalRectToScreen(logicalButtons.minimize);
+        const int buttonSize = closeBtn.w;
 
         // Close button (red) - draw white X
         SDL_SetRenderDrawColor(renderer, 200, 60, 60, 255);
-        SDL_Rect closeBtn = {rightEdge - buttonSize, buttonY, buttonSize, buttonSize};
         SDL_RenderFillRect(renderer, &closeBtn);
         SDL_SetRenderDrawColor(renderer, 255, 255, 255, 255);
         SDL_RenderDrawLine(renderer, closeBtn.x + 3, closeBtn.y + 3, closeBtn.x + buttonSize - 4, closeBtn.y + buttonSize - 4);
@@ -409,7 +413,6 @@ void WindowManager::render(SDL_Renderer* renderer) {
 
         // Maximize (green) - draw white square outline
         SDL_SetRenderDrawColor(renderer, 60, 170, 80, 255);
-        SDL_Rect maxBtn = {rightEdge - buttonSize * 2 - buttonSpacing, buttonY, buttonSize, buttonSize};
         SDL_RenderFillRect(renderer, &maxBtn);
         SDL_SetRenderDrawColor(renderer, 255, 255, 255, 255);
         SDL_Rect maxSymbol = {maxBtn.x + 3, maxBtn.y + 3, buttonSize - 7, buttonSize - 7};
@@ -417,7 +420,6 @@ void WindowManager::render(SDL_Renderer* renderer) {
 
         // Minimize (yellow/orange) - draw white horizontal line
         SDL_SetRenderDrawColor(renderer, 200, 170, 60, 255);
-        SDL_Rect minBtn = {rightEdge - buttonSize * 3 - buttonSpacing * 2, buttonY, buttonSize, buttonSize};
         SDL_RenderFillRect(renderer, &minBtn);
         SDL_SetRenderDrawColor(renderer, 255, 255, 255, 255);
         int minLineY = minBtn.y + buttonSize / 2;
@@ -438,7 +440,7 @@ void WindowManager::render(SDL_Renderer* renderer) {
         const int menuWidth = 210;
         const int menuHeight = 260;
         const int menuX = logicalToScreenX(8);
-        const int menuY = logicalToScreenY(m_logicalHeight - kTaskbarHeight - menuHeight);
+        const int menuY = logicalToScreenY(getTaskbarRect().y - menuHeight);
 
         // Menu background (slightly more XP-like dark panel)
         SDL_SetRenderDrawColor(renderer, 38, 38, 48, 255);
@@ -546,17 +548,12 @@ void WindowManager::render(SDL_Renderer* renderer) {
     // === Taskbar (always visible) ===
     m_taskbarEntries.clear();
 
-    const int taskbarHeight = kTaskbarHeight;
-    const int taskbarY = m_logicalHeight - taskbarHeight;
+    const SDL_Rect taskbarLogicalRect = getTaskbarRect();
+    const SDL_Rect taskbarRect = logicalRectToScreen(taskbarLogicalRect);
+    const int taskbarY = taskbarLogicalRect.y;
 
     // Draw taskbar background
     SDL_SetRenderDrawColor(renderer, 35, 35, 42, 255);
-    SDL_Rect taskbarRect = {
-        logicalToScreenX(0),
-        logicalToScreenY(taskbarY),
-        static_cast<int>(m_logicalWidth * m_contentScale),
-        static_cast<int>(taskbarHeight * m_contentScale)
-    };
     SDL_RenderFillRect(renderer, &taskbarRect);
 
     // --- Left: Start button ---
@@ -828,6 +825,51 @@ void WindowManager::setContentScale(float scale) {
     m_contentScale = scale;
 }
 
+SDL_Rect WindowManager::getTaskbarRect() const {
+    return {0, m_logicalHeight - kTaskbarHeight, m_logicalWidth, kTaskbarHeight};
+}
+
+SDL_Rect WindowManager::getUsableDesktopRect() const {
+    SDL_Rect taskbar = getTaskbarRect();
+    return {0, 0, m_logicalWidth, std::max(0, taskbar.y)};
+}
+
+int WindowManager::getUsableDesktopBottom() const {
+    SDL_Rect usable = getUsableDesktopRect();
+    return usable.y + usable.h;
+}
+
+SDL_Rect WindowManager::logicalRectToScreen(const SDL_Rect& rect) const {
+    return {
+        logicalToScreenX(rect.x),
+        logicalToScreenY(rect.y),
+        static_cast<int>(rect.w * m_contentScale),
+        static_cast<int>(rect.h * m_contentScale)
+    };
+}
+
+WindowManager::TitleButtonRects WindowManager::getTitleButtonRects(const Window& window) const {
+    const int buttonSize = kWindowButtonSize;
+    const int buttonY = window.rect.y + (Window::TITLE_BAR_HEIGHT - buttonSize) / 2;
+    const int rightEdge = window.rect.x + window.rect.w - kWindowButtonRightPadding;
+
+    TitleButtonRects rects;
+    rects.close = {rightEdge - buttonSize, buttonY, buttonSize, buttonSize};
+    rects.maximize = {
+        rightEdge - buttonSize * 2 - kWindowButtonSpacing,
+        buttonY,
+        buttonSize,
+        buttonSize
+    };
+    rects.minimize = {
+        rightEdge - buttonSize * 3 - kWindowButtonSpacing * 2,
+        buttonY,
+        buttonSize,
+        buttonSize
+    };
+    return rects;
+}
+
 ResizeDirection WindowManager::getResizeDirectionAt(int mouseX, int mouseY) const {
     // Check from front to back
     for (auto it = m_windows.rbegin(); it != m_windows.rend(); ++it) {
@@ -845,23 +887,15 @@ ResizeDirection WindowManager::getResizeDirectionAt(int mouseX, int mouseY) cons
 bool WindowManager::handleTitleBarButtons(Window* window, int mouseX, int mouseY) {
     if (!window) return false;
 
-    const int buttonSize = 16;
-    const int buttonSpacing = 6;
-    const int rightEdge = window->rect.x + window->rect.w - 10;
-    const int buttonY = window->rect.y + (Window::TITLE_BAR_HEIGHT - buttonSize) / 2;
-
-    SDL_Rect closeBtn   = {rightEdge - buttonSize,                           buttonY, buttonSize, buttonSize};
-    SDL_Rect maxBtn     = {rightEdge - buttonSize * 2 - buttonSpacing,       buttonY, buttonSize, buttonSize};
-    SDL_Rect minBtn     = {rightEdge - buttonSize * 3 - buttonSpacing * 2,   buttonY, buttonSize, buttonSize};
-
     SDL_Point mouse = {mouseX, mouseY};
+    const TitleButtonRects buttons = getTitleButtonRects(*window);
 
-    if (SDL_PointInRect(&mouse, &closeBtn)) {
+    if (SDL_PointInRect(&mouse, &buttons.close)) {
         closeWindow(window);
         return true;
     }
 
-    if (SDL_PointInRect(&mouse, &maxBtn)) {
+    if (SDL_PointInRect(&mouse, &buttons.maximize)) {
         if (window->maximized) {
             // Restore previous size/position
             window->rect = window->previousRect;
@@ -871,10 +905,7 @@ bool WindowManager::handleTitleBarButtons(Window* window, int mouseX, int mouseY
             // (the title bar sits at the top of the logical area, content fills the rest)
             window->previousRect = window->rect;
 
-            window->rect.x = 0;
-            window->rect.y = 0;
-            window->rect.w = m_logicalWidth;
-            window->rect.h = m_logicalHeight - kTaskbarHeight;   // reserve space for the always-visible taskbar
+            window->rect = getUsableDesktopRect();
 
             window->maximized = true;
         }
@@ -887,7 +918,7 @@ bool WindowManager::handleTitleBarButtons(Window* window, int mouseX, int mouseY
         return true;
     }
 
-    if (SDL_PointInRect(&mouse, &minBtn)) {
+    if (SDL_PointInRect(&mouse, &buttons.minimize)) {
         window->minimized = true;
         return true;
     }
@@ -1030,7 +1061,7 @@ void WindowManager::applyResize(Window* window, int mouseX, int mouseY) {
     r.h = newH;
 
     // Additional safety to keep title bar + buttons accessible above the taskbar
-    const int desktopBottom = m_logicalHeight - kTaskbarHeight;
+    const int desktopBottom = getUsableDesktopBottom();
     if (r.y < 0) r.y = 0;
     if (r.y + Window::TITLE_BAR_HEIGHT > desktopBottom) {
         r.y = desktopBottom - Window::TITLE_BAR_HEIGHT;
@@ -1113,12 +1144,13 @@ void WindowManager::clampSingleWindow(Window& w) {
     if (w.minimized) return;
 
     const int titleH = Window::TITLE_BAR_HEIGHT;
-    const int minButtonSpace = 80;
+    const int minButtonSpace = kMinimumVisibleButtonSpace;
 
     SDL_Rect& r = w.rect;
 
-    const int desktopBottom = m_logicalHeight - kTaskbarHeight;
-    const int usableHeight = std::max(titleH, desktopBottom);
+    const SDL_Rect usable = getUsableDesktopRect();
+    const int desktopBottom = usable.y + usable.h;
+    const int usableHeight = std::max(titleH, usable.h);
 
     // Vertical - title bar fully visible above the taskbar
     if (r.y < 0) r.y = 0;

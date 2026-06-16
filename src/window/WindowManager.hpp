@@ -203,11 +203,23 @@ private:
     };
     std::vector<StartMenuItem> m_startMenuItems;
 
+    struct TitleButtonRects {
+        SDL_Rect close;
+        SDL_Rect maximize;
+        SDL_Rect minimize;
+    };
+
     // Bring a window to the front of the z-order
     void bringToFront(Window* window);
 
     // Helper to check if a point is inside a window's title bar
     bool isInTitleBar(const Window& window, int x, int y) const;
+
+    SDL_Rect getTaskbarRect() const;
+    SDL_Rect getUsableDesktopRect() const;
+    int getUsableDesktopBottom() const;
+    SDL_Rect logicalRectToScreen(const SDL_Rect& rect) const;
+    TitleButtonRects getTitleButtonRects(const Window& window) const;
 
     // Claims the lowest available positive instance number for the given app base
     // ("Terminal", "Filesystem", "Settings", "Editor" for bare editors, etc.).
