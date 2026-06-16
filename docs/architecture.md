@@ -64,6 +64,8 @@ The Window Manager is the most foundational subsystem.
 **Design Notes:**
 The Window Manager should be relatively self-contained. Individual apps should not need to know how window frames are drawn or how input is routed.
 
+Window geometry that affects the desktop shell is centralized in the Window Manager. Taskbar bounds, usable desktop bounds, logical-to-screen rectangle conversion, and title-bar button rectangles are shared by rendering, hit testing, maximize, resize, drag clamping, and new-window placement. This keeps drawn controls aligned with click targets and keeps window title bars accessible above the taskbar.
+
 ### Instance Management for Multiple Windows of the Same Type
 
 The WM provides first-class support for opening many instances of the same native app (Terminal, Filesystem, Settings, bare Text Editor, future apps) without title collisions or confusing numbering.
