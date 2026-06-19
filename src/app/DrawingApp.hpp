@@ -67,7 +67,7 @@ private:
     TTF_Font* m_font = nullptr;
     monolith::fs::Filesystem* m_fs = nullptr;
 
-    std::vector<uint8_t> m_pixels; // RGBA8888
+    std::vector<uint8_t> m_pixels; // R,G,B,A byte order per pixel
     int m_canvasWidth = 0;
     int m_canvasHeight = 0;
     SDL_Texture* m_canvasTexture = nullptr;
