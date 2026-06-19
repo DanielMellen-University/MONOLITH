@@ -48,7 +48,7 @@ This file provides guidance for AI agents (and human contributors) working on th
 - Push or create worktree/PR as appropriate for the branch (currently beta in this worktree).
 
 ## Testing Expectations (Manual)
-- Exercise multiple instances + close + reopen for every tracked type (Terminal, Filesystem, Settings, bare Editor).
+- Exercise multiple instances + close + reopen for every tracked type (Terminal, Filesystem, Drawing, Settings, bare Editor).
 - Verify that closing a lower number causes higher ones to adjust their titles live.
 - Check taskbar, title bars, Start menu, and focus behavior after renumbering.
 - Mixed types should not interfere with each other's numbering.

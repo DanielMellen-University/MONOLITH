@@ -21,6 +21,7 @@ add_executable(monolith
     src/app/TextEditorApp.cpp
     src/app/FilesystemApp.cpp
     src/app/SettingsApp.cpp
+    src/app/DrawingApp.cpp
 
     # Filesystem
     src/fs/Filesystem.cpp

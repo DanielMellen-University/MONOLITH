@@ -4,6 +4,7 @@
 #include "../app/TextEditorApp.hpp"
 #include "../app/FilesystemApp.hpp"
 #include "../app/SettingsApp.hpp"
+#include "../app/DrawingApp.hpp"
 #include <algorithm>
 
 namespace monolith::window {
@@ -116,7 +117,8 @@ void WindowManager::handleEvent(const SDL_Event& event) {
                         case 1: launchTextEditor(); break;
                         case 2: launchFilesystem(); break;
                         case 3: launchSettings(); break;
-                        case 4: requestQuit(); break;
+                        case 4: launchDrawing(); break;
+                        case 5: requestQuit(); break;
                         default: break;
                     }
                     m_showStartMenu = false;
@@ -285,6 +287,14 @@ void WindowManager::handleEvent(const SDL_Event& event) {
         if (m_resizingWindow) {
             m_resizingWindow = nullptr;
             m_resizeDirection = ResizeDirection::None;
+        }
+
+        // Forward mouse-up to the focused app (needed for drawing and other drag-release flows).
+        // Always deliver to the focused window so releases outside the client rect still end drags.
+        if (m_focusedWindow && m_focusedWindow->app && !m_focusedWindow->minimized && !m_showStartMenu) {
+            SDL_Event clientEvent = event;
+            translateMouseEventToClient(*m_focusedWindow, clientEvent);
+            m_focusedWindow->app->handleEvent(clientEvent);
         }
     }
 }
@@ -493,7 +503,8 @@ void WindowManager::render(SDL_Renderer* renderer) {
                 {"Text Editor", 1},
                 {"Filesystem", 2},
                 {"Settings", 3},
-                {"Shut Down", 4}
+                {"Drawing", 4},
+                {"Shut Down", 5}
             };
 
             // Start items below the accent header
@@ -1357,6 +1368,18 @@ void WindowManager::launchFilesystem() {
     int y = 130 + (static_cast<int>(m_windows.size()) % 3) * 18;
     createWindow(title, x, y, 480, 360, std::move(app), "Filesystem", inst);
     // Note: caller (e.g. Start menu) is responsible for m_showStartMenu = false.
+}
+
+void WindowManager::launchDrawing() {
+    if (!m_appFont) return;
+
+    auto app = std::make_unique<monolith::app::DrawingApp>(m_appFont, m_fs);
+
+    auto [title, inst] = claimNextAppInstanceTitle("Drawing");
+
+    int x = 220 + (static_cast<int>(m_windows.size()) % 6) * 28;
+    int y = 100 + (static_cast<int>(m_windows.size()) % 4) * 22;
+    createWindow(title, x, y, 560, 440, std::move(app), "Drawing", inst);
 }
 
 void WindowManager::launchSettings() {
