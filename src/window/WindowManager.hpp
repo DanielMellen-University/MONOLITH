@@ -107,6 +107,7 @@ public:
     void launchTerminal();
     void launchTextEditor(const std::string& initialPath = "");
     void launchFilesystem();
+    void launchDrawing();
     void launchSettings();
 
     // Request that the desktop shell / main loop exit (used by Shut Down)
@@ -199,7 +200,7 @@ private:
 
     struct StartMenuItem {
         SDL_Rect rect;  // in screen coordinates
-        int action;     // 0=Terminal, 1=Text Editor, 2=Filesystem, ...
+        int action;     // 0=Terminal, 1=Text Editor, 2=Filesystem, 3=Settings, 4=Drawing, 5=Shut Down
     };
     std::vector<StartMenuItem> m_startMenuItems;
 

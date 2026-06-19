@@ -109,6 +109,7 @@ int main(int /*argc*/, char* /*argv*/[])
         std::cout << "Filesystem initialized at: " << monolithFs.hostRoot() << std::endl;
         monolithFs.createDirectory("/home/monolith");
         monolithFs.createDirectory("/home/monolith/documents");
+        monolithFs.createDirectory("/home/monolith/drawings");
         if (!monolithFs.exists("/home/monolith/welcome.txt")) {
             monolithFs.writeFile("/home/monolith/welcome.txt", "Welcome to Monolith's filesystem!\n");
         }
