@@ -114,9 +114,15 @@ void DrawingApp::syncTexture(SDL_Renderer* renderer) {
             m_canvasTexture = nullptr;
         }
 
+        // ABGR8888 stores bytes as R,G,B,A in memory on little-endian (RGBA8888 swaps R/B).
+#if SDL_BYTEORDER == SDL_BIG_ENDIAN
+        constexpr Uint32 kCanvasPixelFormat = SDL_PIXELFORMAT_RGBA8888;
+#else
+        constexpr Uint32 kCanvasPixelFormat = SDL_PIXELFORMAT_ABGR8888;
+#endif
         m_canvasTexture = SDL_CreateTexture(
             renderer,
-            SDL_PIXELFORMAT_RGBA8888,
+            kCanvasPixelFormat,
             SDL_TEXTUREACCESS_STREAMING,
             m_canvasWidth,
             m_canvasHeight

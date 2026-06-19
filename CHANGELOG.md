@@ -1,5 +1,14 @@
 # Changelog
 
+## 2026-06: Drawing Color Fix
+
+Toolbar swatches and painted strokes now use the same RGB values on Linux.
+
+- **Canvas texture pixel format**: use `SDL_PIXELFORMAT_ABGR8888` on little-endian hosts so the internal `R,G,B,A` pixel buffer matches what SDL expects (fixes red/blue swap vs. toolbar swatches).
+- Save/load `.modr` format unchanged — only the on-screen texture upload path was corrected.
+
+See `src/app/DrawingApp.cpp` (`syncTexture`).
+
 ## 2026-06: Drawing Program
 
 First native creative app — a simple pixel canvas for sketching inside Monolith.

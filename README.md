@@ -59,7 +59,7 @@ The resulting binary will be at `build/monolith`.
 
 ## Drawing Controls
 
-- Drag on the canvas to paint with the selected tool and color.
+- Drag on the canvas to paint with the selected tool and color (swatch colors match what you draw).
 - Toolbar: **Pen**, **Eraser**, **Clear**, brush sizes **S / M / L**, and eight color swatches.
 - **Ctrl+S** — save (prompts for a path on first save; defaults under `/home/monolith/drawings/`).
 - **Ctrl+O** — open a `.modr` file by virtual path.
