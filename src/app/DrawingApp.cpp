@@ -4,6 +4,7 @@
 #include <cmath>
 #include <cstring>
 #include <sstream>
+#include <vector>
 
 namespace monolith::app {
 
@@ -38,6 +39,26 @@ uint32_t readU32LE(const std::string& data, size_t offset) {
          | (static_cast<uint32_t>(bytes[1]) << 8)
          | (static_cast<uint32_t>(bytes[2]) << 16)
          | (static_cast<uint32_t>(bytes[3]) << 24);
+}
+
+bool hasSuffix(const std::string& value, const std::string& suffix) {
+    return value.size() >= suffix.size()
+        && value.compare(value.size() - suffix.size(), suffix.size(), suffix) == 0;
+}
+
+std::string commonPrefix(const std::vector<std::string>& values) {
+    if (values.empty()) return "";
+
+    std::string common = values.front();
+    for (size_t i = 1; i < values.size(); ++i) {
+        size_t len = 0;
+        while (len < common.size() && len < values[i].size() && common[len] == values[i][len]) {
+            ++len;
+        }
+        common.resize(len);
+        if (common.empty()) break;
+    }
+    return common;
 }
 } // namespace
 
@@ -377,6 +398,11 @@ bool DrawingApp::loadFromPath(const std::string& virtualPath) {
     }
 
     const std::string path = m_fs->normalize(virtualPath);
+    if (!path.ends_with(".modr")) {
+        setStatus("Open failed: Drawing files must use .modr.");
+        return false;
+    }
+
     const std::string blob = m_fs->readFile(path);
     if (blob.size() < 12) {
         setStatus("Open failed: file is too small or missing.");
@@ -435,10 +461,10 @@ void DrawingApp::beginPathPrompt(PathPromptMode mode) {
     m_pathPromptMode = mode;
     if (mode == PathPromptMode::Save) {
         m_pathPromptBuffer = m_filePath.empty() ? defaultSavePath() : m_filePath;
-        setStatus("Save as (Enter confirm, Esc cancel):");
+        setStatus("Save as (Tab complete, Enter confirm, Esc cancel):");
     } else if (mode == PathPromptMode::Open) {
-        m_pathPromptBuffer = m_filePath.empty() ? "/home/monolith/drawings/" : m_filePath;
-        setStatus("Open path (Enter confirm, Esc cancel):");
+        m_pathPromptBuffer = "/home/monolith/drawings/";
+        setStatus("Open path (Tab complete, Enter confirm, Esc cancel):");
     }
 }
 
@@ -465,6 +491,66 @@ void DrawingApp::finishPathPrompt(bool commit) {
     }
 }
 
+void DrawingApp::completePathPrompt() {
+    if (!m_fs || m_pathPromptBuffer.empty()) return;
+
+    const size_t slash = m_pathPromptBuffer.find_last_of('/');
+    const std::string dirPart = (slash == std::string::npos) ? "" : m_pathPromptBuffer.substr(0, slash);
+    const std::string namePrefix = (slash == std::string::npos) ? m_pathPromptBuffer : m_pathPromptBuffer.substr(slash + 1);
+    const std::string searchDir = m_fs->normalize(dirPart.empty() ? "/" : dirPart);
+    const std::string completionBase = (slash == std::string::npos)
+        ? ""
+        : ((slash == 0) ? "/" : dirPart + "/");
+
+    std::vector<std::string> matches;
+    for (const auto& entry : m_fs->listEntries(searchDir)) {
+        if (entry.name.size() < namePrefix.size()) continue;
+        if (entry.name.compare(0, namePrefix.size(), namePrefix) != 0) continue;
+
+        std::string completion = completionBase + entry.name;
+        const std::string candidatePath = m_fs->normalize(
+            searchDir == "/" ? "/" + entry.name : searchDir + "/" + entry.name
+        );
+
+        if (m_pathPromptMode == PathPromptMode::Open && !entry.isDirectory && !hasSuffix(candidatePath, ".modr")) {
+            continue;
+        }
+
+        if (entry.isDirectory && !completion.empty() && completion.back() != '/') {
+            completion += "/";
+        }
+        matches.push_back(std::move(completion));
+    }
+
+    if (matches.empty()) {
+        setStatus("No path matches.");
+        return;
+    }
+
+    if (matches.size() == 1) {
+        m_pathPromptBuffer = matches.front();
+        setStatus("Path completed. Enter confirm, Esc cancel:");
+        return;
+    }
+
+    const std::string common = commonPrefix(matches);
+    if (common.size() > m_pathPromptBuffer.size()) {
+        m_pathPromptBuffer = common;
+        setStatus("Path completed to common prefix.");
+    } else {
+        std::ostringstream oss;
+        oss << matches.size() << " matches";
+        const size_t previewCount = std::min<size_t>(matches.size(), 3);
+        for (size_t i = 0; i < previewCount; ++i) {
+            oss << (i == 0 ? ": " : ", ") << matches[i].substr(completionBase.size());
+        }
+        if (matches.size() > previewCount) {
+            oss << ", ...";
+        }
+        setStatus(oss.str());
+    }
+}
+
 void DrawingApp::handlePathPromptKey(const SDL_Keysym& keysym) {
     switch (keysym.sym) {
         case SDLK_RETURN:
@@ -478,6 +564,9 @@ void DrawingApp::handlePathPromptKey(const SDL_Keysym& keysym) {
             if (!m_pathPromptBuffer.empty()) {
                 m_pathPromptBuffer.pop_back();
             }
+            break;
+        case SDLK_TAB:
+            completePathPrompt();
             break;
         default:
             break;

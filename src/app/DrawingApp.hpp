@@ -71,6 +71,7 @@ private:
     void setStatus(const std::string& message);
     void beginPathPrompt(PathPromptMode mode);
     void finishPathPrompt(bool commit);
+    void completePathPrompt();
     void handlePathPromptKey(const SDL_Keysym& keysym);
     void handlePathPromptText(const char* text);
 
