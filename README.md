@@ -15,7 +15,7 @@ Monolith has a working desktop environment with overlapping windows:
   - **Terminal**: Real command-line app with scrollback, command history, cursor editing, reverse search (Ctrl+R), tab completion (commands + paths), persistent history, dynamic cwd prompt, and rich built-in commands (`ls`, `cd`, `cat`, `mkdir`, `rm [-r]`, `cp [-r]`, `mv` (with dir dst), `touch`, etc.). Path handling and FS ops are now more robust and consistent with the graphical browser.
   - **Text Editor**: Functional multi-line editor with cursor movement, editing, undo, find mode (Ctrl+F), and load/save via the internal filesystem (Ctrl+S).
   - **Filesystem Browser**: Graphical directory browser with list view, navigation, inline rename (F2), right-click context menus (different options for files, folders, and empty space), status bar, and toolbar actions. Double-click files to open them in the editor.
-  - **Drawing**: Pixel canvas with pen/eraser, brush sizes, color palette, and save/load of `.modr` sketches to the internal filesystem (launched from the Start menu).
+  - **Drawing**: Pixel canvas with pen/eraser, undo/redo, brush sizes, color palette, and save/load of `.modr` sketches to the internal filesystem (launched from the Start menu).
   - **Settings**: Informational panel showing version/environment details, filesystem paths, and usage notes (launched from the Start menu).
 - **Internal Filesystem**: Host-backed (persisted under `~/.monolith/fs/`), with a clean virtual path namespace. Used by Terminal, Editor, Filesystem Browser, and Drawing.
 - Fixed-size outer window (1280×720) containing the full self-contained environment.
@@ -61,9 +61,11 @@ The resulting binary will be at `build/monolith`.
 
 - Drag on the canvas to paint with the selected tool and color (swatch colors match what you draw).
 - Toolbar: **Pen**, **Eraser**, **Clear**, brush sizes **S / M / L**, and eight color swatches.
-- **Ctrl+S** — save (prompts for a path on first save; defaults under `/home/monolith/drawings/`).
-- **Ctrl+O** — open a `.modr` file by virtual path.
-- **Ctrl+N** — clear the canvas for a new sketch.
+- **Ctrl+S**: save (prompts for a path on first save; defaults under `/home/monolith/drawings/`).
+- **Ctrl+O**: open a `.modr` file by virtual path.
+- **Ctrl+N**: clear the canvas for a new sketch.
+- **Ctrl+Z**: undo the last stroke or clear.
+- **Ctrl+Y** or **Ctrl+Shift+Z**: redo.
 
 ## Developer Utilities
 

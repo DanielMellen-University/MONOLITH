@@ -13,6 +13,7 @@ constexpr int kToolbarButtonHeight = 22;
 constexpr int kToolbarGap = 6;
 constexpr int kSwatchSize = 18;
 constexpr int kSwatchGap = 4;
+constexpr size_t kMaxHistoryStates = 32;
 constexpr uint8_t kCanvasBackgroundR = 245;
 constexpr uint8_t kCanvasBackgroundG = 245;
 constexpr uint8_t kCanvasBackgroundB = 248;
@@ -43,7 +44,7 @@ uint32_t readU32LE(const std::string& data, size_t offset) {
 DrawingApp::DrawingApp(TTF_Font* font, monolith::fs::Filesystem* fs)
     : m_font(font), m_fs(fs)
 {
-    setStatus("Pen ready. Drag on the canvas to draw. Ctrl+S save, Ctrl+O open.");
+    setStatus("Pen ready. Drag to draw. Ctrl+S save, Ctrl+O open, Ctrl+Z undo.");
 }
 
 DrawingApp::~DrawingApp() {
@@ -88,7 +89,11 @@ void DrawingApp::resizeCanvas(int width, int height, bool preserveContent) {
     markTextureDirty();
 }
 
-void DrawingApp::clearCanvas() {
+void DrawingApp::clearCanvas(bool recordUndo) {
+    if (recordUndo) {
+        pushUndoSnapshot();
+    }
+
     for (size_t i = 0; i < m_pixels.size(); i += 4) {
         m_pixels[i + 0] = kCanvasBackgroundR;
         m_pixels[i + 1] = kCanvasBackgroundG;
@@ -102,6 +107,57 @@ void DrawingApp::clearCanvas() {
 
 void DrawingApp::markTextureDirty() {
     m_textureDirty = true;
+}
+
+void DrawingApp::pushUndoSnapshot() {
+    if (m_pixels.empty() || m_canvasWidth <= 0 || m_canvasHeight <= 0) return;
+
+    if (m_undoStack.size() >= kMaxHistoryStates) {
+        m_undoStack.erase(m_undoStack.begin());
+    }
+
+    m_undoStack.push_back({m_canvasWidth, m_canvasHeight, m_pixels});
+    m_redoStack.clear();
+}
+
+void DrawingApp::restoreCanvasSnapshot(const CanvasSnapshot& snapshot) {
+    if (snapshot.width <= 0 || snapshot.height <= 0 || snapshot.pixels.empty()) return;
+
+    m_canvasWidth = snapshot.width;
+    m_canvasHeight = snapshot.height;
+    m_pixels = snapshot.pixels;
+    m_dirty = true;
+    markTextureDirty();
+}
+
+void DrawingApp::undoCanvas() {
+    if (m_undoStack.empty()) {
+        setStatus("Nothing to undo.");
+        return;
+    }
+
+    m_redoStack.push_back({m_canvasWidth, m_canvasHeight, m_pixels});
+    CanvasSnapshot snapshot = std::move(m_undoStack.back());
+    m_undoStack.pop_back();
+    restoreCanvasSnapshot(snapshot);
+    setStatus("Undo.");
+}
+
+void DrawingApp::redoCanvas() {
+    if (m_redoStack.empty()) {
+        setStatus("Nothing to redo.");
+        return;
+    }
+
+    if (m_undoStack.size() >= kMaxHistoryStates) {
+        m_undoStack.erase(m_undoStack.begin());
+    }
+
+    m_undoStack.push_back({m_canvasWidth, m_canvasHeight, m_pixels});
+    CanvasSnapshot snapshot = std::move(m_redoStack.back());
+    m_redoStack.pop_back();
+    restoreCanvasSnapshot(snapshot);
+    setStatus("Redo.");
 }
 
 void DrawingApp::syncTexture(SDL_Renderer* renderer) {
@@ -357,6 +413,8 @@ bool DrawingApp::loadFromPath(const std::string& virtualPath) {
 
     m_filePath = path;
     m_dirty = false;
+    m_undoStack.clear();
+    m_redoStack.clear();
     markTextureDirty();
 
     size_t nameStart = path.find_last_of('/');
@@ -608,7 +666,12 @@ void DrawingApp::onResize(int clientWidth, int clientHeight) {
 
     const int canvasW = std::max(1, clientWidth);
     const int canvasH = std::max(1, clientHeight - m_canvasTop - m_statusBarHeight);
+    const bool canvasSizeChanged = canvasW != m_canvasWidth || canvasH != m_canvasHeight;
     resizeCanvas(canvasW, canvasH, true);
+    if (canvasSizeChanged) {
+        m_undoStack.clear();
+        m_redoStack.clear();
+    }
 }
 
 void DrawingApp::render(SDL_Renderer* renderer, const SDL_Rect& contentRect) {
@@ -665,6 +728,18 @@ void DrawingApp::handleEvent(const SDL_Event& event) {
             beginPathPrompt(PathPromptMode::Open);
             return;
         }
+        if ((key.mod & KMOD_CTRL) && key.sym == SDLK_z) {
+            if (key.mod & KMOD_SHIFT) {
+                redoCanvas();
+            } else {
+                undoCanvas();
+            }
+            return;
+        }
+        if ((key.mod & KMOD_CTRL) && key.sym == SDLK_y) {
+            redoCanvas();
+            return;
+        }
         if ((key.mod & KMOD_CTRL) && key.sym == SDLK_n) {
             clearCanvas();
             m_filePath.clear();
@@ -691,6 +766,7 @@ void DrawingApp::handleEvent(const SDL_Event& event) {
             m_drawing = true;
             m_lastCanvasX = cx;
             m_lastCanvasY = cy;
+            pushUndoSnapshot();
             stampBrush(cx, cy);
             m_dirty = true;
             markTextureDirty();

@@ -34,11 +34,21 @@ private:
         uint8_t r, g, b;
     };
 
+    struct CanvasSnapshot {
+        int width = 0;
+        int height = 0;
+        std::vector<uint8_t> pixels;
+    };
+
     // === Canvas ===
     void resizeCanvas(int width, int height, bool preserveContent);
-    void clearCanvas();
+    void clearCanvas(bool recordUndo = true);
     void markTextureDirty();
     void syncTexture(SDL_Renderer* renderer);
+    void pushUndoSnapshot();
+    void restoreCanvasSnapshot(const CanvasSnapshot& snapshot);
+    void undoCanvas();
+    void redoCanvas();
     void setPixel(int x, int y, uint8_t r, uint8_t g, uint8_t b);
     void stampBrush(int x, int y);
     void drawStroke(int x0, int y0, int x1, int y1);
@@ -68,6 +78,8 @@ private:
     monolith::fs::Filesystem* m_fs = nullptr;
 
     std::vector<uint8_t> m_pixels; // R,G,B,A byte order per pixel
+    std::vector<CanvasSnapshot> m_undoStack;
+    std::vector<CanvasSnapshot> m_redoStack;
     int m_canvasWidth = 0;
     int m_canvasHeight = 0;
     SDL_Texture* m_canvasTexture = nullptr;

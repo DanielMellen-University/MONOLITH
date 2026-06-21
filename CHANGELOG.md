@@ -1,5 +1,18 @@
 # Changelog
 
+## 2026-06: Drawing Undo and Redo
+
+Drawing is safer to use during sketching.
+
+- Added capped canvas history for drawing changes.
+- `Ctrl+Z` undoes strokes and canvas clears.
+- `Ctrl+Y` and `Ctrl+Shift+Z` redo undone changes.
+- Starting a new stroke or clearing the canvas resets redo history.
+- Opening a file or resizing the canvas clears history so old snapshots are not applied to the wrong canvas size.
+- Status text now hints the undo shortcut.
+
+Builds cleanly.
+
 ## 2026-06: Drawing Color Fix
 
 Toolbar swatches and painted strokes now use the same RGB values on Linux.
