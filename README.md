@@ -63,6 +63,7 @@ The resulting binary will be at `build/monolith`.
 - Toolbar: **Pen**, **Eraser**, **Clear**, brush sizes **S / M / L**, and eight color swatches.
 - **Ctrl+S**: save (prompts for a path on first save; defaults under `/home/monolith/drawings/`).
 - **Ctrl+O**: open a `.modr` file by virtual path.
+- **Tab**: complete paths while the save/open prompt is active.
 - **Ctrl+N**: clear the canvas for a new sketch.
 - **Ctrl+Z**: undo the last stroke or clear.
 - **Ctrl+Y** or **Ctrl+Shift+Z**: redo.

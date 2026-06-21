@@ -1,5 +1,18 @@
 # Changelog
 
+## 2026-06: Drawing Path Completion
+
+Drawing save/open prompts are easier to use.
+
+- `Tab` completes paths while entering a Drawing save or open path.
+- Open prompts complete directories and `.modr` files only.
+- Open prompts now start in `/home/monolith/drawings/` instead of the current file path, so Tab helps pick another sketch.
+- Save prompts complete existing directories and names so saving beside prior sketches is less tedious.
+- Multiple matches complete to a shared prefix when possible and show a compact match preview in the status bar.
+- Drawing open now requires the `.modr` extension, keeping the drawing format distinct from future module-style files.
+
+Builds cleanly.
+
 ## 2026-06: Drawing Undo and Redo
 
 Drawing is safer to use during sketching.
