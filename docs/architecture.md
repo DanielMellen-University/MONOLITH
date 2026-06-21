@@ -139,6 +139,7 @@ The Drawing app is the first native creative tool in Monolith.
 - Internal pixel buffer is `R,G,B,A` per pixel; on little-endian hosts the texture uses `SDL_PIXELFORMAT_ABGR8888` so uploaded bytes match toolbar swatch colors (avoids the red/blue swap that `SDL_PIXELFORMAT_RGBA8888` causes on Linux).
 - Toolbar with pen, eraser, clear, brush size (S/M/L), and eight preset colors.
 - Drag-to-draw input with Bresenham stroke interpolation and circular brush stamps.
+- Capped undo/redo history stores full canvas snapshots before strokes and clears. History is reset on file open or canvas resize so snapshots stay matched to the active canvas dimensions.
 - Save/load of `.modr` files through the shared `Filesystem` API (simple `MODR` magic + width/height + RGB payload).
 - Standard multi-instance window titling (`Drawing`, `Drawing 2`, …) via `claimNextAppInstanceTitle`.
 - File-backed windows use descriptive titles (`Drawing - sketch.modr`) after save/open.
