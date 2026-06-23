@@ -584,6 +584,35 @@ void DrawingApp::handlePathPromptText(const char* text) {
 }
 
 void DrawingApp::handleToolbarClick(int x, int y) {
+    if (pointInRect(x, y, m_btnNew)) {
+        clearCanvas();
+        m_filePath.clear();
+        if (auto* ctrl = getController()) {
+            ctrl->setTitle("Drawing");
+        }
+        setStatus("New sketch.");
+        return;
+    }
+    if (pointInRect(x, y, m_btnSave)) {
+        if (m_filePath.empty()) {
+            beginPathPrompt(PathPromptMode::Save);
+        } else {
+            saveToPath(m_filePath);
+        }
+        return;
+    }
+    if (pointInRect(x, y, m_btnOpen)) {
+        beginPathPrompt(PathPromptMode::Open);
+        return;
+    }
+    if (pointInRect(x, y, m_btnUndo)) {
+        undoCanvas();
+        return;
+    }
+    if (pointInRect(x, y, m_btnRedo)) {
+        redoCanvas();
+        return;
+    }
     if (pointInRect(x, y, m_btnPen)) {
         m_tool = Tool::Pen;
         setStatus("Tool: Pen");
@@ -634,10 +663,7 @@ void DrawingApp::drawToolbar(SDL_Renderer* renderer, const SDL_Rect& contentRect
     SDL_SetRenderDrawColor(renderer, 32, 34, 40, 255);
     SDL_RenderFillRect(renderer, &toolbar);
 
-    int relX = kToolbarPadding;
-    const int relY = kToolbarPadding;
-
-    auto drawButton = [&](SDL_Rect& outRect, const char* label, int width, bool active) {
+    auto drawButton = [&](SDL_Rect& outRect, const char* label, int width, bool active, int& relX, int relY) {
         outRect = {relX, relY, width, kToolbarButtonHeight};
         SDL_Rect drawRect = {
             contentRect.x + relX,
@@ -677,21 +703,30 @@ void DrawingApp::drawToolbar(SDL_Renderer* renderer, const SDL_Rect& contentRect
         relX += width + kToolbarGap;
     };
 
-    drawButton(m_btnPen, "Pen", 44, m_tool == Tool::Pen);
-    drawButton(m_btnEraser, "Eraser", 54, m_tool == Tool::Eraser);
-    drawButton(m_btnClear, "Clear", 48, false);
-
+    int relX = kToolbarPadding;
+    drawButton(m_btnNew, "New", 38, false, relX, kToolbarPadding);
+    drawButton(m_btnSave, "Save", 42, false, relX, kToolbarPadding);
+    drawButton(m_btnOpen, "Open", 44, false, relX, kToolbarPadding);
     relX += 4;
-    drawButton(m_btnBrushSmall, "S", 24, m_brush == BrushSize::Small);
-    drawButton(m_btnBrushMedium, "M", 24, m_brush == BrushSize::Medium);
-    drawButton(m_btnBrushLarge, "L", 24, m_brush == BrushSize::Large);
+    drawButton(m_btnUndo, "Undo", 44, false, relX, kToolbarPadding);
+    drawButton(m_btnRedo, "Redo", 42, false, relX, kToolbarPadding);
+
+    relX = kToolbarPadding;
+    const int toolRowY = kToolbarPadding + kToolbarButtonHeight + 6;
+    drawButton(m_btnPen, "Pen", 44, m_tool == Tool::Pen, relX, toolRowY);
+    drawButton(m_btnEraser, "Eraser", 54, m_tool == Tool::Eraser, relX, toolRowY);
+    drawButton(m_btnClear, "Clear", 48, false, relX, toolRowY);
+    relX += 4;
+    drawButton(m_btnBrushSmall, "S", 24, m_brush == BrushSize::Small, relX, toolRowY);
+    drawButton(m_btnBrushMedium, "M", 24, m_brush == BrushSize::Medium, relX, toolRowY);
+    drawButton(m_btnBrushLarge, "L", 24, m_brush == BrushSize::Large, relX, toolRowY);
 
     relX += 6;
     for (int i = 0; i < kColorCount; ++i) {
-        m_colorSwatches[i] = {relX, relY + 2, kSwatchSize, kSwatchSize};
+        m_colorSwatches[i] = {relX, toolRowY + 2, kSwatchSize, kSwatchSize};
         SDL_Rect swatch = {
             contentRect.x + relX,
-            contentRect.y + relY + 2,
+            contentRect.y + toolRowY + 2,
             kSwatchSize,
             kSwatchSize
         };
