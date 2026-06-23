@@ -82,6 +82,7 @@ g++ -std=c++23 scripts/test_modr_format.cpp -o build/test_modr_format && ./build
 
 - [Vision & Philosophy](docs/vision.md) - Original long-term goals and design philosophy
 - [Architecture](docs/architecture.md) - High-level technical structure
+- [Drawing App](docs/drawing.md) - User controls, `.modr` files, save/open prompts, undo/redo, and current limits
 
 ## License
 
