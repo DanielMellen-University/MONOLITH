@@ -1,5 +1,12 @@
 # Changelog
 
+## 2026-06: Drawing Documentation
+
+Added dedicated user documentation for the Drawing app.
+
+- New `docs/drawing.md` page covering launch behavior, toolbar controls, mouse input, keyboard shortcuts, save/open prompts, path completion, undo/redo behavior, `.modr` format notes, current limitations, and developer verification scripts.
+- README documentation links now include the Drawing app guide.
+
 ## 2026-06: Drawing Toolbar Controls
 
 Drawing now exposes common file and history actions directly in the toolbar.
