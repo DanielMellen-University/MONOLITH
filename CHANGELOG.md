@@ -1,5 +1,16 @@
 # Changelog
 
+## 2026-06: Drawing Toolbar Controls
+
+Drawing now exposes common file and history actions directly in the toolbar.
+
+- Added toolbar buttons for New, Save, Open, Undo, and Redo.
+- The toolbar is now two compact rows so file/history controls and drawing tools remain visible.
+- Toolbar actions reuse the same behavior as the existing keyboard shortcuts.
+- The canvas starts lower to make room for the expanded toolbar.
+
+Builds cleanly.
+
 ## 2026-06: Drawing Path Completion
 
 Drawing save/open prompts are easier to use.

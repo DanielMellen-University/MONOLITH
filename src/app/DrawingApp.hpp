@@ -110,7 +110,7 @@ private:
 
     int m_clientWidth = 0;
     int m_clientHeight = 0;
-    int m_canvasTop = 40;
+    int m_canvasTop = 68;
     int m_statusBarHeight = 22;
 
     std::string m_statusMessage;
@@ -119,6 +119,11 @@ private:
     std::string m_pathPromptBuffer;
 
     // Toolbar hit areas (client-relative coordinates)
+    SDL_Rect m_btnNew{0, 0, 0, 0};
+    SDL_Rect m_btnSave{0, 0, 0, 0};
+    SDL_Rect m_btnOpen{0, 0, 0, 0};
+    SDL_Rect m_btnUndo{0, 0, 0, 0};
+    SDL_Rect m_btnRedo{0, 0, 0, 0};
     SDL_Rect m_btnPen{0, 0, 0, 0};
     SDL_Rect m_btnEraser{0, 0, 0, 0};
     SDL_Rect m_btnClear{0, 0, 0, 0};
