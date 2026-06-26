@@ -1,5 +1,16 @@
 # Changelog
 
+## 2026-06: Settings Desktop Background
+
+Settings now controls a real desktop preference.
+
+- Added an **Appearance** section with six desktop background color presets.
+- Clicking a swatch updates the live desktop immediately.
+- The choice persists to `~/.monolith/desktop_settings.txt` across restarts.
+- Window Manager owns the setting; Settings applies changes through `IWindowController`.
+
+Builds cleanly.
+
 ## 2026-06: Documentation Reorganization
 
 Restructured project documentation so each app has its own guide and the root README stays high-level.

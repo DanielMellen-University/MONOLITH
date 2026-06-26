@@ -206,6 +206,14 @@ void WindowManager::handleEvent(const SDL_Event& event) {
             // Upper bound will be soft-limited by drawing (buttons just stop appearing)
             return;
         }
+
+        // Forward wheel events to the focused app's client area (Settings scroll, etc.).
+        if (m_focusedWindow && m_focusedWindow->app && !m_focusedWindow->minimized && !m_showStartMenu) {
+            if (isInContentArea(*m_focusedWindow, m_mouseX, logicalMouseY)) {
+                m_focusedWindow->app->handleEvent(event);
+                return;
+            }
+        }
     }
 
     // === Normal internal window interaction ===
@@ -1392,7 +1400,7 @@ void WindowManager::launchSettings() {
     // Position it a bit more to the right/center-ish
     int x = 180 + (static_cast<int>(m_windows.size()) % 4) * 20;
     int y = 110 + (static_cast<int>(m_windows.size()) % 3) * 15;
-    createWindow(title, x, y, 460, 320, std::move(app), "Settings", inst);
+    createWindow(title, x, y, 480, 460, std::move(app), "Settings", inst);
     // Note: caller (e.g. Start menu) is responsible for m_showStartMenu = false.
 }
 
@@ -1403,6 +1411,22 @@ void WindowManager::requestQuit() {
 
 bool WindowManager::shouldQuit() const {
     return m_quitRequested;
+}
+
+void WindowManager::loadDesktopSettings(const std::string& hostPath) {
+    m_desktopSettingsHostPath = hostPath;
+    m_desktopSettings.loadFromHostPath(hostPath);
+}
+
+monolith::settings::RGB WindowManager::getDesktopBackground() const {
+    return m_desktopSettings.desktopBackground();
+}
+
+void WindowManager::setDesktopBackground(uint8_t r, uint8_t g, uint8_t b) {
+    m_desktopSettings.setDesktopBackground({r, g, b});
+    if (!m_desktopSettingsHostPath.empty()) {
+        m_desktopSettings.saveToHostPath(m_desktopSettingsHostPath);
+    }
 }
 
 void WindowManager::associateEditorWithFile(Window* window, const std::string& virtualPath) {
@@ -1444,6 +1468,25 @@ struct WindowController : public monolith::app::IWindowController {
     void openInTextEditor(const std::string& virtualPath) override {
         if (wm) {
             wm->launchTextEditor(virtualPath);
+        }
+    }
+
+    void getDesktopBackgroundColor(uint8_t& r, uint8_t& g, uint8_t& b) const override {
+        if (wm) {
+            auto color = wm->getDesktopBackground();
+            r = color.r;
+            g = color.g;
+            b = color.b;
+            return;
+        }
+        r = 25;
+        g = 25;
+        b = 30;
+    }
+
+    void setDesktopBackgroundColor(uint8_t r, uint8_t g, uint8_t b) override {
+        if (wm) {
+            wm->setDesktopBackground(r, g, b);
         }
     }
 };

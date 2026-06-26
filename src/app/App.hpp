@@ -1,6 +1,7 @@
 #pragma once
 
 #include <SDL2/SDL.h>
+#include <cstdint>
 #include <string>
 
 namespace monolith::window {
@@ -22,6 +23,19 @@ struct IWindowController {
     // Request that the desktop shell open the given virtual path in a text editor.
     // Safe to call even if not supported (default is no-op).
     virtual void openInTextEditor(const std::string& /*virtualPath*/) {}
+
+    // Desktop appearance (owned by the shell; defaults match the built-in background).
+    virtual void getDesktopBackgroundColor(uint8_t& r, uint8_t& g, uint8_t& b) const {
+        r = 25;
+        g = 25;
+        b = 30;
+    }
+
+    virtual void setDesktopBackgroundColor(uint8_t r, uint8_t g, uint8_t b) {
+        (void)r;
+        (void)g;
+        (void)b;
+    }
 
     // Future extensions:
     // virtual void minimize() = 0;

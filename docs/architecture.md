@@ -135,7 +135,7 @@ Native C++ apps render into window client areas and are launched via shell metho
 | Drawing | [apps/drawing.md](apps/drawing.md) | `DrawingApp` |
 | Settings | [apps/settings.md](apps/settings.md) | `SettingsApp` |
 
-**Shell coordination:** Apps request desktop actions through `IWindowController` (close, set title, open file in editor). The Filesystem Browser uses `openInTextEditor()` so it does not depend on the Text Editor directly.
+**Shell coordination:** Apps request desktop actions through `IWindowController` (close, set title, open file in editor, get/set desktop background color). The Filesystem Browser uses `openInTextEditor()` so it does not depend on the Text Editor directly. Settings uses `setDesktopBackgroundColor()` to change the live desktop color, persisted by the Window Manager to `~/.monolith/desktop_settings.txt`.
 
 **Input note:** The Window Manager forwards `SDL_MOUSEBUTTONUP` to the focused app's client area so drag interactions (e.g. Drawing strokes) end cleanly when the mouse is released outside the window.
 
@@ -166,7 +166,7 @@ The language is not expected to create or manage its own windows in the early ph
 ## Next Areas to Explore
 
 - Custom language interpreter and host bindings (Phase 2)
-- IDE, wallpaper/appearance customization, and configurable Settings
+- IDE, wallpaper images, and more Settings preferences beyond desktop background color
 - Shell coordination improvements (e.g. open `.modr` from Filesystem Browser)
 - Deeper app integration and additional native apps/games
 

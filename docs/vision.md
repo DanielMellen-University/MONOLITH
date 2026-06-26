@@ -43,7 +43,7 @@ Monolith is meant to contain several distinct apps and subsystems. Implemented a
 | Shipped | Filesystem Browser | [apps/filesystem-browser.md](apps/filesystem-browser.md) |
 | Shipped | Text Editor | [apps/text-editor.md](apps/text-editor.md) |
 | Shipped | Drawing | [apps/drawing.md](apps/drawing.md) |
-| Shipped (info only) | Settings | [apps/settings.md](apps/settings.md) |
+| Shipped | Settings | [apps/settings.md](apps/settings.md) |
 | Planned | IDE | — |
 | Planned | Wallpaper | — |
 | Planned | Games | — |

@@ -1,5 +1,6 @@
 #include <SDL2/SDL.h>
 #include <SDL2/SDL_ttf.h>
+#include <filesystem>
 #include <iostream>
 #include <vector>
 
@@ -123,6 +124,16 @@ int main(int /*argc*/, char* /*argv*/[])
     wm.setLogicalDesktopSize(LOGICAL_WIDTH, LOGICAL_HEIGHT);
     wm.setHeaderOffset(0);   // No artificial offset — content starts right at top of client area
 
+    {
+        std::string settingsHostPath = home ? std::string(home) + "/.monolith/desktop_settings.txt" : "./desktop_settings.txt";
+        std::error_code ec;
+        std::filesystem::create_directories(
+            std::filesystem::path(settingsHostPath).parent_path(),
+            ec
+        );
+        wm.loadDesktopSettings(settingsHostPath);
+    }
+
     // Launch initial demo windows through the desktop shell launchers.
     // This exercises the proper app creation paths (including Settings skeleton) and
     // gives consistent titling / positioning / inter-app coordination.
@@ -190,8 +201,11 @@ int main(int /*argc*/, char* /*argv*/[])
 
         wm.update();
 
-        // Clear background (desktop color)
-        SDL_SetRenderDrawColor(renderer, 25, 25, 30, 255);
+        // Clear background (desktop color from shell settings)
+        {
+            auto bg = wm.getDesktopBackground();
+            SDL_SetRenderDrawColor(renderer, bg.r, bg.g, bg.b, 255);
+        }
         SDL_RenderClear(renderer);
 
         // Render all windows (title bars + content areas)
