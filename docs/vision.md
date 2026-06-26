@@ -2,7 +2,7 @@
 
 > This document contains the original vision and philosophy for Monolith.
 > It is kept for reference. For practical information about building and running the project,
-> see the main [README.md](../README.md) and [docs/architecture.md](architecture.md).
+> see the main [README.md](../README.md), the [documentation hub](README.md), and [architecture.md](architecture.md).
 
 ---
 
@@ -35,16 +35,18 @@ You don't use Monolith like a regular program. You enter it.
 
 ## Built-in Apps
 
-Monolith is meant to contain several distinct apps and subsystems:
+Monolith is meant to contain several distinct apps and subsystems. Implemented apps have user guides under `docs/apps/`:
 
-- **Terminal** - The main command-line interface to the system
-- **Filesystem** - Browse, organize, and manage Monolith's internal files and directories
-- **Text Editor** - For writing and editing text and code
-- **IDE** - A simple environment for writing, running, and working with programs in Monolith's language
-- **Drawing Program** - Create graphics and images that live inside the system
-- **Wallpaper App** - Customize the background and visual environment
-- **Settings Panel** - Configure how Monolith behaves
-- **Games** - Small games that run inside Monolith
+| Status | App | Guide |
+|--------|-----|-------|
+| Shipped | Terminal | [apps/terminal.md](apps/terminal.md) |
+| Shipped | Filesystem Browser | [apps/filesystem-browser.md](apps/filesystem-browser.md) |
+| Shipped | Text Editor | [apps/text-editor.md](apps/text-editor.md) |
+| Shipped | Drawing | [apps/drawing.md](apps/drawing.md) |
+| Shipped (info only) | Settings | [apps/settings.md](apps/settings.md) |
+| Planned | IDE | — |
+| Planned | Wallpaper | — |
+| Planned | Games | — |
 
 New apps can be added over time, either as native features or written in the custom language.
 

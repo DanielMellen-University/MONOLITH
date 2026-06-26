@@ -119,35 +119,25 @@ Apps can request shell actions on behalf of the user through `IWindowController`
 
 ### 5. Filesystem
 
-The filesystem is **basic** by design.
+The filesystem is **basic** by design: hierarchical virtual paths, simple CRUD operations, and host-backed persistence under `~/.monolith/fs/`. Terminal, Text Editor, Filesystem Browser, and Drawing all share the same `Filesystem` API.
 
-**Current understanding:**
-- Hierarchical directory structure
-- Simple file operations (create, read, write, delete, list + typed listing)
-- Persisted on the host filesystem (under `~/.monolith/fs/`)
-- Used by Terminal, Text Editor, and the graphical Filesystem Browser
-- A graphical browser app is built on top of this layer
+See [filesystem.md](filesystem.md) for virtual path rules, host mapping, and app usage. Advanced features (permissions, metadata, versioning, etc.) are explicitly out of scope for the foreseeable future.
 
-Advanced features (permissions, metadata, versioning, etc.) are explicitly out of scope for the foreseeable future.
+### 6. Built-in Applications
 
-### 6. Drawing Program
+Native C++ apps render into window client areas and are launched via shell methods on the Window Manager. Each app has dedicated user documentation:
 
-The Drawing app is the first native creative tool in Monolith.
+| App | Doc | Implementation |
+|-----|-----|----------------|
+| Terminal | [apps/terminal.md](apps/terminal.md) | `TerminalApp` |
+| Text Editor | [apps/text-editor.md](apps/text-editor.md) | `TextEditorApp` |
+| Filesystem Browser | [apps/filesystem-browser.md](apps/filesystem-browser.md) | `FilesystemApp` |
+| Drawing | [apps/drawing.md](apps/drawing.md) | `DrawingApp` |
+| Settings | [apps/settings.md](apps/settings.md) | `SettingsApp` |
 
-**Current capabilities:**
-- Pixel canvas rendered via an SDL streaming texture inside the window client area.
-- Internal pixel buffer is `R,G,B,A` per pixel; on little-endian hosts the texture uses `SDL_PIXELFORMAT_ABGR8888` so uploaded bytes match toolbar swatch colors (avoids the red/blue swap that `SDL_PIXELFORMAT_RGBA8888` causes on Linux).
-- Two-row toolbar with file/history controls (New, Save, Open, Undo, Redo), pen, eraser, clear, brush size (S/M/L), and eight preset colors.
-- Drag-to-draw input with Bresenham stroke interpolation and circular brush stamps.
-- Capped undo/redo history stores full canvas snapshots before strokes and clears. History is reset on file open or canvas resize so snapshots stay matched to the active canvas dimensions.
-- Save/load of `.modr` files through the shared `Filesystem` API (simple `MODR` magic + width/height + RGB payload).
-- Save/open path prompts support Tab completion through the shared `Filesystem::listEntries` API. Open filters file matches to `.modr` while still allowing directory traversal.
-- Standard multi-instance window titling (`Drawing`, `Drawing 2`, …) via `claimNextAppInstanceTitle`.
-- File-backed windows use descriptive titles (`Drawing - sketch.modr`) after save/open.
+**Shell coordination:** Apps request desktop actions through `IWindowController` (close, set title, open file in editor). The Filesystem Browser uses `openInTextEditor()` so it does not depend on the Text Editor directly.
 
-**Input note:** The Window Manager forwards `SDL_MOUSEBUTTONUP` to the focused app's client area so drawing (and similar drag interactions) can end cleanly when the mouse is released.
-
-See `src/app/DrawingApp.{hpp,cpp}` and `WindowManager::launchDrawing()`.
+**Input note:** The Window Manager forwards `SDL_MOUSEBUTTONUP` to the focused app's client area so drag interactions (e.g. Drawing strokes) end cleanly when the mouse is released outside the window.
 
 ### 7. Language Runtime
 
@@ -177,9 +167,10 @@ The language is not expected to create or manage its own windows in the early ph
 
 - Custom language interpreter and host bindings (Phase 2)
 - IDE, wallpaper/appearance customization, and configurable Settings
-- Open `.modr` files from the Filesystem Browser (shell coordination)
-- Fill tool, custom colors, and clipboard integration for Drawing
+- Shell coordination improvements (e.g. open `.modr` from Filesystem Browser)
 - Deeper app integration and additional native apps/games
+
+Per-app limitations and planned work are tracked in each [app guide](README.md#built-in-apps).
 
 ---
 
