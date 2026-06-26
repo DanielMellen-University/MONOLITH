@@ -25,6 +25,9 @@ add_executable(monolith
 
     # Filesystem
     src/fs/Filesystem.cpp
+
+    # Desktop settings
+    src/settings/DesktopSettings.cpp
 )
 
 target_include_directories(monolith PRIVATE ${SDL2_TTF_INCLUDE_DIRS})

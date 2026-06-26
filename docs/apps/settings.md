@@ -1,6 +1,6 @@
 # Settings App
 
-The Settings app is an informational panel showing version, environment, and filesystem details. It is the implementation behind the Start menu **Settings** entry.
+The Settings app shows environment information and exposes a small set of live desktop preferences. It is the implementation behind the Start menu **Settings** entry.
 
 ## Launching
 
@@ -10,9 +10,19 @@ Open **Settings** from the Start menu. Multiple instances are supported:
 - `Settings 2`
 - `Settings 3`
 
-## What It Shows
+## Appearance
 
-The panel is read-only and displays:
+The **APPEARANCE** section at the top lets you change the desktop background color.
+
+- Six preset swatches: Default, Deep Blue, Slate, Forest, Wine, and Teal.
+- Select a preset to apply it immediately behind all windows.
+- Scroll with the mouse wheel or Page Up/Down if the window is resized smaller.
+- The active swatch is highlighted with a white border.
+- Your choice is saved to `~/.monolith/desktop_settings.txt` and restored on the next launch.
+
+## Information Panel
+
+Below the appearance controls, Settings shows read-only details:
 
 **About**
 - Monolith name and version
@@ -27,17 +37,12 @@ The panel is read-only and displays:
 - Development status reminder
 - Hint to use the Start menu or taskbar to launch apps
 
-A footer note reads: *"Changes take effect immediately where applicable."* This is placeholder text for future configurable settings.
-
-## Interaction
-
-There are no interactive controls yet. The panel does not accept keyboard or mouse input beyond normal window focus.
-
 ## Current Limitations
 
-- No actual settings to change (appearance, keybindings, paths, etc.).
-- No Shut Down configuration — Shut Down is a separate Start menu item.
-- Information is hard-coded in `SettingsApp::buildInfoLines()`.
+- Only desktop background color is configurable so far (no custom RGB picker).
+- No wallpaper image support yet.
+- Other preferences (keybindings, default paths, taskbar style) are not exposed yet.
+- Shut Down remains a separate Start menu item.
 
 ## Developer Notes
 
@@ -45,6 +50,9 @@ Main implementation files:
 
 - `src/app/SettingsApp.hpp`
 - `src/app/SettingsApp.cpp`
-- `src/window/WindowManager.cpp` — `launchSettings()`
+- `src/settings/DesktopSettings.hpp` / `.cpp` — load/save host settings file
+- `src/window/WindowManager.cpp` — owns live settings, `loadDesktopSettings()`, `setDesktopBackground()`
+- `src/app/App.hpp` — `IWindowController::get/setDesktopBackgroundColor()`
+- `src/main.cpp` — loads settings at startup and uses them when clearing the desktop
 
-Future work: replace the static info panel with real preference controls while keeping the same launcher and window title pattern.
+Settings changes go through `IWindowController` so the app does not reach into WindowManager internals directly.

@@ -2,6 +2,7 @@
 
 #include "Window.hpp"
 #include <SDL2/SDL.h>
+#include <cstdint>
 #include <SDL2/SDL_ttf.h>
 #include <memory>
 #include <set>
@@ -11,6 +12,7 @@
 
 // App interface for client-area delegation
 #include "../app/App.hpp"
+#include "../settings/DesktopSettings.hpp"
 
 namespace monolith::fs {
 class Filesystem;
@@ -114,6 +116,11 @@ public:
     void requestQuit();
     bool shouldQuit() const;
 
+    // Desktop appearance settings (persisted on the host, applied immediately).
+    void loadDesktopSettings(const std::string& hostPath);
+    monolith::settings::RGB getDesktopBackground() const;
+    void setDesktopBackground(uint8_t r, uint8_t g, uint8_t b);
+
     // Associate an editor window with a file path so the WM can avoid creating duplicates.
     // The path should be a normalized virtual path.
     void associateEditorWithFile(Window* window, const std::string& virtualPath);
@@ -191,6 +198,9 @@ private:
     // Resources for creating real apps from the shell (Start Menu launchers)
     TTF_Font* m_appFont = nullptr;
     monolith::fs::Filesystem* m_fs = nullptr;
+
+    monolith::settings::DesktopSettings m_desktopSettings;
+    std::string m_desktopSettingsHostPath;
 
     // Taskbar XP-style horizontal scrolling
     int m_taskbarScrollOffset = 0;        // logical pixels, can be negative
