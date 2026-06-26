@@ -17,9 +17,15 @@ This file provides guidance for AI agents (and human contributors) working on th
 - Always keep `createWindow` backwards-compatible (the extra params have defaults).
 
 ## Documentation & Changelog Discipline
+
+Follow these documentation boundaries:
+
 - **Changelog**: Keep CHANGELOG.md short and focused on the active state of the project. Historical detail lives in git. When landing features, replace the top section with a clean summary of what was added (clear old bulk if requested).
-- **Architecture**: Any non-trivial change to the Window Manager, launchers, App hosting, or desktop shell behavior must be reflected in `docs/architecture.md` (add or update the relevant subsection).
-- **README**: High-level status bullets (especially Window Manager and Built-in Apps) should be kept in sync.
+- **Architecture** (`docs/architecture.md`): System design only — WM, app model, rendering, input, shell coordination. No per-app shortcut tables.
+- **App guides** (`docs/apps/<app>.md`): User controls, shortcuts, file formats, limitations, and app-specific dev notes. Update the relevant app doc when changing app behavior.
+- **Filesystem** (`docs/filesystem.md`): Shared virtual path rules and API usage. Update when path conventions or the `Filesystem` class change.
+- **Root README**: Project overview, build/run, and links to `docs/README.md`. One-line status bullets only — no app-specific controls or dev scripts.
+- **Docs hub** (`docs/README.md`): Link every new doc file from the hub table of contents.
 - After docs + code changes, the working tree should build cleanly (`cd build && make`).
 
 ## Development Workflow

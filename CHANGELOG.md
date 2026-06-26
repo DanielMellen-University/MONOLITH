@@ -1,11 +1,17 @@
 # Changelog
 
-## 2026-06: Drawing Documentation
+## 2026-06: Documentation Reorganization
 
-Added dedicated user documentation for the Drawing app.
+Restructured project documentation so each app has its own guide and the root README stays high-level.
 
-- New `docs/drawing.md` page covering launch behavior, toolbar controls, mouse input, keyboard shortcuts, save/open prompts, path completion, undo/redo behavior, `.modr` format notes, current limitations, and developer verification scripts.
-- README documentation links now include the Drawing app guide.
+- New documentation hub at `docs/README.md` with links to all guides.
+- Per-app guides under `docs/apps/`: Terminal, Text Editor, Filesystem Browser, Drawing, Settings.
+- New `docs/filesystem.md` for the shared internal filesystem layer.
+- New `docs/development/scripts.md` for verification scripts (moved out of root README).
+- Root README slimmed down: removed Drawing Controls and Developer Utilities sections.
+- `docs/architecture.md` trimmed app-specific detail; links to app docs instead.
+- `docs/drawing.md` moved to `docs/apps/drawing.md`.
+- Updated `AGENTS.md` and `docs/vision.md` to reflect the new structure.
 
 ## 2026-06: Drawing Toolbar Controls
 

@@ -1,12 +1,12 @@
 # Drawing App
 
-The Drawing app is Monolith's native sketching tool. It provides a pixel canvas, simple drawing tools, undo/redo, and save/load support through the internal filesystem.
+The Drawing app is Monolith's native sketching tool. It provides a pixel canvas, simple drawing tools, undo/redo, and save/load support through the [internal filesystem](../filesystem.md).
 
-Drawing files use the `.modr` extension. The extension stands for Monolith Drawing Raster.
+Drawing files use the `.modr` extension (Monolith Drawing Raster).
 
 ## Launching
 
-Open Drawing from the Start menu. Multiple Drawing windows can be open at once, using the normal Monolith window numbering behavior:
+Open **Drawing** from the Start menu. Multiple Drawing windows can be open at once:
 
 - `Drawing`
 - `Drawing 2`
@@ -43,16 +43,17 @@ Second row:
 
 ## Keyboard Shortcuts
 
-- `Ctrl+S`: save the current sketch.
-- `Ctrl+O`: open a `.modr` sketch by path.
-- `Ctrl+N`: start a new sketch.
-- `Ctrl+Z`: undo the last stroke or clear.
-- `Ctrl+Y`: redo.
-- `Ctrl+Shift+Z`: redo.
-- `Tab`: complete paths while a save/open prompt is active.
-- `Enter`: confirm a save/open prompt.
-- `Esc`: cancel a save/open prompt.
-- `Backspace`: edit the save/open prompt path.
+| Shortcut | Action |
+|----------|--------|
+| Ctrl+S | Save the current sketch |
+| Ctrl+O | Open a `.modr` sketch by path |
+| Ctrl+N | Start a new sketch |
+| Ctrl+Z | Undo the last stroke or clear |
+| Ctrl+Y / Ctrl+Shift+Z | Redo |
+| Tab | Complete paths in save/open prompt |
+| Enter | Confirm save/open prompt |
+| Esc | Cancel save/open prompt |
+| Backspace | Edit save/open prompt path |
 
 ## Saving
 
@@ -140,11 +141,6 @@ Main implementation files:
 
 - `src/app/DrawingApp.hpp`
 - `src/app/DrawingApp.cpp`
-- `src/window/WindowManager.cpp` for launching and window integration
+- `src/window/WindowManager.cpp` — `launchDrawing()`, mouse-up forwarding for drag interactions
 
-Useful verification scripts:
-
-```bash
-./scripts/verify_drawing_integration.sh
-g++ -std=c++23 scripts/test_modr_format.cpp -o build/test_modr_format && ./build/test_modr_format
-```
+Verification scripts: see [Development Scripts](../development/scripts.md).

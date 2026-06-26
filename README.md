@@ -10,17 +10,11 @@ Monolith is an experimental, self-contained environment written in C++ using SDL
 
 Monolith has a working desktop environment with overlapping windows:
 
-- **Window Manager**: Dragging, 8-way resizing, title bars with close/min/max, z-order, focus, taskbar-safe maximize/drag/resize bounds, taskbar with XP-style window buttons + horizontal scrolling, and a fully functional Start menu (including Settings and Shut Down). Robust dynamic instance management for multiple windows of the same app type: `claimNextAppInstanceTitle` + live compaction on close so numbers/titles of open windows automatically adjust (e.g. closing the primary "Settings" promotes "Settings 2" to "Settings" with no gaps or duplicates).
-- **Built-in Apps**:
-  - **Terminal**: Real command-line app with scrollback, command history, cursor editing, reverse search (Ctrl+R), tab completion (commands + paths), persistent history, dynamic cwd prompt, and rich built-in commands (`ls`, `cd`, `cat`, `mkdir`, `rm [-r]`, `cp [-r]`, `mv` (with dir dst), `touch`, etc.). Path handling and FS ops are now more robust and consistent with the graphical browser.
-  - **Text Editor**: Functional multi-line editor with cursor movement, editing, undo, find mode (Ctrl+F), and load/save via the internal filesystem (Ctrl+S).
-  - **Filesystem Browser**: Graphical directory browser with list view, navigation, inline rename (F2), right-click context menus (different options for files, folders, and empty space), status bar, and toolbar actions. Double-click files to open them in the editor.
-  - **Drawing**: Pixel canvas with pen/eraser, undo/redo, brush sizes, color palette, and save/load of `.modr` sketches to the internal filesystem (launched from the Start menu).
-  - **Settings**: Informational panel showing version/environment details, filesystem paths, and usage notes (launched from the Start menu).
-- **Internal Filesystem**: Host-backed (persisted under `~/.monolith/fs/`), with a clean virtual path namespace. Used by Terminal, Editor, Filesystem Browser, and Drawing.
-- Fixed-size outer window (1280×720) containing the full self-contained environment.
+- **Window Manager** — Dragging, 8-way resizing, title bars, z-order, focus, taskbar with Start menu, and dynamic multi-instance window titles.
+- **Built-in Apps** — Terminal, Text Editor, Filesystem Browser, Drawing, and Settings. Each has its own documentation (see below).
+- **Internal Filesystem** — Host-backed persistence under `~/.monolith/fs/` with a clean virtual path namespace.
 
-**This is still early** - no custom language yet, limited polish, and the set of apps is small. The focus is on building a coherent, self-contained environment over time.
+**This is still early** — no custom language yet, limited polish, and the set of apps is small. The focus is on building a coherent, self-contained environment over time.
 
 ## Building
 
@@ -54,35 +48,29 @@ The resulting binary will be at `build/monolith`.
 ## Running
 
 ```bash
-./monolith
-```
-
-## Drawing Controls
-
-- Drag on the canvas to paint with the selected tool and color (swatch colors match what you draw).
-- Toolbar: **New**, **Save**, **Open**, **Undo**, **Redo**, **Pen**, **Eraser**, **Clear**, brush sizes **S / M / L**, and eight color swatches.
-- **Ctrl+S**: save (prompts for a path on first save; defaults under `/home/monolith/drawings/`).
-- **Ctrl+O**: open a `.modr` file by virtual path.
-- **Tab**: complete paths while the save/open prompt is active.
-- **Ctrl+N**: clear the canvas for a new sketch.
-- **Ctrl+Z**: undo the last stroke or clear.
-- **Ctrl+Y** or **Ctrl+Shift+Z**: redo.
-
-## Developer Utilities
-
-```bash
-# Static integration checks (no SDL/display needed)
-./scripts/verify_drawing_integration.sh
-
-# Headless .modr format roundtrip test
-g++ -std=c++23 scripts/test_modr_format.cpp -o build/test_modr_format && ./build/test_modr_format
+./build/monolith
 ```
 
 ## Documentation
 
-- [Vision & Philosophy](docs/vision.md) - Original long-term goals and design philosophy
-- [Architecture](docs/architecture.md) - High-level technical structure
-- [Drawing App](docs/drawing.md) - User controls, `.modr` files, save/open prompts, undo/redo, and current limits
+Full documentation lives in [`docs/`](docs/README.md).
+
+| Topic | Link |
+|-------|------|
+| Documentation hub | [docs/README.md](docs/README.md) |
+| Vision & philosophy | [docs/vision.md](docs/vision.md) |
+| Architecture | [docs/architecture.md](docs/architecture.md) |
+| Filesystem | [docs/filesystem.md](docs/filesystem.md) |
+
+### App Guides
+
+| App | Guide |
+|-----|-------|
+| Terminal | [docs/apps/terminal.md](docs/apps/terminal.md) |
+| Text Editor | [docs/apps/text-editor.md](docs/apps/text-editor.md) |
+| Filesystem Browser | [docs/apps/filesystem-browser.md](docs/apps/filesystem-browser.md) |
+| Drawing | [docs/apps/drawing.md](docs/apps/drawing.md) |
+| Settings | [docs/apps/settings.md](docs/apps/settings.md) |
 
 ## License
 
