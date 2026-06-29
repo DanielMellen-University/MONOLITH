@@ -57,7 +57,8 @@ The Window Manager is the most foundational subsystem.
 - Every window has a title bar with a title and three standard buttons.
 - Windows support dragging by the title bar.
 - Windows support resizing from edges and corners.
-- Windows can be minimized and restored via the taskbar.
+- Windows can be minimized via the title-bar minimize button or by clicking the active window's taskbar button (XP-style toggle), and restored by clicking its taskbar entry.
+- When many windows are open, the taskbar scrolls horizontally (arrow buttons and mouse wheel).
 - No persistence of window position or size between sessions.
 - No snapping or automatic tiling.
 
@@ -102,13 +103,13 @@ The Window Manager handles the frame, decorations, and top-level input routing.
 
 The Window Manager also acts as a small "desktop shell". It provides launcher methods (`launchTerminal()`, `launchTextEditor(path)`, `launchFilesystem()`, `launchDrawing()`, `launchSettings()`) used by the Start Menu and by apps.
 
-Apps can request shell actions on behalf of the user through `IWindowController` (currently `close()`, `setTitle()`, and `openInTextEditor(virtualPath)`). This enables patterns like "double-click a file in the graphical filesystem browser to open it in the text editor" without apps directly depending on each other.
+Apps can request shell actions on behalf of the user through `IWindowController` (currently `close()`, `setTitle()`, `restoreTrackedInstanceTitle()`, `openInTextEditor(virtualPath)`, and desktop background get/set). This enables patterns like "double-click a file in the graphical filesystem browser to open it in the text editor" without apps directly depending on each other. Apps that temporarily change the title (e.g. Drawing after save) use `restoreTrackedInstanceTitle()` to return to the WM-managed instance name.
 
 ### 3. Rendering
 
-- The entire environment is rendered inside a single SDL2 window.
+- The entire environment is rendered inside a single SDL2 window (currently fixed at 1280 × 720 logical pixels).
 - The Window Manager is responsible for compositing window frames and delegating content drawing to apps.
-- Early versions will likely use software rendering or simple OpenGL for drawing primitives and text.
+- Rendering uses SDL2's accelerated renderer with VSYNC; apps draw text via SDL_ttf and primitives via SDL draw calls.
 
 ### 4. Input System
 

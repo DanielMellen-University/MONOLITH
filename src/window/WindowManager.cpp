@@ -1450,6 +1450,16 @@ void WindowManager::associateEditorWithFile(Window* window, const std::string& v
 
 namespace {
 
+std::string formatTrackedInstanceTitle(const monolith::window::Window* window) {
+    if (!window || window->appBaseTitle.empty() || window->appInstanceNumber <= 0) {
+        return {};
+    }
+    if (window->appInstanceNumber == 1) {
+        return window->appBaseTitle;
+    }
+    return window->appBaseTitle + " " + std::to_string(window->appInstanceNumber);
+}
+
 // Small concrete controller that lets an App affect its host window.
 struct WindowController : public monolith::app::IWindowController {
     monolith::window::WindowManager* wm;
@@ -1461,6 +1471,14 @@ struct WindowController : public monolith::app::IWindowController {
 
     void setTitle(const std::string& title) override {
         if (targetWindow) {
+            targetWindow->title = title;
+        }
+    }
+
+    void restoreTrackedInstanceTitle() override {
+        if (!targetWindow) return;
+        const std::string title = formatTrackedInstanceTitle(targetWindow);
+        if (!title.empty()) {
             targetWindow->title = title;
         }
     }

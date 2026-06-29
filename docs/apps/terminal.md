@@ -14,11 +14,19 @@ Closing a lower-numbered window renumbers survivors (e.g. closing `Terminal` pro
 
 ## Input Line
 
-The prompt shows the current working directory, for example:
+The prompt shows an abbreviated working directory, for example:
 
 ```text
-/home/monolith>
+~>
 ```
+
+When you are in a subdirectory of home, the path is shown relative to home:
+
+```text
+~/documents>
+```
+
+(`~` stands for `/home/monolith`.)
 
 Type commands at the prompt and press **Enter** to run them. Output appears above the input line.
 

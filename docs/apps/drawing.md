@@ -20,7 +20,7 @@ The toolbar has two rows.
 
 Top row:
 
-- **New**: clears the canvas, resets the file path, and returns the title to `Drawing`.
+- **New**: clears the canvas, resets the file path, and restores the window's instance title (`Drawing`, `Drawing 2`, etc.).
 - **Save**: saves the current sketch. If the sketch has no file path yet, Drawing prompts for one.
 - **Open**: prompts for a `.modr` file path.
 - **Undo**: undoes the last stroke or clear.
@@ -142,5 +142,6 @@ Main implementation files:
 - `src/app/DrawingApp.hpp`
 - `src/app/DrawingApp.cpp`
 - `src/window/WindowManager.cpp` — `launchDrawing()`, mouse-up forwarding for drag interactions
+- `src/app/App.hpp` — `IWindowController::restoreTrackedInstanceTitle()` for New/Ctrl+N title reset
 
 Verification scripts: see [Development Scripts](../development/scripts.md).

@@ -66,13 +66,13 @@ public:
     // Set the font used for rendering window titles
     void setFont(TTF_Font* font);
 
-    // Set the logical internal desktop size (e.g. 1920x1080)
+    // Set the logical internal desktop size (runtime default: 1280x720 from main.cpp)
     void setLogicalDesktopSize(int width, int height);
 
-    // Set how many pixels from the top of the SDL window are "eaten" by GNOME's title bar
+    // Optional Y offset before logical coordinate mapping (0 in current main.cpp)
     void setHeaderOffset(int offsetY);
 
-    // Set the scale factor to draw the logical 1920x1080 content into the actual window
+    // Scale factor to map logical desktop pixels into the SDL window (1.0 = 1:1)
     void setContentScale(float scale);
 
     // Returns the resize direction at the given screen point (for cursor feedback)
@@ -125,7 +125,7 @@ public:
     // The path should be a normalized virtual path.
     void associateEditorWithFile(Window* window, const std::string& virtualPath);
 
-    // Coordinate conversion helpers (screen <-> logical internal 1920x1080 space)
+    // Coordinate conversion helpers (screen <-> logical desktop space)
     int screenToLogicalX(int screenX) const { return static_cast<int>(screenX / m_contentScale); }
     int screenToLogicalY(int screenY) const { return static_cast<int>((screenY - m_headerOffset) / m_contentScale); }
 
@@ -162,12 +162,12 @@ private:
     };
     std::unordered_map<int, TitleCacheEntry> m_titleCache;
 
-    // Logical internal desktop size (e.g. 1920x1080)
-    int m_logicalWidth = 1920;
-    int m_logicalHeight = 1080;
+    // Logical internal desktop size (overridden at startup; matches main.cpp)
+    int m_logicalWidth = 1280;
+    int m_logicalHeight = 720;
 
-    // Pixels from top of SDL window that are occupied by GNOME's client-side title bar
-    int m_headerOffset = 36;
+    // Y offset applied before logical<->screen mapping (0 unless host chrome compensation is needed)
+    int m_headerOffset = 0;
 
     // Scale to map logical content into the actual window size
     float m_contentScale = 1.0f;

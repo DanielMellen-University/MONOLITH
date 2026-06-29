@@ -588,7 +588,7 @@ void DrawingApp::handleToolbarClick(int x, int y) {
         clearCanvas();
         m_filePath.clear();
         if (auto* ctrl = getController()) {
-            ctrl->setTitle("Drawing");
+            ctrl->restoreTrackedInstanceTitle();
         }
         setStatus("New sketch.");
         return;
@@ -868,7 +868,7 @@ void DrawingApp::handleEvent(const SDL_Event& event) {
             clearCanvas();
             m_filePath.clear();
             if (auto* ctrl = getController()) {
-                ctrl->setTitle("Drawing");
+                ctrl->restoreTrackedInstanceTitle();
             }
             return;
         }

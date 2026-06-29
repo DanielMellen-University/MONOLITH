@@ -10,7 +10,9 @@ All filesystem operations use paths starting with `/`. Common locations:
 |--------------|---------|
 | `/` | Root |
 | `/home/monolith` | Default user home (Terminal cwd, browser start path) |
+| `/home/monolith/documents/` | Seeded documents folder (created on first run) |
 | `/home/monolith/drawings/` | Default location for Drawing `.modr` files |
+| `/home/monolith/welcome.txt` | Sample text file created on first run |
 | `/home/monolith/.terminal_history` | Persistent Terminal command history |
 
 Paths are normalized by `Filesystem::normalize()` — `..`, `.`, duplicate slashes, and relative segments are resolved consistently across Terminal, Filesystem Browser, and Drawing.
