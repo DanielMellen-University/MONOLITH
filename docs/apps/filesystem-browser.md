@@ -22,7 +22,8 @@ The window has four regions:
 ## Navigation
 
 - **Double-click** a directory to enter it.
-- **Double-click** a file to open it in the Text Editor.
+- **Double-click** a text file to open it in the Text Editor.
+- **Double-click** a `.modr` file to open it in Drawing.
 - Click **Up** in the toolbar (or use context menu) to go to the parent directory.
 - **Arrow Up / Down** moves selection; **Enter** activates the selected entry (same as double-click).
 
@@ -68,7 +69,7 @@ Delete (toolbar, keyboard, or context menu) shows a confirmation submenu: **Conf
 
 **Right-click a file:**
 
-- Open (opens in Text Editor)
+- Open (opens in Text Editor, or Drawing for `.modr` files)
 - Rename
 - Delete
 
@@ -80,7 +81,7 @@ Delete (toolbar, keyboard, or context menu) shows a confirmation submenu: **Conf
 
 ## Current Limitations
 
-- Text files only open in the editor — `.modr` drawing files cannot be opened from here yet.
+- Only text files and `.modr` drawings open from here (no generic “open with” yet).
 - No copy, move, or drag-and-drop.
 - No multi-select.
 - No file preview or properties panel.
@@ -92,6 +93,6 @@ Main implementation files:
 
 - `src/app/FilesystemApp.hpp`
 - `src/app/FilesystemApp.cpp`
-- `src/window/WindowManager.cpp` — `launchFilesystem()`, `openInTextEditor()` shell bridge
+- `src/window/WindowManager.cpp` — `launchFilesystem()`, `openInTextEditor()`, `openInDrawing()` shell bridges
 
-File open uses `IWindowController::openInTextEditor()` so the browser does not depend directly on the Text Editor class.
+File open uses `IWindowController` shell methods so the browser does not depend directly on Text Editor or Drawing classes.

@@ -26,8 +26,11 @@ File-backed editors are singletons per path — opening the same file again focu
 
 | Shortcut | Action |
 |----------|--------|
-| Ctrl+S | Save to the bound file path |
+| Ctrl+S | Save (prompts for path if untitled) |
+| Ctrl+Shift+S | Save as (path prompt) |
+| Ctrl+O | Open file by virtual path |
 | Ctrl+Z | Undo last edit |
+| Ctrl+Y / Ctrl+Shift+Z | Redo |
 | Ctrl+F | Enter find mode |
 
 ### Find Mode (Ctrl+F)
@@ -45,12 +48,12 @@ The status bar shows match count (e.g. `2/5`) while find mode is active.
 
 ## Saving
 
-Ctrl+S saves only when the editor has a bound virtual file path. A bare editor launched from the Start menu without opening a file cannot save until it is associated with a path (typically by opening a file from the Filesystem Browser or launching with an initial path).
+Ctrl+S saves to the bound path when one exists. If the buffer is untitled, Ctrl+S opens a save-as path prompt (Tab completion, Enter to confirm). Ctrl+Shift+S always opens save-as. Ctrl+O opens a path prompt starting in `/home/monolith/` (or the current file's directory).
 
 ## Current Limitations
 
-- No open/save-as dialog — files must be opened via path (Filesystem Browser double-click or launcher with path).
-- Undo stores full buffer snapshots; no redo yet.
+- Open/save-as use inline path prompts, not graphical file-picker dialogs.
+- Undo/redo store full buffer snapshots (capped stack).
 - No syntax highlighting or multiple buffers/tabs.
 - UTF-8 handling is basic (single-byte insertion from SDL text input).
 - No integration with the custom language runtime yet.

@@ -1,8 +1,28 @@
 #include "TextEditorApp.hpp"
 #include <algorithm>
 #include <sstream>
+#include <vector>
 
 namespace monolith::app {
+
+namespace {
+
+std::string commonPrefix(const std::vector<std::string>& values) {
+    if (values.empty()) return "";
+
+    std::string common = values.front();
+    for (size_t i = 1; i < values.size(); ++i) {
+        size_t len = 0;
+        while (len < common.size() && len < values[i].size() && common[len] == values[i][len]) {
+            ++len;
+        }
+        common.resize(len);
+        if (common.empty()) break;
+    }
+    return common;
+}
+
+} // namespace
 
 TextEditorApp::TextEditorApp(TTF_Font* font, monolith::fs::Filesystem* fs, const std::string& initialPath)
     : m_font(font), m_fs(fs)
@@ -22,7 +42,10 @@ TextEditorApp::TextEditorApp(TTF_Font* font, monolith::fs::Filesystem* fs, const
         m_lines.emplace_back("  - Enter for new line");
         m_lines.emplace_back("  - Arrow keys, Home, End to move");
         m_lines.emplace_back("  - Backspace / Delete to remove text");
-        m_lines.emplace_back("  - Ctrl+S to save (if a file path is set)");
+        m_lines.emplace_back("  - Ctrl+S to save");
+        m_lines.emplace_back("  - Ctrl+O to open by path");
+        m_lines.emplace_back("  - Ctrl+Shift+S to save as");
+        m_lines.emplace_back("  - Ctrl+Z / Ctrl+Y to undo / redo");
         m_lines.emplace_back("");
         m_lines.emplace_back("This editor is very early. More features coming.");
         m_cursorRow = 0;
@@ -86,6 +109,135 @@ std::string TextEditorApp::getDisplayName() const {
         return m_filePath.substr(pos + 1);
     }
     return m_filePath;
+}
+
+void TextEditorApp::updateTitleForPath() {
+    if (m_filePath.empty()) return;
+    if (auto* ctrl = getController()) {
+        ctrl->setTitle("Editor - " + getDisplayName());
+    }
+}
+
+void TextEditorApp::beginPathPrompt(PathPromptMode mode) {
+    m_pathPromptMode = mode;
+    if (mode == PathPromptMode::SaveAs) {
+        m_pathPromptBuffer = m_filePath.empty() ? "/home/monolith/documents/note.txt" : m_filePath;
+    } else if (mode == PathPromptMode::Open) {
+        if (!m_filePath.empty()) {
+            const size_t slash = m_filePath.find_last_of('/');
+            m_pathPromptBuffer = (slash != std::string::npos) ? m_filePath.substr(0, slash + 1) : "/home/monolith/";
+        } else {
+            m_pathPromptBuffer = "/home/monolith/";
+        }
+    }
+}
+
+void TextEditorApp::finishPathPrompt(bool commit) {
+    const PathPromptMode mode = m_pathPromptMode;
+    const std::string buffer = m_pathPromptBuffer;
+    m_pathPromptMode = PathPromptMode::None;
+    m_pathPromptBuffer.clear();
+
+    if (!commit) return;
+    if (!m_fs || buffer.empty()) return;
+
+    const std::string path = m_fs->normalize(buffer);
+
+    if (mode == PathPromptMode::Open) {
+        if (!m_fs->isFile(path)) return;
+
+        if (auto* ctrl = getController()) {
+            if (ctrl->focusEditorForFile(path)) return;
+        }
+
+        loadInitialFile(path);
+        m_undoStack.clear();
+        m_redoStack.clear();
+        if (auto* ctrl = getController()) {
+            ctrl->bindEditorFile(path);
+        }
+        updateTitleForPath();
+    } else if (mode == PathPromptMode::SaveAs) {
+        const size_t slash = path.find_last_of('/');
+        if (slash != std::string::npos && slash > 0) {
+            m_fs->createDirectory(path.substr(0, slash));
+        }
+
+        m_filePath = path;
+        saveCurrentFile();
+        if (auto* ctrl = getController()) {
+            ctrl->bindEditorFile(path);
+        }
+        updateTitleForPath();
+    }
+}
+
+void TextEditorApp::completePathPrompt() {
+    if (!m_fs || m_pathPromptBuffer.empty()) return;
+
+    const size_t slash = m_pathPromptBuffer.find_last_of('/');
+    const std::string dirPart = (slash == std::string::npos) ? "" : m_pathPromptBuffer.substr(0, slash);
+    const std::string namePrefix = (slash == std::string::npos) ? m_pathPromptBuffer : m_pathPromptBuffer.substr(slash + 1);
+    const std::string searchDir = m_fs->normalize(dirPart.empty() ? "/" : dirPart);
+    const std::string completionBase = (slash == std::string::npos)
+        ? ""
+        : ((slash == 0) ? "/" : dirPart + "/");
+
+    std::vector<std::string> matches;
+    for (const auto& entry : m_fs->listEntries(searchDir)) {
+        if (entry.name.size() < namePrefix.size()) continue;
+        if (entry.name.compare(0, namePrefix.size(), namePrefix) != 0) continue;
+
+        std::string completion = completionBase + entry.name;
+        if (entry.isDirectory && !completion.empty() && completion.back() != '/') {
+            completion += "/";
+        }
+        matches.push_back(std::move(completion));
+    }
+
+    if (matches.empty()) return;
+
+    if (matches.size() == 1) {
+        m_pathPromptBuffer = matches.front();
+        return;
+    }
+
+    const std::string common = commonPrefix(matches);
+    if (common.size() > m_pathPromptBuffer.size()) {
+        m_pathPromptBuffer = common;
+    }
+}
+
+void TextEditorApp::handlePathPromptKey(const SDL_Keysym& keysym) {
+    switch (keysym.sym) {
+        case SDLK_RETURN:
+        case SDLK_KP_ENTER:
+            finishPathPrompt(true);
+            break;
+        case SDLK_ESCAPE:
+            finishPathPrompt(false);
+            break;
+        case SDLK_BACKSPACE:
+            if (!m_pathPromptBuffer.empty()) {
+                m_pathPromptBuffer.pop_back();
+            }
+            break;
+        case SDLK_TAB:
+            completePathPrompt();
+            break;
+        default:
+            break;
+    }
+}
+
+void TextEditorApp::handlePathPromptText(const char* text) {
+    if (!text) return;
+    for (const char* p = text; *p; ++p) {
+        const unsigned char c = static_cast<unsigned char>(*p);
+        if (c >= 32 && c < 127) {
+            m_pathPromptBuffer.push_back(static_cast<char>(c));
+        }
+    }
 }
 
 void TextEditorApp::insertChar(char c) {
@@ -477,12 +629,14 @@ void TextEditorApp::render(SDL_Renderer* renderer, const SDL_Rect& contentRect) 
                           "/" + std::to_string(m_findMatches.size());
             }
             status += "   |  Enter next, Shift+Enter previous, Esc close";
+        } else if (m_pathPromptMode != PathPromptMode::None) {
+            status = (m_pathPromptMode == PathPromptMode::Open) ? "Open: " : "Save as: ";
+            status += m_pathPromptBuffer + "_";
+            status += "   |  Tab complete, Enter confirm, Esc cancel";
         } else {
             if (m_dirty) status += " *";
-            if (m_fs && !m_filePath.empty()) {
-                status += "   |  Ctrl+S save";
-            }
-            status += "   |  Ctrl+F find";
+            status += "   |  Ctrl+S save   Ctrl+O open   Ctrl+Shift+S save as";
+            status += "   |  Ctrl+F find   Ctrl+Z undo   Ctrl+Y redo";
         }
 
         SDL_Surface* surf = TTF_RenderText_Blended(m_font, status.c_str(), {150, 155, 160, 255});
@@ -504,6 +658,15 @@ void TextEditorApp::render(SDL_Renderer* renderer, const SDL_Rect& contentRect) 
 }
 
 void TextEditorApp::handleEvent(const SDL_Event& event) {
+    if (m_pathPromptMode != PathPromptMode::None) {
+        if (event.type == SDL_KEYDOWN) {
+            handlePathPromptKey(event.key.keysym);
+        } else if (event.type == SDL_TEXTINPUT) {
+            handlePathPromptText(event.text.text);
+        }
+        return;
+    }
+
     if (event.type == SDL_TEXTINPUT) {
         if (m_findMode) {
             const char* t = event.text.text;
@@ -561,17 +724,40 @@ void TextEditorApp::handleEvent(const SDL_Event& event) {
             return;
         }
 
-        // Ctrl+S save
-        if ((key.mod & KMOD_CTRL) && key.sym == SDLK_s) {
-            if (saveCurrentFile()) {
-                // Could add a flash later; for now silent success is fine
+        // Ctrl+O open
+        if ((key.mod & KMOD_CTRL) && key.sym == SDLK_o) {
+            beginPathPrompt(PathPromptMode::Open);
+            return;
+        }
+
+        // Ctrl+S save (prompts for path when untitled)
+        if ((key.mod & KMOD_CTRL) && key.sym == SDLK_s && !(key.mod & KMOD_SHIFT)) {
+            if (m_filePath.empty()) {
+                beginPathPrompt(PathPromptMode::SaveAs);
+            } else {
+                saveCurrentFile();
             }
             return;
         }
 
-        // Ctrl+Z undo
+        // Ctrl+Shift+S save as
+        if ((key.mod & KMOD_CTRL) && key.sym == SDLK_s && (key.mod & KMOD_SHIFT)) {
+            beginPathPrompt(PathPromptMode::SaveAs);
+            return;
+        }
+
+        // Ctrl+Z undo / Ctrl+Y redo
         if ((key.mod & KMOD_CTRL) && key.sym == SDLK_z) {
-            undo();
+            if (key.mod & KMOD_SHIFT) {
+                redo();
+            } else {
+                undo();
+            }
+            return;
+        }
+
+        if ((key.mod & KMOD_CTRL) && key.sym == SDLK_y) {
+            redo();
             return;
         }
 
@@ -630,7 +816,8 @@ void TextEditorApp::onResize(int clientWidth, int clientHeight) {
 }
 
 void TextEditorApp::pushUndoState() {
-    // Limit undo stack size
+    m_redoStack.clear();
+
     if (m_undoStack.size() > 50) {
         m_undoStack.erase(m_undoStack.begin());
     }
@@ -642,17 +829,41 @@ void TextEditorApp::pushUndoState() {
     m_undoStack.push_back(state);
 }
 
-void TextEditorApp::undo() {
-    if (m_undoStack.empty()) return;
-
-    EditorState state = m_undoStack.back();
-    m_undoStack.pop_back();
-
+void TextEditorApp::applyEditorState(const EditorState& state) {
     m_lines = state.lines;
     m_cursorRow = state.cursorRow;
     m_cursorCol = state.cursorCol;
     m_dirty = true;
+    clampCursor();
     ensureCursorVisible();
+}
+
+void TextEditorApp::undo() {
+    if (m_undoStack.empty()) return;
+
+    EditorState current;
+    current.lines = m_lines;
+    current.cursorRow = m_cursorRow;
+    current.cursorCol = m_cursorCol;
+    m_redoStack.push_back(current);
+
+    EditorState state = m_undoStack.back();
+    m_undoStack.pop_back();
+    applyEditorState(state);
+}
+
+void TextEditorApp::redo() {
+    if (m_redoStack.empty()) return;
+
+    EditorState current;
+    current.lines = m_lines;
+    current.cursorRow = m_cursorRow;
+    current.cursorCol = m_cursorCol;
+    m_undoStack.push_back(current);
+
+    EditorState state = m_redoStack.back();
+    m_redoStack.pop_back();
+    applyEditorState(state);
 }
 
 } // namespace monolith::app

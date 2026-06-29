@@ -1,5 +1,15 @@
 # Changelog
 
+## 2026-06: Filesystem Drawing Open & Editor Path Prompts
+
+Tighter shell integration and editor polish.
+
+- **Filesystem Browser**: double-click / Open on `.modr` files launches Drawing via `IWindowController::openInDrawing()` (singleton per file, like editors).
+- **Drawing**: `launchDrawing(path)` loads sketches from the shell; save/open/update binding tracked in Window Manager.
+- **Text Editor**: Ctrl+O open prompt, Ctrl+S / Ctrl+Shift+S save and save-as prompts with Tab completion; Ctrl+Y / Ctrl+Shift+Z redo added.
+
+Builds cleanly.
+
 ## 2026-06: Doc Audit & Drawing Instance Titles
 
 Aligned documentation with the codebase and fixed a Drawing title regression.

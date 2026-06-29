@@ -28,6 +28,21 @@ struct IWindowController {
     // Safe to call even if not supported (default is no-op).
     virtual void openInTextEditor(const std::string& /*virtualPath*/) {}
 
+    // Request that the desktop shell open the given .modr path in Drawing.
+    virtual void openInDrawing(const std::string& /*virtualPath*/) {}
+
+    // Focus an existing editor for this path if one is already open. Returns true if focused.
+    virtual bool focusEditorForFile(const std::string& /*virtualPath*/) { return false; }
+
+    // Register this editor window as the singleton owner of a virtual file path.
+    virtual void bindEditorFile(const std::string& /*virtualPath*/) {}
+
+    // Register this Drawing window as the singleton owner of a .modr path.
+    virtual void bindDrawingFile(const std::string& /*virtualPath*/) {}
+
+    // Clear a Drawing window's file binding (e.g. after New sketch).
+    virtual void clearDrawingFileBinding() {}
+
     // Desktop appearance (owned by the shell; defaults match the built-in background).
     virtual void getDesktopBackgroundColor(uint8_t& r, uint8_t& g, uint8_t& b) const {
         r = 25;

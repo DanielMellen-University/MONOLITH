@@ -132,7 +132,7 @@ Internally, the live canvas stores pixels as `R,G,B,A`. The saved file stores on
 - No bucket fill tool yet.
 - No custom color picker yet.
 - No clipboard import/export yet.
-- Drawing files do not open directly from the Filesystem Browser yet.
+- `.modr` files open from the Filesystem Browser; other apps cannot launch drawings yet.
 - Undo history is in memory only and resets when a drawing file is opened, the canvas is resized, or the app exits.
 
 ## Developer Notes

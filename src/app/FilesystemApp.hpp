@@ -29,6 +29,7 @@ private:
     void goUp();
     void refreshEntries();
     void activateEntry(size_t index);           // double-click / enter behavior
+    void openFileEntry(const std::string& name);
     std::string fullPathFor(const std::string& name) const;
 
     // === Actions ===

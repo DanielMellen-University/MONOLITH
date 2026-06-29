@@ -102,6 +102,18 @@ std::string FilesystemApp::fullPathFor(const std::string& name) const {
     return m_fs ? m_fs->normalize(m_currentPath + "/" + name) : (m_currentPath + "/" + name);
 }
 
+void FilesystemApp::openFileEntry(const std::string& name) {
+    if (!getController()) return;
+
+    const std::string path = fullPathFor(name);
+    auto* ctrl = getController();
+    if (path.size() >= 5 && path.compare(path.size() - 5, 5, ".modr") == 0) {
+        ctrl->openInDrawing(path);
+    } else {
+        ctrl->openInTextEditor(path);
+    }
+}
+
 void FilesystemApp::activateEntry(size_t index) {
     if (index >= m_entries.size()) return;
 
@@ -111,10 +123,7 @@ void FilesystemApp::activateEntry(size_t index) {
         std::string newPath = fullPathFor(entry.name);
         setCurrentPath(newPath);
     } else {
-        // File: ask the shell to open it in the text editor
-        if (auto* ctrl = getController()) {
-            ctrl->openInTextEditor(fullPathFor(entry.name));
-        }
+        openFileEntry(entry.name);
     }
 }
 

@@ -28,6 +28,9 @@ struct Window {
     // this holds the normalized path. Used by WindowManager for "singleton editor" behavior.
     std::string editedFilePath;
 
+    // If this window is a Drawing app bound to a specific .modr file path.
+    std::string drawingFilePath;
+
     // For dynamic per-type instance titling (see WindowManager::claimNextAppInstanceTitle
     // and closeWindow). If appBaseTitle is non-empty, this window holds a reserved
     // instance number for that base. 1 = bare name ("Terminal"), 2+ = "Terminal 2" etc.

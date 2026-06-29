@@ -17,7 +17,8 @@ namespace monolith::app {
  */
 class DrawingApp : public App {
 public:
-    DrawingApp(TTF_Font* font, monolith::fs::Filesystem* fs = nullptr);
+    DrawingApp(TTF_Font* font, monolith::fs::Filesystem* fs = nullptr,
+               const std::string& initialPath = "");
     ~DrawingApp() override;
 
     void render(SDL_Renderer* renderer, const SDL_Rect& contentRect) override;
@@ -117,6 +118,7 @@ private:
 
     PathPromptMode m_pathPromptMode = PathPromptMode::None;
     std::string m_pathPromptBuffer;
+    std::string m_pendingInitialPath;
 
     // Toolbar hit areas (client-relative coordinates)
     SDL_Rect m_btnNew{0, 0, 0, 0};

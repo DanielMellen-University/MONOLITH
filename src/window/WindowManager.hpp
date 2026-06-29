@@ -109,7 +109,7 @@ public:
     void launchTerminal();
     void launchTextEditor(const std::string& initialPath = "");
     void launchFilesystem();
-    void launchDrawing();
+    void launchDrawing(const std::string& initialPath = "");
     void launchSettings();
 
     // Request that the desktop shell / main loop exit (used by Shut Down)
@@ -124,6 +124,13 @@ public:
     // Associate an editor window with a file path so the WM can avoid creating duplicates.
     // The path should be a normalized virtual path.
     void associateEditorWithFile(Window* window, const std::string& virtualPath);
+
+    // Associate a Drawing window with a .modr path (singleton-per-file, like editors).
+    void associateDrawingWithFile(Window* window, const std::string& virtualPath);
+    void clearDrawingFileBinding(Window* window);
+
+    bool focusEditorForFile(const std::string& virtualPath);
+    bool focusDrawingForFile(const std::string& virtualPath);
 
     // Coordinate conversion helpers (screen <-> logical desktop space)
     int screenToLogicalX(int screenX) const { return static_cast<int>(screenX / m_contentScale); }
@@ -189,6 +196,8 @@ private:
 
     // Tracks which editor windows are responsible for which files (for singleton-per-file behavior)
     std::unordered_map<std::string, Window*> m_fileEditors;
+
+    std::unordered_map<std::string, Window*> m_fileDrawings;
 
     // Tracks active instance numbers per app base type ("Terminal", "Filesystem", etc.)
     // for the dynamic titling system. Populated by claimNextAppInstanceTitle and

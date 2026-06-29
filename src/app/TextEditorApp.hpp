@@ -26,6 +26,12 @@ public:
     bool saveCurrentFile();
 
 private:
+    struct EditorState {
+        std::vector<std::string> lines;
+        int cursorRow;
+        int cursorCol;
+    };
+
     // === Editing helpers ===
     void insertChar(char c);
     void insertNewline();
@@ -43,10 +49,20 @@ private:
     // === File I/O ===
     void loadInitialFile(const std::string& virtualPath);
     std::string getDisplayName() const;
+    void updateTitleForPath();
 
-    // === Undo ===
+    enum class PathPromptMode { None, Open, SaveAs };
+    void beginPathPrompt(PathPromptMode mode);
+    void finishPathPrompt(bool commit);
+    void completePathPrompt();
+    void handlePathPromptKey(const SDL_Keysym& keysym);
+    void handlePathPromptText(const char* text);
+
+    // === Undo / Redo ===
     void pushUndoState();
     void undo();
+    void redo();
+    void applyEditorState(const EditorState& state);
 
     // === Find ===
     void enterFindMode();
@@ -71,13 +87,11 @@ private:
     std::string m_filePath;   // virtual path in Monolith FS (if set)
     bool m_dirty = false;
 
-    // Very basic undo stack (saves full state before major edits)
-    struct EditorState {
-        std::vector<std::string> lines;
-        int cursorRow;
-        int cursorCol;
-    };
     std::vector<EditorState> m_undoStack;
+    std::vector<EditorState> m_redoStack;
+
+    PathPromptMode m_pathPromptMode = PathPromptMode::None;
+    std::string m_pathPromptBuffer;
 
     // Find state (basic)
     bool m_findMode = false;

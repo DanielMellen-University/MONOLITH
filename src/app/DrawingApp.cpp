@@ -62,8 +62,8 @@ std::string commonPrefix(const std::vector<std::string>& values) {
 }
 } // namespace
 
-DrawingApp::DrawingApp(TTF_Font* font, monolith::fs::Filesystem* fs)
-    : m_font(font), m_fs(fs)
+DrawingApp::DrawingApp(TTF_Font* font, monolith::fs::Filesystem* fs, const std::string& initialPath)
+    : m_font(font), m_fs(fs), m_pendingInitialPath(initialPath)
 {
     setStatus("Pen ready. Drag to draw. Ctrl+S save, Ctrl+O open, Ctrl+Z undo.");
 }
@@ -385,6 +385,7 @@ bool DrawingApp::saveToPath(const std::string& virtualPath) {
     const std::string baseName = (nameStart != std::string::npos) ? path.substr(nameStart + 1) : path;
     if (auto* ctrl = getController()) {
         ctrl->setTitle("Drawing - " + baseName);
+        ctrl->bindDrawingFile(path);
     }
 
     setStatus("Saved: " + path);
@@ -447,6 +448,7 @@ bool DrawingApp::loadFromPath(const std::string& virtualPath) {
     const std::string baseName = (nameStart != std::string::npos) ? path.substr(nameStart + 1) : path;
     if (auto* ctrl = getController()) {
         ctrl->setTitle("Drawing - " + baseName);
+        ctrl->bindDrawingFile(path);
     }
 
     setStatus("Opened: " + path);
@@ -588,6 +590,7 @@ void DrawingApp::handleToolbarClick(int x, int y) {
         clearCanvas();
         m_filePath.clear();
         if (auto* ctrl = getController()) {
+            ctrl->clearDrawingFileBinding();
             ctrl->restoreTrackedInstanceTitle();
         }
         setStatus("New sketch.");
@@ -792,9 +795,15 @@ void DrawingApp::onResize(int clientWidth, int clientHeight) {
     const int canvasH = std::max(1, clientHeight - m_canvasTop - m_statusBarHeight);
     const bool canvasSizeChanged = canvasW != m_canvasWidth || canvasH != m_canvasHeight;
     resizeCanvas(canvasW, canvasH, true);
-    if (canvasSizeChanged) {
+    if (canvasSizeChanged && m_pendingInitialPath.empty()) {
         m_undoStack.clear();
         m_redoStack.clear();
+    }
+
+    if (!m_pendingInitialPath.empty()) {
+        const std::string path = m_pendingInitialPath;
+        m_pendingInitialPath.clear();
+        loadFromPath(path);
     }
 }
 
@@ -868,6 +877,7 @@ void DrawingApp::handleEvent(const SDL_Event& event) {
             clearCanvas();
             m_filePath.clear();
             if (auto* ctrl = getController()) {
+                ctrl->clearDrawingFileBinding();
                 ctrl->restoreTrackedInstanceTitle();
             }
             return;

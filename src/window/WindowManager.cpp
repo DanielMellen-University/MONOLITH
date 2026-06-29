@@ -1118,6 +1118,13 @@ void WindowManager::closeWindow(Window* window) {
         }
     }
 
+    if (!window->drawingFilePath.empty()) {
+        auto drawIt = m_fileDrawings.find(window->drawingFilePath);
+        if (drawIt != m_fileDrawings.end() && drawIt->second == window) {
+            m_fileDrawings.erase(drawIt);
+        }
+    }
+
     auto it = std::find_if(m_windows.begin(), m_windows.end(),
         [window](const auto& w) { return w.get() == window; });
 
@@ -1378,16 +1385,44 @@ void WindowManager::launchFilesystem() {
     // Note: caller (e.g. Start menu) is responsible for m_showStartMenu = false.
 }
 
-void WindowManager::launchDrawing() {
+void WindowManager::launchDrawing(const std::string& initialPath) {
     if (!m_appFont) return;
 
-    auto app = std::make_unique<monolith::app::DrawingApp>(m_appFont, m_fs);
+    if (!initialPath.empty() && m_fs) {
+        std::string normalized = m_fs->normalize(initialPath);
+        auto it = m_fileDrawings.find(normalized);
+        if (it != m_fileDrawings.end() && it->second) {
+            bringToFront(it->second);
+            return;
+        }
+    }
 
-    auto [title, inst] = claimNextAppInstanceTitle("Drawing");
+    auto app = std::make_unique<monolith::app::DrawingApp>(m_appFont, m_fs, initialPath);
+
+    std::string title;
+    std::string appBaseForTracking;
+    int instForTracking = 0;
+
+    if (!initialPath.empty() && m_fs) {
+        std::string normalized = m_fs->normalize(initialPath);
+        size_t slash = normalized.find_last_of('/');
+        std::string baseName = (slash != std::string::npos) ? normalized.substr(slash + 1) : normalized;
+        title = baseName.empty() ? "Drawing" : ("Drawing - " + baseName);
+    } else {
+        auto [t, n] = claimNextAppInstanceTitle("Drawing");
+        title = t;
+        appBaseForTracking = "Drawing";
+        instForTracking = n;
+    }
 
     int x = 220 + (static_cast<int>(m_windows.size()) % 6) * 28;
     int y = 100 + (static_cast<int>(m_windows.size()) % 4) * 22;
-    createWindow(title, x, y, 560, 440, std::move(app), "Drawing", inst);
+    Window* w = createWindow(title, x, y, 560, 440, std::move(app),
+                             appBaseForTracking, instForTracking);
+
+    if (w && !initialPath.empty() && m_fs) {
+        associateDrawingWithFile(w, initialPath);
+    }
 }
 
 void WindowManager::launchSettings() {
@@ -1434,14 +1469,75 @@ void WindowManager::associateEditorWithFile(Window* window, const std::string& v
 
     std::string normalized = m_fs->normalize(virtualPath);
 
-    // If something else was already registered for this path, clear the old association
     auto existing = m_fileEditors.find(normalized);
     if (existing != m_fileEditors.end() && existing->second && existing->second != window) {
-        existing->second->editedFilePath.clear();
+        bringToFront(existing->second);
+        return;
+    }
+
+    if (!window->editedFilePath.empty() && window->editedFilePath != normalized) {
+        auto prev = m_fileEditors.find(window->editedFilePath);
+        if (prev != m_fileEditors.end() && prev->second == window) {
+            m_fileEditors.erase(prev);
+        }
     }
 
     window->editedFilePath = normalized;
     m_fileEditors[normalized] = window;
+}
+
+void WindowManager::associateDrawingWithFile(Window* window, const std::string& virtualPath) {
+    if (!window || virtualPath.empty() || !m_fs) return;
+
+    std::string normalized = m_fs->normalize(virtualPath);
+
+    auto existing = m_fileDrawings.find(normalized);
+    if (existing != m_fileDrawings.end() && existing->second && existing->second != window) {
+        bringToFront(existing->second);
+        return;
+    }
+
+    if (!window->drawingFilePath.empty() && window->drawingFilePath != normalized) {
+        auto prev = m_fileDrawings.find(window->drawingFilePath);
+        if (prev != m_fileDrawings.end() && prev->second == window) {
+            m_fileDrawings.erase(prev);
+        }
+    }
+
+    window->drawingFilePath = normalized;
+    m_fileDrawings[normalized] = window;
+}
+
+bool WindowManager::focusEditorForFile(const std::string& virtualPath) {
+    if (!m_fs) return false;
+    std::string normalized = m_fs->normalize(virtualPath);
+    auto it = m_fileEditors.find(normalized);
+    if (it != m_fileEditors.end() && it->second) {
+        bringToFront(it->second);
+        return true;
+    }
+    return false;
+}
+
+bool WindowManager::focusDrawingForFile(const std::string& virtualPath) {
+    if (!m_fs) return false;
+    std::string normalized = m_fs->normalize(virtualPath);
+    auto it = m_fileDrawings.find(normalized);
+    if (it != m_fileDrawings.end() && it->second) {
+        bringToFront(it->second);
+        return true;
+    }
+    return false;
+}
+
+void WindowManager::clearDrawingFileBinding(Window* window) {
+    if (!window || window->drawingFilePath.empty()) return;
+
+    auto it = m_fileDrawings.find(window->drawingFilePath);
+    if (it != m_fileDrawings.end() && it->second == window) {
+        m_fileDrawings.erase(it);
+    }
+    window->drawingFilePath.clear();
 }
 
 // =============================================================================
@@ -1486,6 +1582,34 @@ struct WindowController : public monolith::app::IWindowController {
     void openInTextEditor(const std::string& virtualPath) override {
         if (wm) {
             wm->launchTextEditor(virtualPath);
+        }
+    }
+
+    void openInDrawing(const std::string& virtualPath) override {
+        if (wm) {
+            wm->launchDrawing(virtualPath);
+        }
+    }
+
+    bool focusEditorForFile(const std::string& virtualPath) override {
+        return wm ? wm->focusEditorForFile(virtualPath) : false;
+    }
+
+    void bindEditorFile(const std::string& virtualPath) override {
+        if (wm && targetWindow) {
+            wm->associateEditorWithFile(targetWindow, virtualPath);
+        }
+    }
+
+    void bindDrawingFile(const std::string& virtualPath) override {
+        if (wm && targetWindow) {
+            wm->associateDrawingWithFile(targetWindow, virtualPath);
+        }
+    }
+
+    void clearDrawingFileBinding() override {
+        if (wm && targetWindow) {
+            wm->clearDrawingFileBinding(targetWindow);
         }
     }
 
