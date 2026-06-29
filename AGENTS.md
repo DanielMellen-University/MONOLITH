@@ -13,6 +13,7 @@ This file provides guidance for AI agents (and human contributors) working on th
 - Bare descriptive titles for content-driven windows (e.g. "Editor - foo") are fine and should **not** participate in the numeric pool for that base.
 - On close of any tracked instance, the system **must** compact/renumber surviving windows of the same base so there are no gaps among live windows. Titles of open windows are expected to adjust (e.g. "Settings 2" becomes "Settings" when the primary is closed).
 - Never mutate titles of unrelated windows. Preserve relative ordering when compacting.
+- Apps that temporarily override a tracked title (e.g. Drawing after save) must restore the WM-managed instance name via `IWindowController::restoreTrackedInstanceTitle()` when clearing file state (New, etc.) — do not hardcode bare base names like `"Drawing"`.
 - Update `src/window/WindowManager.cpp`, `Window.hpp`, launchers, and this file + architecture docs for any changes to instance management.
 - Always keep `createWindow` backwards-compatible (the extra params have defaults).
 

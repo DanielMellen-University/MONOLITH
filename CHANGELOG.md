@@ -1,5 +1,15 @@
 # Changelog
 
+## 2026-06: Doc Audit & Drawing Instance Titles
+
+Aligned documentation with the codebase and fixed a Drawing title regression.
+
+- **Docs**: Terminal prompt examples use `~>`; README notes first-launch demo windows; filesystem table adds `documents/` and `welcome.txt`; architecture documents 1280×720 rendering, taskbar/minimize behavior, and `restoreTrackedInstanceTitle()`; vision roadmap marks shipped vs planned items.
+- **Code**: `IWindowController::restoreTrackedInstanceTitle()` lets apps return to WM-managed instance names; Drawing New/Ctrl+N uses it so `Drawing 2` stays `Drawing 2` instead of collapsing to `Drawing`.
+- **WindowManager.hpp**: Default logical desktop size and comments updated to match runtime (1280×720).
+
+Builds cleanly.
+
 ## 2026-06: Settings Desktop Background
 
 Settings now controls a real desktop preference.

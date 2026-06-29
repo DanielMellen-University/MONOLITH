@@ -51,6 +51,8 @@ The resulting binary will be at `build/monolith`.
 ./build/monolith
 ```
 
+On first launch (when a font is available), Monolith opens a small demo set of windows: Terminal, Filesystem Browser, a Text Editor on `welcome.txt`, and Settings. The internal filesystem is seeded with `/home/monolith/documents/`, `/home/monolith/drawings/`, and `welcome.txt` if they do not already exist.
+
 ## Documentation
 
 Full documentation lives in [`docs/`](docs/README.md).

@@ -20,6 +20,10 @@ struct IWindowController {
     virtual void close() = 0;
     virtual void setTitle(const std::string& title) = 0;
 
+    // Restore the shell-managed instance title for this window (e.g. "Drawing 2").
+    // No-op when the window is not tracked with appBaseTitle / appInstanceNumber.
+    virtual void restoreTrackedInstanceTitle() {}
+
     // Request that the desktop shell open the given virtual path in a text editor.
     // Safe to call even if not supported (default is no-op).
     virtual void openInTextEditor(const std::string& /*virtualPath*/) {}

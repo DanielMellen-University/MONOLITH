@@ -44,15 +44,16 @@ Monolith is meant to contain several distinct apps and subsystems. Implemented a
 | Shipped | Text Editor | [apps/text-editor.md](apps/text-editor.md) |
 | Shipped | Drawing | [apps/drawing.md](apps/drawing.md) |
 | Shipped | Settings | [apps/settings.md](apps/settings.md) |
+| Partial | Wallpaper (desktop background color via Settings) | [apps/settings.md](apps/settings.md) |
 | Planned | IDE | — |
-| Planned | Wallpaper | — |
+| Planned | Wallpaper images | — |
 | Planned | Games | — |
 
 New apps can be added over time, either as native features or written in the custom language.
 
 ## The Language
 
-Monolith has its own custom programming language.
+Monolith is planned to have its own custom programming language (not implemented yet).
 
 The language sits at a **medium** level of power:
 - It includes graphics and drawing primitives
@@ -92,11 +93,12 @@ The project will be built in phases, roughly in this order:
    - Ability to run programs from the terminal and editor
    - Basic graphics and sound support in the language
 
-3. **More Apps**
-   - Simple IDE experience for the language
-   - Drawing program
-   - Wallpaper and appearance customization
-   - Settings panel
+3. **More Apps** *(partially complete)*
+   - ~~Drawing program~~ — shipped
+   - ~~Settings panel~~ — shipped
+   - Desktop background color (early wallpaper work) — shipped via Settings
+   - Simple IDE experience for the language — planned
+   - Wallpaper images and richer appearance options — planned
 
 4. **Growth**
    - Games and other personal apps
