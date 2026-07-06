@@ -30,6 +30,7 @@ Second row:
 
 - **Pen**: paints with the selected color.
 - **Eraser**: paints with the canvas background color.
+- **Fill**: flood-fills a connected region with the selected color.
 - **Clear**: clears the whole canvas.
 - **S / M / L**: selects small, medium, or large brush size.
 - Color swatches: selects the active pen color and switches back to Pen.
@@ -39,6 +40,7 @@ Second row:
 - Drag on the canvas to draw.
 - Drag with Pen selected to paint with the active color.
 - Drag with Eraser selected to restore the canvas background color.
+- Click with Fill selected to flood-fill the connected region under the cursor.
 - Click a toolbar button to change tools, open prompts, or run file/history actions.
 
 ## Keyboard Shortcuts
@@ -129,7 +131,6 @@ Internally, the live canvas stores pixels as `R,G,B,A`. The saved file stores on
 
 ## Current Limitations
 
-- No bucket fill tool yet.
 - No custom color picker yet.
 - No clipboard import/export yet.
 - `.modr` files open from the Filesystem Browser; other apps cannot launch drawings yet.

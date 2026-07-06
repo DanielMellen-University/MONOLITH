@@ -36,8 +36,15 @@ private:
     void createNewFolder();
     void createNewFile();
     void deleteSelected();
+    void copySelectedToClipboard(bool cut);
+    void pasteFromClipboard();
     void startRenameSelected();
     void finishRename(bool commit);  // commit = true for Enter, false for Escape
+
+    bool copyEntryRecursive(const std::string& srcPath, const std::string& dstPath);
+    bool removeEntryRecursive(const std::string& virtualPath);
+    bool isSameOrDescendantPath(const std::string& ancestor, const std::string& path) const;
+    std::string entryBaseName(const std::string& virtualPath) const;
 
     // === Selection / Scrolling ===
     void setSelection(int index);
@@ -103,6 +110,11 @@ private:
     int m_contextMenuHoverIndex = -1;
 
     std::string m_statusMessage;
+
+    // Clipboard for copy/cut + paste
+    std::string m_clipboardPath;
+    bool m_clipboardIsCut = false;
+    bool m_clipboardValid = false;
 
     // For double-click detection we use SDL's built-in clicks count
 };

@@ -26,7 +26,7 @@ public:
     void onResize(int clientWidth, int clientHeight) override;
 
 private:
-    enum class Tool { Pen, Eraser };
+    enum class Tool { Pen, Eraser, Fill };
     enum class BrushSize { Small, Medium, Large };
     enum class PathPromptMode { None, Save, Open };
 
@@ -53,6 +53,7 @@ private:
     void setPixel(int x, int y, uint8_t r, uint8_t g, uint8_t b);
     void stampBrush(int x, int y);
     void drawStroke(int x0, int y0, int x1, int y1);
+    void floodFill(int x, int y);
     int brushRadius() const;
     uint8_t activeRed() const;
     uint8_t activeGreen() const;
@@ -128,6 +129,7 @@ private:
     SDL_Rect m_btnRedo{0, 0, 0, 0};
     SDL_Rect m_btnPen{0, 0, 0, 0};
     SDL_Rect m_btnEraser{0, 0, 0, 0};
+    SDL_Rect m_btnFill{0, 0, 0, 0};
     SDL_Rect m_btnClear{0, 0, 0, 0};
     SDL_Rect m_btnBrushSmall{0, 0, 0, 0};
     SDL_Rect m_btnBrushMedium{0, 0, 0, 0};

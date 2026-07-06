@@ -273,6 +273,55 @@ void DrawingApp::stampBrush(int x, int y) {
     }
 }
 
+void DrawingApp::floodFill(int x, int y) {
+    if (x < 0 || y < 0 || x >= m_canvasWidth || y >= m_canvasHeight) return;
+
+    const size_t startIdx = (static_cast<size_t>(y) * static_cast<size_t>(m_canvasWidth) + static_cast<size_t>(x)) * 4;
+    const uint8_t targetR = m_pixels[startIdx + 0];
+    const uint8_t targetG = m_pixels[startIdx + 1];
+    const uint8_t targetB = m_pixels[startIdx + 2];
+
+    const uint8_t fillR = activeRed();
+    const uint8_t fillG = activeGreen();
+    const uint8_t fillB = activeBlue();
+
+    if (targetR == fillR && targetG == fillG && targetB == fillB) {
+        setStatus("Fill: color already matches.");
+        return;
+    }
+
+    pushUndoSnapshot();
+
+    std::vector<std::pair<int, int>> queue;
+    queue.emplace_back(x, y);
+
+    while (!queue.empty()) {
+        const auto [px, py] = queue.back();
+        queue.pop_back();
+
+        if (px < 0 || py < 0 || px >= m_canvasWidth || py >= m_canvasHeight) continue;
+
+        const size_t idx = (static_cast<size_t>(py) * static_cast<size_t>(m_canvasWidth) + static_cast<size_t>(px)) * 4;
+        if (m_pixels[idx + 0] != targetR || m_pixels[idx + 1] != targetG || m_pixels[idx + 2] != targetB) {
+            continue;
+        }
+
+        m_pixels[idx + 0] = fillR;
+        m_pixels[idx + 1] = fillG;
+        m_pixels[idx + 2] = fillB;
+        m_pixels[idx + 3] = 255;
+
+        queue.emplace_back(px + 1, py);
+        queue.emplace_back(px - 1, py);
+        queue.emplace_back(px, py + 1);
+        queue.emplace_back(px, py - 1);
+    }
+
+    m_dirty = true;
+    markTextureDirty();
+    setStatus("Filled region.");
+}
+
 void DrawingApp::drawStroke(int x0, int y0, int x1, int y1) {
     const int dx = std::abs(x1 - x0);
     const int dy = std::abs(y1 - y0);
@@ -626,6 +675,11 @@ void DrawingApp::handleToolbarClick(int x, int y) {
         setStatus("Tool: Eraser");
         return;
     }
+    if (pointInRect(x, y, m_btnFill)) {
+        m_tool = Tool::Fill;
+        setStatus("Tool: Fill (click a region)");
+        return;
+    }
     if (pointInRect(x, y, m_btnClear)) {
         clearCanvas();
         return;
@@ -718,6 +772,7 @@ void DrawingApp::drawToolbar(SDL_Renderer* renderer, const SDL_Rect& contentRect
     const int toolRowY = kToolbarPadding + kToolbarButtonHeight + 6;
     drawButton(m_btnPen, "Pen", 44, m_tool == Tool::Pen, relX, toolRowY);
     drawButton(m_btnEraser, "Eraser", 54, m_tool == Tool::Eraser, relX, toolRowY);
+    drawButton(m_btnFill, "Fill", 40, m_tool == Tool::Fill, relX, toolRowY);
     drawButton(m_btnClear, "Clear", 48, false, relX, toolRowY);
     relX += 4;
     drawButton(m_btnBrushSmall, "S", 24, m_brush == BrushSize::Small, relX, toolRowY);
@@ -897,6 +952,10 @@ void DrawingApp::handleEvent(const SDL_Event& event) {
             int cx = 0;
             int cy = 0;
             canvasPointFromClient(x, y, cx, cy);
+            if (m_tool == Tool::Fill) {
+                floodFill(cx, cy);
+                return;
+            }
             m_drawing = true;
             m_lastCanvasX = cx;
             m_lastCanvasY = cy;
@@ -915,7 +974,7 @@ void DrawingApp::handleEvent(const SDL_Event& event) {
         return;
     }
 
-    if (event.type == SDL_MOUSEMOTION && m_drawing) {
+    if (event.type == SDL_MOUSEMOTION && m_drawing && m_tool != Tool::Fill) {
         const int x = event.motion.x;
         const int y = event.motion.y;
         if (!isInCanvas(x, y)) return;

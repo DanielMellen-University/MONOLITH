@@ -64,6 +64,8 @@ Run `help` for the full list. Current commands:
 | `mkdir <dir>` | Create directory |
 | `touch <file>` | Create empty file |
 | `cat <file>` | Show file contents |
+| `edit <file>` | Open a text file in the Text Editor |
+| `open <path>` | Open a file (`.modr` → Drawing, else Text Editor) |
 | `cp [-r] <src> <dst>` | Copy file or directory tree |
 | `mv <src> <dst>` | Move or rename (destination directory supported) |
 | `rm [-r] <path>` | Remove file or directory |
@@ -88,7 +90,7 @@ History is saved after each submitted command.
 - No quoting support — filenames with spaces cannot be passed as single arguments.
 - No pipes, redirection, or job control.
 - No script execution or custom language integration yet.
-- `cp`/`rm -r` recursive operations are Terminal-only (not exposed in the graphical browser).
+- Recursive delete is Terminal-only (`rm -r`); the graphical browser deletes files and empty directories only.
 - UTF-8 input is not fully handled in the input line.
 
 ## Developer Notes

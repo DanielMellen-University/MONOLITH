@@ -180,6 +180,146 @@ void FilesystemApp::createNewFile() {
     }
 }
 
+std::string FilesystemApp::entryBaseName(const std::string& virtualPath) const {
+    if (!m_fs) return virtualPath;
+    const std::string normalized = m_fs->normalize(virtualPath);
+    const size_t slash = normalized.find_last_of('/');
+    if (slash == std::string::npos) return normalized;
+    return normalized.substr(slash + 1);
+}
+
+bool FilesystemApp::isSameOrDescendantPath(const std::string& ancestor, const std::string& path) const {
+    if (!m_fs) return false;
+    const std::string a = m_fs->normalize(ancestor);
+    const std::string p = m_fs->normalize(path);
+    if (a == p) return true;
+    if (a.empty() || p.empty()) return false;
+
+    std::string prefix = a;
+    if (prefix.back() != '/') prefix += '/';
+    return p.compare(0, prefix.size(), prefix) == 0;
+}
+
+bool FilesystemApp::copyEntryRecursive(const std::string& srcPath, const std::string& dstPath) {
+    if (!m_fs) return false;
+
+    if (m_fs->isFile(srcPath)) {
+        return m_fs->writeFile(dstPath, m_fs->readFile(srcPath));
+    }
+
+    if (!m_fs->isDirectory(srcPath)) return false;
+
+    if (!m_fs->createDirectory(dstPath) && !m_fs->isDirectory(dstPath)) {
+        return false;
+    }
+
+    for (const auto& entry : m_fs->listEntries(srcPath)) {
+        const std::string childSrc = m_fs->normalize(
+            srcPath == "/" ? "/" + entry.name : srcPath + "/" + entry.name
+        );
+        const std::string childDst = m_fs->normalize(
+            dstPath == "/" ? "/" + entry.name : dstPath + "/" + entry.name
+        );
+        if (!copyEntryRecursive(childSrc, childDst)) {
+            return false;
+        }
+    }
+    return true;
+}
+
+bool FilesystemApp::removeEntryRecursive(const std::string& virtualPath) {
+    if (!m_fs) return false;
+
+    if (m_fs->isFile(virtualPath)) {
+        return m_fs->remove(virtualPath);
+    }
+
+    if (!m_fs->isDirectory(virtualPath)) return false;
+
+    for (const auto& entry : m_fs->listEntries(virtualPath)) {
+        const std::string child = m_fs->normalize(
+            virtualPath == "/" ? "/" + entry.name : virtualPath + "/" + entry.name
+        );
+        if (!removeEntryRecursive(child)) {
+            return false;
+        }
+    }
+    return m_fs->remove(virtualPath);
+}
+
+void FilesystemApp::copySelectedToClipboard(bool cut) {
+    if (!m_fs || m_selectedIndex < 0 || m_selectedIndex >= static_cast<int>(m_entries.size())) {
+        setStatus(cut ? "Cut failed: no item selected" : "Copy failed: no item selected");
+        return;
+    }
+
+    m_clipboardPath = fullPathFor(m_entries[m_selectedIndex].name);
+    m_clipboardIsCut = cut;
+    m_clipboardValid = true;
+    setStatus((cut ? "Cut: " : "Copied: ") + m_entries[m_selectedIndex].name);
+}
+
+void FilesystemApp::pasteFromClipboard() {
+    if (!m_fs) {
+        setStatus("Paste failed: filesystem not available");
+        return;
+    }
+    if (!m_clipboardValid || m_clipboardPath.empty()) {
+        setStatus("Paste failed: clipboard is empty");
+        return;
+    }
+    if (!m_fs->exists(m_clipboardPath)) {
+        setStatus("Paste failed: source no longer exists");
+        m_clipboardValid = false;
+        m_clipboardPath.clear();
+        return;
+    }
+
+    const std::string baseName = entryBaseName(m_clipboardPath);
+    const std::string destPath = fullPathFor(baseName);
+
+    if (destPath == m_clipboardPath) {
+        setStatus("Paste failed: already in this location");
+        return;
+    }
+    if (isSameOrDescendantPath(m_clipboardPath, destPath)) {
+        setStatus("Paste failed: cannot paste into itself");
+        return;
+    }
+    if (m_fs->exists(destPath)) {
+        setStatus("Paste failed: " + baseName + " already exists here");
+        return;
+    }
+
+    if (!copyEntryRecursive(m_clipboardPath, destPath)) {
+        setStatus("Paste failed: could not copy " + baseName);
+        return;
+    }
+
+    const bool wasCut = m_clipboardIsCut;
+    const std::string sourcePath = m_clipboardPath;
+    const std::string sourceName = baseName;
+    const bool sourceWasDirectory = m_fs->isDirectory(sourcePath);
+
+    if (wasCut) {
+        if (!removeEntryRecursive(sourcePath)) {
+            setStatus("Paste warning: copied but could not remove original");
+            m_clipboardValid = false;
+            m_clipboardPath.clear();
+            refreshEntries();
+            selectEntryNamed(sourceName, sourceWasDirectory);
+            return;
+        }
+        m_clipboardValid = false;
+        m_clipboardPath.clear();
+        m_clipboardIsCut = false;
+    }
+
+    refreshEntries();
+    selectEntryNamed(sourceName, sourceWasDirectory);
+    setStatus(wasCut ? ("Moved: " + sourceName) : ("Pasted: " + sourceName));
+}
+
 void FilesystemApp::deleteSelected() {
     if (!m_fs || m_selectedIndex < 0 || m_selectedIndex >= static_cast<int>(m_entries.size())) {
         setStatus(m_fs ? "Delete failed: no item selected" : "Delete failed: filesystem not available");
@@ -485,6 +625,24 @@ void FilesystemApp::handleKeyDown(const SDL_Keysym& keysym) {
             setStatus("Refreshed");
             break;
 
+        case SDLK_c:
+            if (keysym.mod & KMOD_CTRL) {
+                copySelectedToClipboard(false);
+            }
+            break;
+
+        case SDLK_x:
+            if (keysym.mod & KMOD_CTRL) {
+                copySelectedToClipboard(true);
+            }
+            break;
+
+        case SDLK_v:
+            if (keysym.mod & KMOD_CTRL) {
+                pasteFromClipboard();
+            }
+            break;
+
         case SDLK_ESCAPE:
             if (m_showContextMenu) {
                 closeContextMenu();
@@ -780,10 +938,18 @@ void FilesystemApp::showContextMenu(int x, int y, int targetIndex) {
         // Background menu
         m_contextMenuItems.push_back("New Folder");
         m_contextMenuItems.push_back("New File");
+        if (m_clipboardValid) {
+            m_contextMenuItems.push_back("Paste");
+        }
         m_contextMenuItems.push_back("Refresh");
     } else if (targetIndex >= 0 && targetIndex < static_cast<int>(m_entries.size())) {
         const auto& entry = m_entries[targetIndex];
         m_contextMenuItems.push_back("Open");
+        m_contextMenuItems.push_back("Copy");
+        m_contextMenuItems.push_back("Cut");
+        if (m_clipboardValid) {
+            m_contextMenuItems.push_back("Paste");
+        }
         m_contextMenuItems.push_back("Rename");
         if (entry.isDirectory) {
             // Could add more folder-specific options later
@@ -825,6 +991,18 @@ void FilesystemApp::executeContextMenuAction(int menuIndex) {
         if (target >= 0) {
             activateEntry(target);
         }
+    } else if (action == "Copy") {
+        if (target >= 0) {
+            m_selectedIndex = target;
+            copySelectedToClipboard(false);
+        }
+    } else if (action == "Cut") {
+        if (target >= 0) {
+            m_selectedIndex = target;
+            copySelectedToClipboard(true);
+        }
+    } else if (action == "Paste") {
+        pasteFromClipboard();
     } else if (action == "Rename") {
         if (target >= 0) {
             m_selectedIndex = target;

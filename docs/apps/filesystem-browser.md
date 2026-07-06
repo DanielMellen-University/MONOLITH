@@ -70,19 +70,34 @@ Delete (toolbar, keyboard, or context menu) shows a confirmation submenu: **Conf
 **Right-click a file:**
 
 - Open (opens in Text Editor, or Drawing for `.modr` files)
+- Copy / Cut / Paste
 - Rename
 - Delete
 
 **Right-click a directory:**
 
 - Open (enter directory)
+- Copy / Cut / Paste
 - Rename
 - Delete
+
+**Right-click empty space:**
+
+- New Folder / New File
+- Paste (when something is on the clipboard)
+- Refresh
+
+## Copy, Cut, and Paste
+
+- **Copy** or **Cut** a selected file or folder from the right-click menu (or Ctrl+C / Ctrl+X).
+- **Paste** into the current directory from the right-click menu (or Ctrl+V).
+- Cut + Paste moves items; Copy + Paste duplicates them (including directory trees).
+- Paste is blocked if the destination already contains an item with the same name, or if you try to paste a folder into itself.
 
 ## Current Limitations
 
 - Only text files and `.modr` drawings open from here (no generic “open with” yet).
-- No copy, move, or drag-and-drop.
+- No drag-and-drop.
 - No multi-select.
 - No file preview or properties panel.
 - Recursive delete is not exposed (use Terminal `rm -r` for directory trees if needed).

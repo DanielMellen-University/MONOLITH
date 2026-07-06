@@ -86,6 +86,8 @@ void TerminalApp::executeCommand(const std::string& commandLine) {
         addOutput("  rm [-r] <path>  - Remove file or directory (-r for recursive)");
         addOutput("  mv <src> <dst>  - Move/rename file or directory (dst dir supported)");
         addOutput("  cat <file>      - Show file contents");
+        addOutput("  edit <file>     - Open a text file in the Text Editor");
+        addOutput("  open <path>     - Open a file (.modr in Drawing, else Editor)");
         addOutput("  history         - Show command history");
         addOutput("  help            - Show this message");
         addOutput("  exit / quit     - Close this terminal");
@@ -298,6 +300,45 @@ void TerminalApp::executeCommand(const std::string& commandLine) {
                 } else {
                     addOutput("rm: cannot remove '" + target + "' (use -r for directories)");
                 }
+            }
+        }
+    }
+    else if (cmd == "edit") {
+        if (!m_fs) {
+            addOutput("Filesystem not available");
+        } else if (rest.empty()) {
+            addOutput("edit: missing file operand");
+        } else {
+            std::string path = resolvePath(rest);
+            if (!m_fs->isFile(path)) {
+                addOutput("edit: " + rest + ": No such file");
+            } else if (auto* ctrl = getController()) {
+                ctrl->openInTextEditor(path);
+                addOutput("Opened in Text Editor: " + path);
+            } else {
+                addOutput("edit: cannot open editor (no controller)");
+            }
+        }
+    }
+    else if (cmd == "open") {
+        if (!m_fs) {
+            addOutput("Filesystem not available");
+        } else if (rest.empty()) {
+            addOutput("open: missing file operand");
+        } else {
+            std::string path = resolvePath(rest);
+            if (!m_fs->isFile(path)) {
+                addOutput("open: " + rest + ": No such file");
+            } else if (auto* ctrl = getController()) {
+                if (path.size() >= 5 && path.compare(path.size() - 5, 5, ".modr") == 0) {
+                    ctrl->openInDrawing(path);
+                    addOutput("Opened in Drawing: " + path);
+                } else {
+                    ctrl->openInTextEditor(path);
+                    addOutput("Opened in Text Editor: " + path);
+                }
+            } else {
+                addOutput("open: cannot open file (no controller)");
             }
         }
     }
@@ -679,7 +720,7 @@ std::vector<std::string> TerminalApp::getCommandCompletions(const std::string& p
     static const std::vector<std::string> commands = {
         "echo", "clear", "help", "date", "whoami", "version", "ver",
         "ls", "pwd", "cd", "mkdir", "touch", "cp", "rm", "mv",
-        "cat", "history", "exit", "quit"
+        "cat", "edit", "open", "history", "exit", "quit"
     };
 
     std::vector<std::string> matches;

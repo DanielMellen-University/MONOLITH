@@ -1,5 +1,15 @@
 # Changelog
 
+## 2026-07: Filesystem Copy/Move, Terminal Open, Drawing Fill
+
+Three usability upgrades across the shell and apps.
+
+- **Filesystem Browser**: right-click Copy, Cut, and Paste (plus Ctrl+C/X/V) for files and folders, including recursive directory trees.
+- **Terminal**: `edit <file>` opens text files in the Text Editor; `open <path>` routes `.modr` files to Drawing and other files to the Editor.
+- **Drawing**: new Fill toolbar tool flood-fills connected regions with the active color (undo/redo supported).
+
+Builds cleanly.
+
 ## 2026-06: Filesystem Drawing Open & Editor Path Prompts
 
 Tighter shell integration and editor polish.
