@@ -54,18 +54,12 @@ Follow these documentation boundaries:
   ```
 - Push or create worktree/PR as appropriate for the branch (currently beta in this worktree).
 
-## App UI & Rendering Rules
-- **Reserve chrome space.** Status bars, toolbars, path bars, and margins must subtract from the content area before laying out scrollable text or lists. Never draw status/help text on top of editable content.
-- **Syntax highlighting must be safe on prose.** Plain-text files (`.txt`, etc.) use *light* mode: no keyword coloring. Do not treat apostrophes in words (`Monolith's`, `don't`) as string delimiters — single-quoted strings are code-mode only and require a real closing quote on the same line, not preceded by a word character.
-- **Verify visually after editor/drawing/settings UI changes.** Launch `./build/monolith` and check first-run windows (especially `welcome.txt` in the Text Editor) at default and small window sizes.
-
 ## Testing Expectations (Manual)
 - Exercise multiple instances + close + reopen for every tracked type (Terminal, Filesystem, Drawing, Settings, bare Editor).
 - Verify that closing a lower number causes higher ones to adjust their titles live.
 - Check taskbar, title bars, Start menu, and focus behavior after renumbering.
 - Mixed types should not interfere with each other's numbering.
 - File editors remain independent.
-- Open `welcome.txt` after Text Editor rendering changes; confirm no status-bar overlap and no false string coloring on apostrophes.
 
 ## Non-Goals / Out of Scope for Agents
 - Do not add persistence of instance numbers across Monolith restarts.
