@@ -72,6 +72,21 @@ private:
     void applyCurrentFindMatch();
     int findMatchIndexAt(int row, int col) const;
 
+    // === Syntax highlighting ===
+    enum class SyntaxMode { Light, Code };
+
+    struct ColoredSpan {
+        size_t start = 0;
+        size_t length = 0;
+        SDL_Color color{};
+    };
+
+    SyntaxMode syntaxModeForPath(const std::string& path) const;
+    void refreshSyntaxMode();
+    std::vector<ColoredSpan> tokenizeLine(const std::string& line) const;
+    void drawColoredLine(SDL_Renderer* renderer, const std::string& line, int x, int y,
+                         int maxWidth) const;
+
     // === Rendering helpers ===
     int getLineHeight() const;
     int getVisibleLineCount(const SDL_Rect& contentRect) const;
@@ -98,6 +113,10 @@ private:
     std::string m_findQuery;
     std::vector<std::pair<int, int>> m_findMatches;  // row, col starts
     int m_currentFindMatch = -1;
+
+    SyntaxMode m_syntaxMode = SyntaxMode::Light;
+
+    static constexpr int kStatusBarHeight = 22;
 
     // Cached for layout
     int m_clientWidth = 0;

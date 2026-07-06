@@ -1,5 +1,16 @@
 # Changelog
 
+## 2026-07: Text Editor Syntax Highlighting
+
+The Text Editor now colorizes source text while you type.
+
+- Per-line highlighting for comments, strings, numbers, and keywords.
+- **Light mode** for plain-text files (`.txt`, etc.) avoids keyword false positives in prose; apostrophes in words stay plain text.
+- **Code mode** for common source extensions (`.cpp`, `.py`, `.js`, `.rs`, `.md`, etc.) adds keyword coloring.
+- Status bar reserves its own height so shortcut hints never overlap file content (fixes `welcome.txt` garble on small windows).
+
+Builds cleanly.
+
 ## 2026-07: Filesystem Copy/Move, Terminal Open, Drawing Fill
 
 Three usability upgrades across the shell and apps.

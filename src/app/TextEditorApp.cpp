@@ -1,6 +1,8 @@
 #include "TextEditorApp.hpp"
 #include <algorithm>
+#include <cctype>
 #include <sstream>
+#include <unordered_set>
 #include <vector>
 
 namespace monolith::app {
@@ -20,6 +22,53 @@ std::string commonPrefix(const std::vector<std::string>& values) {
         if (common.empty()) break;
     }
     return common;
+}
+
+bool isCodeExtension(const std::string& ext) {
+    static const std::unordered_set<std::string> kCodeExtensions = {
+        "c", "cc", "cpp", "cxx", "h", "hh", "hpp", "hxx",
+        "py", "js", "ts", "rs", "go", "java", "cs", "lua",
+        "sh", "bash", "zsh", "json", "yaml", "yml", "toml",
+        "xml", "html", "css", "md"
+    };
+    return kCodeExtensions.count(ext) > 0;
+}
+
+bool isSingleQuoteStringStart(const std::string& line, size_t index) {
+    if (index >= line.size() || line[index] != '\'') return false;
+
+    if (index > 0) {
+        const unsigned char prev = static_cast<unsigned char>(line[index - 1]);
+        if (std::isalnum(prev) || line[index - 1] == '_') {
+            return false;
+        }
+    }
+
+    for (size_t j = index + 1; j < line.size(); ++j) {
+        if (line[j] == '\\' && j + 1 < line.size()) {
+            ++j;
+            continue;
+        }
+        if (line[j] == '\'') {
+            return true;
+        }
+    }
+    return false;
+}
+
+bool isSyntaxKeyword(const std::string& word) {
+    static const std::unordered_set<std::string> kKeywords = {
+        "if", "else", "elif", "endif", "while", "for", "do", "switch", "case",
+        "break", "continue", "return", "true", "false", "null", "nil", "none",
+        "function", "fn", "def", "class", "struct", "enum", "import", "include",
+        "let", "var", "const", "int", "float", "double", "bool", "boolean",
+        "string", "void", "and", "or", "not", "in", "new", "delete", "this",
+        "public", "private", "protected", "static", "virtual", "override",
+        "namespace", "using", "typedef", "template", "typename", "sizeof",
+        "try", "catch", "throw", "finally", "async", "await", "yield",
+        "print", "println", "echo"
+    };
+    return kKeywords.count(word) > 0;
 }
 
 } // namespace
@@ -51,6 +100,166 @@ TextEditorApp::TextEditorApp(TTF_Font* font, monolith::fs::Filesystem* fs, const
         m_cursorRow = 0;
         m_cursorCol = 0;
     }
+
+    refreshSyntaxMode();
+}
+
+TextEditorApp::SyntaxMode TextEditorApp::syntaxModeForPath(const std::string& path) const {
+    if (path.empty()) return SyntaxMode::Light;
+
+    const size_t dot = path.find_last_of('.');
+    if (dot == std::string::npos || dot + 1 >= path.size()) {
+        return SyntaxMode::Light;
+    }
+
+    std::string ext = path.substr(dot + 1);
+    for (char& c : ext) {
+        c = static_cast<char>(std::tolower(static_cast<unsigned char>(c)));
+    }
+    return isCodeExtension(ext) ? SyntaxMode::Code : SyntaxMode::Light;
+}
+
+void TextEditorApp::refreshSyntaxMode() {
+    m_syntaxMode = syntaxModeForPath(m_filePath);
+}
+
+std::vector<TextEditorApp::ColoredSpan> TextEditorApp::tokenizeLine(const std::string& line) const {
+    static const SDL_Color kNormal   = {200, 205, 210, 255};
+    static const SDL_Color kComment  = {120, 145, 120, 255};
+    static const SDL_Color kString   = {220, 175, 115, 255};
+    static const SDL_Color kNumber   = {180, 155, 225, 255};
+    static const SDL_Color kKeyword  = {115, 170, 225, 255};
+
+    std::vector<ColoredSpan> spans;
+    const size_t n = line.size();
+    size_t i = 0;
+
+    auto appendSpan = [&](size_t start, size_t length, const SDL_Color& color) {
+        if (length == 0) return;
+        if (!spans.empty()
+            && spans.back().color.r == color.r
+            && spans.back().color.g == color.g
+            && spans.back().color.b == color.b
+            && spans.back().color.a == color.a
+            && spans.back().start + spans.back().length == start) {
+            spans.back().length += length;
+            return;
+        }
+        spans.push_back({start, length, color});
+    };
+
+    auto emitNormalRun = [&](size_t start, size_t end) {
+        if (end > start) {
+            appendSpan(start, end - start, kNormal);
+        }
+    };
+
+    while (i < n) {
+        if (i + 1 < n && line[i] == '/' && line[i + 1] == '/') {
+            appendSpan(i, n - i, kComment);
+            break;
+        }
+        if (line[i] == '#') {
+            appendSpan(i, n - i, kComment);
+            break;
+        }
+
+        const bool doubleQuote = (line[i] == '"');
+        const bool singleQuote = (line[i] == '\'' && m_syntaxMode == SyntaxMode::Code
+                                  && isSingleQuoteStringStart(line, i));
+        if (doubleQuote || singleQuote) {
+            const char quote = line[i];
+            size_t j = i + 1;
+            while (j < n) {
+                if (line[j] == '\\' && j + 1 < n) {
+                    j += 2;
+                    continue;
+                }
+                if (line[j] == quote) {
+                    ++j;
+                    break;
+                }
+                ++j;
+            }
+            appendSpan(i, j - i, kString);
+            i = j;
+            continue;
+        }
+
+        const unsigned char ch = static_cast<unsigned char>(line[i]);
+        if (std::isdigit(ch)
+            || (line[i] == '.' && i + 1 < n
+                && std::isdigit(static_cast<unsigned char>(line[i + 1])))) {
+            size_t j = i;
+            if (line[j] == '-') ++j;
+            while (j < n) {
+                const unsigned char cj = static_cast<unsigned char>(line[j]);
+                if (!std::isdigit(cj) && line[j] != '.') break;
+                ++j;
+            }
+            appendSpan(i, j - i, kNumber);
+            i = j;
+            continue;
+        }
+
+        if (std::isalpha(ch) || line[i] == '_') {
+            size_t j = i + 1;
+            while (j < n) {
+                const unsigned char cj = static_cast<unsigned char>(line[j]);
+                if (!std::isalnum(cj) && line[j] != '_') break;
+                ++j;
+            }
+            const std::string word = line.substr(i, j - i);
+            if (m_syntaxMode == SyntaxMode::Code && isSyntaxKeyword(word)) {
+                appendSpan(i, j - i, kKeyword);
+            } else {
+                appendSpan(i, j - i, kNormal);
+            }
+            i = j;
+            continue;
+        }
+
+        emitNormalRun(i, i + 1);
+        ++i;
+    }
+
+    if (spans.empty() && !line.empty()) {
+        appendSpan(0, line.size(), kNormal);
+    }
+
+    return spans;
+}
+
+void TextEditorApp::drawColoredLine(SDL_Renderer* renderer, const std::string& line, int x, int y,
+                                    int maxWidth) const {
+    if (!m_font || line.empty()) return;
+
+    const auto spans = tokenizeLine(line);
+    int curX = x;
+    const int rightEdge = x + maxWidth;
+
+    for (const auto& span : spans) {
+        if (curX >= rightEdge) break;
+        if (span.start >= line.size()) continue;
+
+        const size_t available = line.size() - span.start;
+        const size_t len = std::min(span.length, available);
+        if (len == 0) continue;
+
+        const std::string text = line.substr(span.start, len);
+        SDL_Surface* surf = TTF_RenderText_Blended(m_font, text.c_str(), span.color);
+        if (!surf) continue;
+
+        SDL_Texture* tex = SDL_CreateTextureFromSurface(renderer, surf);
+        if (tex) {
+            const int drawW = std::min(surf->w, rightEdge - curX);
+            SDL_Rect dst = {curX, y, drawW, surf->h};
+            SDL_RenderCopy(renderer, tex, nullptr, &dst);
+            SDL_DestroyTexture(tex);
+            curX += surf->w;
+        }
+        SDL_FreeSurface(surf);
+    }
 }
 
 void TextEditorApp::loadInitialFile(const std::string& virtualPath) {
@@ -77,6 +286,7 @@ void TextEditorApp::loadInitialFile(const std::string& virtualPath) {
             m_cursorRow = 0;
             m_cursorCol = 0;
             m_dirty = false;
+            refreshSyntaxMode();
         }
     }
 }
@@ -164,6 +374,7 @@ void TextEditorApp::finishPathPrompt(bool commit) {
         }
 
         m_filePath = path;
+        refreshSyntaxMode();
         saveCurrentFile();
         if (auto* ctrl = getController()) {
             ctrl->bindEditorFile(path);
@@ -485,8 +696,8 @@ int TextEditorApp::getLineHeight() const {
 int TextEditorApp::getVisibleLineCount(const SDL_Rect& contentRect) const {
     int lh = getLineHeight();
     if (lh <= 0) return 8;
-    // Leave a little padding at top and bottom
-    return std::max(3, (contentRect.h - 16) / lh);
+    const int reserved = 8 + kStatusBarHeight + 4;
+    return std::max(3, (contentRect.h - reserved) / lh);
 }
 
 void TextEditorApp::render(SDL_Renderer* renderer, const SDL_Rect& contentRect) {
@@ -507,7 +718,6 @@ void TextEditorApp::render(SDL_Renderer* renderer, const SDL_Rect& contentRect) 
     const int padding = 8;
     const int textStartY = contentRect.y + padding;
 
-    SDL_Color textColor = {200, 205, 210, 255};
     SDL_Color cursorColor = {180, 200, 180, 230};
     SDL_Color lineNumColor = {100, 105, 115, 255};
 
@@ -574,22 +784,14 @@ void TextEditorApp::render(SDL_Renderer* renderer, const SDL_Rect& contentRect) 
             }
         }
 
-        // Draw the actual line text, shifted right for line numbers
-        SDL_Surface* surf = TTF_RenderText_Blended(m_font, line.c_str(), textColor);
-        if (surf) {
-            SDL_Texture* tex = SDL_CreateTextureFromSurface(renderer, surf);
-            if (tex) {
-                SDL_Rect dst = {
-                    contentRect.x + padding + lineNumWidth,
-                    y,
-                    std::min(surf->w, contentRect.w - padding * 2 - lineNumWidth),
-                    surf->h
-                };
-                SDL_RenderCopy(renderer, tex, nullptr, &dst);
-                SDL_DestroyTexture(tex);
-            }
-            SDL_FreeSurface(surf);
-        }
+        // Draw the line with syntax highlighting
+        drawColoredLine(
+            renderer,
+            line,
+            contentRect.x + padding + lineNumWidth,
+            y,
+            contentRect.w - padding * 2 - lineNumWidth
+        );
 
         // Draw cursor if on this line
         if (lineIdx == m_cursorRow) {
@@ -615,8 +817,17 @@ void TextEditorApp::render(SDL_Renderer* renderer, const SDL_Rect& contentRect) 
         y += lineHeight;
     }
 
-    // Very minimal status line at the very bottom (optional polish)
+    // Status bar (reserved height; must not overlap editor lines)
     {
+        SDL_Rect statusBar = {
+            contentRect.x,
+            contentRect.y + contentRect.h - kStatusBarHeight,
+            contentRect.w,
+            kStatusBarHeight
+        };
+        SDL_SetRenderDrawColor(renderer, 24, 26, 30, 255);
+        SDL_RenderFillRect(renderer, &statusBar);
+
         std::string status = getDisplayName();
         if (m_findMode) {
             status = "Find: " + m_findQuery;
@@ -645,7 +856,7 @@ void TextEditorApp::render(SDL_Renderer* renderer, const SDL_Rect& contentRect) 
             if (tex) {
                 SDL_Rect dst = {
                     contentRect.x + padding,
-                    contentRect.y + contentRect.h - surf->h - 4,
+                    statusBar.y + (kStatusBarHeight - surf->h) / 2,
                     std::min(surf->w, contentRect.w - padding * 2),
                     surf->h
                 };

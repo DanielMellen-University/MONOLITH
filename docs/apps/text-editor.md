@@ -20,7 +20,24 @@ File-backed editors are singletons per path — opening the same file again focu
 - **Arrow keys**, **Home**, and **End** move the cursor.
 - **Backspace** deletes before the cursor; **Delete** deletes after.
 - Line numbers appear in the left margin.
+- Syntax highlighting colors comments, strings, numbers, and (for code files) keywords.
 - A `*` in the status bar indicates unsaved changes.
+
+## Syntax Highlighting
+
+The editor applies lightweight per-line highlighting:
+
+| Element | Color role |
+|---------|------------|
+| Comments (`//`, `#`) | Muted green |
+| Strings (`"..."`, `'...'`) | Gold |
+| Numbers | Purple |
+| Keywords | Blue (code files only) |
+| Everything else | Default text |
+
+**Light mode** (`.txt` and other plain extensions): comments, double-quoted strings, and numbers only — keywords are not highlighted and apostrophes in prose (`Monolith's`) are not treated as strings.
+
+**Code mode** (`.cpp`, `.py`, `.js`, `.rs`, `.md`, and similar): adds keyword highlighting for common programming tokens.
 
 ## Keyboard Shortcuts
 
@@ -54,7 +71,8 @@ Ctrl+S saves to the bound path when one exists. If the buffer is untitled, Ctrl+
 
 - Open/save-as use inline path prompts, not graphical file-picker dialogs.
 - Undo/redo store full buffer snapshots (capped stack).
-- No syntax highlighting or multiple buffers/tabs.
+- Highlighting is per-line only (no multiline strings or block comments).
+- No multiple buffers/tabs.
 - UTF-8 handling is basic (single-byte insertion from SDL text input).
 - No integration with the custom language runtime yet.
 
