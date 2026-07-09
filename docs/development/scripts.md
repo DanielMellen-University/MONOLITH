@@ -12,6 +12,16 @@ Static grep-based check that Drawing is wired into the window manager and Start 
 
 Verifies `launchDrawing` declarations, Start menu entry, and related integration points.
 
+## Games Integration Check
+
+Static checks that Snake and Minesweeper are wired into the shell:
+
+```bash
+./scripts/verify_games_integration.sh
+```
+
+Verifies launchers, Start menu actions, `App::update()` dispatch, CMake entries, and docs hub links.
+
 ## `.modr` Format Roundtrip
 
 Compiles and runs a standalone test of the Drawing raster file format:

@@ -44,10 +44,11 @@ Monolith is meant to contain several distinct apps and subsystems. Implemented a
 | Shipped | Text Editor | [apps/text-editor.md](apps/text-editor.md) |
 | Shipped | Drawing | [apps/drawing.md](apps/drawing.md) |
 | Shipped | Settings | [apps/settings.md](apps/settings.md) |
+| Shipped | Snake | [apps/snake.md](apps/snake.md) |
+| Shipped | Minesweeper | [apps/minesweeper.md](apps/minesweeper.md) |
 | Partial | Wallpaper (desktop background color via Settings) | [apps/settings.md](apps/settings.md) |
 | Planned | IDE | — |
 | Planned | Wallpaper images | — |
-| Planned | Games | — |
 
 New apps can be added over time, either as native features or written in the custom language.
 
@@ -101,7 +102,7 @@ The project will be built in phases, roughly in this order:
    - Wallpaper images and richer appearance options — planned
 
 4. **Growth**
-   - Games and other personal apps
+   - ~~Games~~ — Snake and Minesweeper shipped
    - Deeper integration between apps
    - Whatever feels worth adding over time
 

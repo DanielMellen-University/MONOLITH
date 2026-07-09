@@ -24,6 +24,8 @@ Documentation hub for the Monolith project. Start with the [root README](../READ
 | Filesystem Browser | [apps/filesystem-browser.md](apps/filesystem-browser.md) |
 | Drawing | [apps/drawing.md](apps/drawing.md) |
 | Settings | [apps/settings.md](apps/settings.md) |
+| Snake | [apps/snake.md](apps/snake.md) |
+| Minesweeper | [apps/minesweeper.md](apps/minesweeper.md) |
 
 ## Development
 

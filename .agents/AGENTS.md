@@ -55,7 +55,7 @@ Follow these documentation boundaries:
 - Push or create worktree/PR as appropriate for the branch (currently beta in this worktree).
 
 ## Testing Expectations (Manual)
-- Exercise multiple instances + close + reopen for every tracked type (Terminal, Filesystem, Drawing, Settings, bare Editor).
+- Exercise multiple instances + close + reopen for every tracked type (Terminal, Filesystem, Drawing, Settings, Snake, Minesweeper, bare Editor).
 - Verify that closing a lower number causes higher ones to adjust their titles live.
 - Check taskbar, title bars, Start menu, and focus behavior after renumbering.
 - Mixed types should not interfere with each other's numbering.

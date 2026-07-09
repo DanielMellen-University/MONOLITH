@@ -5,6 +5,8 @@
 #include "../app/FilesystemApp.hpp"
 #include "../app/SettingsApp.hpp"
 #include "../app/DrawingApp.hpp"
+#include "../app/SnakeApp.hpp"
+#include "../app/MinesweeperApp.hpp"
 #include <algorithm>
 
 namespace monolith::window {
@@ -118,7 +120,9 @@ void WindowManager::handleEvent(const SDL_Event& event) {
                         case 2: launchFilesystem(); break;
                         case 3: launchSettings(); break;
                         case 4: launchDrawing(); break;
-                        case 5: requestQuit(); break;
+                        case 5: launchSnake(); break;
+                        case 6: launchMinesweeper(); break;
+                        case 7: requestQuit(); break;
                         default: break;
                     }
                     m_showStartMenu = false;
@@ -333,6 +337,13 @@ void WindowManager::update() {
             w->rect = usable;
         }
     }
+
+    // Per-frame app updates (games ticks, timers, etc.). Skip minimized windows.
+    for (auto& w : m_windows) {
+        if (w && w->app && !w->minimized) {
+            w->app->update();
+        }
+    }
 }
 
 void WindowManager::render(SDL_Renderer* renderer) {
@@ -456,7 +467,7 @@ void WindowManager::render(SDL_Renderer* renderer) {
 
     if (m_showStartMenu) {
         const int menuWidth = 210;
-        const int menuHeight = 260;
+        const int menuHeight = 320;
         const int menuX = logicalToScreenX(8);
         const int menuY = logicalToScreenY(getTaskbarRect().y - menuHeight);
 
@@ -512,7 +523,9 @@ void WindowManager::render(SDL_Renderer* renderer) {
                 {"Filesystem", 2},
                 {"Settings", 3},
                 {"Drawing", 4},
-                {"Shut Down", 5}
+                {"Snake", 5},
+                {"Minesweeper", 6},
+                {"Shut Down", 7}
             };
 
             // Start items below the accent header
@@ -1437,6 +1450,26 @@ void WindowManager::launchSettings() {
     int y = 110 + (static_cast<int>(m_windows.size()) % 3) * 15;
     createWindow(title, x, y, 480, 460, std::move(app), "Settings", inst);
     // Note: caller (e.g. Start menu) is responsible for m_showStartMenu = false.
+}
+
+void WindowManager::launchSnake() {
+    if (!m_appFont) return;
+
+    auto [title, inst] = claimNextAppInstanceTitle("Snake");
+    auto app = std::make_unique<monolith::app::SnakeApp>(m_appFont);
+    int x = 140 + (static_cast<int>(m_windows.size()) % 6) * 30;
+    int y = 70 + (static_cast<int>(m_windows.size()) % 4) * 25;
+    createWindow(title, x, y, 420, 460, std::move(app), "Snake", inst);
+}
+
+void WindowManager::launchMinesweeper() {
+    if (!m_appFont) return;
+
+    auto [title, inst] = claimNextAppInstanceTitle("Minesweeper");
+    auto app = std::make_unique<monolith::app::MinesweeperApp>(m_appFont);
+    int x = 160 + (static_cast<int>(m_windows.size()) % 5) * 28;
+    int y = 80 + (static_cast<int>(m_windows.size()) % 4) * 22;
+    createWindow(title, x, y, 360, 420, std::move(app), "Minesweeper", inst);
 }
 
 void WindowManager::requestQuit() {

@@ -11,7 +11,7 @@ Monolith is an experimental, self-contained environment written in C++ using SDL
 Monolith has a working desktop environment with overlapping windows:
 
 - **Window Manager** — Dragging, 8-way resizing, title bars, z-order, focus, taskbar with Start menu, and dynamic multi-instance window titles.
-- **Built-in Apps** — Terminal, Text Editor, Filesystem Browser, Drawing, and Settings (desktop background color). Each has its own documentation (see below).
+- **Built-in Apps** — Terminal, Text Editor, Filesystem Browser, Drawing, Settings (desktop background color), Snake, and Minesweeper. Each has its own documentation (see below).
 - **Internal Filesystem** — Host-backed persistence under `~/.monolith/fs/` with a clean virtual path namespace.
 
 **This is still early** — no custom language yet, limited polish, and the set of apps is small. The focus is on building a coherent, self-contained environment over time.
@@ -73,6 +73,8 @@ Full documentation lives in [`docs/`](docs/README.md).
 | Filesystem Browser | [docs/apps/filesystem-browser.md](docs/apps/filesystem-browser.md) |
 | Drawing | [docs/apps/drawing.md](docs/apps/drawing.md) |
 | Settings | [docs/apps/settings.md](docs/apps/settings.md) |
+| Snake | [docs/apps/snake.md](docs/apps/snake.md) |
+| Minesweeper | [docs/apps/minesweeper.md](docs/apps/minesweeper.md) |
 
 ## License
 

@@ -1,5 +1,17 @@
 # Changelog
 
+## 2026-07: Snake and Minesweeper
+
+Two classic games as native Monolith apps.
+
+- **Snake**: 20×20 grid, WASD/arrows, pause on blur, mild speed-up with score, multi-instance titles.
+- **Minesweeper**: Beginner / Intermediate / Expert, first-click safety, flood reveal, flags, timer.
+- **Window Manager**: `App::update()` is now called each frame for non-minimized windows (game ticks/timers).
+- Start menu entries: Snake and Minesweeper (before Shut Down).
+- Docs: `docs/apps/snake.md`, `docs/apps/minesweeper.md`; architecture notes app update dispatch.
+
+Builds cleanly.
+
 ## 2026-07: Text Editor Syntax Highlighting
 
 The Text Editor now colorizes source text while you type.

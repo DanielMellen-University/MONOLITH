@@ -111,6 +111,8 @@ public:
     void launchFilesystem();
     void launchDrawing(const std::string& initialPath = "");
     void launchSettings();
+    void launchSnake();
+    void launchMinesweeper();
 
     // Request that the desktop shell / main loop exit (used by Shut Down)
     void requestQuit();
