@@ -49,6 +49,9 @@ private:
                   SDL_Color color) const;
     void drawCenteredText(SDL_Renderer* renderer, const char* text,
                           const SDL_Rect& area, SDL_Color color) const;
+    // Horizontally center `text` in `area`; top of glyphs at `topY`.
+    void drawCenteredLine(SDL_Renderer* renderer, const char* text,
+                          const SDL_Rect& area, int topY, SDL_Color color) const;
     void loadHighScore();
     void saveHighScore() const;
     void maybeUpdateHighScore();

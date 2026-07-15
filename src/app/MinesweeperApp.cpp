@@ -430,6 +430,25 @@ void MinesweeperApp::drawCenteredText(SDL_Renderer* renderer, const char* text,
     SDL_FreeSurface(surf);
 }
 
+void MinesweeperApp::drawCenteredLine(SDL_Renderer* renderer, const char* text,
+                                      const SDL_Rect& area, int topY, SDL_Color color) const {
+    if (!m_font || !text || !*text) return;
+    SDL_Surface* surf = TTF_RenderUTF8_Blended(m_font, text, color);
+    if (!surf) return;
+    SDL_Texture* tex = SDL_CreateTextureFromSurface(renderer, surf);
+    if (tex) {
+        SDL_Rect dst{
+            area.x + (area.w - surf->w) / 2,
+            topY,
+            surf->w,
+            surf->h
+        };
+        SDL_RenderCopy(renderer, tex, nullptr, &dst);
+        SDL_DestroyTexture(tex);
+    }
+    SDL_FreeSurface(surf);
+}
+
 SDL_Color MinesweeperApp::numberColor(int n) const {
     switch (n) {
         case 1: return {70, 120, 220, 255};
@@ -670,34 +689,49 @@ void MinesweeperApp::render(SDL_Renderer* renderer, const SDL_Rect& contentRect)
     drawText(renderer, "L open  R flag/?  M/chord  face=new", contentRect.x + 10,
              footer.y + 4, kDimText);
 
-    // End overlays
+    // End overlays — centered vertical stack
     if (m_state == State::Won || m_state == State::Lost) {
         SDL_Rect boardRect{m_boardX, m_boardY, m_boardPxW, m_boardPxH};
         SDL_SetRenderDrawBlendMode(renderer, SDL_BLENDMODE_BLEND);
         SDL_SetRenderDrawColor(renderer, 0, 0, 0, 130);
         SDL_RenderFillRect(renderer, &boardRect);
         SDL_SetRenderDrawBlendMode(renderer, SDL_BLENDMODE_NONE);
-        const char* msg = (m_state == State::Won) ? "YOU WIN!" : "BOOM!";
-        drawCenteredText(renderer, msg, boardRect, kOverlayText);
+
+        const char* title = (m_state == State::Won) ? "YOU WIN!" : "BOOM!";
+        std::string line2;
+        std::string line3;
+        SDL_Color line3Color = kDimText;
 
         if (m_state == State::Won) {
-            std::string detail = "Time " + std::to_string(m_elapsedSec) + "s";
+            line2 = "Time " + std::to_string(m_elapsedSec) + "s";
             const int bestNow = bestTimeFor(m_difficulty);
             if (bestNow > 0) {
-                detail += "  ·  Best " + std::to_string(bestNow) + "s";
+                line2 += "  ·  Best " + std::to_string(bestNow) + "s";
             }
-            drawText(renderer, detail.c_str(), boardRect.x + 12,
-                     boardRect.y + boardRect.h / 2 + 14, kDimText);
             if (m_newBest) {
-                drawText(renderer, "NEW BEST!", boardRect.x + 12,
-                         boardRect.y + boardRect.h / 2 + 30, kGold);
+                line3 = "NEW BEST!";
+                line3Color = kGold;
             } else {
-                drawText(renderer, "Click or R for new game", boardRect.x + 12,
-                         boardRect.y + boardRect.h / 2 + 30, kDimText);
+                line3 = "Click or R for new game";
             }
         } else {
-            drawText(renderer, "Click or R for new game", boardRect.x + 12,
-                     boardRect.y + boardRect.h / 2 + 14, kDimText);
+            line2 = "Click or R for new game";
+        }
+
+        const int lineH = 18;
+        const int gap = 4;
+        const int lines = 1 + (!line2.empty() ? 1 : 0) + (!line3.empty() ? 1 : 0);
+        const int blockH = lines * lineH + (lines - 1) * gap;
+        int y = boardRect.y + (boardRect.h - blockH) / 2;
+
+        drawCenteredLine(renderer, title, boardRect, y, kOverlayText);
+        y += lineH + gap;
+        if (!line2.empty()) {
+            drawCenteredLine(renderer, line2.c_str(), boardRect, y, kDimText);
+            y += lineH + gap;
+        }
+        if (!line3.empty()) {
+            drawCenteredLine(renderer, line3.c_str(), boardRect, y, line3Color);
         }
     }
 }

@@ -259,6 +259,25 @@ void SnakeApp::drawCenteredText(SDL_Renderer* renderer, const char* text,
     SDL_FreeSurface(surf);
 }
 
+void SnakeApp::drawCenteredLine(SDL_Renderer* renderer, const char* text,
+                                const SDL_Rect& area, int topY, SDL_Color color) const {
+    if (!m_font || !text || !*text) return;
+    SDL_Surface* surf = TTF_RenderUTF8_Blended(m_font, text, color);
+    if (!surf) return;
+    SDL_Texture* tex = SDL_CreateTextureFromSurface(renderer, surf);
+    if (tex) {
+        SDL_Rect dst{
+            area.x + (area.w - surf->w) / 2,
+            topY,
+            surf->w,
+            surf->h
+        };
+        SDL_RenderCopy(renderer, tex, nullptr, &dst);
+        SDL_DestroyTexture(tex);
+    }
+    SDL_FreeSurface(surf);
+}
+
 void SnakeApp::handleEvent(const SDL_Event& event) {
     if (event.type == SDL_MOUSEBUTTONDOWN && event.button.button == SDL_BUTTON_LEFT) {
         if (m_state == State::GameOver || m_state == State::Won) {
@@ -446,44 +465,48 @@ void SnakeApp::render(SDL_Renderer* renderer, const SDL_Rect& contentRect) {
         }
     }
 
-    // Overlays
-    if (m_paused && m_state == State::Playing) {
-        SDL_SetRenderDrawBlendMode(renderer, SDL_BLENDMODE_BLEND);
-        SDL_SetRenderDrawColor(renderer, 0, 0, 0, 140);
-        SDL_RenderFillRect(renderer, &boardRect);
-        SDL_SetRenderDrawBlendMode(renderer, SDL_BLENDMODE_NONE);
-        drawCenteredText(renderer, "PAUSED", boardRect, kOverlayText);
-        const std::string hint = "Space / P / click to resume";
-        drawText(renderer, hint.c_str(), boardRect.x + 12,
-                 boardRect.y + boardRect.h / 2 + 14, kDimText);
-    } else if (m_state == State::GameOver) {
+    // Overlays — all lines horizontally centered as a vertical stack
+    auto drawOverlayStack = [&](const char* title, const std::string& line2,
+                                const char* line3, SDL_Color line3Color) {
         SDL_SetRenderDrawBlendMode(renderer, SDL_BLENDMODE_BLEND);
         SDL_SetRenderDrawColor(renderer, 0, 0, 0, 150);
         SDL_RenderFillRect(renderer, &boardRect);
         SDL_SetRenderDrawBlendMode(renderer, SDL_BLENDMODE_NONE);
-        drawCenteredText(renderer, "GAME OVER", boardRect, kOverlayText);
+
+        const int lineH = 18;
+        const int gap = 4;
+        int lines = 1 + (!line2.empty() ? 1 : 0) + (line3 && *line3 ? 1 : 0);
+        const int blockH = lines * lineH + (lines - 1) * gap;
+        int y = boardRect.y + (boardRect.h - blockH) / 2;
+
+        drawCenteredLine(renderer, title, boardRect, y, kOverlayText);
+        y += lineH + gap;
+        if (!line2.empty()) {
+            drawCenteredLine(renderer, line2.c_str(), boardRect, y, kDimText);
+            y += lineH + gap;
+        }
+        if (line3 && *line3) {
+            drawCenteredLine(renderer, line3, boardRect, y, line3Color);
+        }
+    };
+
+    if (m_paused && m_state == State::Playing) {
+        drawOverlayStack("PAUSED", "Space / P / click to resume", nullptr, kDimText);
+    } else if (m_state == State::GameOver) {
         const std::string finalScore =
             "Score " + std::to_string(m_score) + "  ·  Best " + std::to_string(m_highScore);
-        drawText(renderer, finalScore.c_str(), boardRect.x + 12,
-                 boardRect.y + boardRect.h / 2 + 12, kDimText);
         if (m_newHighScore) {
-            drawText(renderer, "NEW BEST!", boardRect.x + 12,
-                     boardRect.y + boardRect.h / 2 + 28, kGold);
+            drawOverlayStack("GAME OVER", finalScore, "NEW BEST!", kGold);
         } else {
-            drawText(renderer, "R or click to restart", boardRect.x + 12,
-                     boardRect.y + boardRect.h / 2 + 28, kDimText);
+            drawOverlayStack("GAME OVER", finalScore, "R or click to restart", kDimText);
         }
     } else if (m_state == State::Won) {
-        SDL_SetRenderDrawBlendMode(renderer, SDL_BLENDMODE_BLEND);
-        SDL_SetRenderDrawColor(renderer, 0, 0, 0, 150);
-        SDL_RenderFillRect(renderer, &boardRect);
-        SDL_SetRenderDrawBlendMode(renderer, SDL_BLENDMODE_NONE);
-        drawCenteredText(renderer, "YOU WIN!", boardRect, kOverlayText);
-        drawText(renderer, "Board filled  ·  R or click to restart", boardRect.x + 12,
-                 boardRect.y + boardRect.h / 2 + 14, kDimText);
         if (m_newHighScore) {
-            drawText(renderer, "NEW BEST!", boardRect.x + 12,
-                     boardRect.y + boardRect.h / 2 + 30, kGold);
+            drawOverlayStack("YOU WIN!", "Board filled  ·  R or click to restart",
+                             "NEW BEST!", kGold);
+        } else {
+            drawOverlayStack("YOU WIN!", "Board filled  ·  R or click to restart",
+                             nullptr, kDimText);
         }
     }
 }
