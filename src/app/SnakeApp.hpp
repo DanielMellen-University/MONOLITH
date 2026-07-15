@@ -32,7 +32,7 @@ private:
 
     static constexpr int kGridW = 20;
     static constexpr int kGridH = 20;
-    static constexpr int kHudHeight = 32;
+    static constexpr int kHudHeight = 36;
     static constexpr int kInitialStepMs = 120;
     static constexpr int kMinStepMs = 55;
     static constexpr int kMaxQueuedDirs = 2;
@@ -47,6 +47,10 @@ private:
     void layoutBoard(const SDL_Rect& contentRect);
     void drawText(SDL_Renderer* renderer, const char* text, int x, int y,
                   SDL_Color color) const;
+    // Draw text and return pixel width (0 if nothing drawn).
+    int drawTextReturnWidth(SDL_Renderer* renderer, const char* text, int x, int y,
+                            SDL_Color color) const;
+    int measureTextWidth(const char* text) const;
     void drawCenteredText(SDL_Renderer* renderer, const char* text,
                           const SDL_Rect& area, SDL_Color color) const;
     // Horizontally center `text` in `area`; top of glyphs at `topY`.

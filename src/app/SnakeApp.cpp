@@ -228,9 +228,15 @@ void SnakeApp::layoutBoard(const SDL_Rect& contentRect) {
 
 void SnakeApp::drawText(SDL_Renderer* renderer, const char* text, int x, int y,
                         SDL_Color color) const {
-    if (!m_font || !text || !*text) return;
+    (void)drawTextReturnWidth(renderer, text, x, y, color);
+}
+
+int SnakeApp::drawTextReturnWidth(SDL_Renderer* renderer, const char* text, int x, int y,
+                                  SDL_Color color) const {
+    if (!m_font || !text || !*text) return 0;
     SDL_Surface* surf = TTF_RenderUTF8_Blended(m_font, text, color);
-    if (!surf) return;
+    if (!surf) return 0;
+    const int w = surf->w;
     SDL_Texture* tex = SDL_CreateTextureFromSurface(renderer, surf);
     if (tex) {
         SDL_Rect dst{x, y, surf->w, surf->h};
@@ -238,6 +244,15 @@ void SnakeApp::drawText(SDL_Renderer* renderer, const char* text, int x, int y,
         SDL_DestroyTexture(tex);
     }
     SDL_FreeSurface(surf);
+    return w;
+}
+
+int SnakeApp::measureTextWidth(const char* text) const {
+    if (!m_font || !text || !*text) return 0;
+    int w = 0;
+    int h = 0;
+    if (TTF_SizeUTF8(m_font, text, &w, &h) != 0) return 0;
+    return w;
 }
 
 void SnakeApp::drawCenteredText(SDL_Renderer* renderer, const char* text,
@@ -344,19 +359,32 @@ void SnakeApp::handleEvent(const SDL_Event& event) {
 void SnakeApp::render(SDL_Renderer* renderer, const SDL_Rect& contentRect) {
     layoutBoard(contentRect);
 
-    // HUD background strip
+    // HUD background strip — measured left-to-right layout (no fixed X collisions)
     SDL_SetRenderDrawColor(renderer, 38, 38, 44, 255);
     SDL_Rect hud{contentRect.x, contentRect.y, contentRect.w, kHudHeight};
     SDL_RenderFillRect(renderer, &hud);
 
     const std::string scoreText = "Score: " + std::to_string(m_score);
     const std::string bestText = "Best: " + std::to_string(m_highScore);
-    const std::string lenText = "Len: " + std::to_string(m_body.size());
-    drawText(renderer, scoreText.c_str(), contentRect.x + 10, contentRect.y + 8, kHudText);
-    drawText(renderer, bestText.c_str(), contentRect.x + 100, contentRect.y + 8, kBestText);
-    drawText(renderer, lenText.c_str(), contentRect.x + 190, contentRect.y + 8, kDimText);
-    drawText(renderer, "WASD  P pause  R restart", contentRect.x + 260,
-             contentRect.y + 8, kDimText);
+    const std::string lenText = "Len: " + std::to_string(static_cast<int>(m_body.size()));
+    const char* controlsHint = "WASD  P pause  R restart";
+
+    const int padL = 10;
+    const int padR = 10;
+    const int gap = 16;
+    const int textY = contentRect.y + (kHudHeight - 16) / 2;
+    int x = contentRect.x + padL;
+
+    x += drawTextReturnWidth(renderer, scoreText.c_str(), x, textY, kHudText) + gap;
+    x += drawTextReturnWidth(renderer, bestText.c_str(), x, textY, kBestText) + gap;
+    x += drawTextReturnWidth(renderer, lenText.c_str(), x, textY, kDimText);
+
+    // Right-align controls hint when it fits without overlapping the stats.
+    const int hintW = measureTextWidth(controlsHint);
+    const int hintX = contentRect.x + contentRect.w - padR - hintW;
+    if (hintW > 0 && hintX >= x + gap) {
+        drawText(renderer, controlsHint, hintX, textY, kDimText);
+    }
 
     // Board background
     SDL_SetRenderDrawColor(renderer, 28, 30, 36, 255);
