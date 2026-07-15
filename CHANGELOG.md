@@ -1,5 +1,24 @@
 # Changelog
 
+## 2026-07: Snake & Minesweeper polish
+
+Gameplay and presentation upgrades for both Start menu **Games**.
+
+### Snake
+- Persistent high score (`~/.monolith/snake_highscore.txt`) with **NEW BEST!** on beat.
+- Direction input queue (up to two turns) so quick corners are not dropped.
+- HUD shows score, best, and length; click to pause/resume or restart after game over.
+- Checkerboard board, food highlight, body gradient, directional head eyes, eat flash.
+
+### Minesweeper
+- Chord open: middle-click or left-click on a revealed number when flags match.
+- Right-click cycles empty → flag → question mark.
+- Best times per difficulty (`~/.monolith/minesweeper_best.txt`) with **NEW BEST!** on win.
+- Face button for new game; hit mine highlighted; wrong flags marked **X** on loss.
+- First-click neighborhood clear on Intermediate as well as Beginner; click overlay to restart.
+
+Builds cleanly.
+
 ## 2026-07: Start Menu Categories
 
 The Start menu groups apps only where it clearly helps.

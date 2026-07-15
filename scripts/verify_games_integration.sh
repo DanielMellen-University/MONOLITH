@@ -40,4 +40,10 @@ grep -q 'w->app->update()' src/window/WindowManager.cpp \
 grep -q 'apps/snake.md' docs/README.md || fail "snake.md not linked from docs hub"
 grep -q 'apps/minesweeper.md' docs/README.md || fail "minesweeper.md not linked from docs hub"
 
+grep -q 'snake_highscore' src/app/SnakeApp.cpp || fail "Snake high score path missing"
+grep -q 'm_dirQueue' src/app/SnakeApp.cpp || fail "Snake direction queue missing"
+grep -q 'chord' src/app/MinesweeperApp.cpp || fail "Minesweeper chord missing"
+grep -q 'minesweeper_best' src/app/MinesweeperApp.cpp || fail "Minesweeper best times path missing"
+grep -q 'Mark::Question' src/app/MinesweeperApp.cpp || fail "Minesweeper question marks missing"
+
 ok "all games static integration checks passed"

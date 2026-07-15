@@ -3,7 +3,10 @@
 #include <algorithm>
 #include <cstdlib>
 #include <ctime>
+#include <filesystem>
+#include <fstream>
 #include <queue>
+#include <sstream>
 #include <string>
 
 namespace monolith::app {
@@ -14,6 +17,7 @@ constexpr SDL_Color kDimText{140, 140, 150, 255};
 constexpr SDL_Color kOverlayText{245, 245, 250, 255};
 constexpr SDL_Color kBtnBg{55, 60, 75, 255};
 constexpr SDL_Color kBtnActive{70, 95, 145, 255};
+constexpr SDL_Color kGold{230, 190, 70, 255};
 } // namespace
 
 const MinesweeperApp::DifficultySpec& MinesweeperApp::specFor(Difficulty d) {
@@ -28,12 +32,80 @@ const MinesweeperApp::DifficultySpec& MinesweeperApp::specFor(Difficulty d) {
     return beginner;
 }
 
+std::string MinesweeperApp::bestTimesHostPath() {
+    const char* home = std::getenv("HOME");
+    if (home && *home) {
+        return std::string(home) + "/.monolith/minesweeper_best.txt";
+    }
+    return "./minesweeper_best.txt";
+}
+
+void MinesweeperApp::loadBestTimes() {
+    m_bestBeginner = m_bestIntermediate = m_bestExpert = 0;
+    std::ifstream in(bestTimesHostPath());
+    if (!in) return;
+    std::string line;
+    while (std::getline(in, line)) {
+        std::istringstream iss(line);
+        std::string key;
+        int value = 0;
+        if (!(iss >> key >> value) || value <= 0) continue;
+        if (key == "beginner") m_bestBeginner = value;
+        else if (key == "intermediate") m_bestIntermediate = value;
+        else if (key == "expert") m_bestExpert = value;
+    }
+}
+
+void MinesweeperApp::saveBestTimes() const {
+    const std::string path = bestTimesHostPath();
+    std::error_code ec;
+    std::filesystem::path p(path);
+    if (p.has_parent_path()) {
+        std::filesystem::create_directories(p.parent_path(), ec);
+    }
+    std::ofstream out(path, std::ios::trunc);
+    if (!out) return;
+    if (m_bestBeginner > 0) out << "beginner " << m_bestBeginner << '\n';
+    if (m_bestIntermediate > 0) out << "intermediate " << m_bestIntermediate << '\n';
+    if (m_bestExpert > 0) out << "expert " << m_bestExpert << '\n';
+}
+
+int MinesweeperApp::bestTimeFor(Difficulty d) const {
+    switch (d) {
+        case Difficulty::Beginner: return m_bestBeginner;
+        case Difficulty::Intermediate: return m_bestIntermediate;
+        case Difficulty::Expert: return m_bestExpert;
+    }
+    return 0;
+}
+
+void MinesweeperApp::setBestTime(Difficulty d, int seconds) {
+    switch (d) {
+        case Difficulty::Beginner: m_bestBeginner = seconds; break;
+        case Difficulty::Intermediate: m_bestIntermediate = seconds; break;
+        case Difficulty::Expert: m_bestExpert = seconds; break;
+    }
+}
+
+void MinesweeperApp::recordBestTimeIfNeeded() {
+    if (m_state != State::Won) return;
+    // 0 means "no record" on disk; treat sub-second clears as 1s so the slot stays distinct.
+    const int current = std::max(1, std::min(999, m_elapsedSec));
+    const int best = bestTimeFor(m_difficulty);
+    if (best <= 0 || current < best) {
+        setBestTime(m_difficulty, current);
+        m_newBest = true;
+        saveBestTimes();
+    }
+}
+
 MinesweeperApp::MinesweeperApp(TTF_Font* font) : m_font(font) {
     static bool seeded = false;
     if (!seeded) {
         std::srand(static_cast<unsigned>(std::time(nullptr)));
         seeded = true;
     }
+    loadBestTimes();
     newGame(Difficulty::Beginner);
 }
 
@@ -53,6 +125,12 @@ void MinesweeperApp::resetBoard() {
     m_revealedSafe = 0;
     m_timerStartMs = 0;
     m_elapsedSec = 0;
+    m_newBest = false;
+    m_hitX = -1;
+    m_hitY = -1;
+    m_pressing = false;
+    m_pressX = -1;
+    m_pressY = -1;
 }
 
 bool MinesweeperApp::inBounds(int x, int y) const {
@@ -62,13 +140,29 @@ bool MinesweeperApp::inBounds(int x, int y) const {
 int MinesweeperApp::flagCount() const {
     int n = 0;
     for (const auto& c : m_cells) {
-        if (c.flagged) ++n;
+        if (c.mark == Mark::Flag) ++n;
+    }
+    return n;
+}
+
+int MinesweeperApp::neighborFlagCount(int x, int y) const {
+    int n = 0;
+    for (int dy = -1; dy <= 1; ++dy) {
+        for (int dx = -1; dx <= 1; ++dx) {
+            if (dx == 0 && dy == 0) continue;
+            const int nx = x + dx;
+            const int ny = y + dy;
+            if (!inBounds(nx, ny)) continue;
+            if (m_cells[static_cast<size_t>(index(nx, ny))].mark == Mark::Flag) ++n;
+        }
     }
     return n;
 }
 
 void MinesweeperApp::placeMines(int safeX, int safeY) {
-    const bool clearNeighborhood = (m_difficulty == Difficulty::Beginner);
+    // Clear neighborhood on Beginner and Intermediate for a friendlier first open.
+    const bool clearNeighborhood =
+        (m_difficulty == Difficulty::Beginner || m_difficulty == Difficulty::Intermediate);
     auto isExcluded = [&](int x, int y) {
         if (x == safeX && y == safeY) return true;
         if (clearNeighborhood && std::abs(x - safeX) <= 1 && std::abs(y - safeY) <= 1) {
@@ -91,7 +185,6 @@ void MinesweeperApp::placeMines(int safeX, int safeY) {
         ++placed;
     }
 
-    // If random placement fell short (tiny boards), fill remaining linearly
     if (placed < m_mineCount) {
         for (int y = 0; y < m_height && placed < m_mineCount; ++y) {
             for (int x = 0; x < m_width && placed < m_mineCount; ++x) {
@@ -143,8 +236,9 @@ void MinesweeperApp::floodReveal(int startX, int startY) {
         q.pop();
         if (!inBounds(x, y)) continue;
         Cell& c = m_cells[static_cast<size_t>(index(x, y))];
-        if (c.revealed || c.flagged || c.mine) continue;
+        if (c.revealed || c.mark == Mark::Flag || c.mine) continue;
         c.revealed = true;
+        c.mark = Mark::None;
         ++m_revealedSafe;
         if (c.adjacent != 0) continue;
         for (int dy = -1; dy <= 1; ++dy) {
@@ -156,22 +250,32 @@ void MinesweeperApp::floodReveal(int startX, int startY) {
     }
 }
 
+void MinesweeperApp::loseAt(int x, int y) {
+    m_state = State::Lost;
+    m_hitX = x;
+    m_hitY = y;
+    for (auto& c : m_cells) {
+        if (c.mine) c.revealed = true;
+    }
+}
+
 void MinesweeperApp::revealCell(int x, int y) {
     if (!inBounds(x, y)) return;
     if (m_state == State::Won || m_state == State::Lost) return;
 
     Cell& c = m_cells[static_cast<size_t>(index(x, y))];
-    if (c.revealed || c.flagged) return;
+    if (c.revealed || c.mark == Mark::Flag) return;
 
     if (!m_minesPlaced) {
         placeMines(x, y);
     }
 
     if (c.mine) {
-        lose();
+        loseAt(x, y);
         return;
     }
 
+    c.mark = Mark::None;
     if (c.adjacent == 0) {
         floodReveal(x, y);
     } else {
@@ -181,10 +285,37 @@ void MinesweeperApp::revealCell(int x, int y) {
     checkWin();
 }
 
-void MinesweeperApp::lose() {
-    m_state = State::Lost;
-    for (auto& c : m_cells) {
-        if (c.mine) c.revealed = true;
+void MinesweeperApp::chord(int x, int y) {
+    if (!inBounds(x, y)) return;
+    if (m_state == State::Won || m_state == State::Lost) return;
+
+    Cell& c = m_cells[static_cast<size_t>(index(x, y))];
+    if (!c.revealed || c.mine || c.adjacent == 0) return;
+    if (neighborFlagCount(x, y) != static_cast<int>(c.adjacent)) return;
+
+    for (int dy = -1; dy <= 1; ++dy) {
+        for (int dx = -1; dx <= 1; ++dx) {
+            if (dx == 0 && dy == 0) continue;
+            const int nx = x + dx;
+            const int ny = y + dy;
+            if (!inBounds(nx, ny)) continue;
+            Cell& n = m_cells[static_cast<size_t>(index(nx, ny))];
+            if (n.revealed || n.mark == Mark::Flag) continue;
+            revealCell(nx, ny);
+            if (m_state == State::Lost || m_state == State::Won) return;
+        }
+    }
+}
+
+void MinesweeperApp::cycleMark(int x, int y) {
+    if (!inBounds(x, y)) return;
+    if (m_state == State::Won || m_state == State::Lost) return;
+    Cell& c = m_cells[static_cast<size_t>(index(x, y))];
+    if (c.revealed) return;
+    switch (c.mark) {
+        case Mark::None:     c.mark = Mark::Flag; break;
+        case Mark::Flag:     c.mark = Mark::Question; break;
+        case Mark::Question: c.mark = Mark::None; break;
     }
 }
 
@@ -193,8 +324,14 @@ void MinesweeperApp::checkWin() {
     if (m_revealedSafe >= safeTotal) {
         m_state = State::Won;
         for (auto& c : m_cells) {
-            if (c.mine) c.flagged = true;
+            if (c.mine) c.mark = Mark::Flag;
         }
+        // Freeze displayed time at the win moment.
+        if (m_minesPlaced && m_timerStartMs != 0) {
+            m_elapsedSec = static_cast<int>((SDL_GetTicks() - m_timerStartMs) / 1000u);
+            if (m_elapsedSec > 999) m_elapsedSec = 999;
+        }
+        recordBestTimeIfNeeded();
     }
 }
 
@@ -210,6 +347,29 @@ void MinesweeperApp::onResize(int clientWidth, int clientHeight) {
     m_clientHeight = clientHeight;
 }
 
+void MinesweeperApp::clientBoardMetrics(int& boardX, int& boardY, int& cellPx,
+                                        int& boardPxW, int& boardPxH) const {
+    const int availW = m_clientWidth > 0 ? m_clientWidth : 360;
+    const int availH = std::max(1, (m_clientHeight > 0 ? m_clientHeight : 420) - kHudHeight - kFooterHeight);
+    cellPx = std::max(kMinCellPx, std::min(availW / m_width, availH / m_height));
+    boardPxW = cellPx * m_width;
+    boardPxH = cellPx * m_height;
+    boardX = (availW - boardPxW) / 2;
+    boardY = kHudHeight + (availH - boardPxH) / 2;
+}
+
+bool MinesweeperApp::cellAtClient(int mx, int my, int& outX, int& outY) const {
+    int boardX = 0, boardY = 0, cellPx = 0, boardPxW = 0, boardPxH = 0;
+    clientBoardMetrics(boardX, boardY, cellPx, boardPxW, boardPxH);
+    if (cellPx <= 0) return false;
+    if (mx < boardX || my < boardY || mx >= boardX + boardPxW || my >= boardY + boardPxH) {
+        return false;
+    }
+    outX = (mx - boardX) / cellPx;
+    outY = (my - boardY) / cellPx;
+    return inBounds(outX, outY);
+}
+
 void MinesweeperApp::layoutBoard(const SDL_Rect& contentRect) {
     const int availW = contentRect.w;
     const int availH = std::max(1, contentRect.h - kHudHeight - kFooterHeight);
@@ -219,15 +379,22 @@ void MinesweeperApp::layoutBoard(const SDL_Rect& contentRect) {
     m_boardX = contentRect.x + (availW - m_boardPxW) / 2;
     m_boardY = contentRect.y + kHudHeight + (availH - m_boardPxH) / 2;
 
-    // Difficulty buttons in HUD
     const int btnW = 70;
     const int btnH = 18;
-    const int btnY = contentRect.y + 28;
+    const int btnY = contentRect.y + 30;
     const int gap = 6;
     const int startX = contentRect.x + 10;
     for (int i = 0; i < 3; ++i) {
         m_diffBtnRects[i] = {startX + i * (btnW + gap), btnY, btnW, btnH};
     }
+
+    // Face / new-game button on the right side of the HUD
+    m_faceBtnRect = {
+        contentRect.x + contentRect.w - 42,
+        contentRect.y + 8,
+        32,
+        40
+    };
 }
 
 void MinesweeperApp::drawText(SDL_Renderer* renderer, const char* text, int x, int y,
@@ -300,21 +467,35 @@ void MinesweeperApp::handleEvent(const SDL_Event& event) {
         return;
     }
 
-    if (event.type != SDL_MOUSEBUTTONDOWN) return;
-    if (event.button.button != SDL_BUTTON_LEFT && event.button.button != SDL_BUTTON_RIGHT) {
+    if (event.type == SDL_MOUSEBUTTONUP) {
+        if (event.button.button == SDL_BUTTON_LEFT || event.button.button == SDL_BUTTON_MIDDLE) {
+            m_pressing = false;
+            m_pressX = -1;
+            m_pressY = -1;
+        }
         return;
     }
+
+    if (event.type != SDL_MOUSEBUTTONDOWN) return;
 
     const int mx = event.button.x;
     const int my = event.button.y;
 
-    // Difficulty buttons (client-relative; button rects set in last render use screen coords)
-    // Buttons are stored with contentRect offset. During handleEvent, coords are client-relative
-    // (0,0 = content top-left). Recompute buttons in client space.
+    // Face / new game button (client space)
+    {
+        const int faceX = (m_clientWidth > 0 ? m_clientWidth : 360) - 42;
+        const int faceY = 8;
+        if (mx >= faceX && mx < faceX + 32 && my >= faceY && my < faceY + 40) {
+            newGame(m_difficulty);
+            return;
+        }
+    }
+
+    // Difficulty buttons in client space
     {
         const int btnW = 70;
         const int btnH = 18;
-        const int btnY = 28;
+        const int btnY = 30;
         const int gap = 6;
         const int startX = 10;
         for (int i = 0; i < 3; ++i) {
@@ -328,40 +509,40 @@ void MinesweeperApp::handleEvent(const SDL_Event& event) {
         }
     }
 
-    if (m_state == State::Won || m_state == State::Lost) return;
-    if (m_cellPx <= 0) return;
-
-    // Board origin in client space (content-relative): layout uses contentRect screen offsets.
-    // We need the same letterbox math with content origin at 0,0.
-    const int availW = m_clientWidth > 0 ? m_clientWidth : 360;
-    const int availH = std::max(1, (m_clientHeight > 0 ? m_clientHeight : 420) - kHudHeight - kFooterHeight);
-    const int cellPx = std::max(kMinCellPx, std::min(availW / m_width, availH / m_height));
-    const int boardPxW = cellPx * m_width;
-    const int boardPxH = cellPx * m_height;
-    const int boardX = (availW - boardPxW) / 2;
-    const int boardY = kHudHeight + (availH - boardPxH) / 2;
-
-    if (mx < boardX || my < boardY || mx >= boardX + boardPxW || my >= boardY + boardPxH) {
+    // Click end-of-game overlay → new game
+    if (m_state == State::Won || m_state == State::Lost) {
+        if (event.button.button == SDL_BUTTON_LEFT) {
+            newGame(m_difficulty);
+        }
         return;
     }
 
-    const int cx = (mx - boardX) / cellPx;
-    const int cy = (my - boardY) / cellPx;
-    if (!inBounds(cx, cy)) return;
+    int cx = 0;
+    int cy = 0;
+    if (!cellAtClient(mx, my, cx, cy)) return;
 
     if (event.button.button == SDL_BUTTON_LEFT) {
-        revealCell(cx, cy);
-    } else if (event.button.button == SDL_BUTTON_RIGHT) {
-        if (m_state == State::Won || m_state == State::Lost) return;
         Cell& c = m_cells[static_cast<size_t>(index(cx, cy))];
-        if (!c.revealed) {
-            c.flagged = !c.flagged;
+        if (c.revealed && c.adjacent > 0) {
+            // Left-click on a numbered cell chords (classic convenience).
+            chord(cx, cy);
+        } else {
+            m_pressing = true;
+            m_pressX = cx;
+            m_pressY = cy;
+            revealCell(cx, cy);
         }
+    } else if (event.button.button == SDL_BUTTON_RIGHT) {
+        cycleMark(cx, cy);
+    } else if (event.button.button == SDL_BUTTON_MIDDLE) {
+        m_pressing = true;
+        m_pressX = cx;
+        m_pressY = cy;
+        chord(cx, cy);
     }
 }
 
 void MinesweeperApp::render(SDL_Renderer* renderer, const SDL_Rect& contentRect) {
-    // Keep client size in sync when first render happens before onResize
     if (m_clientWidth != contentRect.w || m_clientHeight != contentRect.h) {
         m_clientWidth = contentRect.w;
         m_clientHeight = contentRect.h;
@@ -374,9 +555,14 @@ void MinesweeperApp::render(SDL_Renderer* renderer, const SDL_Rect& contentRect)
     SDL_RenderFillRect(renderer, &hud);
 
     const int remaining = std::max(0, m_mineCount - flagCount());
-    const std::string status = "Mines: " + std::to_string(remaining) +
-                               "   Time: " + std::to_string(m_elapsedSec) +
-                               "   " + specFor(m_difficulty).name;
+    const int best = bestTimeFor(m_difficulty);
+    std::string status = "Mines: " + std::to_string(remaining) +
+                         "   Time: " + std::to_string(m_elapsedSec);
+    if (best > 0) {
+        status += "   Best: " + std::to_string(best) + "s";
+    }
+    status += "   ";
+    status += specFor(m_difficulty).name;
     drawText(renderer, status.c_str(), contentRect.x + 10, contentRect.y + 6, kHudText);
 
     const char* labels[3] = {"1 Begin", "2 Inter", "3 Expert"};
@@ -391,6 +577,23 @@ void MinesweeperApp::render(SDL_Renderer* renderer, const SDL_Rect& contentRect)
         drawText(renderer, labels[i], m_diffBtnRects[i].x + 6, m_diffBtnRects[i].y + 1, kHudText);
     }
 
+    // Face button
+    {
+        SDL_Color faceBg = kBtnBg;
+        if (m_state == State::Won) faceBg = {60, 120, 70, 255};
+        else if (m_state == State::Lost) faceBg = {140, 60, 60, 255};
+        else if (m_pressing) faceBg = {80, 85, 100, 255};
+        SDL_SetRenderDrawColor(renderer, faceBg.r, faceBg.g, faceBg.b, 255);
+        SDL_RenderFillRect(renderer, &m_faceBtnRect);
+        SDL_SetRenderDrawColor(renderer, 100, 105, 120, 255);
+        SDL_RenderDrawRect(renderer, &m_faceBtnRect);
+        const char* face = ":)";
+        if (m_state == State::Won) face = "B)";
+        else if (m_state == State::Lost) face = "X(";
+        else if (m_pressing) face = ":O";
+        drawCenteredText(renderer, face, m_faceBtnRect, kHudText);
+    }
+
     // Board
     for (int y = 0; y < m_height; ++y) {
         for (int x = 0; x < m_width; ++x) {
@@ -402,19 +605,40 @@ void MinesweeperApp::render(SDL_Renderer* renderer, const SDL_Rect& contentRect)
                 m_cellPx - 1
             };
 
+            const bool isHitMine = (m_state == State::Lost && x == m_hitX && y == m_hitY);
+            const bool wrongFlag = (m_state == State::Lost && c.mark == Mark::Flag && !c.mine);
+            const bool pressPreview =
+                m_pressing && x == m_pressX && y == m_pressY && !c.revealed && c.mark != Mark::Flag;
+
             if (!c.revealed) {
-                SDL_SetRenderDrawColor(renderer, 70, 74, 88, 255);
+                if (pressPreview) {
+                    SDL_SetRenderDrawColor(renderer, 50, 52, 62, 255);
+                } else {
+                    SDL_SetRenderDrawColor(renderer, 70, 74, 88, 255);
+                }
                 SDL_RenderFillRect(renderer, &cell);
                 SDL_SetRenderDrawColor(renderer, 100, 105, 120, 255);
                 SDL_RenderDrawRect(renderer, &cell);
-                if (c.flagged) {
-                    drawCenteredText(renderer, "!", cell, {220, 80, 70, 255});
+
+                if (c.mark == Mark::Flag) {
+                    if (wrongFlag) {
+                        drawCenteredText(renderer, "X", cell, {220, 80, 70, 255});
+                    } else {
+                        drawCenteredText(renderer, "!", cell, {220, 80, 70, 255});
+                    }
+                } else if (c.mark == Mark::Question) {
+                    drawCenteredText(renderer, "?", cell, {200, 200, 120, 255});
                 }
             } else {
-                SDL_SetRenderDrawColor(renderer, 42, 44, 52, 255);
+                if (isHitMine) {
+                    SDL_SetRenderDrawColor(renderer, 160, 50, 50, 255);
+                } else {
+                    SDL_SetRenderDrawColor(renderer, 42, 44, 52, 255);
+                }
                 SDL_RenderFillRect(renderer, &cell);
+
                 if (c.mine) {
-                    SDL_SetRenderDrawColor(renderer, 30, 30, 34, 255);
+                    SDL_SetRenderDrawColor(renderer, 20, 20, 24, 255);
                     const int inset = std::max(2, m_cellPx / 4);
                     SDL_Rect mine{
                         cell.x + inset, cell.y + inset,
@@ -422,7 +646,9 @@ void MinesweeperApp::render(SDL_Renderer* renderer, const SDL_Rect& contentRect)
                     };
                     SDL_RenderFillRect(renderer, &mine);
                     if (m_state == State::Lost) {
-                        drawCenteredText(renderer, "X", cell, {220, 70, 70, 255});
+                        drawCenteredText(renderer, "*", cell,
+                                         isHitMine ? SDL_Color{255, 220, 80, 255}
+                                                   : SDL_Color{200, 70, 70, 255});
                     }
                 } else if (c.adjacent > 0) {
                     const char digit[2] = {static_cast<char>('0' + c.adjacent), '\0'};
@@ -441,7 +667,7 @@ void MinesweeperApp::render(SDL_Renderer* renderer, const SDL_Rect& contentRect)
         kFooterHeight
     };
     SDL_RenderFillRect(renderer, &footer);
-    drawText(renderer, "L-click open  R-click flag  R new game", contentRect.x + 10,
+    drawText(renderer, "L open  R flag/?  M/chord  face=new", contentRect.x + 10,
              footer.y + 4, kDimText);
 
     // End overlays
@@ -453,6 +679,26 @@ void MinesweeperApp::render(SDL_Renderer* renderer, const SDL_Rect& contentRect)
         SDL_SetRenderDrawBlendMode(renderer, SDL_BLENDMODE_NONE);
         const char* msg = (m_state == State::Won) ? "YOU WIN!" : "BOOM!";
         drawCenteredText(renderer, msg, boardRect, kOverlayText);
+
+        if (m_state == State::Won) {
+            std::string detail = "Time " + std::to_string(m_elapsedSec) + "s";
+            const int bestNow = bestTimeFor(m_difficulty);
+            if (bestNow > 0) {
+                detail += "  ·  Best " + std::to_string(bestNow) + "s";
+            }
+            drawText(renderer, detail.c_str(), boardRect.x + 12,
+                     boardRect.y + boardRect.h / 2 + 14, kDimText);
+            if (m_newBest) {
+                drawText(renderer, "NEW BEST!", boardRect.x + 12,
+                         boardRect.y + boardRect.h / 2 + 30, kGold);
+            } else {
+                drawText(renderer, "Click or R for new game", boardRect.x + 12,
+                         boardRect.y + boardRect.h / 2 + 30, kDimText);
+            }
+        } else {
+            drawText(renderer, "Click or R for new game", boardRect.x + 12,
+                     boardRect.y + boardRect.h / 2 + 14, kDimText);
+        }
     }
 }
 
