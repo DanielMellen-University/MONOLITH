@@ -466,8 +466,50 @@ void WindowManager::render(SDL_Renderer* renderer) {
     m_startMenuRect = {0, 0, 0, 0};
 
     if (m_showStartMenu) {
+        // Layout: top-level apps, then a Games category (Snake / Minesweeper), then Shut Down.
+        // action: >=0 launch/quit, -1 category header (not clickable), -2 separator (not clickable).
+        struct MenuEntry {
+            const char* label;
+            int action;
+            int indent;  // 0 top-level, 1 nested under a category
+        };
+        const MenuEntry entries[] = {
+            {"Terminal", 0, 0},
+            {"Text Editor", 1, 0},
+            {"Filesystem", 2, 0},
+            {"Drawing", 4, 0},
+            {"Settings", 3, 0},
+            {"", -2, 0},                 // separator before Games
+            {"Games", -1, 0},            // category header
+            {"Snake", 5, 1},
+            {"Minesweeper", 6, 1},
+            {"", -2, 0},                 // separator before Shut Down
+            {"Shut Down", 7, 0},
+        };
+        const size_t entryCount = sizeof(entries) / sizeof(entries[0]);
+
         const int menuWidth = 210;
-        const int menuHeight = 320;
+        const int itemHLogical = 26;
+        const int itemGapLogical = 2;
+        const int categoryHLogical = 20;
+        const int separatorHLogical = 10;
+        const int headerHLogical = 22;
+        const int topPadLogical = 6;
+        const int bottomPadLogical = 8;
+
+        int contentHLogical = topPadLogical;
+        for (size_t i = 0; i < entryCount; ++i) {
+            if (entries[i].action == -2) {
+                contentHLogical += separatorHLogical;
+            } else if (entries[i].action == -1) {
+                contentHLogical += categoryHLogical + itemGapLogical;
+            } else {
+                contentHLogical += itemHLogical + itemGapLogical;
+            }
+        }
+        contentHLogical += bottomPadLogical;
+        const int menuHeight = headerHLogical + contentHLogical;
+
         const int menuX = logicalToScreenX(8);
         const int menuY = logicalToScreenY(getTaskbarRect().y - menuHeight);
 
@@ -488,7 +530,7 @@ void WindowManager::render(SDL_Renderer* renderer) {
         SDL_Rect headerAccent = {
             menuX, menuY,
             static_cast<int>(menuWidth * m_contentScale),
-            static_cast<int>(22 * m_contentScale)
+            static_cast<int>(headerHLogical * m_contentScale)
         };
         SDL_RenderFillRect(renderer, &headerAccent);
 
@@ -515,28 +557,55 @@ void WindowManager::render(SDL_Renderer* renderer) {
             SDL_Color textCol = {235, 235, 240, 255};
             SDL_Color hoverTextCol = {255, 255, 255, 255};
             SDL_Color hoverBgCol = {70, 95, 145, 255};
+            SDL_Color categoryCol = {160, 175, 200, 255};
+            SDL_Color separatorCol = {70, 70, 82, 255};
 
-            struct MenuEntry { const char* label; int action; };
-            MenuEntry entries[] = {
-                {"Terminal", 0},
-                {"Text Editor", 1},
-                {"Filesystem", 2},
-                {"Settings", 3},
-                {"Drawing", 4},
-                {"Snake", 5},
-                {"Minesweeper", 6},
-                {"Shut Down", 7}
-            };
+            int y = menuY + static_cast<int>((headerHLogical + topPadLogical) * m_contentScale);
+            const int itemH = static_cast<int>(itemHLogical * m_contentScale);
+            const int categoryH = static_cast<int>(categoryHLogical * m_contentScale);
+            const int separatorH = static_cast<int>(separatorHLogical * m_contentScale);
+            const int itemGap = static_cast<int>(itemGapLogical * m_contentScale);
+            const int basePad = static_cast<int>(10 * m_contentScale);
+            const int nestPad = static_cast<int>(22 * m_contentScale);
 
-            // Start items below the accent header
-            int y = menuY + static_cast<int>(28 * m_contentScale);
-            const int itemH = static_cast<int>(26 * m_contentScale);
-            const int itemPad = static_cast<int>(10 * m_contentScale);
-
-            for (size_t i = 0; i < sizeof(entries)/sizeof(entries[0]); ++i) {
+            for (size_t i = 0; i < entryCount; ++i) {
                 const auto& e = entries[i];
 
-                // Clickable rect (in screen space). Use scaled inset for robustness if contentScale != 1.
+                if (e.action == -2) {
+                    // Horizontal rule centered in the separator band
+                    const int lineY = y + separatorH / 2;
+                    SDL_SetRenderDrawColor(renderer, separatorCol.r, separatorCol.g, separatorCol.b, 255);
+                    SDL_RenderDrawLine(
+                        renderer,
+                        menuX + static_cast<int>(10 * m_contentScale),
+                        lineY,
+                        menuX + static_cast<int>((menuWidth - 10) * m_contentScale),
+                        lineY);
+                    y += separatorH;
+                    continue;
+                }
+
+                if (e.action == -1) {
+                    // Non-clickable category header
+                    SDL_Surface* s = TTF_RenderText_Blended(m_font, e.label, categoryCol);
+                    if (s) {
+                        SDL_Texture* t = SDL_CreateTextureFromSurface(renderer, s);
+                        if (t) {
+                            SDL_Rect dst = {
+                                menuX + basePad,
+                                y + (categoryH - s->h) / 2,
+                                s->w, s->h
+                            };
+                            SDL_RenderCopy(renderer, t, nullptr, &dst);
+                            SDL_DestroyTexture(t);
+                        }
+                        SDL_FreeSurface(s);
+                    }
+                    y += categoryH + itemGap;
+                    continue;
+                }
+
+                // Clickable app / system row
                 SDL_Rect itemRect = {
                     menuX + static_cast<int>(4 * m_contentScale),
                     y,
@@ -545,34 +614,33 @@ void WindowManager::render(SDL_Renderer* renderer) {
                 };
                 m_startMenuItems.push_back({itemRect, e.action});
 
-                // Hover test using latest known mouse position
                 bool hovered = false;
                 SDL_Point mousePt = {m_mouseX, m_mouseY};
                 if (SDL_PointInRect(&mousePt, &itemRect)) {
                     hovered = true;
-                    m_startMenuHoverIndex = static_cast<int>(i);
+                    m_startMenuHoverIndex = static_cast<int>(m_startMenuItems.size() - 1);
                 }
 
-                // Draw hover highlight if needed
                 if (hovered) {
                     SDL_SetRenderDrawColor(renderer, hoverBgCol.r, hoverBgCol.g, hoverBgCol.b, 255);
                     SDL_RenderFillRect(renderer, &itemRect);
                 }
 
                 SDL_Color useTextCol = hovered ? hoverTextCol : textCol;
+                const int textPad = (e.indent > 0) ? nestPad : basePad;
 
                 SDL_Surface* s = TTF_RenderText_Blended(m_font, e.label, useTextCol);
                 if (s) {
                     SDL_Texture* t = SDL_CreateTextureFromSurface(renderer, s);
                     if (t) {
-                        SDL_Rect dst = {menuX + itemPad, y + (itemH - s->h)/2, s->w, s->h};
+                        SDL_Rect dst = {menuX + textPad, y + (itemH - s->h) / 2, s->w, s->h};
                         SDL_RenderCopy(renderer, t, nullptr, &dst);
                         SDL_DestroyTexture(t);
                     }
                     SDL_FreeSurface(s);
                 }
 
-                y += itemH + static_cast<int>(2 * m_contentScale);
+                y += itemH + itemGap;
             }
         }
     }

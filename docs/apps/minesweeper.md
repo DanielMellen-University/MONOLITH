@@ -4,7 +4,7 @@ Classic Minesweeper as a native Monolith app. Clear the board without detonating
 
 ## Launching
 
-Open **Minesweeper** from the Start menu. Multiple independent games are supported:
+Open **Minesweeper** from the Start menu under **Games**. Multiple independent games are supported:
 
 - `Minesweeper`
 - `Minesweeper 2`
@@ -51,5 +51,5 @@ The board letterboxes inside the window. Expert on a small window uses small cel
 ## Developer Notes
 
 - `src/app/MinesweeperApp.{hpp,cpp}`
-- `WindowManager::launchMinesweeper()` and Start menu action `6`
+- `WindowManager::launchMinesweeper()` and Start menu action `6` (listed under the **Games** category)
 - Timer advances in `App::update()` while a game is in progress

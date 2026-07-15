@@ -103,6 +103,8 @@ The Window Manager handles the frame, decorations, and top-level input routing.
 
 The Window Manager also acts as a small "desktop shell". It provides launcher methods (`launchTerminal()`, `launchTextEditor(path)`, `launchFilesystem()`, `launchDrawing()`, `launchSettings()`, `launchSnake()`, `launchMinesweeper()`) used by the Start Menu and by apps.
 
+The Start menu keeps most apps as top-level entries. Games that clearly form a group (**Snake**, **Minesweeper**) sit under a non-clickable **Games** category header with a slight indent; only categories that make sense are introduced this way.
+
 Each frame, `WindowManager::update()` calls `App::update()` on every non-minimized window's app. Most apps leave this as a no-op; games use it for fixed-rate ticks and timers.
 
 Apps can request shell actions on behalf of the user through `IWindowController` (currently `close()`, `setTitle()`, `restoreTrackedInstanceTitle()`, `openInTextEditor(virtualPath)`, `openInDrawing(virtualPath)`, editor/drawing file binding helpers, and desktop background get/set). This enables patterns like "double-click a file in the graphical filesystem browser to open it in the text editor or Drawing" without apps directly depending on each other. Apps that temporarily change the title (e.g. Drawing after save) use `restoreTrackedInstanceTitle()` to return to the WM-managed instance name.

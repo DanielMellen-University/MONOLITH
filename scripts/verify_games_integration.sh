@@ -22,8 +22,9 @@ grep -q 'MinesweeperApp' src/window/WindowManager.cpp || fail "MinesweeperApp no
 grep -q 'SnakeApp.cpp' CMakeLists.txt || fail "SnakeApp.cpp not in CMakeLists"
 grep -q 'MinesweeperApp.cpp' CMakeLists.txt || fail "MinesweeperApp.cpp not in CMakeLists"
 
-grep -q '{"Snake", 5}' src/window/WindowManager.cpp || fail "Start menu Snake entry missing"
-grep -q '{"Minesweeper", 6}' src/window/WindowManager.cpp || fail "Start menu Minesweeper entry missing"
+grep -q '{"Snake", 5, 1}' src/window/WindowManager.cpp || fail "Start menu Snake entry missing (under Games)"
+grep -q '{"Minesweeper", 6, 1}' src/window/WindowManager.cpp || fail "Start menu Minesweeper entry missing (under Games)"
+grep -q '{"Games", -1, 0}' src/window/WindowManager.cpp || fail "Start menu Games category header missing"
 grep -q 'case 5: launchSnake' src/window/WindowManager.cpp || fail "Start menu Snake action missing"
 grep -q 'case 6: launchMinesweeper' src/window/WindowManager.cpp || fail "Start menu Minesweeper action missing"
 grep -q 'case 7: requestQuit' src/window/WindowManager.cpp || fail "Shut Down action not renumbered to 7"

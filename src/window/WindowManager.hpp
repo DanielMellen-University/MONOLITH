@@ -221,7 +221,10 @@ private:
 
     struct StartMenuItem {
         SDL_Rect rect;  // in screen coordinates
-        int action;     // 0=Terminal, 1=Text Editor, 2=Filesystem, 3=Settings, 4=Drawing, 5=Shut Down
+        // 0=Terminal, 1=Text Editor, 2=Filesystem, 3=Settings, 4=Drawing,
+        // 5=Snake, 6=Minesweeper, 7=Shut Down
+        // Category headers / separators are not added to this list.
+        int action;
     };
     std::vector<StartMenuItem> m_startMenuItems;
 

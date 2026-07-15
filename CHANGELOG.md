@@ -1,5 +1,16 @@
 # Changelog
 
+## 2026-07: Start Menu Categories
+
+The Start menu groups apps only where it clearly helps.
+
+- **Games** category header with **Snake** and **Minesweeper** nested underneath.
+- Other apps (Terminal, Text Editor, Filesystem, Drawing, Settings) stay top-level.
+- Separators frame the Games section and Shut Down.
+- Menu height is computed from the entry list so new categories do not clip.
+
+Builds cleanly.
+
 ## 2026-07: Snake and Minesweeper
 
 Two classic games as native Monolith apps.

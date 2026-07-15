@@ -16,7 +16,7 @@ grep -q 'launchDrawing' src/window/WindowManager.cpp || fail "launchDrawing not 
 grep -q 'DrawingApp' src/window/WindowManager.cpp || fail "DrawingApp not included in WM"
 grep -q 'DrawingApp.cpp' CMakeLists.txt || fail "DrawingApp.cpp not in CMakeLists"
 grep -q 'drawings' src/main.cpp || fail "drawings dir seed missing in main.cpp"
-grep -q '{"Drawing", 4}' src/window/WindowManager.cpp || fail "Start menu Drawing entry missing"
+grep -q '{"Drawing", 4, 0}' src/window/WindowManager.cpp || fail "Start menu Drawing entry missing"
 grep -q 'SDL_MOUSEBUTTONUP' src/window/WindowManager.cpp || fail "mouse-up forwarding missing"
 
 grep -q 'claimNextAppInstanceTitle("Drawing")' src/window/WindowManager.cpp \

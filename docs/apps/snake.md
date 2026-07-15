@@ -4,7 +4,7 @@ Classic Snake as a native Monolith app. Steer the snake, eat food, avoid walls a
 
 ## Launching
 
-Open **Snake** from the Start menu. Multiple independent games are supported:
+Open **Snake** from the Start menu under **Games**. Multiple independent games are supported:
 
 - `Snake`
 - `Snake 2`
@@ -41,5 +41,5 @@ The board letterboxes inside the window when resized or maximized.
 ## Developer Notes
 
 - `src/app/SnakeApp.{hpp,cpp}`
-- `WindowManager::launchSnake()` and Start menu action `5`
+- `WindowManager::launchSnake()` and Start menu action `5` (listed under the **Games** category)
 - Game steps run from `App::update()`, dispatched by `WindowManager::update()` for non-minimized windows
