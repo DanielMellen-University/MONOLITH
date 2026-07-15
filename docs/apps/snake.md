@@ -39,7 +39,8 @@ The best score is saved on the host at `~/.monolith/snake_highscore.txt` and sho
 ## Presentation
 
 - Checkerboard board, food highlight, body gradient, and directional head eyes
-- HUD shows score, best, and length
+- **HUD**: score, best, and length on the left (laid out from measured text widths so labels never collide); controls hint right-aligned when the window is wide enough
+- Pause / game over / win messages are a **centered vertical stack** on the board (title + detail lines)
 - Brief flash when food is eaten
 
 The board letterboxes inside the window when resized or maximized.

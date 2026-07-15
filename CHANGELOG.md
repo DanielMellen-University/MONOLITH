@@ -7,7 +7,8 @@ Gameplay and presentation upgrades for both Start menu **Games**.
 ### Snake
 - Persistent high score (`~/.monolith/snake_highscore.txt`) with **NEW BEST!** on beat.
 - Direction input queue (up to two turns) so quick corners are not dropped.
-- HUD shows score, best, and length; click to pause/resume or restart after game over.
+- HUD: score / best / length measured left-to-right; controls hint right-aligned when space allows (no label collisions).
+- Click to pause/resume or restart after game over; centered pause/game-over/win text stacks.
 - Checkerboard board, food highlight, body gradient, directional head eyes, eat flash.
 
 ### Minesweeper
@@ -15,7 +16,7 @@ Gameplay and presentation upgrades for both Start menu **Games**.
 - Right-click cycles empty → flag → question mark.
 - Best times per difficulty (`~/.monolith/minesweeper_best.txt`) with **NEW BEST!** on win.
 - Face button for new game; hit mine highlighted; wrong flags marked **X** on loss.
-- First-click neighborhood clear on Intermediate as well as Beginner; click overlay to restart.
+- First-click neighborhood clear on Intermediate as well as Beginner; centered win/lose overlays; click overlay to restart.
 
 Builds cleanly.
 
