@@ -184,13 +184,20 @@ void DrawingApp::redoCanvas() {
 void DrawingApp::syncTexture(SDL_Renderer* renderer) {
     if (!renderer || m_canvasWidth <= 0 || m_canvasHeight <= 0) return;
 
-    if (!m_canvasTexture
-        || m_textureDirty) {
-        if (m_canvasTexture) {
+    // Recreate only when missing or canvas size changed — not on every paint stroke.
+    if (m_canvasTexture) {
+        int texW = 0;
+        int texH = 0;
+        if (SDL_QueryTexture(m_canvasTexture, nullptr, nullptr, &texW, &texH) != 0
+            || texW != m_canvasWidth
+            || texH != m_canvasHeight) {
             SDL_DestroyTexture(m_canvasTexture);
             m_canvasTexture = nullptr;
+            m_textureDirty = true;
         }
+    }
 
+    if (!m_canvasTexture) {
         // ABGR8888 stores bytes as R,G,B,A in memory on little-endian (RGBA8888 swaps R/B).
 #if SDL_BYTEORDER == SDL_BIG_ENDIAN
         constexpr Uint32 kCanvasPixelFormat = SDL_PIXELFORMAT_RGBA8888;
@@ -206,8 +213,11 @@ void DrawingApp::syncTexture(SDL_Renderer* renderer) {
         );
 
         if (!m_canvasTexture) return;
-        m_textureDirty = false;
+        m_textureDirty = true;
     }
+
+    // Upload CPU pixels only when the canvas content actually changed.
+    if (!m_textureDirty) return;
 
     void* pixels = nullptr;
     int pitch = 0;
@@ -221,6 +231,7 @@ void DrawingApp::syncTexture(SDL_Renderer* renderer) {
             );
         }
         SDL_UnlockTexture(m_canvasTexture);
+        m_textureDirty = false;
     }
 }
 

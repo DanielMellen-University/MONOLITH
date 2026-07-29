@@ -1,5 +1,14 @@
 # Changelog
 
+## 2026-07: Drawing canvas texture upload
+
+Drawing no longer destroys and recreates the GPU canvas texture on every paint stroke.
+
+- Recreate the streaming texture only when it is missing or the canvas size changes.
+- Upload CPU pixels only when the canvas is marked dirty (idle frames skip the lock/copy).
+
+Builds cleanly.
+
 ## 2026-07: Taskbar scroll arrows clickable
 
 Taskbar horizontal scroll arrows respond to clicks again.
