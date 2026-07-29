@@ -33,10 +33,10 @@ private:
     };
 
     // === Editing helpers ===
-    void insertChar(char c);
+    void insertText(const char* text);  // full UTF-8 sequence from SDL_TEXTINPUT
     void insertNewline();
-    void deleteChar();        // Backspace behavior
-    void deleteForward();     // Delete key behavior
+    void deleteChar();        // Backspace: one UTF-8 codepoint (or join lines)
+    void deleteForward();     // Delete: one UTF-8 codepoint (or join lines)
     void moveLeft();
     void moveRight();
     void moveUp();
@@ -45,9 +45,10 @@ private:
     void moveEnd();
     void clampCursor();
     void ensureCursorVisible();
+    void setStatus(const std::string& message);
 
     // === File I/O ===
-    void loadInitialFile(const std::string& virtualPath);
+    bool loadInitialFile(const std::string& virtualPath);
     std::string getDisplayName() const;
     void updateTitleForPath();
 
@@ -101,6 +102,7 @@ private:
 
     std::string m_filePath;   // virtual path in Monolith FS (if set)
     bool m_dirty = false;
+    std::string m_statusMessage;  // transient status-bar feedback (save/open errors, etc.)
 
     std::vector<EditorState> m_undoStack;
     std::vector<EditorState> m_redoStack;

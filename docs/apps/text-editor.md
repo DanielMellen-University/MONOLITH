@@ -15,13 +15,15 @@ File-backed editors are singletons per path — opening the same file again focu
 
 ## Editing
 
-- Type to insert characters at the cursor.
+- Type to insert characters at the cursor (UTF-8 text input; left/right and backspace/delete move by codepoint).
 - **Enter** inserts a new line.
 - **Arrow keys**, **Home**, and **End** move the cursor.
 - **Backspace** deletes before the cursor; **Delete** deletes after.
+- **Mouse wheel** scrolls the buffer.
 - Line numbers appear in the left margin.
 - Syntax highlighting colors comments, strings, numbers, and (for code files) keywords.
 - A `*` in the status bar indicates unsaved changes.
+- Open/save results and errors appear in the status bar (e.g. `Saved: note.txt`, `Open failed: …`).
 
 ## Syntax Highlighting
 
@@ -70,10 +72,11 @@ Ctrl+S saves to the bound path when one exists. If the buffer is untitled, Ctrl+
 ## Current Limitations
 
 - Open/save-as use inline path prompts, not graphical file-picker dialogs.
-- Undo/redo store full buffer snapshots (capped stack).
+- Undo/redo store full buffer snapshots (capped stack); typing still pushes per keystroke.
 - Highlighting is per-line only (no multiline strings or block comments).
 - No multiple buffers/tabs.
-- UTF-8 handling is basic (single-byte insertion from SDL text input).
+- No horizontal scroll; long lines clip.
+- Combining characters / complex scripts are treated as separate codepoints for cursor motion.
 - No integration with the custom language runtime yet.
 
 ## Developer Notes

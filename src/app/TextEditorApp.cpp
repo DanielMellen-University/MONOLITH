@@ -9,6 +9,32 @@ namespace monolith::app {
 
 namespace {
 
+// Cursor columns are byte offsets. These helpers step by UTF-8 codepoint.
+size_t utf8CodepointByteLen(const std::string& s, size_t index) {
+    if (index >= s.size()) return 0;
+    const unsigned char c = static_cast<unsigned char>(s[index]);
+    if ((c & 0x80) == 0x00) return 1;
+    if ((c & 0xE0) == 0xC0) return 2;
+    if ((c & 0xF0) == 0xE0) return 3;
+    if ((c & 0xF8) == 0xF0) return 4;
+    return 1; // invalid lead — advance one byte to avoid getting stuck
+}
+
+size_t utf8PrevCodepointStart(const std::string& s, size_t col) {
+    if (col == 0 || col > s.size()) return 0;
+    size_t i = col - 1;
+    while (i > 0 && (static_cast<unsigned char>(s[i]) & 0xC0) == 0x80) {
+        --i;
+    }
+    return i;
+}
+
+void popLastUtf8Codepoint(std::string& s) {
+    if (s.empty()) return;
+    const size_t start = utf8PrevCodepointStart(s, s.size());
+    s.erase(start);
+}
+
 std::string commonPrefix(const std::vector<std::string>& values) {
     if (values.empty()) return "";
 
@@ -247,7 +273,7 @@ void TextEditorApp::drawColoredLine(SDL_Renderer* renderer, const std::string& l
         if (len == 0) continue;
 
         const std::string text = line.substr(span.start, len);
-        SDL_Surface* surf = TTF_RenderText_Blended(m_font, text.c_str(), span.color);
+        SDL_Surface* surf = TTF_RenderUTF8_Blended(m_font, text.c_str(), span.color);
         if (!surf) continue;
 
         SDL_Texture* tex = SDL_CreateTextureFromSurface(renderer, surf);
@@ -262,37 +288,50 @@ void TextEditorApp::drawColoredLine(SDL_Renderer* renderer, const std::string& l
     }
 }
 
-void TextEditorApp::loadInitialFile(const std::string& virtualPath) {
-    if (!m_fs) return;
+bool TextEditorApp::loadInitialFile(const std::string& virtualPath) {
+    if (!m_fs) {
+        setStatus("Open failed: filesystem not available");
+        return false;
+    }
 
     std::string normalized = m_fs->normalize(virtualPath);
-    if (m_fs->isFile(normalized)) {
-        std::string content = m_fs->readFile(normalized);
-        if (!content.empty() || m_fs->isFile(normalized)) {
-            m_lines.clear();
-            std::istringstream iss(content);
-            std::string line;
-            while (std::getline(iss, line)) {
-                // getline strips the newline; if the file ends with a newline we get an extra empty line naturally
-                m_lines.push_back(line);
-            }
-            if (content.empty() || content.back() == '\n') {
-                m_lines.emplace_back("");
-            }
-            if (m_lines.empty()) {
-                m_lines = { "" };
-            }
-            m_filePath = normalized;
-            m_cursorRow = 0;
-            m_cursorCol = 0;
-            m_dirty = false;
-            refreshSyntaxMode();
-        }
+    if (!m_fs->isFile(normalized)) {
+        setStatus("Open failed: not a file — " + normalized);
+        return false;
     }
+
+    // readFile returns "" for empty files and for some errors; isFile already verified existence.
+    std::string content = m_fs->readFile(normalized);
+    m_lines.clear();
+    std::istringstream iss(content);
+    std::string line;
+    while (std::getline(iss, line)) {
+        // getline strips the newline; trailing newline yields a final empty line below
+        m_lines.push_back(line);
+    }
+    if (content.empty() || content.back() == '\n') {
+        m_lines.emplace_back("");
+    }
+    if (m_lines.empty()) {
+        m_lines = { "" };
+    }
+    m_filePath = normalized;
+    m_cursorRow = 0;
+    m_cursorCol = 0;
+    m_scrollOffset = 0;
+    m_dirty = false;
+    refreshSyntaxMode();
+    setStatus("Opened: " + getDisplayName());
+    return true;
 }
 
 bool TextEditorApp::saveCurrentFile() {
-    if (!m_fs || m_filePath.empty()) {
+    if (!m_fs) {
+        setStatus("Save failed: filesystem not available");
+        return false;
+    }
+    if (m_filePath.empty()) {
+        setStatus("Save failed: no path (use Save as)");
         return false;
     }
 
@@ -308,8 +347,15 @@ bool TextEditorApp::saveCurrentFile() {
     bool ok = m_fs->writeFile(m_filePath, oss.str());
     if (ok) {
         m_dirty = false;
+        setStatus("Saved: " + getDisplayName());
+    } else {
+        setStatus("Save failed: could not write " + m_filePath);
     }
     return ok;
+}
+
+void TextEditorApp::setStatus(const std::string& message) {
+    m_statusMessage = message;
 }
 
 std::string TextEditorApp::getDisplayName() const {
@@ -348,19 +394,37 @@ void TextEditorApp::finishPathPrompt(bool commit) {
     m_pathPromptMode = PathPromptMode::None;
     m_pathPromptBuffer.clear();
 
-    if (!commit) return;
-    if (!m_fs || buffer.empty()) return;
+    if (!commit) {
+        setStatus("Cancelled.");
+        return;
+    }
+    if (!m_fs) {
+        setStatus(mode == PathPromptMode::Open
+            ? "Open failed: filesystem not available"
+            : "Save failed: filesystem not available");
+        return;
+    }
+    if (buffer.empty()) {
+        setStatus(mode == PathPromptMode::Open ? "Open failed: path is empty" : "Save failed: path is empty");
+        return;
+    }
 
     const std::string path = m_fs->normalize(buffer);
 
     if (mode == PathPromptMode::Open) {
-        if (!m_fs->isFile(path)) return;
-
-        if (auto* ctrl = getController()) {
-            if (ctrl->focusEditorForFile(path)) return;
+        if (!m_fs->isFile(path)) {
+            setStatus("Open failed: not a file — " + path);
+            return;
         }
 
-        loadInitialFile(path);
+        if (auto* ctrl = getController()) {
+            if (ctrl->focusEditorForFile(path)) {
+                setStatus("Already open: " + path);
+                return;
+            }
+        }
+
+        if (!loadInitialFile(path)) return;
         m_undoStack.clear();
         m_redoStack.clear();
         if (auto* ctrl = getController()) {
@@ -375,11 +439,12 @@ void TextEditorApp::finishPathPrompt(bool commit) {
 
         m_filePath = path;
         refreshSyntaxMode();
-        saveCurrentFile();
-        if (auto* ctrl = getController()) {
-            ctrl->bindEditorFile(path);
+        if (saveCurrentFile()) {
+            if (auto* ctrl = getController()) {
+                ctrl->bindEditorFile(path);
+            }
+            updateTitleForPath();
         }
-        updateTitleForPath();
     }
 }
 
@@ -430,7 +495,7 @@ void TextEditorApp::handlePathPromptKey(const SDL_Keysym& keysym) {
             break;
         case SDLK_BACKSPACE:
             if (!m_pathPromptBuffer.empty()) {
-                m_pathPromptBuffer.pop_back();
+                popLastUtf8Codepoint(m_pathPromptBuffer);
             }
             break;
         case SDLK_TAB:
@@ -443,15 +508,26 @@ void TextEditorApp::handlePathPromptKey(const SDL_Keysym& keysym) {
 
 void TextEditorApp::handlePathPromptText(const char* text) {
     if (!text) return;
+    // Accept printable bytes including multi-byte UTF-8 for virtual paths.
     for (const char* p = text; *p; ++p) {
         const unsigned char c = static_cast<unsigned char>(*p);
-        if (c >= 32 && c < 127) {
-            m_pathPromptBuffer.push_back(static_cast<char>(c));
-        }
+        if (c < 32 || c == 127) continue;
+        m_pathPromptBuffer.push_back(static_cast<char>(c));
     }
 }
 
-void TextEditorApp::insertChar(char c) {
+void TextEditorApp::insertText(const char* text) {
+    if (!text || !*text) return;
+
+    // Filter control characters; keep all UTF-8 payload bytes.
+    std::string filtered;
+    for (const char* p = text; *p; ++p) {
+        const unsigned char c = static_cast<unsigned char>(*p);
+        if (c < 32 || c == 127) continue;
+        filtered.push_back(static_cast<char>(c));
+    }
+    if (filtered.empty()) return;
+
     pushUndoState();
 
     if (m_cursorRow < 0 || m_cursorRow >= static_cast<int>(m_lines.size())) return;
@@ -460,9 +536,10 @@ void TextEditorApp::insertChar(char c) {
     if (m_cursorCol < 0) m_cursorCol = 0;
     if (m_cursorCol > static_cast<int>(line.size())) m_cursorCol = static_cast<int>(line.size());
 
-    line.insert(line.begin() + m_cursorCol, c);
-    m_cursorCol++;
+    line.insert(static_cast<size_t>(m_cursorCol), filtered);
+    m_cursorCol += static_cast<int>(filtered.size());
     m_dirty = true;
+    m_statusMessage.clear();
     ensureCursorVisible();
 }
 
@@ -484,15 +561,17 @@ void TextEditorApp::insertNewline() {
 }
 
 void TextEditorApp::deleteChar() {
-    // Backspace
+    // Backspace — one UTF-8 codepoint (or join with previous line)
     if (m_cursorRow == 0 && m_cursorCol == 0) return;
 
     pushUndoState();
 
     if (m_cursorCol > 0) {
         std::string& line = m_lines[m_cursorRow];
-        line.erase(line.begin() + m_cursorCol - 1);
-        m_cursorCol--;
+        const size_t start = utf8PrevCodepointStart(line, static_cast<size_t>(m_cursorCol));
+        const size_t count = static_cast<size_t>(m_cursorCol) - start;
+        line.erase(start, count);
+        m_cursorCol = static_cast<int>(start);
     } else {
         // Join with previous line
         std::string current = m_lines[m_cursorRow];
@@ -519,7 +598,9 @@ void TextEditorApp::deleteForward() {
     pushUndoState();
 
     if (m_cursorCol < static_cast<int>(line.size())) {
-        line.erase(line.begin() + m_cursorCol);
+        const size_t start = static_cast<size_t>(m_cursorCol);
+        const size_t count = utf8CodepointByteLen(line, start);
+        line.erase(start, count);
     } else if (m_cursorRow + 1 < static_cast<int>(m_lines.size())) {
         // Join next line into this one
         line += m_lines[m_cursorRow + 1];
@@ -531,7 +612,8 @@ void TextEditorApp::deleteForward() {
 
 void TextEditorApp::moveLeft() {
     if (m_cursorCol > 0) {
-        m_cursorCol--;
+        const std::string& line = m_lines[m_cursorRow];
+        m_cursorCol = static_cast<int>(utf8PrevCodepointStart(line, static_cast<size_t>(m_cursorCol)));
     } else if (m_cursorRow > 0) {
         m_cursorRow--;
         m_cursorCol = static_cast<int>(m_lines[m_cursorRow].size());
@@ -542,7 +624,9 @@ void TextEditorApp::moveLeft() {
 void TextEditorApp::moveRight() {
     if (m_cursorRow < static_cast<int>(m_lines.size()) &&
         m_cursorCol < static_cast<int>(m_lines[m_cursorRow].size())) {
-        m_cursorCol++;
+        const std::string& line = m_lines[m_cursorRow];
+        const size_t step = utf8CodepointByteLen(line, static_cast<size_t>(m_cursorCol));
+        m_cursorCol = std::min(static_cast<int>(line.size()), m_cursorCol + static_cast<int>(step));
     } else if (m_cursorRow + 1 < static_cast<int>(m_lines.size())) {
         m_cursorRow++;
         m_cursorCol = 0;
@@ -733,7 +817,7 @@ void TextEditorApp::render(SDL_Renderer* renderer, const SDL_Rect& contentRect) 
 
         // Draw line number
         std::string lineNumStr = std::to_string(lineIdx + 1);
-        SDL_Surface* numSurf = TTF_RenderText_Blended(m_font, lineNumStr.c_str(), lineNumColor);
+        SDL_Surface* numSurf = TTF_RenderUTF8_Blended(m_font, lineNumStr.c_str(), lineNumColor);
         if (numSurf) {
             SDL_Texture* numTex = SDL_CreateTextureFromSurface(renderer, numSurf);
             if (numTex) {
@@ -761,10 +845,10 @@ void TextEditorApp::render(SDL_Renderer* renderer, const SDL_Rect& contentRect) 
                 int beforeW = 0, beforeH = 0;
                 int matchW = 0, matchH = 0;
                 if (!before.empty()) {
-                    TTF_SizeText(m_font, before.c_str(), &beforeW, &beforeH);
+                    TTF_SizeUTF8(m_font, before.c_str(), &beforeW, &beforeH);
                 }
                 if (!found.empty()) {
-                    TTF_SizeText(m_font, found.c_str(), &matchW, &matchH);
+                    TTF_SizeUTF8(m_font, found.c_str(), &matchW, &matchH);
                 }
 
                 int matchIndex = findMatchIndexAt(match.first, match.second);
@@ -802,7 +886,7 @@ void TextEditorApp::render(SDL_Renderer* renderer, const SDL_Rect& contentRect) 
 
             int textW = 0, textH = 0;
             if (!before.empty()) {
-                TTF_SizeText(m_font, before.c_str(), &textW, &textH);
+                TTF_SizeUTF8(m_font, before.c_str(), &textW, &textH);
             }
 
             int cursorX = contentRect.x + padding + lineNumWidth + textW;
@@ -846,11 +930,15 @@ void TextEditorApp::render(SDL_Renderer* renderer, const SDL_Rect& contentRect) 
             status += "   |  Tab complete, Enter confirm, Esc cancel";
         } else {
             if (m_dirty) status += " *";
-            status += "   |  Ctrl+S save   Ctrl+O open   Ctrl+Shift+S save as";
-            status += "   |  Ctrl+F find   Ctrl+Z undo   Ctrl+Y redo";
+            if (!m_statusMessage.empty()) {
+                status += "   |  " + m_statusMessage;
+            } else {
+                status += "   |  Ctrl+S save   Ctrl+O open   Ctrl+Shift+S save as";
+                status += "   |  Ctrl+F find   Ctrl+Z undo   Ctrl+Y redo";
+            }
         }
 
-        SDL_Surface* surf = TTF_RenderText_Blended(m_font, status.c_str(), {150, 155, 160, 255});
+        SDL_Surface* surf = TTF_RenderUTF8_Blended(m_font, status.c_str(), {150, 155, 160, 255});
         if (surf) {
             SDL_Texture* tex = SDL_CreateTextureFromSurface(renderer, surf);
             if (tex) {
@@ -878,6 +966,16 @@ void TextEditorApp::handleEvent(const SDL_Event& event) {
         return;
     }
 
+    if (event.type == SDL_MOUSEWHEEL) {
+        // Positive wheel.y = scroll up (show earlier lines).
+        const int visible = std::max(1, getVisibleLineCount({0, 0, m_clientWidth, m_clientHeight}));
+        const int maxScroll = std::max(0, static_cast<int>(m_lines.size()) - visible);
+        m_scrollOffset -= event.wheel.y;
+        if (m_scrollOffset < 0) m_scrollOffset = 0;
+        if (m_scrollOffset > maxScroll) m_scrollOffset = maxScroll;
+        return;
+    }
+
     if (event.type == SDL_TEXTINPUT) {
         if (m_findMode) {
             const char* t = event.text.text;
@@ -888,12 +986,8 @@ void TextEditorApp::handleEvent(const SDL_Event& event) {
             return;
         }
 
-        // Insert the text (usually one char)
-        const char* t = event.text.text;
-        if (t && *t) {
-            // For simplicity, insert first byte. Real UTF8 handling can come later.
-            insertChar(t[0]);
-        }
+        // Insert full UTF-8 text from SDL (may be multi-byte).
+        insertText(event.text.text);
         return;
     }
 
@@ -915,7 +1009,7 @@ void TextEditorApp::handleEvent(const SDL_Event& event) {
 
                 case SDLK_BACKSPACE:
                     if (!m_findQuery.empty()) {
-                        m_findQuery.pop_back();
+                        popLastUtf8Codepoint(m_findQuery);
                         updateFindMatches();
                     }
                     break;

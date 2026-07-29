@@ -1,5 +1,16 @@
 # Changelog
 
+## 2026-07: Text Editor UTF-8 and status feedback
+
+Editor input and file I/O feedback are more reliable.
+
+- Insert full UTF-8 from SDL text input (no more first-byte-only corruption).
+- Left/right, Backspace, and Delete step by UTF-8 codepoint; find/path backspace match.
+- Open/save success and failures surface in the status bar.
+- Mouse wheel scrolls the buffer; text sizing/rendering uses UTF-8 TTF APIs.
+
+Builds cleanly.
+
 ## 2026-07: Shell ownership cleanup
 
 Lifecycle fixes around windows, controllers, and startup failures.
