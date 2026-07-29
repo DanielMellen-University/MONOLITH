@@ -218,6 +218,9 @@ private:
     int m_taskbarButtonAreaLeft = 0;      // logical left edge of button strip
     int m_taskbarButtonAreaWidth = 0;     // logical width for buttons
     bool m_taskbarNeedsScroll = false;
+    // Screen-space hit targets for scroll arrows (filled during render when scrolling).
+    SDL_Rect m_taskbarLeftArrowRect{0, 0, 0, 0};
+    SDL_Rect m_taskbarRightArrowRect{0, 0, 0, 0};
 
     struct StartMenuItem {
         SDL_Rect rect;  // in screen coordinates

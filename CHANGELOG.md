@@ -1,5 +1,15 @@
 # Changelog
 
+## 2026-07: Taskbar scroll arrows clickable
+
+Taskbar horizontal scroll arrows respond to clicks again.
+
+- Arrow hit rects are stored during render (like window buttons).
+- Clicks are handled in the taskbar path before the early return that previously skipped a dead second handler.
+- Mouse wheel scrolling was already working and is unchanged.
+
+Builds cleanly.
+
 ## 2026-07: Focus after close
 
 Closing the active window no longer leaves the desktop without keyboard focus.

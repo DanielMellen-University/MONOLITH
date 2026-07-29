@@ -151,6 +151,23 @@ void WindowManager::handleEvent(const SDL_Event& event) {
                 return;
             }
 
+            // Scroll arrows (rects populated during render). Must run before the
+            // unconditional taskbar return — a separate post-return handler never fired.
+            if (m_taskbarNeedsScroll) {
+                SDL_Point p = {m_mouseX, m_mouseY};
+                if (SDL_PointInRect(&p, &m_taskbarLeftArrowRect)) {
+                    m_taskbarScrollOffset = std::max(0, m_taskbarScrollOffset - 120);
+                    m_showStartMenu = false;
+                    return;
+                }
+                if (SDL_PointInRect(&p, &m_taskbarRightArrowRect)) {
+                    // Soft upper bound; drawing clamps which buttons stay visible.
+                    m_taskbarScrollOffset += 120;
+                    m_showStartMenu = false;
+                    return;
+                }
+            }
+
             // Taskbar window buttons (populated during render)
             for (const auto& entry : m_taskbarEntries) {
                 SDL_Point p = {m_mouseX, m_mouseY};
@@ -173,29 +190,6 @@ void WindowManager::handleEvent(const SDL_Event& event) {
 
             m_showStartMenu = false;
             return;
-        }
-    }
-
-    // === Taskbar scroll arrows (Windows XP style) ===
-    if (m_taskbarNeedsScroll && event.type == SDL_MOUSEBUTTONDOWN && event.button.button == SDL_BUTTON_LEFT) {
-        const SDL_Rect taskbarScreenRect = logicalRectToScreen(getTaskbarRect());
-        const int taskbarScreenY = taskbarScreenRect.y;
-        const int taskbarScreenBottom = taskbarScreenRect.y + taskbarScreenRect.h;
-
-        if (m_mouseY >= taskbarScreenY && m_mouseY < taskbarScreenBottom) {
-            int arrowW = 16;
-            int leftArrowX = logicalToScreenX(m_taskbarButtonAreaLeft);
-            int rightArrowX = logicalToScreenX(m_taskbarButtonAreaLeft + m_taskbarButtonAreaWidth + arrowW + 4);
-
-            if (m_mouseX >= leftArrowX && m_mouseX < leftArrowX + static_cast<int>(arrowW * m_contentScale)) {
-                m_taskbarScrollOffset = std::max(0, m_taskbarScrollOffset - 120);
-                return;
-            }
-            if (m_mouseX >= rightArrowX && m_mouseX < rightArrowX + static_cast<int>(arrowW * m_contentScale)) {
-                // We don't know exact max here, but we can allow generous scrolling; it will be limited by drawing logic
-                m_taskbarScrollOffset += 120;
-                return;
-            }
         }
     }
 
@@ -647,6 +641,8 @@ void WindowManager::render(SDL_Renderer* renderer) {
 
     // === Taskbar (always visible) ===
     m_taskbarEntries.clear();
+    m_taskbarLeftArrowRect = {0, 0, 0, 0};
+    m_taskbarRightArrowRect = {0, 0, 0, 0};
 
     const SDL_Rect taskbarLogicalRect = getTaskbarRect();
     const SDL_Rect taskbarRect = logicalRectToScreen(taskbarLogicalRect);
@@ -713,13 +709,13 @@ void WindowManager::render(SDL_Renderer* renderer) {
     if (m_taskbarNeedsScroll) {
         // Left arrow
         SDL_SetRenderDrawColor(renderer, 80, 80, 90, 255);
-        SDL_Rect leftArrow = {
+        m_taskbarLeftArrowRect = {
             logicalToScreenX(m_taskbarButtonAreaLeft),
             btnY,
             static_cast<int>(arrowWidth * m_contentScale),
             btnHeight
         };
-        SDL_RenderFillRect(renderer, &leftArrow);
+        SDL_RenderFillRect(renderer, &m_taskbarLeftArrowRect);
         // Simple left triangle using lines
         SDL_SetRenderDrawColor(renderer, 220, 220, 225, 255);
         int ax = logicalToScreenX(m_taskbarButtonAreaLeft + 4);
@@ -732,13 +728,13 @@ void WindowManager::render(SDL_Renderer* renderer) {
         // Right arrow
         int rightX = m_taskbarButtonAreaLeft + m_taskbarButtonAreaWidth - arrowWidth;
         SDL_SetRenderDrawColor(renderer, 80, 80, 90, 255);
-        SDL_Rect rightArrow = {
+        m_taskbarRightArrowRect = {
             logicalToScreenX(rightX),
             btnY,
             static_cast<int>(arrowWidth * m_contentScale),
             btnHeight
         };
-        SDL_RenderFillRect(renderer, &rightArrow);
+        SDL_RenderFillRect(renderer, &m_taskbarRightArrowRect);
         SDL_SetRenderDrawColor(renderer, 220, 220, 225, 255);
         ax = logicalToScreenX(rightX + 4);
         SDL_RenderDrawLine(renderer, ax, ay - 5, ax + 6, ay);
