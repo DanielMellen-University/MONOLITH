@@ -4,10 +4,7 @@
 #include <memory>
 #include <string>
 
-// Forward declaration so Window can hold an App without pulling in the full definition.
-namespace monolith::app {
-class App;
-}
+#include "../app/App.hpp"
 
 namespace monolith::window {
 
@@ -58,6 +55,12 @@ struct Window {
     // Minimum window size
     static constexpr int MIN_WIDTH = 200;
     static constexpr int MIN_HEIGHT = 120;
+
+    // Shell bridge for this window's app (close, titles, open-with, etc.).
+    // Owned here — not in a process-global static list.
+    // Declared before app so members destroy in reverse order: ~App runs first
+    // while controller is still alive (unless closeWindow already cleared both).
+    std::unique_ptr<monolith::app::IWindowController> controller;
 
     // The application that renders and handles input for this window's client area.
     // Owned by the window (and transitively by WindowManager).

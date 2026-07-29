@@ -66,6 +66,8 @@ The Window Manager is the most foundational subsystem.
 **Design Notes:**
 The Window Manager should be relatively self-contained. Individual apps should not need to know how window frames are drawn or how input is routed.
 
+Each window that hosts an app owns a small `IWindowController` (`Window::controller`) created by `createControllerFor`. Controllers are not process-global: they are destroyed with the window after the app’s controller pointer is cleared.
+
 Window geometry that affects the desktop shell is centralized in the Window Manager. Taskbar bounds, usable desktop bounds, logical-to-screen rectangle conversion, and title-bar button rectangles are shared by rendering, hit testing, maximize, resize, drag clamping, and new-window placement. This keeps drawn controls aligned with click targets and keeps window title bars accessible above the taskbar.
 
 ### Instance Management for Multiple Windows of the Same Type

@@ -21,7 +21,16 @@ constexpr int kMinimumVisibleButtonSpace = 80;
 
 WindowManager::WindowManager() = default;
 
-WindowManager::~WindowManager() = default;
+WindowManager::~WindowManager() {
+    for (auto& [id, entry] : m_titleCache) {
+        (void)id;
+        if (entry.texture) {
+            SDL_DestroyTexture(entry.texture);
+            entry.texture = nullptr;
+        }
+    }
+    m_titleCache.clear();
+}
 
 Window* WindowManager::createWindow(const std::string& title, int x, int y, int w, int h,
                                         std::unique_ptr<monolith::app::App> app,
@@ -1220,6 +1229,12 @@ void WindowManager::closeWindow(Window* window) {
             window->app->onFocusLost();
         }
 
+        // Drop the app's controller pointer before destroying owned controller + app.
+        if (window->app) {
+            window->app->setController(nullptr);
+        }
+        window->controller.reset();
+
         // Clean up cached title texture for the window being closed
         auto cacheIt = m_titleCache.find(window->id);
         if (cacheIt != m_titleCache.end()) {
@@ -1756,18 +1771,16 @@ struct WindowController : public monolith::app::IWindowController {
 } // anonymous namespace
 
 monolith::app::IWindowController* WindowManager::createControllerFor(Window* window) {
-    // We allocate a small controller per window that has an app.
-    // Lifetime is tied to the app (destroyed when the window/app is closed).
-    // For simplicity we leak them for now (or we could store them in a map).
-    // A better long-term solution is to store them alongside the window.
-    static std::vector<std::unique_ptr<WindowController>> s_controllers;
+    // Own the controller on the Window so it is destroyed with that window
+    // (no process-global static list / dangling targetWindow after close).
+    if (!window) return nullptr;
 
     auto ctrl = std::make_unique<WindowController>();
     ctrl->wm = this;
     ctrl->targetWindow = window;
 
     monolith::app::IWindowController* raw = ctrl.get();
-    s_controllers.push_back(std::move(ctrl));
+    window->controller = std::move(ctrl);
     return raw;
 }
 

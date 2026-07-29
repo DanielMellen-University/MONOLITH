@@ -28,8 +28,10 @@ Monolith has a working desktop environment with overlapping windows:
 
 ```bash
 sudo apt update
-sudo apt install build-essential cmake libsdl2-dev
+sudo apt install build-essential cmake pkg-config libsdl2-dev libsdl2-ttf-dev
 ```
+
+Optional (system font fallback if the vendored DejaVu font is missing): `fonts-dejavu`.
 
 ### Build
 

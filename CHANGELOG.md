@@ -1,5 +1,16 @@
 # Changelog
 
+## 2026-07: Shell ownership cleanup
+
+Lifecycle fixes around windows, controllers, and startup failures.
+
+- **Window controllers**: each app’s `IWindowController` is owned on `Window` and destroyed with that window (no static leak / dangling `targetWindow`).
+- **Window Manager**: destructor frees cached title-bar textures.
+- **Startup**: `TTF_Quit` runs if window or renderer creation fails after `TTF_Init`.
+- **README**: document `pkg-config` and `libsdl2-ttf-dev` build deps.
+
+Builds cleanly.
+
 ## 2026-07: Drawing canvas texture upload
 
 Drawing no longer destroys and recreates the GPU canvas texture on every paint stroke.
