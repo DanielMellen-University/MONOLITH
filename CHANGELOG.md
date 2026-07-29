@@ -1,5 +1,14 @@
 # Changelog
 
+## 2026-07: Focus after close
+
+Closing the active window no longer leaves the desktop without keyboard focus.
+
+- `closeWindow` fires `onFocusLost` on the closing app, then promotes the topmost non-minimized survivor via `bringToFront` (`onFocusGained`).
+- Keyboard and client-area input keep working without an extra click after close.
+
+Builds cleanly.
+
 ## 2026-07: Snake & Minesweeper polish
 
 Gameplay and presentation upgrades for both Start menu **Games**.

@@ -1210,11 +1210,18 @@ void WindowManager::closeWindow(Window* window) {
         [window](const auto& w) { return w.get() == window; });
 
     if (it != m_windows.end()) {
+        const bool wasFocused = (m_focusedWindow == window);
+
         if (m_focusedWindow == window) m_focusedWindow = nullptr;
         if (m_draggedWindow == window) m_draggedWindow = nullptr;
         if (m_resizingWindow == window) {
             m_resizingWindow = nullptr;
             m_resizeDirection = ResizeDirection::None;
+        }
+
+        // Notify before destruction so apps can clear focus-dependent state (e.g. Snake pause).
+        if (wasFocused && window->app) {
+            window->app->onFocusLost();
         }
 
         // Clean up cached title texture for the window being closed
@@ -1227,6 +1234,22 @@ void WindowManager::closeWindow(Window* window) {
         }
 
         m_windows.erase(it);
+
+        // Keep keyboard / client input working: promote the topmost non-minimized
+        // survivor. Without this, m_focusedWindow stayed null until the next click.
+        if (wasFocused && !m_windows.empty()) {
+            Window* successor = nullptr;
+            for (auto rit = m_windows.rbegin(); rit != m_windows.rend(); ++rit) {
+                if (*rit && !(*rit)->minimized) {
+                    successor = rit->get();
+                    break;
+                }
+            }
+            if (successor) {
+                // Raises z-order if needed and fires onFocusGained via bringToFront.
+                bringToFront(successor);
+            }
+        }
     }
 
     // If this was a numbered instance of an app type, re-compact the remaining
