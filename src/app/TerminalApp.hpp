@@ -59,12 +59,6 @@ private:
     std::vector<std::string> getCommandCompletions(const std::string& prefix) const;
     std::vector<std::string> getPathCompletions(const std::string& partial) const;
 
-    // Recursive remove helper for rm -r
-    bool removeRecursive(const std::string& virtualPath);
-
-    // Recursive copy helper for cp -r (Terminal-only implementation)
-    bool copyRecursive(const std::string& src, const std::string& dst);
-
     TTF_Font* m_font = nullptr;
 
     monolith::fs::Filesystem* m_fs = nullptr;
@@ -72,6 +66,10 @@ private:
 
     std::vector<std::string> m_history;          // Output history (what is displayed)
     std::vector<std::string> m_commandHistory;   // Commands the user has entered (for 'history' cmd)
+
+    static constexpr size_t kMaxScrollbackLines = 2000;
+    static constexpr size_t kMaxCommandHistory = 500;
+    static constexpr size_t kMaxCatLines = 5000;
     std::string m_inputBuffer;
     std::string m_prompt = "> ";
 

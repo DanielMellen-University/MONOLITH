@@ -66,14 +66,16 @@ Run `help` for the full list. Current commands:
 | `cat <file>` | Show file contents |
 | `edit <file>` | Open a text file in the Text Editor |
 | `open <path>` | Open a file (`.modr` → Drawing, else Text Editor) |
-| `cp [-r] <src> <dst>` | Copy file or directory tree |
+| `cp [-r] <src> <dst>` | Copy file or directory tree (`Filesystem::copyRecursive`; refuses copy into self) |
 | `mv <src> <dst>` | Move or rename (destination directory supported) |
-| `rm [-r] <path>` | Remove file or directory |
+| `rm [-r] <path>` | Remove file or directory tree (`Filesystem::removeRecursive` with `-r`; cannot remove `/`) |
 | `history` | Show command history |
 | `help` | Show command list |
 | `exit` / `quit` | Close this terminal window |
 
 Paths may be absolute or relative to the current working directory. Tab completion works for both command names and paths.
+
+`cat` prints one scrollback line per file line (truncated after many lines so huge files cannot flood the terminal).
 
 ## Command History
 
@@ -83,15 +85,15 @@ Command history persists across sessions in:
 /home/monolith/.terminal_history
 ```
 
-History is saved after each submitted command.
+History is saved after each submitted command. Command history is capped (oldest entries drop); on-screen scrollback is also capped so long sessions stay responsive.
 
 ## Current Limitations
 
 - No quoting support — filenames with spaces cannot be passed as single arguments.
 - No pipes, redirection, or job control.
 - No script execution or custom language integration yet.
-- Recursive delete is Terminal-only (`rm -r`); the graphical browser deletes files and empty directories only.
-- UTF-8 input is not fully handled in the input line.
+- `touch` overwrites existing files with empty content (not Unix “update mtime only” semantics).
+- UTF-8 input in the prompt line is still limited compared to the Text Editor.
 
 ## Developer Notes
 
@@ -99,5 +101,8 @@ Main implementation files:
 
 - `src/app/TerminalApp.hpp`
 - `src/app/TerminalApp.cpp`
+- `src/fs/Filesystem.*` — shared path + recursive copy/remove used by `cp` / `rm`
 
 Launched via `WindowManager::launchTerminal()`.
+
+Scrollback cap: 2000 lines. Command history cap: 500 entries. `cat` truncates after 5000 lines.

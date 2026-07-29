@@ -35,15 +35,14 @@ private:
     // === Actions ===
     void createNewFolder();
     void createNewFile();
-    void deleteSelected();
+    void requestDeleteSelected();   // confirm step (toolbar / Delete key / context menu)
+    void performDeleteSelected();   // recursive remove after confirm
+    void cancelPendingDelete();
     void copySelectedToClipboard(bool cut);
     void pasteFromClipboard();
     void startRenameSelected();
     void finishRename(bool commit);  // commit = true for Enter, false for Escape
 
-    bool copyEntryRecursive(const std::string& srcPath, const std::string& dstPath);
-    bool removeEntryRecursive(const std::string& virtualPath);
-    bool isSameOrDescendantPath(const std::string& ancestor, const std::string& path) const;
     std::string entryBaseName(const std::string& virtualPath) const;
 
     // === Selection / Scrolling ===
@@ -98,8 +97,9 @@ private:
     int m_renameIndex = -1;
     std::string m_renameBuffer;
 
-    // Delete confirmation state
+    // Delete confirmation state (toolbar, Delete key, or context menu)
     bool m_confirmingDelete = false;
+    int m_pendingDeleteIndex = -1;
 
     // Context menu state
     bool m_showContextMenu = false;

@@ -12,7 +12,7 @@ Monolith has a working desktop environment with overlapping windows:
 
 - **Window Manager** — Dragging, 8-way resizing, title bars, z-order, focus, taskbar with Start menu, and dynamic multi-instance window titles.
 - **Built-in Apps** — Terminal, Text Editor, Filesystem Browser, Drawing, Settings (desktop background color), Snake, and Minesweeper. Each has its own documentation (see below).
-- **Internal Filesystem** — Host-backed persistence under `~/.monolith/fs/` with a clean virtual path namespace.
+- **Internal Filesystem** — Host-backed persistence under `~/.monolith/fs/` with a clean virtual path namespace, plus shared recursive copy/remove used by Terminal and Filesystem Browser.
 
 **This is still early** — no custom language yet, limited polish, and the set of apps is small. The focus is on building a coherent, self-contained environment over time.
 

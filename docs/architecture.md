@@ -127,7 +127,7 @@ Apps can request shell actions on behalf of the user through `IWindowController`
 
 ### 5. Filesystem
 
-The filesystem is **basic** by design: hierarchical virtual paths, simple CRUD operations, and host-backed persistence under `~/.monolith/fs/`. Terminal, Text Editor, Filesystem Browser, and Drawing all share the same `Filesystem` API.
+The filesystem is **basic** by design: hierarchical virtual paths, simple CRUD operations, and host-backed persistence under `~/.monolith/fs/`. Terminal, Text Editor, Filesystem Browser, and Drawing all share the same `Filesystem` API, including shared **recursive** helpers (`copyRecursive`, `removeRecursive`, `isSameOrDescendant`, `join`) so apps do not reimplement tree walks.
 
 See [filesystem.md](filesystem.md) for virtual path rules, host mapping, and app usage. Advanced features (permissions, metadata, versioning, etc.) are explicitly out of scope for the foreseeable future.
 

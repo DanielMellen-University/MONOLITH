@@ -1,5 +1,16 @@
 # Changelog
 
+## 2026-07: Shared recursive filesystem ops
+
+Safer file management across Terminal and Filesystem Browser.
+
+- **`Filesystem`**: `copyRecursive`, `removeRecursive`, `join`, `isSameOrDescendant` (shared by apps).
+- **Filesystem Browser**: recursive delete for folder trees; toolbar/Delete key require confirmation (status bar + Enter/Delete/Esc); context menu confirm unchanged in spirit.
+- **Terminal**: `cp -r` / `rm -r` use shared API; self-copy blocked; `cat` splits lines and truncates huge output; scrollback and command history capped.
+- Docs: filesystem API, browser delete UX, terminal limits.
+
+Builds cleanly.
+
 ## 2026-07: Text Editor UTF-8 and status feedback
 
 Editor input and file I/O feedback are more reliable.

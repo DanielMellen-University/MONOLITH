@@ -106,6 +106,53 @@ bool Filesystem::remove(const std::string& virtualPath) {
     }
 }
 
+bool Filesystem::removeRecursive(const std::string& virtualPath) {
+    const std::string path = normalize(virtualPath);
+    if (path == "/") {
+        return false; // never delete the virtual root
+    }
+
+    if (isFile(path)) {
+        return remove(path);
+    }
+    if (!isDirectory(path)) {
+        return false;
+    }
+
+    for (const auto& entry : listEntries(path)) {
+        if (!removeRecursive(join(path, entry.name))) {
+            return false;
+        }
+    }
+    return remove(path);
+}
+
+bool Filesystem::copyRecursive(const std::string& srcVirtualPath, const std::string& dstVirtualPath) {
+    const std::string src = normalize(srcVirtualPath);
+    const std::string dst = normalize(dstVirtualPath);
+
+    if (src.empty() || dst.empty()) return false;
+    if (isSameOrDescendant(src, dst)) return false;
+
+    if (isFile(src)) {
+        return writeFile(dst, readFile(src));
+    }
+    if (!isDirectory(src)) {
+        return false;
+    }
+
+    if (!createDirectory(dst) && !isDirectory(dst)) {
+        return false;
+    }
+
+    for (const auto& entry : listEntries(src)) {
+        if (!copyRecursive(join(src, entry.name), join(dst, entry.name))) {
+            return false;
+        }
+    }
+    return true;
+}
+
 bool Filesystem::rename(const std::string& oldVirtualPath, const std::string& newVirtualPath) {
     try {
         stdfs::path oldHost = toHostPath(oldVirtualPath);
@@ -208,6 +255,32 @@ std::vector<Filesystem::DirEntry> Filesystem::listEntries(const std::string& vir
     // Directories first, then files
     dirs.insert(dirs.end(), std::make_move_iterator(files.begin()), std::make_move_iterator(files.end()));
     return dirs;
+}
+
+std::string Filesystem::join(const std::string& dirVirtualPath, const std::string& childName) const {
+    if (childName.empty()) {
+        return normalize(dirVirtualPath.empty() ? "/" : dirVirtualPath);
+    }
+    std::string dir = dirVirtualPath.empty() ? "/" : dirVirtualPath;
+    if (dir == "/") {
+        return normalize("/" + childName);
+    }
+    if (!dir.empty() && dir.back() != '/') {
+        dir += '/';
+    }
+    return normalize(dir + childName);
+}
+
+bool Filesystem::isSameOrDescendant(const std::string& ancestor, const std::string& path) const {
+    const std::string a = normalize(ancestor);
+    const std::string p = normalize(path);
+    if (a.empty() || p.empty()) return false;
+    if (a == p) return true;
+    if (a == "/") return true; // everything is under root
+
+    std::string prefix = a;
+    if (prefix.back() != '/') prefix += '/';
+    return p.compare(0, prefix.size(), prefix) == 0;
 }
 
 } // namespace monolith::fs

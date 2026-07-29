@@ -36,7 +36,7 @@ The browser starts at `/home/monolith` when that path exists.
 | Up | Navigate to parent directory |
 | New Folder | Create `New Folder` (auto-increments if name exists) |
 | New File | Create `New File.txt` (auto-increments if name exists) |
-| Delete | Delete selected entry (confirmation required) |
+| Delete | Request delete of selected entry (files or folder trees; confirmation required) |
 | Rename | Rename selected entry (inline edit) |
 
 ## Keyboard Shortcuts
@@ -44,12 +44,12 @@ The browser starts at `/home/monolith` when that path exists.
 | Key | Action |
 |-----|--------|
 | Up / Down | Move selection |
-| Enter | Open directory or file |
+| Enter | Open directory or file; or confirm pending delete |
 | Backspace | Go up one directory |
-| Delete | Delete selected entry |
+| Delete | Request delete (second press confirms) |
 | F2 | Start rename on selected entry |
 | F5 | Refresh directory listing |
-| Esc | Cancel rename or close context menu |
+| Esc | Cancel rename, cancel pending delete, or close context menu |
 
 ### Rename Mode
 
@@ -57,7 +57,12 @@ Press **F2** or choose Rename from the context menu. Type the new name, then **E
 
 ### Delete Confirmation
 
-Delete (toolbar, keyboard, or context menu) shows a confirmation submenu: **Confirm Delete** or **Cancel**.
+Deleting always requires confirmation (files and non-empty folders):
+
+1. **Toolbar Delete** or **Delete** key: status bar asks to confirm; press **Delete** / **Enter** again to remove, or **Esc** to cancel. Changing selection cancels the pending delete.
+2. **Context menu Delete**: submenu with **Confirm Delete** / **Cancel**.
+
+Deletion uses `Filesystem::removeRecursive` (whole directory trees). The virtual root `/` cannot be deleted.
 
 ## Context Menus
 
@@ -91,8 +96,8 @@ Delete (toolbar, keyboard, or context menu) shows a confirmation submenu: **Conf
 
 - **Copy** or **Cut** a selected file or folder from the right-click menu (or Ctrl+C / Ctrl+X).
 - **Paste** into the current directory from the right-click menu (or Ctrl+V).
-- Cut + Paste moves items; Copy + Paste duplicates them (including directory trees).
-- Paste is blocked if the destination already contains an item with the same name, or if you try to paste a folder into itself.
+- Cut + Paste moves items; Copy + Paste duplicates them (including directory trees via `Filesystem::copyRecursive` / `removeRecursive`).
+- Paste is blocked if the destination already contains an item with the same name, or if you try to paste a folder into itself (`isSameOrDescendant`).
 
 ## Current Limitations
 
@@ -100,7 +105,7 @@ Delete (toolbar, keyboard, or context menu) shows a confirmation submenu: **Conf
 - No drag-and-drop.
 - No multi-select.
 - No file preview or properties panel.
-- Recursive delete is not exposed (use Terminal `rm -r` for directory trees if needed).
+- Clipboard is per browser window (not shared across Filesystem instances or the host OS).
 
 ## Developer Notes
 
@@ -108,6 +113,7 @@ Main implementation files:
 
 - `src/app/FilesystemApp.hpp`
 - `src/app/FilesystemApp.cpp`
+- `src/fs/Filesystem.*` — shared recursive copy/remove and path helpers
 - `src/window/WindowManager.cpp` — `launchFilesystem()`, `openInTextEditor()`, `openInDrawing()` shell bridges
 
 File open uses `IWindowController` shell methods so the browser does not depend directly on Text Editor or Drawing classes.

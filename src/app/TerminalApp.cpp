@@ -20,6 +20,9 @@ TerminalApp::TerminalApp(TTF_Font* font, monolith::fs::Filesystem* fs)
 
 void TerminalApp::addOutput(const std::string& line) {
     m_history.push_back(line);
+    while (m_history.size() > kMaxScrollbackLines) {
+        m_history.erase(m_history.begin());
+    }
     m_scrollOffset = 0;   // auto-scroll to bottom on new output
 }
 
@@ -35,6 +38,9 @@ void TerminalApp::submitInput() {
 
     if (!command.empty()) {
         m_commandHistory.push_back(command);
+        while (m_commandHistory.size() > kMaxCommandHistory) {
+            m_commandHistory.erase(m_commandHistory.begin());
+        }
         saveCommandHistory();
         executeCommand(command);
     } else {
@@ -195,18 +201,22 @@ void TerminalApp::executeCommand(const std::string& commandLine) {
                         dstPath = joinPath(dstPath, base);
                     }
 
-                    bool ok = false;
-                    if (recursive && m_fs->isDirectory(srcPath)) {
-                        ok = copyRecursive(srcPath, dstPath);
+                    if (m_fs->isSameOrDescendant(srcPath, dstPath)) {
+                        addOutput("cp: cannot copy a directory into itself");
                     } else {
-                        // file (or non-recursive dir would have been caught above)
-                        std::string content = m_fs->readFile(srcPath);
-                        ok = m_fs->writeFile(dstPath, content);
+                        bool ok = false;
+                        if (recursive && m_fs->isDirectory(srcPath)) {
+                            ok = m_fs->copyRecursive(srcPath, dstPath);
+                        } else {
+                            // file (or non-recursive dir would have been caught above)
+                            std::string content = m_fs->readFile(srcPath);
+                            ok = m_fs->writeFile(dstPath, content);
+                        }
+                        if (!ok) {
+                            addOutput("cp: cannot create '" + dst + "'");
+                        }
+                        // success is silent
                     }
-                    if (!ok) {
-                        addOutput("cp: cannot create '" + dst + "'");
-                    }
-                    // success is silent
                 }
             }
         }
@@ -229,11 +239,29 @@ void TerminalApp::executeCommand(const std::string& commandLine) {
     else if (cmd == "cat") {
         if (m_fs && !rest.empty()) {
             std::string path = resolvePath(rest);
-            std::string content = m_fs->readFile(path);
-            if (!content.empty() || m_fs->isFile(path)) {
-                addOutput(content);
-            } else {
+            if (!m_fs->isFile(path)) {
                 addOutput("cat: " + rest + ": No such file");
+            } else {
+                std::string content = m_fs->readFile(path);
+                // Split into scrollback lines so multi-line files render correctly.
+                size_t linesOut = 0;
+                size_t start = 0;
+                while (start <= content.size()) {
+                    size_t nl = content.find('\n', start);
+                    if (nl == std::string::npos) {
+                        addOutput(content.substr(start));
+                        ++linesOut;
+                        break;
+                    }
+                    addOutput(content.substr(start, nl - start));
+                    ++linesOut;
+                    start = nl + 1;
+                    if (linesOut >= kMaxCatLines) {
+                        addOutput("… cat: output truncated at "
+                                  + std::to_string(kMaxCatLines) + " lines");
+                        break;
+                    }
+                }
             }
         } else if (!m_fs) {
             addOutput("Filesystem not available");
@@ -289,8 +317,10 @@ void TerminalApp::executeCommand(const std::string& commandLine) {
                 std::string path = resolvePath(target);
                 if (!m_fs->exists(path)) {
                     addOutput("rm: cannot remove '" + target + "': No such file or directory");
+                } else if (m_fs->normalize(path) == "/") {
+                    addOutput("rm: cannot remove '/'");
                 } else if (recursive) {
-                    if (removeRecursive(path)) {
+                    if (m_fs->removeRecursive(path)) {
                         // success
                     } else {
                         addOutput("rm: failed to remove '" + target + "'");
@@ -610,6 +640,9 @@ void TerminalApp::loadCommandHistory() {
             m_commandHistory.push_back(line);
         }
     }
+    while (m_commandHistory.size() > kMaxCommandHistory) {
+        m_commandHistory.erase(m_commandHistory.begin());
+    }
 }
 
 void TerminalApp::saveCommandHistory() {
@@ -620,28 +653,6 @@ void TerminalApp::saveCommandHistory() {
         oss << cmd << '\n';
     }
     m_fs->writeFile(HISTORY_FILE, oss.str());
-}
-
-bool TerminalApp::removeRecursive(const std::string& virtualPath) {
-    if (!m_fs) return false;
-
-    if (m_fs->isFile(virtualPath)) {
-        return m_fs->remove(virtualPath);
-    }
-
-    if (!m_fs->isDirectory(virtualPath)) {
-        return false;
-    }
-
-    auto entries = m_fs->listEntries(virtualPath);
-    for (const auto& entry : entries) {
-        std::string child = joinPath(virtualPath, entry.name);
-        if (!removeRecursive(child)) {
-            return false;
-        }
-    }
-
-    return m_fs->remove(virtualPath);
 }
 
 void TerminalApp::handleTabCompletion() {
@@ -818,42 +829,7 @@ std::string TerminalApp::getInputPrompt() const {
 
 std::string TerminalApp::joinPath(const std::string& base, const std::string& name) const {
     if (!m_fs) return name;
-    if (name.empty()) return m_fs->normalize(base.empty() ? "/" : base);
-    if (base.empty()) return m_fs->normalize(name);
-
-    std::string glued = base;
-    if (!glued.empty() && glued.back() != '/') {
-        glued += '/';
-    }
-    glued += name;
-    return m_fs->normalize(glued);
-}
-
-bool TerminalApp::copyRecursive(const std::string& src, const std::string& dst) {
-    if (!m_fs) return false;
-
-    if (m_fs->isFile(src)) {
-        std::string content = m_fs->readFile(src);
-        return m_fs->writeFile(dst, content);
-    }
-
-    if (!m_fs->isDirectory(src)) return false;
-
-    // Ensure destination dir (createDirectory is safe if it already exists as dir in our FS impl)
-    if (!m_fs->createDirectory(dst)) {
-        // If it exists but is a file, writeFile later would fail anyway; treat as failure for copy
-        if (!m_fs->isDirectory(dst)) return false;
-    }
-
-    auto entries = m_fs->listEntries(src);
-    for (const auto& entry : entries) {
-        std::string childSrc = joinPath(src, entry.name);
-        std::string childDst = joinPath(dst, entry.name);
-        if (!copyRecursive(childSrc, childDst)) {
-            return false;
-        }
-    }
-    return true;
+    return m_fs->join(base, name);
 }
 
 void TerminalApp::render(SDL_Renderer* renderer, const SDL_Rect& contentRect) {

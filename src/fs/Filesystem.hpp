@@ -42,6 +42,12 @@ public:
     /** Removes a file or empty directory. Returns false on failure. */
     bool remove(const std::string& virtualPath);
 
+    /**
+     * Removes a file or directory tree (children first).
+     * Refuses to remove the virtual root "/".
+     */
+    bool removeRecursive(const std::string& virtualPath);
+
     /** Renames or moves a file/directory to a new virtual path. Returns false on failure. */
     bool rename(const std::string& oldVirtualPath, const std::string& newVirtualPath);
 
@@ -50,6 +56,13 @@ public:
 
     /** Reads the entire content of a file. Returns empty string on failure. */
     std::string readFile(const std::string& virtualPath) const;
+
+    /**
+     * Copies a file or directory tree to a new path.
+     * Destination parent directories are created as needed.
+     * Returns false if the destination is the same as (or inside) the source tree.
+     */
+    bool copyRecursive(const std::string& srcVirtualPath, const std::string& dstVirtualPath);
 
     /** Lists the names of entries in a directory (not full paths). */
     std::vector<std::string> list(const std::string& virtualPath) const;
@@ -70,6 +83,15 @@ public:
 
     /** Normalizes a virtual path (handles .., ., multiple slashes, etc.) */
     std::string normalize(const std::string& path) const;
+
+    /** Joins a directory and a child name, then normalizes. */
+    std::string join(const std::string& dirVirtualPath, const std::string& childName) const;
+
+    /**
+     * True if `path` is the same as `ancestor`, or a descendant under it
+     * (after normalization). Used to block copy/paste into self.
+     */
+    bool isSameOrDescendant(const std::string& ancestor, const std::string& path) const;
 
 private:
     std::string m_hostRoot;

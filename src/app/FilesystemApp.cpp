@@ -188,65 +188,6 @@ std::string FilesystemApp::entryBaseName(const std::string& virtualPath) const {
     return normalized.substr(slash + 1);
 }
 
-bool FilesystemApp::isSameOrDescendantPath(const std::string& ancestor, const std::string& path) const {
-    if (!m_fs) return false;
-    const std::string a = m_fs->normalize(ancestor);
-    const std::string p = m_fs->normalize(path);
-    if (a == p) return true;
-    if (a.empty() || p.empty()) return false;
-
-    std::string prefix = a;
-    if (prefix.back() != '/') prefix += '/';
-    return p.compare(0, prefix.size(), prefix) == 0;
-}
-
-bool FilesystemApp::copyEntryRecursive(const std::string& srcPath, const std::string& dstPath) {
-    if (!m_fs) return false;
-
-    if (m_fs->isFile(srcPath)) {
-        return m_fs->writeFile(dstPath, m_fs->readFile(srcPath));
-    }
-
-    if (!m_fs->isDirectory(srcPath)) return false;
-
-    if (!m_fs->createDirectory(dstPath) && !m_fs->isDirectory(dstPath)) {
-        return false;
-    }
-
-    for (const auto& entry : m_fs->listEntries(srcPath)) {
-        const std::string childSrc = m_fs->normalize(
-            srcPath == "/" ? "/" + entry.name : srcPath + "/" + entry.name
-        );
-        const std::string childDst = m_fs->normalize(
-            dstPath == "/" ? "/" + entry.name : dstPath + "/" + entry.name
-        );
-        if (!copyEntryRecursive(childSrc, childDst)) {
-            return false;
-        }
-    }
-    return true;
-}
-
-bool FilesystemApp::removeEntryRecursive(const std::string& virtualPath) {
-    if (!m_fs) return false;
-
-    if (m_fs->isFile(virtualPath)) {
-        return m_fs->remove(virtualPath);
-    }
-
-    if (!m_fs->isDirectory(virtualPath)) return false;
-
-    for (const auto& entry : m_fs->listEntries(virtualPath)) {
-        const std::string child = m_fs->normalize(
-            virtualPath == "/" ? "/" + entry.name : virtualPath + "/" + entry.name
-        );
-        if (!removeEntryRecursive(child)) {
-            return false;
-        }
-    }
-    return m_fs->remove(virtualPath);
-}
-
 void FilesystemApp::copySelectedToClipboard(bool cut) {
     if (!m_fs || m_selectedIndex < 0 || m_selectedIndex >= static_cast<int>(m_entries.size())) {
         setStatus(cut ? "Cut failed: no item selected" : "Copy failed: no item selected");
@@ -282,7 +223,7 @@ void FilesystemApp::pasteFromClipboard() {
         setStatus("Paste failed: already in this location");
         return;
     }
-    if (isSameOrDescendantPath(m_clipboardPath, destPath)) {
+    if (m_fs->isSameOrDescendant(m_clipboardPath, destPath)) {
         setStatus("Paste failed: cannot paste into itself");
         return;
     }
@@ -291,7 +232,7 @@ void FilesystemApp::pasteFromClipboard() {
         return;
     }
 
-    if (!copyEntryRecursive(m_clipboardPath, destPath)) {
+    if (!m_fs->copyRecursive(m_clipboardPath, destPath)) {
         setStatus("Paste failed: could not copy " + baseName);
         return;
     }
@@ -302,7 +243,7 @@ void FilesystemApp::pasteFromClipboard() {
     const bool sourceWasDirectory = m_fs->isDirectory(sourcePath);
 
     if (wasCut) {
-        if (!removeEntryRecursive(sourcePath)) {
+        if (!m_fs->removeRecursive(sourcePath)) {
             setStatus("Paste warning: copied but could not remove original");
             m_clipboardValid = false;
             m_clipboardPath.clear();
@@ -320,20 +261,53 @@ void FilesystemApp::pasteFromClipboard() {
     setStatus(wasCut ? ("Moved: " + sourceName) : ("Pasted: " + sourceName));
 }
 
-void FilesystemApp::deleteSelected() {
+void FilesystemApp::cancelPendingDelete() {
+    m_confirmingDelete = false;
+    m_pendingDeleteIndex = -1;
+}
+
+void FilesystemApp::requestDeleteSelected() {
     if (!m_fs || m_selectedIndex < 0 || m_selectedIndex >= static_cast<int>(m_entries.size())) {
         setStatus(m_fs ? "Delete failed: no item selected" : "Delete failed: filesystem not available");
+        cancelPendingDelete();
+        return;
+    }
+
+    // Second Delete/Enter while confirming the same item → perform.
+    if (m_confirmingDelete && m_pendingDeleteIndex == m_selectedIndex) {
+        performDeleteSelected();
+        return;
+    }
+
+    m_confirmingDelete = true;
+    m_pendingDeleteIndex = m_selectedIndex;
+    const std::string& name = m_entries[m_selectedIndex].name;
+    const bool isDir = m_entries[m_selectedIndex].isDirectory;
+    setStatus(std::string("Delete \"") + name + (isDir ? "\" (folder tree)" : "\"")
+              + "? Delete/Enter confirm, Esc cancel");
+}
+
+void FilesystemApp::performDeleteSelected() {
+    if (!m_fs || m_selectedIndex < 0 || m_selectedIndex >= static_cast<int>(m_entries.size())) {
+        setStatus(m_fs ? "Delete failed: no item selected" : "Delete failed: filesystem not available");
+        cancelPendingDelete();
         return;
     }
 
     const std::string name = m_entries[m_selectedIndex].name;
-    std::string target = fullPathFor(name);
+    const std::string target = fullPathFor(name);
 
-    if (m_fs->remove(target)) {
+    if (m_fs->normalize(target) == "/") {
+        setStatus("Delete failed: cannot remove filesystem root");
+        cancelPendingDelete();
+        return;
+    }
+
+    if (m_fs->removeRecursive(target)) {
         int oldSel = m_selectedIndex;
+        cancelPendingDelete();
         refreshEntries();
 
-        // Try to keep a reasonable selection
         if (!m_entries.empty()) {
             int newSel = std::min(oldSel, static_cast<int>(m_entries.size()) - 1);
             setSelection(newSel);
@@ -343,6 +317,7 @@ void FilesystemApp::deleteSelected() {
         ensureSelectionVisible();
         setStatus("Deleted: " + name);
     } else {
+        cancelPendingDelete();
         setStatus("Delete failed: " + name);
     }
 }
@@ -400,10 +375,14 @@ void FilesystemApp::finishRename(bool commit) {
 void FilesystemApp::setSelection(int index) {
     if (m_entries.empty()) {
         m_selectedIndex = -1;
+        if (m_confirmingDelete) cancelPendingDelete();
         return;
     }
     if (index < 0) index = 0;
     if (index >= static_cast<int>(m_entries.size())) index = static_cast<int>(m_entries.size()) - 1;
+    if (m_confirmingDelete && index != m_pendingDeleteIndex) {
+        cancelPendingDelete();
+    }
     m_selectedIndex = index;
 }
 
@@ -519,7 +498,7 @@ void FilesystemApp::handleMouseButton(const SDL_MouseButtonEvent& e) {
         return;
     }
     if (SDL_PointInRect(&pt, &m_btnDelete)) {
-        deleteSelected();
+        requestDeleteSelected();
         return;
     }
     if (SDL_PointInRect(&pt, &m_btnRename)) {
@@ -583,6 +562,18 @@ void FilesystemApp::handleKeyDown(const SDL_Keysym& keysym) {
         return; // Ignore other keys while renaming
     }
 
+    if (m_confirmingDelete) {
+        if (keysym.sym == SDLK_ESCAPE) {
+            cancelPendingDelete();
+            setStatus("Delete canceled");
+            return;
+        }
+        if (keysym.sym == SDLK_RETURN || keysym.sym == SDLK_KP_ENTER || keysym.sym == SDLK_DELETE) {
+            performDeleteSelected();
+            return;
+        }
+    }
+
     switch (keysym.sym) {
         case SDLK_UP:
             if (m_selectedIndex > 0) {
@@ -613,7 +604,7 @@ void FilesystemApp::handleKeyDown(const SDL_Keysym& keysym) {
             break;
 
         case SDLK_DELETE:
-            deleteSelected();
+            requestDeleteSelected();
             break;
 
         case SDLK_F2:
@@ -1012,6 +1003,7 @@ void FilesystemApp::executeContextMenuAction(int menuIndex) {
         if (target >= 0) {
             m_selectedIndex = target;
             m_confirmingDelete = true;
+            m_pendingDeleteIndex = target;
             m_contextMenuPos = menuPos;
             m_contextMenuTarget = target;
             m_contextMenuItems.clear();
@@ -1019,15 +1011,18 @@ void FilesystemApp::executeContextMenuAction(int menuIndex) {
             m_contextMenuItems.push_back("Cancel");
             updateContextMenuLayout();
             m_showContextMenu = true;
+            const std::string& name = m_entries[static_cast<size_t>(target)].name;
+            setStatus("Delete \"" + name + "\"? Confirm in menu or Enter");
         }
     } else if (action == "Confirm Delete") {
         if (target >= 0) {
             m_selectedIndex = target;
+            m_pendingDeleteIndex = target;
         }
-        deleteSelected();
-        m_confirmingDelete = false;
+        performDeleteSelected();
     } else if (action == "Cancel") {
-        m_confirmingDelete = false;
+        cancelPendingDelete();
+        setStatus("Delete canceled");
     }
 }
 
