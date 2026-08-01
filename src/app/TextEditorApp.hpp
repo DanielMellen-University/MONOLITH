@@ -21,11 +21,17 @@ public:
     void render(SDL_Renderer* renderer, const SDL_Rect& contentRect) override;
     void handleEvent(const SDL_Event& event) override;
     void onResize(int clientWidth, int clientHeight) override;
+    bool allowClose() override;
 
     // Optional: allow external trigger to save (future use)
     bool saveCurrentFile();
 
 private:
+    enum class DiscardKind { None, Close, Open };
+
+    // Returns true if the destructive action may proceed (clean buffer, or second confirm).
+    bool requestDiscard(DiscardKind kind, const char* statusMessage);
+    void clearDiscardArm();
     struct EditorState {
         std::vector<std::string> lines;
         int cursorRow;
@@ -103,6 +109,7 @@ private:
     std::string m_filePath;   // virtual path in Monolith FS (if set)
     bool m_dirty = false;
     std::string m_statusMessage;  // transient status-bar feedback (save/open errors, etc.)
+    DiscardKind m_discardKind = DiscardKind::None;
 
     std::vector<EditorState> m_undoStack;
     std::vector<EditorState> m_redoStack;

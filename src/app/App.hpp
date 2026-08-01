@@ -100,6 +100,11 @@ public:
     virtual void onFocusGained() {}
     virtual void onFocusLost() {}
 
+    // Called before the shell closes this window (title-bar X, controller close, etc.).
+    // Return false to cancel the close (e.g. unsaved changes — arm a second close to discard).
+    // Default: always allow close.
+    virtual bool allowClose() { return true; }
+
     // Called whenever the client area size changes (resize, maximize, etc.).
     // Dimensions are in logical pixels (excluding title bar height).
     virtual void onResize(int /*clientWidth*/, int /*clientHeight*/) {}

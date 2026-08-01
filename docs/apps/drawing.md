@@ -129,11 +129,23 @@ The current cap is 32 history states.
 
 Internally, the live canvas stores pixels as `R,G,B,A`. The saved file stores only RGB because the canvas is fully opaque.
 
+## Unsaved Changes
+
+A dirty sketch (status bar `*`) guards destructive actions:
+
+| Action | First time (dirty) | Confirm |
+|--------|--------------------|---------|
+| Close window (X / shell close) | Status warning | Close again to discard, or Ctrl+S to save |
+| New / Ctrl+N | Status warning | New again to discard |
+| Open path | Status warning | Confirm open again to discard |
+
+Clear (toolbar) remains undoable and does not use this guard.
+
 ## Current Limitations
 
 - No custom color picker yet.
 - No clipboard import/export yet.
-- `.modr` files open from the Filesystem Browser; other apps cannot launch drawings yet.
+- Dirty guards use status-bar double-confirm, not a modal dialog.
 - Undo history is in memory only and resets when a drawing file is opened, the canvas is resized, or the app exits.
 
 ## Developer Notes

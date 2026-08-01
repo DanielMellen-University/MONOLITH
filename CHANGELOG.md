@@ -1,5 +1,15 @@
 # Changelog
 
+## 2026-07: Dirty guards and small app UX
+
+Feature polish without language/IDE work.
+
+- **Editor / Drawing**: unsaved changes block close (and open/new where relevant); status bar asks to confirm again or save first (`App::allowClose`).
+- **Terminal**: `touch` no longer truncates existing files; directories rejected.
+- **Minesweeper**: timer pauses while the window is unfocused (HUD shows PAUSED); resumes on focus.
+
+Builds cleanly.
+
 ## 2026-07: Shared recursive filesystem ops
 
 Safer file management across Terminal and Filesystem Browser.

@@ -23,6 +23,8 @@ public:
     void handleEvent(const SDL_Event& event) override;
     void update() override;
     void onResize(int clientWidth, int clientHeight) override;
+    void onFocusGained() override;
+    void onFocusLost() override;
 
 private:
     enum class Difficulty { Beginner, Intermediate, Expert };
@@ -93,6 +95,7 @@ private:
     Uint32 m_timerStartMs = 0;
     int m_elapsedSec = 0;
     bool m_newBest = false;
+    bool m_focusPaused = false;  // timer frozen while window unfocused
 
     // Hit mine position on loss (-1 = unknown / chord multi-loss)
     int m_hitX = -1;

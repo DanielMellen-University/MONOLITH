@@ -379,8 +379,12 @@ void TerminalApp::executeCommand(const std::string& commandLine) {
             addOutput("touch: missing file operand");
         } else {
             std::string path = resolvePath(rest);
-            if (m_fs->writeFile(path, "")) {
-                // success - silent or could stat it
+            if (m_fs->isDirectory(path)) {
+                addOutput("touch: cannot touch '" + rest + "': Is a directory");
+            } else if (m_fs->isFile(path)) {
+                // Already exists: leave content unchanged (do not truncate).
+            } else if (m_fs->writeFile(path, "")) {
+                // Created empty file.
             } else {
                 addOutput("touch: cannot touch '" + rest + "'");
             }

@@ -122,8 +122,11 @@ void DrawingApp::clearCanvas(bool recordUndo) {
         m_pixels[i + 3] = 255;
     }
     m_dirty = true;
+    clearDiscardArm();
     markTextureDirty();
-    setStatus("Canvas cleared.");
+    if (recordUndo) {
+        setStatus("Canvas cleared.");
+    }
 }
 
 void DrawingApp::markTextureDirty() {
@@ -148,6 +151,7 @@ void DrawingApp::restoreCanvasSnapshot(const CanvasSnapshot& snapshot) {
     m_canvasHeight = snapshot.height;
     m_pixels = snapshot.pixels;
     m_dirty = true;
+    clearDiscardArm();
     markTextureDirty();
 }
 
@@ -329,6 +333,7 @@ void DrawingApp::floodFill(int x, int y) {
     }
 
     m_dirty = true;
+    clearDiscardArm();
     markTextureDirty();
     setStatus("Filled region.");
 }
@@ -360,6 +365,7 @@ void DrawingApp::drawStroke(int x0, int y0, int x1, int y1) {
     }
 
     m_dirty = true;
+    clearDiscardArm();
     markTextureDirty();
 }
 
@@ -440,6 +446,7 @@ bool DrawingApp::saveToPath(const std::string& virtualPath) {
 
     m_filePath = path;
     m_dirty = false;
+    clearDiscardArm();
 
     size_t nameStart = path.find_last_of('/');
     const std::string baseName = (nameStart != std::string::npos) ? path.substr(nameStart + 1) : path;
@@ -519,6 +526,50 @@ void DrawingApp::setStatus(const std::string& message) {
     m_statusMessage = message;
 }
 
+void DrawingApp::clearDiscardArm() {
+    m_discardKind = DiscardKind::None;
+}
+
+bool DrawingApp::requestDiscard(DiscardKind kind, const char* statusMessage) {
+    if (!m_dirty) {
+        clearDiscardArm();
+        return true;
+    }
+    if (m_discardKind == kind) {
+        clearDiscardArm();
+        return true;
+    }
+    m_discardKind = kind;
+    setStatus(statusMessage);
+    return false;
+}
+
+bool DrawingApp::allowClose() {
+    return requestDiscard(
+        DiscardKind::Close,
+        "Unsaved changes — close again to discard, or Ctrl+S to save"
+    );
+}
+
+void DrawingApp::startNewSketch() {
+    if (!requestDiscard(
+            DiscardKind::New,
+            "Unsaved changes — New again to discard, or save first")) {
+        return;
+    }
+    clearCanvas(false);
+    m_filePath.clear();
+    m_undoStack.clear();
+    m_redoStack.clear();
+    m_dirty = false; // blank new sketch is clean
+    clearDiscardArm();
+    if (auto* ctrl = getController()) {
+        ctrl->clearDrawingFileBinding();
+        ctrl->restoreTrackedInstanceTitle();
+    }
+    setStatus("New sketch.");
+}
+
 void DrawingApp::beginPathPrompt(PathPromptMode mode) {
     m_pathPromptMode = mode;
     if (mode == PathPromptMode::Save) {
@@ -549,7 +600,16 @@ void DrawingApp::finishPathPrompt(bool commit) {
     if (mode == PathPromptMode::Save) {
         saveToPath(buffer);
     } else if (mode == PathPromptMode::Open) {
-        loadFromPath(buffer);
+        if (!requestDiscard(
+                DiscardKind::Open,
+                "Unsaved changes — open again to discard, or save first")) {
+            m_pathPromptMode = PathPromptMode::Open;
+            m_pathPromptBuffer = buffer;
+            return;
+        }
+        if (loadFromPath(buffer)) {
+            clearDiscardArm();
+        }
     }
 }
 
@@ -647,13 +707,7 @@ void DrawingApp::handlePathPromptText(const char* text) {
 
 void DrawingApp::handleToolbarClick(int x, int y) {
     if (pointInRect(x, y, m_btnNew)) {
-        clearCanvas();
-        m_filePath.clear();
-        if (auto* ctrl = getController()) {
-            ctrl->clearDrawingFileBinding();
-            ctrl->restoreTrackedInstanceTitle();
-        }
-        setStatus("New sketch.");
+        startNewSketch();
         return;
     }
     if (pointInRect(x, y, m_btnSave)) {
@@ -940,12 +994,7 @@ void DrawingApp::handleEvent(const SDL_Event& event) {
             return;
         }
         if ((key.mod & KMOD_CTRL) && key.sym == SDLK_n) {
-            clearCanvas();
-            m_filePath.clear();
-            if (auto* ctrl = getController()) {
-                ctrl->clearDrawingFileBinding();
-                ctrl->restoreTrackedInstanceTitle();
-            }
+            startNewSketch();
             return;
         }
     }
@@ -973,6 +1022,7 @@ void DrawingApp::handleEvent(const SDL_Event& event) {
             pushUndoSnapshot();
             stampBrush(cx, cy);
             m_dirty = true;
+            clearDiscardArm();
             markTextureDirty();
         }
         return;
@@ -999,6 +1049,7 @@ void DrawingApp::handleEvent(const SDL_Event& event) {
         } else {
             stampBrush(cx, cy);
             m_dirty = true;
+            clearDiscardArm();
             markTextureDirty();
         }
 

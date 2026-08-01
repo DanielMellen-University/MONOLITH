@@ -122,6 +122,7 @@ void MinesweeperApp::resetBoard() {
     m_cells.assign(static_cast<size_t>(m_width * m_height), Cell{});
     m_minesPlaced = false;
     m_state = State::Ready;
+    m_focusPaused = false;
     m_revealedSafe = 0;
     m_timerStartMs = 0;
     m_elapsedSec = 0;
@@ -335,8 +336,24 @@ void MinesweeperApp::checkWin() {
     }
 }
 
+void MinesweeperApp::onFocusLost() {
+    if (m_state == State::Playing && m_minesPlaced && !m_focusPaused) {
+        m_focusPaused = true;
+        const Uint32 now = SDL_GetTicks();
+        m_elapsedSec = static_cast<int>((now - m_timerStartMs) / 1000u);
+    }
+}
+
+void MinesweeperApp::onFocusGained() {
+    if (m_focusPaused && m_state == State::Playing && m_minesPlaced) {
+        m_focusPaused = false;
+        // Resume timer so frozen elapsed continues from the same second count.
+        m_timerStartMs = SDL_GetTicks() - static_cast<Uint32>(m_elapsedSec) * 1000u;
+    }
+}
+
 void MinesweeperApp::update() {
-    if (m_state != State::Playing || !m_minesPlaced) return;
+    if (m_state != State::Playing || !m_minesPlaced || m_focusPaused) return;
     const Uint32 now = SDL_GetTicks();
     m_elapsedSec = static_cast<int>((now - m_timerStartMs) / 1000u);
     if (m_elapsedSec > 999) m_elapsedSec = 999;
@@ -582,6 +599,9 @@ void MinesweeperApp::render(SDL_Renderer* renderer, const SDL_Rect& contentRect)
     }
     status += "   ";
     status += specFor(m_difficulty).name;
+    if (m_focusPaused && m_state == State::Playing) {
+        status += "   PAUSED";
+    }
     drawText(renderer, status.c_str(), contentRect.x + 10, contentRect.y + 6, kHudText);
 
     const char* labels[3] = {"1 Begin", "2 Inter", "3 Expert"};

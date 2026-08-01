@@ -320,6 +320,7 @@ bool TextEditorApp::loadInitialFile(const std::string& virtualPath) {
     m_cursorCol = 0;
     m_scrollOffset = 0;
     m_dirty = false;
+    clearDiscardArm();
     refreshSyntaxMode();
     setStatus("Opened: " + getDisplayName());
     return true;
@@ -347,6 +348,7 @@ bool TextEditorApp::saveCurrentFile() {
     bool ok = m_fs->writeFile(m_filePath, oss.str());
     if (ok) {
         m_dirty = false;
+        clearDiscardArm();
         setStatus("Saved: " + getDisplayName());
     } else {
         setStatus("Save failed: could not write " + m_filePath);
@@ -356,6 +358,31 @@ bool TextEditorApp::saveCurrentFile() {
 
 void TextEditorApp::setStatus(const std::string& message) {
     m_statusMessage = message;
+}
+
+void TextEditorApp::clearDiscardArm() {
+    m_discardKind = DiscardKind::None;
+}
+
+bool TextEditorApp::requestDiscard(DiscardKind kind, const char* statusMessage) {
+    if (!m_dirty) {
+        clearDiscardArm();
+        return true;
+    }
+    if (m_discardKind == kind) {
+        clearDiscardArm();
+        return true;
+    }
+    m_discardKind = kind;
+    setStatus(statusMessage);
+    return false;
+}
+
+bool TextEditorApp::allowClose() {
+    return requestDiscard(
+        DiscardKind::Close,
+        "Unsaved changes — close again to discard, or Ctrl+S to save"
+    );
 }
 
 std::string TextEditorApp::getDisplayName() const {
@@ -424,9 +451,19 @@ void TextEditorApp::finishPathPrompt(bool commit) {
             }
         }
 
+        if (!requestDiscard(
+                DiscardKind::Open,
+                "Unsaved changes — open again to discard, or save first")) {
+            // Re-open the prompt so the user can confirm or save first.
+            m_pathPromptMode = PathPromptMode::Open;
+            m_pathPromptBuffer = buffer;
+            return;
+        }
+
         if (!loadInitialFile(path)) return;
         m_undoStack.clear();
         m_redoStack.clear();
+        clearDiscardArm();
         if (auto* ctrl = getController()) {
             ctrl->bindEditorFile(path);
         }
@@ -539,6 +576,7 @@ void TextEditorApp::insertText(const char* text) {
     line.insert(static_cast<size_t>(m_cursorCol), filtered);
     m_cursorCol += static_cast<int>(filtered.size());
     m_dirty = true;
+    clearDiscardArm();
     m_statusMessage.clear();
     ensureCursorVisible();
 }
@@ -557,6 +595,7 @@ void TextEditorApp::insertNewline() {
     m_cursorRow++;
     m_cursorCol = 0;
     m_dirty = true;
+    clearDiscardArm();
     ensureCursorVisible();
 }
 
@@ -583,6 +622,7 @@ void TextEditorApp::deleteChar() {
         m_cursorCol = newCol;
     }
     m_dirty = true;
+    clearDiscardArm();
     ensureCursorVisible();
 }
 
@@ -607,6 +647,7 @@ void TextEditorApp::deleteForward() {
         m_lines.erase(m_lines.begin() + m_cursorRow + 1);
     }
     m_dirty = true;
+    clearDiscardArm();
     ensureCursorVisible();
 }
 
@@ -1029,7 +1070,7 @@ void TextEditorApp::handleEvent(const SDL_Event& event) {
             return;
         }
 
-        // Ctrl+O open
+        // Ctrl+O open (dirty buffer requires a second confirm via finishPathPrompt)
         if ((key.mod & KMOD_CTRL) && key.sym == SDLK_o) {
             beginPathPrompt(PathPromptMode::Open);
             return;
@@ -1139,6 +1180,7 @@ void TextEditorApp::applyEditorState(const EditorState& state) {
     m_cursorRow = state.cursorRow;
     m_cursorCol = state.cursorCol;
     m_dirty = true;
+    clearDiscardArm();
     clampCursor();
     ensureCursorVisible();
 }

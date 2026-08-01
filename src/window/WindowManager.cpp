@@ -1189,6 +1189,11 @@ void WindowManager::applyResize(Window* window, int mouseX, int mouseY) {
 void WindowManager::closeWindow(Window* window) {
     if (!window) return;
 
+    // Let apps veto close once (dirty document guards). A second close after arming succeeds.
+    if (window->app && !window->app->allowClose()) {
+        return;
+    }
+
     // Capture before any mutation so we know which app type (if any) needs compaction
     // after this window is gone.
     std::string closedBase;

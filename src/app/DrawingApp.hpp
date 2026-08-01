@@ -24,11 +24,17 @@ public:
     void render(SDL_Renderer* renderer, const SDL_Rect& contentRect) override;
     void handleEvent(const SDL_Event& event) override;
     void onResize(int clientWidth, int clientHeight) override;
+    bool allowClose() override;
 
 private:
     enum class Tool { Pen, Eraser, Fill };
     enum class BrushSize { Small, Medium, Large };
     enum class PathPromptMode { None, Save, Open };
+    enum class DiscardKind { None, Close, New, Open };
+
+    bool requestDiscard(DiscardKind kind, const char* statusMessage);
+    void clearDiscardArm();
+    void startNewSketch();
 
     struct ColorSwatch {
         const char* name;
@@ -109,6 +115,7 @@ private:
 
     std::string m_filePath;
     bool m_dirty = false;
+    DiscardKind m_discardKind = DiscardKind::None;
 
     int m_clientWidth = 0;
     int m_clientHeight = 0;

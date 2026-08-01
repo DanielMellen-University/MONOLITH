@@ -149,6 +149,8 @@ Native C++ apps render into window client areas and are launched via shell metho
 
 **Input note:** The Window Manager forwards `SDL_MOUSEBUTTONUP` to the focused app's client area so drag interactions (e.g. Drawing strokes) end cleanly when the mouse is released outside the window.
 
+**Close note:** Before destroying a window, the shell calls `App::allowClose()`. Apps may return false once to warn about unsaved work (second close discards). Default is always allow.
+
 ### 7. Language Runtime
 
 The custom language is intended primarily for **scripting and automation**.

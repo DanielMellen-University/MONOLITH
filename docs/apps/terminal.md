@@ -92,7 +92,7 @@ History is saved after each submitted command. Command history is capped (oldest
 - No quoting support — filenames with spaces cannot be passed as single arguments.
 - No pipes, redirection, or job control.
 - No script execution or custom language integration yet.
-- `touch` overwrites existing files with empty content (not Unix “update mtime only” semantics).
+- `touch` creates an empty file if missing; existing files are left unchanged (no mtime update yet).
 - UTF-8 input in the prompt line is still limited compared to the Text Editor.
 
 ## Developer Notes
