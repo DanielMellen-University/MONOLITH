@@ -86,13 +86,20 @@ private:
     void redo();
     void applyEditorState(const EditorState& state);
 
-    // === Find ===
+    // === Find / Replace ===
+    enum class SearchMode { None, Find, Replace };
+    enum class SearchField { Query, Replacement };
+
     void enterFindMode();
+    void enterReplaceMode();
     void exitFindMode();
     void updateFindMatches();
     void moveFindMatch(int direction);
     void applyCurrentFindMatch();
     int findMatchIndexAt(int row, int col) const;
+    void replaceCurrentMatch();
+    void replaceAllMatches();
+    void selectCurrentMatch();
 
     // === Syntax highlighting ===
     enum class SyntaxMode { Light, Code };
@@ -138,9 +145,11 @@ private:
     PathPromptMode m_pathPromptMode = PathPromptMode::None;
     std::string m_pathPromptBuffer;
 
-    // Find state (basic)
-    bool m_findMode = false;
+    // Find / replace state
+    SearchMode m_searchMode = SearchMode::None;
+    SearchField m_searchField = SearchField::Query;
     std::string m_findQuery;
+    std::string m_replaceText;
     std::vector<std::pair<int, int>> m_findMatches;  // row, col starts
     int m_currentFindMatch = -1;
 

@@ -58,6 +58,7 @@ The editor applies lightweight per-line highlighting:
 | Ctrl+Z | Undo last edit |
 | Ctrl+Y / Ctrl+Shift+Z | Redo |
 | Ctrl+F | Enter find mode |
+| Ctrl+H | Enter find & replace mode |
 | Shift+Arrows / Home / End | Extend selection |
 
 ### Find Mode (Ctrl+F)
@@ -67,11 +68,25 @@ The editor applies lightweight per-line highlighting:
 | Type | Build search query (matches update live) |
 | Enter | Jump to next match |
 | Shift+Enter | Jump to previous match |
+| Tab | Switch to replace mode (focus replacement field) |
 | Backspace | Delete last character of query |
 | Delete | Clear query |
 | Esc | Exit find mode |
 
-The status bar shows match count (e.g. `2/5`) while find mode is active.
+The status bar shows match count (e.g. `2/5`). The current match is selected in the buffer.
+
+### Find & Replace (Ctrl+H)
+
+| Key | Action |
+|-----|--------|
+| Type | Edit the active field (find or replacement) |
+| Tab | Toggle between find and replacement fields |
+| Enter / Shift+Enter | Next / previous match |
+| Ctrl+R | Replace current match, then jump forward |
+| Ctrl+Shift+R | Replace all matches (one undo step) |
+| Esc | Exit |
+
+Replacement is case-sensitive substring match (same as find). Multi-line find is not supported.
 
 ## Saving
 
@@ -87,6 +102,7 @@ Ctrl+S saves to the bound path when one exists. If the buffer is untitled, Ctrl+
 - No horizontal scroll; long lines clip (selection still works by column).
 - Combining characters / complex scripts are treated as separate codepoints for cursor motion.
 - Clipboard uses the host OS clipboard (SDL), not a Monolith-only buffer.
+- Find/replace is case-sensitive and single-line only (no regex).
 - No integration with the custom language runtime yet.
 
 ## Developer Notes

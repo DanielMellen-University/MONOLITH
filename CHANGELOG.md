@@ -1,5 +1,15 @@
 # Changelog
 
+## 2026-07: Text Editor find & replace
+
+Find mode gains replace.
+
+- **Ctrl+H** opens find & replace (status bar shows Find + Repl fields; **Tab** switches fields).
+- **Ctrl+R** replaces the current match and advances; **Ctrl+Shift+R** replaces all (single undo).
+- Current match is selected in the buffer; **Tab** from plain find promotes to replace mode.
+
+Builds cleanly.
+
 ## 2026-07: Session restore, FS multi-select, open-with
 
 Desktop continuity and file-manager upgrades (no language/IDE, no wallpaper work).

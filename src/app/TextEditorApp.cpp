@@ -1062,17 +1062,40 @@ void TextEditorApp::ensureCursorVisible() {
 }
 
 void TextEditorApp::enterFindMode() {
-    m_findMode = true;
+    m_searchMode = SearchMode::Find;
+    m_searchField = SearchField::Query;
     m_findQuery.clear();
+    m_replaceText.clear();
     m_findMatches.clear();
     m_currentFindMatch = -1;
+    clearSelection();
+    m_statusMessage.clear();
+}
+
+void TextEditorApp::enterReplaceMode() {
+    // Keep current find query if already searching.
+    if (m_searchMode == SearchMode::None) {
+        m_findQuery.clear();
+        m_findMatches.clear();
+        m_currentFindMatch = -1;
+    }
+    m_searchMode = SearchMode::Replace;
+    m_searchField = SearchField::Query;
+    clearSelection();
+    m_statusMessage.clear();
+    if (!m_findQuery.empty()) {
+        updateFindMatches();
+    }
 }
 
 void TextEditorApp::exitFindMode() {
-    m_findMode = false;
+    m_searchMode = SearchMode::None;
+    m_searchField = SearchField::Query;
     m_findQuery.clear();
+    m_replaceText.clear();
     m_findMatches.clear();
     m_currentFindMatch = -1;
+    clearSelection();
 }
 
 void TextEditorApp::updateFindMatches() {
@@ -1080,6 +1103,7 @@ void TextEditorApp::updateFindMatches() {
     m_currentFindMatch = -1;
 
     if (m_findQuery.empty()) {
+        clearSelection();
         return;
     }
 
@@ -1093,6 +1117,7 @@ void TextEditorApp::updateFindMatches() {
     }
 
     if (m_findMatches.empty()) {
+        clearSelection();
         return;
     }
 
@@ -1124,6 +1149,28 @@ void TextEditorApp::moveFindMatch(int direction) {
     applyCurrentFindMatch();
 }
 
+void TextEditorApp::selectCurrentMatch() {
+    if (m_currentFindMatch < 0 || m_currentFindMatch >= static_cast<int>(m_findMatches.size())) {
+        clearSelection();
+        return;
+    }
+    if (m_findQuery.empty()) {
+        clearSelection();
+        return;
+    }
+    const auto& match = m_findMatches[m_currentFindMatch];
+    m_selAnchorRow = match.first;
+    m_selAnchorCol = match.second;
+    m_cursorRow = match.first;
+    m_cursorCol = match.second + static_cast<int>(m_findQuery.size());
+    // Clamp to line length
+    if (m_cursorRow >= 0 && m_cursorRow < static_cast<int>(m_lines.size())) {
+        const int len = static_cast<int>(m_lines[static_cast<size_t>(m_cursorRow)].size());
+        if (m_cursorCol > len) m_cursorCol = len;
+    }
+    m_hasSelection = true;
+}
+
 void TextEditorApp::applyCurrentFindMatch() {
     if (m_currentFindMatch < 0 || m_currentFindMatch >= static_cast<int>(m_findMatches.size())) {
         return;
@@ -1132,7 +1179,91 @@ void TextEditorApp::applyCurrentFindMatch() {
     const auto& match = m_findMatches[m_currentFindMatch];
     m_cursorRow = match.first;
     m_cursorCol = match.second;
+    selectCurrentMatch();
     ensureCursorVisible();
+}
+
+void TextEditorApp::replaceCurrentMatch() {
+    if (m_searchMode != SearchMode::Replace) return;
+    if (m_findQuery.empty()) {
+        setStatus("Replace: empty find text");
+        return;
+    }
+    if (m_findMatches.empty() || m_currentFindMatch < 0) {
+        setStatus("Replace: no matches");
+        return;
+    }
+
+    const auto match = m_findMatches[static_cast<size_t>(m_currentFindMatch)];
+    if (match.first < 0 || match.first >= static_cast<int>(m_lines.size())) return;
+
+    std::string& line = m_lines[static_cast<size_t>(match.first)];
+    if (match.second < 0 || match.second + static_cast<int>(m_findQuery.size()) > static_cast<int>(line.size())) {
+        updateFindMatches();
+        return;
+    }
+    // Verify match still present (buffer may have changed).
+    if (line.compare(static_cast<size_t>(match.second), m_findQuery.size(), m_findQuery) != 0) {
+        updateFindMatches();
+        setStatus("Replace: match moved, try again");
+        return;
+    }
+
+    pushUndoState();
+    line.replace(static_cast<size_t>(match.second), m_findQuery.size(), m_replaceText);
+    m_dirty = true;
+    clearDiscardArm();
+
+    // Place cursor just after the replacement so next match is forward.
+    m_cursorRow = match.first;
+    m_cursorCol = match.second + static_cast<int>(m_replaceText.size());
+    clearSelection();
+
+    updateFindMatches();
+    if (m_findMatches.empty()) {
+        setStatus("Replaced 1 — no more matches");
+    } else {
+        setStatus("Replaced 1");
+        // Prefer match at/after cursor without wrapping if possible.
+        applyCurrentFindMatch();
+    }
+}
+
+void TextEditorApp::replaceAllMatches() {
+    if (m_searchMode != SearchMode::Replace) return;
+    if (m_findQuery.empty()) {
+        setStatus("Replace all: empty find text");
+        return;
+    }
+
+    // Count first so we can no-op cleanly.
+    updateFindMatches();
+    if (m_findMatches.empty()) {
+        setStatus("Replace all: no matches");
+        return;
+    }
+
+    pushUndoState();
+    int count = 0;
+    // Right-to-left per line so indices stay valid.
+    for (int row = static_cast<int>(m_lines.size()) - 1; row >= 0; --row) {
+        std::string& line = m_lines[static_cast<size_t>(row)];
+        size_t pos = line.rfind(m_findQuery);
+        while (pos != std::string::npos) {
+            line.replace(pos, m_findQuery.size(), m_replaceText);
+            ++count;
+            if (pos == 0) break;
+            pos = line.rfind(m_findQuery, pos - 1);
+        }
+    }
+
+    m_dirty = true;
+    clearDiscardArm();
+    m_cursorRow = 0;
+    m_cursorCol = 0;
+    clearSelection();
+    updateFindMatches();
+    setStatus("Replaced " + std::to_string(count) + " occurrence(s)");
 }
 
 int TextEditorApp::findMatchIndexAt(int row, int col) const {
@@ -1307,8 +1438,19 @@ void TextEditorApp::render(SDL_Renderer* renderer, const SDL_Rect& contentRect) 
         SDL_RenderFillRect(renderer, &statusBar);
 
         std::string status = getDisplayName();
-        if (m_findMode) {
-            status = "Find: " + m_findQuery;
+        if (m_searchMode != SearchMode::None) {
+            const bool onQuery = (m_searchField == SearchField::Query);
+            const bool onRepl = (m_searchField == SearchField::Replacement);
+            if (m_searchMode == SearchMode::Replace) {
+                status = "Find: ";
+                status += m_findQuery;
+                if (onQuery) status += "_";
+                status += "  Repl: ";
+                status += m_replaceText;
+                if (onRepl) status += "_";
+            } else {
+                status = "Find: " + m_findQuery + "_";
+            }
             if (m_findQuery.empty()) {
                 status += "   |  type to search";
             } else if (m_findMatches.empty()) {
@@ -1317,7 +1459,11 @@ void TextEditorApp::render(SDL_Renderer* renderer, const SDL_Rect& contentRect) 
                 status += "   |  " + std::to_string(m_currentFindMatch + 1) +
                           "/" + std::to_string(m_findMatches.size());
             }
-            status += "   |  Enter next, Shift+Enter previous, Esc close";
+            if (m_searchMode == SearchMode::Replace) {
+                status += "   |  Tab fields  Enter next  Ctrl+R one  Ctrl+Shift+R all  Esc";
+            } else {
+                status += "   |  Enter next  Shift+Enter prev  Ctrl+H replace  Esc";
+            }
         } else if (m_pathPromptMode != PathPromptMode::None) {
             status = (m_pathPromptMode == PathPromptMode::Open) ? "Open: " : "Save as: ";
             status += m_pathPromptBuffer + "_";
@@ -1328,7 +1474,7 @@ void TextEditorApp::render(SDL_Renderer* renderer, const SDL_Rect& contentRect) 
                 status += "   |  " + m_statusMessage;
             } else {
                 status += "   |  Ctrl+S save   Ctrl+C/X/V clipboard   Ctrl+A select all";
-                status += "   |  Ctrl+F find   Ctrl+Z undo";
+                status += "   |  Ctrl+F find   Ctrl+H replace   Ctrl+Z undo";
             }
         }
 
@@ -1371,7 +1517,7 @@ void TextEditorApp::handleEvent(const SDL_Event& event) {
     }
 
     if (event.type == SDL_MOUSEBUTTONDOWN && event.button.button == SDL_BUTTON_LEFT) {
-        if (m_findMode) return;
+        if (m_searchMode != SearchMode::None) return;
         // Ignore clicks on status bar strip.
         if (event.button.y >= m_clientHeight - kStatusBarHeight) return;
 
@@ -1406,10 +1552,22 @@ void TextEditorApp::handleEvent(const SDL_Event& event) {
     }
 
     if (event.type == SDL_TEXTINPUT) {
-        if (m_findMode) {
+        if (m_searchMode != SearchMode::None) {
             const char* t = event.text.text;
-            if (t && *t) {
-                m_findQuery += t;
+            if (!t || !*t) return;
+            if (m_searchField == SearchField::Replacement
+                && m_searchMode == SearchMode::Replace) {
+                for (const char* p = t; *p; ++p) {
+                    const unsigned char c = static_cast<unsigned char>(*p);
+                    if (c < 32 || c == 127) continue;
+                    m_replaceText.push_back(static_cast<char>(c));
+                }
+            } else {
+                for (const char* p = t; *p; ++p) {
+                    const unsigned char c = static_cast<unsigned char>(*p);
+                    if (c < 32 || c == 127) continue;
+                    m_findQuery.push_back(static_cast<char>(c));
+                }
                 updateFindMatches();
             }
             return;
@@ -1424,29 +1582,66 @@ void TextEditorApp::handleEvent(const SDL_Event& event) {
         const SDL_Keysym& key = event.key.keysym;
         const bool extend = (key.mod & KMOD_SHIFT) != 0;
 
-        // Ctrl+F find
+        // Ctrl+F find / Ctrl+H replace
         if ((key.mod & KMOD_CTRL) && key.sym == SDLK_f) {
             enterFindMode();
             return;
         }
+        if ((key.mod & KMOD_CTRL) && key.sym == SDLK_h) {
+            enterReplaceMode();
+            return;
+        }
 
-        if (m_findMode) {
+        if (m_searchMode != SearchMode::None) {
+            // Replace-mode shortcuts first (work regardless of field).
+            if (m_searchMode == SearchMode::Replace
+                && (key.mod & KMOD_CTRL) && key.sym == SDLK_r) {
+                if (key.mod & KMOD_SHIFT) {
+                    replaceAllMatches();
+                } else {
+                    replaceCurrentMatch();
+                }
+                return;
+            }
+
             switch (key.sym) {
+                case SDLK_TAB:
+                    if (m_searchMode == SearchMode::Replace) {
+                        m_searchField = (m_searchField == SearchField::Query)
+                            ? SearchField::Replacement
+                            : SearchField::Query;
+                    } else {
+                        // Promote find → replace, focus replacement field.
+                        enterReplaceMode();
+                        m_searchField = SearchField::Replacement;
+                    }
+                    break;
+
                 case SDLK_RETURN:
                 case SDLK_KP_ENTER:
                     moveFindMatch((key.mod & KMOD_SHIFT) ? -1 : 1);
                     break;
 
                 case SDLK_BACKSPACE:
-                    if (!m_findQuery.empty()) {
+                    if (m_searchField == SearchField::Replacement
+                        && m_searchMode == SearchMode::Replace) {
+                        if (!m_replaceText.empty()) {
+                            popLastUtf8Codepoint(m_replaceText);
+                        }
+                    } else if (!m_findQuery.empty()) {
                         popLastUtf8Codepoint(m_findQuery);
                         updateFindMatches();
                     }
                     break;
 
                 case SDLK_DELETE:
-                    m_findQuery.clear();
-                    updateFindMatches();
+                    if (m_searchField == SearchField::Replacement
+                        && m_searchMode == SearchMode::Replace) {
+                        m_replaceText.clear();
+                    } else {
+                        m_findQuery.clear();
+                        updateFindMatches();
+                    }
                     break;
 
                 case SDLK_ESCAPE:
