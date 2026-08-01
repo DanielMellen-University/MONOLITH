@@ -4,6 +4,7 @@
 #include "../fs/Filesystem.hpp"
 #include <SDL2/SDL.h>
 #include <SDL2/SDL_ttf.h>
+#include <set>
 #include <string>
 #include <vector>
 
@@ -11,8 +12,8 @@ namespace monolith::app {
 
 /**
  * A graphical filesystem browser.
- * Allows navigating the internal Monolith filesystem, opening files in the editor,
- * basic creation and deletion.
+ * Allows navigating the internal Monolith filesystem, multi-select, properties,
+ * open-with routing, and basic creation/deletion.
  */
 class FilesystemApp : public App {
 public:
@@ -29,7 +30,8 @@ private:
     void goUp();
     void refreshEntries();
     void activateEntry(size_t index);           // double-click / enter behavior
-    void openFileEntry(const std::string& name);
+    void openFileEntry(const std::string& name, const char* forceApp = nullptr);
+    // forceApp: nullptr = default routing, "editor", or "drawing"
     std::string fullPathFor(const std::string& name) const;
 
     // === Actions ===
@@ -42,11 +44,18 @@ private:
     void pasteFromClipboard();
     void startRenameSelected();
     void finishRename(bool commit);  // commit = true for Enter, false for Escape
+    void showPropertiesForSelection();
 
     std::string entryBaseName(const std::string& virtualPath) const;
 
     // === Selection / Scrolling ===
-    void setSelection(int index);
+    void clearMultiSelection();
+    void setSelection(int index, bool additive = false);
+    void toggleSelection(int index);
+    void selectRange(int fromIndex, int toIndex);
+    bool isIndexSelected(int index) const;
+    std::vector<int> selectedIndicesSorted() const;
+    int primarySelectedIndex() const;
     bool selectEntryNamed(const std::string& name, bool isDirectory);
     void clampSelection();
     void ensureSelectionVisible();
@@ -78,7 +87,9 @@ private:
     std::string m_currentPath = "/home/monolith";
     std::vector<monolith::fs::Filesystem::DirEntry> m_entries;
 
-    int m_selectedIndex = -1;   // -1 means nothing selected
+    int m_selectedIndex = -1;   // primary selection (keyboard focus / rename target)
+    std::set<int> m_selectedSet; // multi-select indices
+    int m_anchorIndex = -1;     // shift-range anchor
     int m_scrollOffset = 0;     // first visible row index
 
     // Cached layout

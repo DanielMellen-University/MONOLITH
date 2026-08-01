@@ -114,6 +114,9 @@ public:
     void launchSnake();
     void launchMinesweeper();
 
+    // Open a virtual path with the default app for its type (.modr → Drawing, else Editor).
+    void openPath(const std::string& virtualPath);
+
     // Request that the desktop shell / main loop exit (used by Shut Down)
     void requestQuit();
     bool shouldQuit() const;
@@ -122,6 +125,11 @@ public:
     void loadDesktopSettings(const std::string& hostPath);
     monolith::settings::RGB getDesktopBackground() const;
     void setDesktopBackground(uint8_t r, uint8_t g, uint8_t b);
+
+    // Session: restore open windows from a host-side file; save current layout on exit.
+    // Format is line-based (see saveSession). Returns true if at least one window was restored.
+    bool loadSession(const std::string& hostPath);
+    bool saveSession(const std::string& hostPath) const;
 
     // Associate an editor window with a file path so the WM can avoid creating duplicates.
     // The path should be a normalized virtual path.
@@ -264,6 +272,10 @@ private:
     // This makes numbers "adjust dynamically" so there are never gaps while
     // windows are open (e.g. closing "Settings" turns the old "Settings 2" into "Settings").
     void compactAppInstances(const std::string& base);
+
+    // After a launcher creates a window, apply restored geometry (session load).
+    void applyRestoredGeometry(Window* window, int x, int y, int w, int h,
+                               bool minimized, bool maximized);
 };
 
 } // namespace monolith::window

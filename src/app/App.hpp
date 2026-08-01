@@ -31,6 +31,9 @@ struct IWindowController {
     // Request that the desktop shell open the given .modr path in Drawing.
     virtual void openInDrawing(const std::string& /*virtualPath*/) {}
 
+    // Open a path with the shell's default app for its extension (.modr → Drawing, else Editor).
+    virtual void openPath(const std::string& /*virtualPath*/) {}
+
     // Focus an existing editor for this path if one is already open. Returns true if focused.
     virtual bool focusEditorForFile(const std::string& /*virtualPath*/) { return false; }
 

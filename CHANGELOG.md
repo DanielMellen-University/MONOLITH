@@ -1,5 +1,16 @@
 # Changelog
 
+## 2026-07: Session restore, FS multi-select, open-with
+
+Desktop continuity and file-manager upgrades (no language/IDE, no wallpaper work).
+
+- **Session**: save open windows to `~/.monolith/session.txt` on exit; restore geometry/paths on next launch (demo layout if missing).
+- **Filesystem Browser**: Ctrl/Shift multi-select, Ctrl+A, Space/properties status, Open with Editor/Drawing, multi-delete confirm.
+- **Open routing**: `openPath` / Terminal `open` / default FS Open share `.modr` → Drawing, else Editor.
+- **Filesystem API**: `fileSize` for properties.
+
+Builds cleanly.
+
 ## 2026-07: Text Editor selection and clipboard
 
 The Text Editor supports real selection and host clipboard integration.

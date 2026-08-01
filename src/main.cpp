@@ -136,15 +136,17 @@ int main(int /*argc*/, char* /*argv*/[])
         wm.loadDesktopSettings(settingsHostPath);
     }
 
-    // Launch initial demo windows through the desktop shell launchers.
-    // This exercises the proper app creation paths (including Settings skeleton) and
-    // gives consistent titling / positioning / inter-app coordination.
+    const std::string sessionHostPath =
+        home ? std::string(home) + "/.monolith/session.txt" : "./session.txt";
+
+    // Restore last session when present; otherwise open the usual demo set.
     if (titleFont) {
-        wm.launchTerminal();
-        wm.launchFilesystem();
-        // Open the welcome file through the normal launcher path (singleton editor tracking).
-        wm.launchTextEditor("/home/monolith/welcome.txt");
-        wm.launchSettings();
+        if (!wm.loadSession(sessionHostPath)) {
+            wm.launchTerminal();
+            wm.launchFilesystem();
+            wm.launchTextEditor("/home/monolith/welcome.txt");
+            wm.launchSettings();
+        }
     } else {
         // Fallback (rare): plain windows without apps if font/launcher resources unavailable.
         wm.createWindow("Terminal", 100, 100, 520, 380);
@@ -215,6 +217,9 @@ int main(int /*argc*/, char* /*argv*/[])
 
         SDL_RenderPresent(renderer);
     }
+
+    // Persist open windows for the next launch (best-effort).
+    wm.saveSession(sessionHostPath);
 
     if (titleFont) {
         TTF_CloseFont(titleFont);

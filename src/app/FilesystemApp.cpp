@@ -1,6 +1,7 @@
 #include "FilesystemApp.hpp"
 
 #include <algorithm>
+#include <cctype>
 #include <sstream>
 
 namespace monolith::app {
@@ -45,6 +46,7 @@ void FilesystemApp::setCurrentPath(const std::string& virtualPath) {
     if (m_fs->isDirectory(normalized)) {
         m_currentPath = normalized;
         refreshEntries();
+        clearMultiSelection();
         m_selectedIndex = -1;
         m_scrollOffset = 0;
         setStatus("Opened: " + m_currentPath);
@@ -81,6 +83,7 @@ void FilesystemApp::refreshEntries() {
 
     m_entries.clear();
     if (!m_fs) {
+        clearMultiSelection();
         m_selectedIndex = -1;
         return;
     }
@@ -88,6 +91,7 @@ void FilesystemApp::refreshEntries() {
     auto raw = m_fs->listEntries(m_currentPath);
     m_entries = std::move(raw);
 
+    clearMultiSelection();
     if (hadSelection && selectEntryNamed(selectedName, selectedIsDirectory)) {
         return;
     }
@@ -102,16 +106,21 @@ std::string FilesystemApp::fullPathFor(const std::string& name) const {
     return m_fs ? m_fs->normalize(m_currentPath + "/" + name) : (m_currentPath + "/" + name);
 }
 
-void FilesystemApp::openFileEntry(const std::string& name) {
+void FilesystemApp::openFileEntry(const std::string& name, const char* forceApp) {
     if (!getController()) return;
 
     const std::string path = fullPathFor(name);
     auto* ctrl = getController();
-    if (path.size() >= 5 && path.compare(path.size() - 5, 5, ".modr") == 0) {
+    if (forceApp && std::string(forceApp) == "drawing") {
         ctrl->openInDrawing(path);
-    } else {
-        ctrl->openInTextEditor(path);
+        return;
     }
+    if (forceApp && std::string(forceApp) == "editor") {
+        ctrl->openInTextEditor(path);
+        return;
+    }
+    // Default shell routing (.modr → Drawing, else Editor).
+    ctrl->openPath(path);
 }
 
 void FilesystemApp::activateEntry(size_t index) {
@@ -188,16 +197,116 @@ std::string FilesystemApp::entryBaseName(const std::string& virtualPath) const {
     return normalized.substr(slash + 1);
 }
 
-void FilesystemApp::copySelectedToClipboard(bool cut) {
-    if (!m_fs || m_selectedIndex < 0 || m_selectedIndex >= static_cast<int>(m_entries.size())) {
-        setStatus(cut ? "Cut failed: no item selected" : "Copy failed: no item selected");
+void FilesystemApp::clearMultiSelection() {
+    m_selectedSet.clear();
+    m_anchorIndex = -1;
+}
+
+bool FilesystemApp::isIndexSelected(int index) const {
+    if (m_selectedSet.count(index)) return true;
+    return index == m_selectedIndex;
+}
+
+std::vector<int> FilesystemApp::selectedIndicesSorted() const {
+    std::set<int> combined = m_selectedSet;
+    if (m_selectedIndex >= 0) combined.insert(m_selectedIndex);
+    return std::vector<int>(combined.begin(), combined.end());
+}
+
+int FilesystemApp::primarySelectedIndex() const {
+    if (m_selectedIndex >= 0 && m_selectedIndex < static_cast<int>(m_entries.size())) {
+        return m_selectedIndex;
+    }
+    auto sorted = selectedIndicesSorted();
+    return sorted.empty() ? -1 : sorted.front();
+}
+
+void FilesystemApp::toggleSelection(int index) {
+    if (index < 0 || index >= static_cast<int>(m_entries.size())) return;
+    if (m_selectedSet.count(index)) {
+        m_selectedSet.erase(index);
+        if (m_selectedIndex == index) {
+            m_selectedIndex = m_selectedSet.empty() ? -1 : *m_selectedSet.begin();
+        }
+    } else {
+        m_selectedSet.insert(index);
+        m_selectedIndex = index;
+        m_anchorIndex = index;
+    }
+}
+
+void FilesystemApp::selectRange(int fromIndex, int toIndex) {
+    if (m_entries.empty()) return;
+    fromIndex = std::clamp(fromIndex, 0, static_cast<int>(m_entries.size()) - 1);
+    toIndex = std::clamp(toIndex, 0, static_cast<int>(m_entries.size()) - 1);
+    if (fromIndex > toIndex) std::swap(fromIndex, toIndex);
+    m_selectedSet.clear();
+    for (int i = fromIndex; i <= toIndex; ++i) {
+        m_selectedSet.insert(i);
+    }
+    m_selectedIndex = toIndex;
+}
+
+void FilesystemApp::showPropertiesForSelection() {
+    auto indices = selectedIndicesSorted();
+    if (indices.empty() || !m_fs) {
+        setStatus("Properties: nothing selected");
+        return;
+    }
+    if (indices.size() > 1) {
+        int files = 0, dirs = 0;
+        for (int i : indices) {
+            if (i < 0 || i >= static_cast<int>(m_entries.size())) continue;
+            if (m_entries[static_cast<size_t>(i)].isDirectory) ++dirs;
+            else ++files;
+        }
+        std::ostringstream oss;
+        oss << "Properties: " << indices.size() << " items (" << dirs << " folders, "
+            << files << " files)";
+        setStatus(oss.str());
         return;
     }
 
-    m_clipboardPath = fullPathFor(m_entries[m_selectedIndex].name);
+    const int idx = indices.front();
+    const auto& e = m_entries[static_cast<size_t>(idx)];
+    const std::string path = fullPathFor(e.name);
+    std::ostringstream oss;
+    oss << e.name << "  |  " << path << "  |  ";
+    if (e.isDirectory) {
+        oss << "folder";
+        auto kids = m_fs->listEntries(path);
+        oss << "  |  " << kids.size() << " entries";
+    } else {
+        oss << "file";
+        std::uint64_t bytes = 0;
+        if (m_fs->fileSize(path, bytes)) {
+            if (bytes < 1024) {
+                oss << "  |  " << bytes << " B";
+            } else if (bytes < 1024ull * 1024ull) {
+                oss << "  |  " << (bytes / 1024) << " KB";
+            } else {
+                oss << "  |  " << (bytes / (1024ull * 1024ull)) << " MB";
+            }
+        }
+    }
+    setStatus(oss.str());
+}
+
+void FilesystemApp::copySelectedToClipboard(bool cut) {
+    const int idx = primarySelectedIndex();
+    if (!m_fs || idx < 0 || idx >= static_cast<int>(m_entries.size())) {
+        setStatus(cut ? "Cut failed: no item selected" : "Copy failed: no item selected");
+        return;
+    }
+    if (selectedIndicesSorted().size() > 1) {
+        setStatus(cut ? "Cut: multi-select not supported (select one)" : "Copy: multi-select not supported (select one)");
+        return;
+    }
+
+    m_clipboardPath = fullPathFor(m_entries[static_cast<size_t>(idx)].name);
     m_clipboardIsCut = cut;
     m_clipboardValid = true;
-    setStatus((cut ? "Cut: " : "Copied: ") + m_entries[m_selectedIndex].name);
+    setStatus((cut ? "Cut: " : "Copied: ") + m_entries[static_cast<size_t>(idx)].name);
 }
 
 void FilesystemApp::pasteFromClipboard() {
@@ -267,70 +376,86 @@ void FilesystemApp::cancelPendingDelete() {
 }
 
 void FilesystemApp::requestDeleteSelected() {
-    if (!m_fs || m_selectedIndex < 0 || m_selectedIndex >= static_cast<int>(m_entries.size())) {
+    auto indices = selectedIndicesSorted();
+    if (!m_fs || indices.empty()) {
         setStatus(m_fs ? "Delete failed: no item selected" : "Delete failed: filesystem not available");
         cancelPendingDelete();
         return;
     }
 
-    // Second Delete/Enter while confirming the same item → perform.
-    if (m_confirmingDelete && m_pendingDeleteIndex == m_selectedIndex) {
+    // Second Delete/Enter while confirming → perform.
+    if (m_confirmingDelete) {
         performDeleteSelected();
         return;
     }
 
     m_confirmingDelete = true;
-    m_pendingDeleteIndex = m_selectedIndex;
-    const std::string& name = m_entries[m_selectedIndex].name;
-    const bool isDir = m_entries[m_selectedIndex].isDirectory;
-    setStatus(std::string("Delete \"") + name + (isDir ? "\" (folder tree)" : "\"")
-              + "? Delete/Enter confirm, Esc cancel");
+    m_pendingDeleteIndex = primarySelectedIndex();
+    if (indices.size() == 1) {
+        const auto& e = m_entries[static_cast<size_t>(indices.front())];
+        setStatus(std::string("Delete \"") + e.name + (e.isDirectory ? "\" (folder tree)" : "\"")
+                  + "? Delete/Enter confirm, Esc cancel");
+    } else {
+        setStatus("Delete " + std::to_string(indices.size())
+                  + " items? Delete/Enter confirm, Esc cancel");
+    }
 }
 
 void FilesystemApp::performDeleteSelected() {
-    if (!m_fs || m_selectedIndex < 0 || m_selectedIndex >= static_cast<int>(m_entries.size())) {
+    auto indices = selectedIndicesSorted();
+    if (!m_fs || indices.empty()) {
         setStatus(m_fs ? "Delete failed: no item selected" : "Delete failed: filesystem not available");
         cancelPendingDelete();
         return;
     }
 
-    const std::string name = m_entries[m_selectedIndex].name;
-    const std::string target = fullPathFor(name);
-
-    if (m_fs->normalize(target) == "/") {
-        setStatus("Delete failed: cannot remove filesystem root");
-        cancelPendingDelete();
-        return;
+    int okCount = 0;
+    int failCount = 0;
+    // Delete from the end so earlier indices stay valid while iterating.
+    for (auto it = indices.rbegin(); it != indices.rend(); ++it) {
+        const int idx = *it;
+        if (idx < 0 || idx >= static_cast<int>(m_entries.size())) continue;
+        const std::string name = m_entries[static_cast<size_t>(idx)].name;
+        const std::string target = fullPathFor(name);
+        if (m_fs->normalize(target) == "/") {
+            ++failCount;
+            continue;
+        }
+        if (m_fs->removeRecursive(target)) ++okCount;
+        else ++failCount;
     }
 
-    if (m_fs->removeRecursive(target)) {
-        int oldSel = m_selectedIndex;
-        cancelPendingDelete();
-        refreshEntries();
-
-        if (!m_entries.empty()) {
-            int newSel = std::min(oldSel, static_cast<int>(m_entries.size()) - 1);
-            setSelection(newSel);
-        } else {
-            m_selectedIndex = -1;
-        }
-        ensureSelectionVisible();
-        setStatus("Deleted: " + name);
+    cancelPendingDelete();
+    refreshEntries();
+    if (!m_entries.empty()) {
+        setSelection(std::min(indices.front(), static_cast<int>(m_entries.size()) - 1));
     } else {
-        cancelPendingDelete();
-        setStatus("Delete failed: " + name);
+        m_selectedIndex = -1;
+    }
+    ensureSelectionVisible();
+
+    if (failCount == 0) {
+        setStatus("Deleted " + std::to_string(okCount) + " item(s)");
+    } else {
+        setStatus("Deleted " + std::to_string(okCount) + ", failed " + std::to_string(failCount));
     }
 }
 
 void FilesystemApp::startRenameSelected() {
-    if (!m_fs || m_selectedIndex < 0 || m_selectedIndex >= static_cast<int>(m_entries.size())) {
+    const int idx = primarySelectedIndex();
+    if (!m_fs || idx < 0 || idx >= static_cast<int>(m_entries.size())) {
         setStatus(m_fs ? "Rename failed: no item selected" : "Rename failed: filesystem not available");
         return;
     }
+    if (selectedIndicesSorted().size() > 1) {
+        setStatus("Rename: select a single item");
+        return;
+    }
 
+    m_selectedIndex = idx;
     m_renaming = true;
-    m_renameIndex = m_selectedIndex;
-    m_renameBuffer = m_entries[m_selectedIndex].name;
+    m_renameIndex = idx;
+    m_renameBuffer = m_entries[static_cast<size_t>(idx)].name;
     setStatus("Renaming: " + m_renameBuffer);
 }
 
@@ -372,16 +497,25 @@ void FilesystemApp::finishRename(bool commit) {
     m_renameBuffer.clear();
 }
 
-void FilesystemApp::setSelection(int index) {
+void FilesystemApp::setSelection(int index, bool additive) {
     if (m_entries.empty()) {
         m_selectedIndex = -1;
+        clearMultiSelection();
         if (m_confirmingDelete) cancelPendingDelete();
         return;
     }
     if (index < 0) index = 0;
     if (index >= static_cast<int>(m_entries.size())) index = static_cast<int>(m_entries.size()) - 1;
-    if (m_confirmingDelete && index != m_pendingDeleteIndex) {
+    if (m_confirmingDelete) {
         cancelPendingDelete();
+    }
+    if (!additive) {
+        m_selectedSet.clear();
+        m_selectedSet.insert(index);
+        m_anchorIndex = index;
+    } else {
+        m_selectedSet.insert(index);
+        m_anchorIndex = index;
     }
     m_selectedIndex = index;
 }
@@ -389,7 +523,7 @@ void FilesystemApp::setSelection(int index) {
 bool FilesystemApp::selectEntryNamed(const std::string& name, bool isDirectory) {
     for (size_t i = 0; i < m_entries.size(); ++i) {
         if (m_entries[i].name == name && m_entries[i].isDirectory == isDirectory) {
-            setSelection(static_cast<int>(i));
+            setSelection(static_cast<int>(i), false);
             ensureSelectionVisible();
             return true;
         }
@@ -400,14 +534,23 @@ bool FilesystemApp::selectEntryNamed(const std::string& name, bool isDirectory) 
 void FilesystemApp::clampSelection() {
     if (m_entries.empty()) {
         m_selectedIndex = -1;
+        clearMultiSelection();
         m_scrollOffset = 0;
         return;
+    }
+    // Drop out-of-range multi-select indices.
+    for (auto it = m_selectedSet.begin(); it != m_selectedSet.end(); ) {
+        if (*it < 0 || *it >= static_cast<int>(m_entries.size())) it = m_selectedSet.erase(it);
+        else ++it;
     }
     if (m_selectedIndex >= static_cast<int>(m_entries.size())) {
         m_selectedIndex = static_cast<int>(m_entries.size()) - 1;
     }
     if (m_selectedIndex < -1) {
         m_selectedIndex = -1;
+    }
+    if (m_selectedIndex >= 0) {
+        m_selectedSet.insert(m_selectedIndex);
     }
     ensureSelectionVisible();
 }
@@ -523,12 +666,21 @@ void FilesystemApp::handleMouseButton(const SDL_MouseButtonEvent& e) {
 
     int clickedRow = m_scrollOffset + (relY / rowHeight);
     if (clickedRow >= 0 && clickedRow < static_cast<int>(m_entries.size())) {
-        setSelection(clickedRow);
+        const bool ctrl = (SDL_GetModState() & KMOD_CTRL) != 0;
+        const bool shift = (SDL_GetModState() & KMOD_SHIFT) != 0;
+        if (shift && m_anchorIndex >= 0) {
+            selectRange(m_anchorIndex, clickedRow);
+        } else if (ctrl) {
+            toggleSelection(clickedRow);
+        } else {
+            setSelection(clickedRow, false);
+        }
 
-        if (e.clicks >= 2) {
+        if (e.clicks >= 2 && !ctrl && !shift) {
             activateEntry(static_cast<size_t>(clickedRow));
         }
-    } else {
+    } else if ((SDL_GetModState() & (KMOD_CTRL | KMOD_SHIFT)) == 0) {
+        clearMultiSelection();
         m_selectedIndex = -1;
     }
 }
@@ -577,17 +729,27 @@ void FilesystemApp::handleKeyDown(const SDL_Keysym& keysym) {
     switch (keysym.sym) {
         case SDLK_UP:
             if (m_selectedIndex > 0) {
-                setSelection(m_selectedIndex - 1);
+                if (keysym.mod & KMOD_SHIFT) {
+                    if (m_anchorIndex < 0) m_anchorIndex = m_selectedIndex;
+                    selectRange(m_anchorIndex, m_selectedIndex - 1);
+                } else {
+                    setSelection(m_selectedIndex - 1, false);
+                }
                 ensureSelectionVisible();
             }
             break;
 
         case SDLK_DOWN:
             if (m_selectedIndex + 1 < static_cast<int>(m_entries.size())) {
-                setSelection(m_selectedIndex + 1);
+                if (keysym.mod & KMOD_SHIFT) {
+                    if (m_anchorIndex < 0) m_anchorIndex = m_selectedIndex;
+                    selectRange(m_anchorIndex, m_selectedIndex + 1);
+                } else {
+                    setSelection(m_selectedIndex + 1, false);
+                }
                 ensureSelectionVisible();
             } else if (m_selectedIndex < 0 && !m_entries.empty()) {
-                setSelection(0);
+                setSelection(0, false);
                 ensureSelectionVisible();
             }
             break;
@@ -614,6 +776,22 @@ void FilesystemApp::handleKeyDown(const SDL_Keysym& keysym) {
         case SDLK_F5:
             refreshEntries();
             setStatus("Refreshed");
+            break;
+
+        case SDLK_a:
+            if (keysym.mod & KMOD_CTRL) {
+                if (!m_entries.empty()) {
+                    selectRange(0, static_cast<int>(m_entries.size()) - 1);
+                    setStatus("Selected " + std::to_string(m_entries.size()) + " items");
+                }
+            }
+            break;
+
+        case SDLK_SPACE:
+            // Space shows properties (without activating).
+            if (!(keysym.mod & KMOD_CTRL)) {
+                showPropertiesForSelection();
+            }
             break;
 
         case SDLK_c:
@@ -812,7 +990,8 @@ void FilesystemApp::drawList(SDL_Renderer* r, const SDL_Rect& contentRect, int l
         if (entryIdx >= static_cast<int>(m_entries.size())) break;
 
         const auto& entry = m_entries[entryIdx];
-        bool isSelected = (entryIdx == m_selectedIndex);
+        bool isSelected = isIndexSelected(entryIdx);
+        bool isPrimary = (entryIdx == m_selectedIndex);
         bool isRenamingThis = m_renaming && (entryIdx == m_renameIndex);
 
         SDL_Rect rowRect = {
@@ -823,7 +1002,11 @@ void FilesystemApp::drawList(SDL_Renderer* r, const SDL_Rect& contentRect, int l
         };
 
         if (isSelected && !isRenamingThis) {
-            SDL_SetRenderDrawColor(r, selBg.r, selBg.g, selBg.b, 255);
+            if (isPrimary) {
+                SDL_SetRenderDrawColor(r, selBg.r, selBg.g, selBg.b, 255);
+            } else {
+                SDL_SetRenderDrawColor(r, 42, 52, 70, 255);
+            }
             SDL_RenderFillRect(r, &rowRect);
         }
 
@@ -936,15 +1119,17 @@ void FilesystemApp::showContextMenu(int x, int y, int targetIndex) {
     } else if (targetIndex >= 0 && targetIndex < static_cast<int>(m_entries.size())) {
         const auto& entry = m_entries[targetIndex];
         m_contextMenuItems.push_back("Open");
+        if (!entry.isDirectory) {
+            m_contextMenuItems.push_back("Open with Text Editor");
+            m_contextMenuItems.push_back("Open with Drawing");
+        }
+        m_contextMenuItems.push_back("Properties");
         m_contextMenuItems.push_back("Copy");
         m_contextMenuItems.push_back("Cut");
         if (m_clipboardValid) {
             m_contextMenuItems.push_back("Paste");
         }
         m_contextMenuItems.push_back("Rename");
-        if (entry.isDirectory) {
-            // Could add more folder-specific options later
-        }
         m_contextMenuItems.push_back("Delete");
     }
 
@@ -980,28 +1165,48 @@ void FilesystemApp::executeContextMenuAction(int menuIndex) {
         refreshEntries();
     } else if (action == "Open") {
         if (target >= 0) {
-            activateEntry(target);
+            setSelection(target, false);
+            activateEntry(static_cast<size_t>(target));
+        }
+    } else if (action == "Open with Text Editor") {
+        if (target >= 0 && target < static_cast<int>(m_entries.size())
+            && !m_entries[static_cast<size_t>(target)].isDirectory) {
+            openFileEntry(m_entries[static_cast<size_t>(target)].name, "editor");
+        }
+    } else if (action == "Open with Drawing") {
+        if (target >= 0 && target < static_cast<int>(m_entries.size())
+            && !m_entries[static_cast<size_t>(target)].isDirectory) {
+            openFileEntry(m_entries[static_cast<size_t>(target)].name, "drawing");
+        }
+    } else if (action == "Properties") {
+        if (target >= 0) {
+            if (!isIndexSelected(target)) {
+                setSelection(target, false);
+            }
+            showPropertiesForSelection();
         }
     } else if (action == "Copy") {
         if (target >= 0) {
-            m_selectedIndex = target;
+            setSelection(target, false);
             copySelectedToClipboard(false);
         }
     } else if (action == "Cut") {
         if (target >= 0) {
-            m_selectedIndex = target;
+            setSelection(target, false);
             copySelectedToClipboard(true);
         }
     } else if (action == "Paste") {
         pasteFromClipboard();
     } else if (action == "Rename") {
         if (target >= 0) {
-            m_selectedIndex = target;
+            setSelection(target, false);
             startRenameSelected();
         }
     } else if (action == "Delete") {
         if (target >= 0) {
-            m_selectedIndex = target;
+            if (!isIndexSelected(target)) {
+                setSelection(target, false);
+            }
             m_confirmingDelete = true;
             m_pendingDeleteIndex = target;
             m_contextMenuPos = menuPos;
@@ -1011,13 +1216,18 @@ void FilesystemApp::executeContextMenuAction(int menuIndex) {
             m_contextMenuItems.push_back("Cancel");
             updateContextMenuLayout();
             m_showContextMenu = true;
-            const std::string& name = m_entries[static_cast<size_t>(target)].name;
-            setStatus("Delete \"" + name + "\"? Confirm in menu or Enter");
+            auto indices = selectedIndicesSorted();
+            if (indices.size() == 1) {
+                const std::string& name = m_entries[static_cast<size_t>(target)].name;
+                setStatus("Delete \"" + name + "\"? Confirm in menu or Enter");
+            } else {
+                setStatus("Delete " + std::to_string(indices.size())
+                          + " items? Confirm in menu or Enter");
+            }
         }
     } else if (action == "Confirm Delete") {
-        if (target >= 0) {
-            m_selectedIndex = target;
-            m_pendingDeleteIndex = target;
+        if (target >= 0 && !isIndexSelected(target)) {
+            setSelection(target, false);
         }
         performDeleteSelected();
     } else if (action == "Cancel") {

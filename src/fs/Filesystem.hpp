@@ -1,5 +1,6 @@
 #pragma once
 
+#include <cstdint>
 #include <string>
 #include <vector>
 
@@ -56,6 +57,11 @@ public:
 
     /** Reads the entire content of a file. Returns empty string on failure. */
     std::string readFile(const std::string& virtualPath) const;
+
+    /**
+     * Byte size of a regular file. Returns false if missing or not a regular file.
+     */
+    bool fileSize(const std::string& virtualPath, std::uint64_t& outBytes) const;
 
     /**
      * Copies a file or directory tree to a new path.

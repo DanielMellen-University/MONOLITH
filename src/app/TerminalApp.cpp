@@ -360,13 +360,12 @@ void TerminalApp::executeCommand(const std::string& commandLine) {
             if (!m_fs->isFile(path)) {
                 addOutput("open: " + rest + ": No such file");
             } else if (auto* ctrl = getController()) {
-                if (path.size() >= 5 && path.compare(path.size() - 5, 5, ".modr") == 0) {
-                    ctrl->openInDrawing(path);
-                    addOutput("Opened in Drawing: " + path);
-                } else {
-                    ctrl->openInTextEditor(path);
-                    addOutput("Opened in Text Editor: " + path);
-                }
+                // Shell routes by extension (.modr → Drawing, else Editor).
+                ctrl->openPath(path);
+                const bool isModr = (path.size() >= 5 &&
+                                     path.compare(path.size() - 5, 5, ".modr") == 0);
+                addOutput(std::string("Opened with ") +
+                          (isModr ? "Drawing: " : "Text Editor: ") + path);
             } else {
                 addOutput("open: cannot open file (no controller)");
             }

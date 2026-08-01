@@ -60,7 +60,8 @@ The Window Manager is the most foundational subsystem.
 - Windows can be minimized via the title-bar minimize button or by clicking the active window's taskbar button (XP-style toggle), and restored by clicking its taskbar entry.
 - When the focused window is closed, focus moves to the topmost non-minimized remaining window (z-order), with `onFocusLost` / `onFocusGained` fired so apps stay consistent. If every survivor is minimized, focus stays clear until the user activates a window.
 - When many windows are open, the taskbar scrolls horizontally (arrow buttons and mouse wheel). Arrow hit targets are recorded during render (same pattern as taskbar window buttons) and handled in the taskbar click path.
-- No persistence of window position or size between sessions.
+- **Session restore**: on exit, open windows (kind, geometry, minimize/maximize, file paths for editors/drawings) are written to `~/.monolith/session.txt`. On next launch that file is restored if present; otherwise the demo window set opens.
+- **Open-with routing**: `WindowManager::openPath` / `IWindowController::openPath` maps `.modr` → Drawing and all other files → Text Editor (used by Terminal `open` and the Filesystem Browser default Open).
 - No snapping or automatic tiling.
 
 **Design Notes:**
@@ -179,7 +180,7 @@ The language is not expected to create or manage its own windows in the early ph
 
 - Custom language interpreter and host bindings (Phase 2)
 - IDE, wallpaper images, and more Settings preferences beyond desktop background color
-- Shell coordination improvements (e.g. richer “open with” routing)
+- Richer open-with table (more types beyond `.modr` / text)
 - Deeper app integration and additional native apps/games
 
 Per-app limitations and planned work are tracked in each [app guide](README.md#built-in-apps).

@@ -22,10 +22,22 @@ The window has four regions:
 ## Navigation
 
 - **Double-click** a directory to enter it.
-- **Double-click** a text file to open it in the Text Editor.
-- **Double-click** a `.modr` file to open it in Drawing.
+- **Double-click** a file to open it with the shell default (**`.modr` → Drawing**, everything else → Text Editor).
 - Click **Up** in the toolbar (or use context menu) to go to the parent directory.
-- **Arrow Up / Down** moves selection; **Enter** activates the selected entry (same as double-click).
+- **Arrow Up / Down** moves the primary selection; **Enter** activates it (same as double-click).
+
+### Multi-select
+
+- **Ctrl+click** toggles an item in the selection.
+- **Shift+click** or **Shift+Up/Down** selects a range from the anchor.
+- **Ctrl+A** selects all entries in the current folder.
+- Primary selection is drawn slightly brighter than other selected rows.
+- Delete can apply to the whole multi-selection (with confirmation). Copy/Cut/Rename still require a single item.
+
+### Properties
+
+- **Space** or context menu **Properties** shows name, virtual path, type, and size (files) or child count (folders) in the status bar.
+- Multi-select Properties summarizes counts.
 
 The browser starts at `/home/monolith` when that path exists.
 
@@ -43,11 +55,13 @@ The browser starts at `/home/monolith` when that path exists.
 
 | Key | Action |
 |-----|--------|
-| Up / Down | Move selection |
+| Up / Down | Move selection (Shift extends range) |
 | Enter | Open directory or file; or confirm pending delete |
 | Backspace | Go up one directory |
-| Delete | Request delete (second press confirms) |
-| F2 | Start rename on selected entry |
+| Delete | Request delete (second press confirms; multi-select OK) |
+| Space | Properties for selection |
+| Ctrl+A | Select all in folder |
+| F2 | Start rename on selected entry (single item) |
 | F5 | Refresh directory listing |
 | Esc | Cancel rename, cancel pending delete, or close context menu |
 
@@ -74,7 +88,9 @@ Deletion uses `Filesystem::removeRecursive` (whole directory trees). The virtual
 
 **Right-click a file:**
 
-- Open (opens in Text Editor, or Drawing for `.modr` files)
+- Open (default app for type)
+- Open with Text Editor / Open with Drawing
+- Properties
 - Copy / Cut / Paste
 - Rename
 - Delete
@@ -82,6 +98,7 @@ Deletion uses `Filesystem::removeRecursive` (whole directory trees). The virtual
 **Right-click a directory:**
 
 - Open (enter directory)
+- Properties
 - Copy / Cut / Paste
 - Rename
 - Delete
@@ -101,10 +118,9 @@ Deletion uses `Filesystem::removeRecursive` (whole directory trees). The virtual
 
 ## Current Limitations
 
-- Only text files and `.modr` drawings open from here (no generic “open with” yet).
+- Default open supports text + `.modr` only; force open-with can open any file in Editor or Drawing (Drawing rejects non-`.modr` loads).
 - No drag-and-drop.
-- No multi-select.
-- No file preview or properties panel.
+- Copy/Cut of multi-select is not supported yet.
 - Clipboard is per browser window (not shared across Filesystem instances or the host OS).
 
 ## Developer Notes

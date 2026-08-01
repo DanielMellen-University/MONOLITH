@@ -39,7 +39,7 @@ The `monolith::fs::Filesystem` class provides:
 
 - `exists`, `isFile`, `isDirectory`
 - `createDirectory`, `remove`, `removeRecursive`, `rename`
-- `readFile`, `writeFile`
+- `readFile`, `writeFile`, `fileSize`
 - `copyRecursive` (file or directory tree; blocks copy into self/descendant)
 - `list`, `listEntries` (typed entries for the graphical browser)
 - Path helpers: `normalize`, `join`, `isSameOrDescendant`

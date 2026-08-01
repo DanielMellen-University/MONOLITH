@@ -8,6 +8,9 @@
 #include "../app/SnakeApp.hpp"
 #include "../app/MinesweeperApp.hpp"
 #include <algorithm>
+#include <cctype>
+#include <fstream>
+#include <sstream>
 
 namespace monolith::window {
 
@@ -1579,6 +1582,153 @@ void WindowManager::launchMinesweeper() {
     createWindow(title, x, y, 360, 420, std::move(app), "Minesweeper", inst);
 }
 
+void WindowManager::openPath(const std::string& virtualPath) {
+    if (virtualPath.empty()) return;
+
+    std::string path = m_fs ? m_fs->normalize(virtualPath) : virtualPath;
+    // Extension routing table (case-insensitive suffix).
+    auto lowerEndsWith = [](const std::string& s, const char* suffix) {
+        const size_t n = std::char_traits<char>::length(suffix);
+        if (s.size() < n) return false;
+        for (size_t i = 0; i < n; ++i) {
+            const unsigned char a = static_cast<unsigned char>(s[s.size() - n + i]);
+            const unsigned char b = static_cast<unsigned char>(suffix[i]);
+            if (std::tolower(a) != std::tolower(b)) return false;
+        }
+        return true;
+    };
+
+    if (lowerEndsWith(path, ".modr")) {
+        launchDrawing(path);
+    } else {
+        launchTextEditor(path);
+    }
+}
+
+void WindowManager::applyRestoredGeometry(Window* window, int x, int y, int w, int h,
+                                          bool minimized, bool maximized) {
+    if (!window) return;
+    w = std::max(w, Window::MIN_WIDTH);
+    h = std::max(h, Window::MIN_HEIGHT + Window::TITLE_BAR_HEIGHT);
+    window->rect = {x, y, w, h};
+    window->minimized = minimized;
+    window->maximized = false;
+    if (maximized) {
+        window->previousRect = window->rect;
+        window->rect = getUsableDesktopRect();
+        window->maximized = true;
+    }
+    clampSingleWindow(*window);
+    if (window->app) {
+        const int clientH = window->rect.h - Window::TITLE_BAR_HEIGHT;
+        window->app->onResize(window->rect.w, clientH > 0 ? clientH : 0);
+    }
+}
+
+bool WindowManager::loadSession(const std::string& hostPath) {
+    std::ifstream in(hostPath);
+    if (!in) return false;
+
+    std::string header;
+    if (!std::getline(in, header)) return false;
+    // Trim CR
+    if (!header.empty() && header.back() == '\r') header.pop_back();
+    if (header != "session_v1") return false;
+
+    int restored = 0;
+    std::string line;
+    while (std::getline(in, line)) {
+        if (!line.empty() && line.back() == '\r') line.pop_back();
+        if (line.empty() || line[0] == '#') continue;
+
+        std::istringstream iss(line);
+        std::string kind;
+        int x = 0, y = 0, w = 400, h = 300, minFlag = 0, maxFlag = 0;
+        std::string pathToken;
+        if (!(iss >> kind >> x >> y >> w >> h >> minFlag >> maxFlag >> pathToken)) {
+            continue;
+        }
+        std::string path = (pathToken == "-") ? std::string{} : pathToken;
+
+        const size_t before = m_windows.size();
+        if (kind == "terminal") {
+            launchTerminal();
+        } else if (kind == "filesystem") {
+            launchFilesystem();
+        } else if (kind == "settings") {
+            launchSettings();
+        } else if (kind == "snake") {
+            launchSnake();
+        } else if (kind == "minesweeper") {
+            launchMinesweeper();
+        } else if (kind == "editor") {
+            launchTextEditor(path);
+        } else if (kind == "drawing") {
+            launchDrawing(path);
+        } else {
+            continue;
+        }
+
+        if (m_windows.size() > before) {
+            applyRestoredGeometry(m_windows.back().get(), x, y, w, h,
+                                  minFlag != 0, maxFlag != 0);
+            ++restored;
+        }
+    }
+    return restored > 0;
+}
+
+bool WindowManager::saveSession(const std::string& hostPath) const {
+    std::ofstream out(hostPath, std::ios::trunc);
+    if (!out) return false;
+
+    out << "session_v1\n";
+    out << "# kind x y w h minimized maximized path\n";
+
+    for (const auto& winPtr : m_windows) {
+        if (!winPtr) continue;
+        const Window& w = *winPtr;
+
+        std::string kind;
+        std::string path = "-";
+
+        if (!w.editedFilePath.empty()) {
+            kind = "editor";
+            path = w.editedFilePath;
+        } else if (!w.drawingFilePath.empty()) {
+            kind = "drawing";
+            path = w.drawingFilePath;
+        } else if (w.appBaseTitle == "Terminal") {
+            kind = "terminal";
+        } else if (w.appBaseTitle == "Filesystem") {
+            kind = "filesystem";
+        } else if (w.appBaseTitle == "Settings") {
+            kind = "settings";
+        } else if (w.appBaseTitle == "Snake") {
+            kind = "snake";
+        } else if (w.appBaseTitle == "Minesweeper") {
+            kind = "minesweeper";
+        } else if (w.appBaseTitle == "Editor") {
+            kind = "editor";
+        } else if (w.appBaseTitle == "Drawing") {
+            kind = "drawing";
+        } else {
+            continue; // unknown / placeholder windows are not restored
+        }
+
+        // Prefer pre-maximize geometry when maximized so restore is faithful.
+        SDL_Rect r = w.maximized ? w.previousRect : w.rect;
+        if (r.w <= 0 || r.h <= 0) r = w.rect;
+
+        out << kind << ' '
+            << r.x << ' ' << r.y << ' ' << r.w << ' ' << r.h << ' '
+            << (w.minimized ? 1 : 0) << ' '
+            << (w.maximized ? 1 : 0) << ' '
+            << path << '\n';
+    }
+    return static_cast<bool>(out);
+}
+
 void WindowManager::requestQuit() {
     m_quitRequested = true;
     // Menu close is handled by the Start menu click handler (or caller).
@@ -1728,6 +1878,12 @@ struct WindowController : public monolith::app::IWindowController {
     void openInDrawing(const std::string& virtualPath) override {
         if (wm) {
             wm->launchDrawing(virtualPath);
+        }
+    }
+
+    void openPath(const std::string& virtualPath) override {
+        if (wm) {
+            wm->openPath(virtualPath);
         }
     }
 

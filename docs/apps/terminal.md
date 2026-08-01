@@ -65,7 +65,7 @@ Run `help` for the full list. Current commands:
 | `touch <file>` | Create empty file |
 | `cat <file>` | Show file contents |
 | `edit <file>` | Open a text file in the Text Editor |
-| `open <path>` | Open a file (`.modr` → Drawing, else Text Editor) |
+| `open <path>` | Open via shell routing (`.modr` → Drawing, else Text Editor) |
 | `cp [-r] <src> <dst>` | Copy file or directory tree (`Filesystem::copyRecursive`; refuses copy into self) |
 | `mv <src> <dst>` | Move or rename (destination directory supported) |
 | `rm [-r] <path>` | Remove file or directory tree (`Filesystem::removeRecursive` with `-r`; cannot remove `/`) |

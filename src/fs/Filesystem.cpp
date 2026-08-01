@@ -207,6 +207,17 @@ std::string Filesystem::readFile(const std::string& virtualPath) const {
     }
 }
 
+bool Filesystem::fileSize(const std::string& virtualPath, std::uint64_t& outBytes) const {
+    try {
+        stdfs::path hostPath = toHostPath(virtualPath);
+        if (!stdfs::is_regular_file(hostPath)) return false;
+        outBytes = static_cast<std::uint64_t>(stdfs::file_size(hostPath));
+        return true;
+    } catch (...) {
+        return false;
+    }
+}
+
 std::vector<std::string> Filesystem::list(const std::string& virtualPath) const {
     std::vector<std::string> entries;
     try {
