@@ -17,8 +17,10 @@ File-backed editors are singletons per path — opening the same file again focu
 
 - Type to insert characters at the cursor (UTF-8 text input; left/right and backspace/delete move by codepoint).
 - **Enter** inserts a new line.
-- **Arrow keys**, **Home**, and **End** move the cursor.
-- **Backspace** deletes before the cursor; **Delete** deletes after.
+- **Arrow keys**, **Home**, and **End** move the cursor; hold **Shift** to extend the selection.
+- Click to place the cursor; drag to select. **Esc** clears the selection.
+- **Backspace** / **Delete** remove the selection when one exists, otherwise one codepoint.
+- Typing or paste replaces the current selection.
 - **Mouse wheel** scrolls the buffer.
 - Line numbers appear in the left margin.
 - Syntax highlighting colors comments, strings, numbers, and (for code files) keywords.
@@ -49,9 +51,14 @@ The editor applies lightweight per-line highlighting:
 | Ctrl+S | Save (prompts for path if untitled) |
 | Ctrl+Shift+S | Save as (path prompt) |
 | Ctrl+O | Open file by virtual path |
+| Ctrl+A | Select all |
+| Ctrl+C | Copy selection (system clipboard) |
+| Ctrl+X | Cut selection |
+| Ctrl+V | Paste from clipboard (multi-line OK) |
 | Ctrl+Z | Undo last edit |
 | Ctrl+Y / Ctrl+Shift+Z | Redo |
 | Ctrl+F | Enter find mode |
+| Shift+Arrows / Home / End | Extend selection |
 
 ### Find Mode (Ctrl+F)
 
@@ -77,8 +84,9 @@ Ctrl+S saves to the bound path when one exists. If the buffer is untitled, Ctrl+
 - Undo/redo store full buffer snapshots (capped stack); typing still pushes per keystroke.
 - Highlighting is per-line only (no multiline strings or block comments).
 - No multiple buffers/tabs.
-- No horizontal scroll; long lines clip.
+- No horizontal scroll; long lines clip (selection still works by column).
 - Combining characters / complex scripts are treated as separate codepoints for cursor motion.
+- Clipboard uses the host OS clipboard (SDL), not a Monolith-only buffer.
 - No integration with the custom language runtime yet.
 
 ## Developer Notes

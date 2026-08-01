@@ -1,5 +1,15 @@
 # Changelog
 
+## 2026-07: Text Editor selection and clipboard
+
+The Text Editor supports real selection and host clipboard integration.
+
+- Shift+arrows / Home / End extend selection; click-drag selects; Esc clears.
+- Ctrl+A select all; Ctrl+C / X / V copy, cut, paste (multi-line paste; typing replaces selection).
+- Selection highlight drawn behind syntax-colored text.
+
+Builds cleanly.
+
 ## 2026-07: Dirty guards and small app UX
 
 Feature polish without language/IDE work.

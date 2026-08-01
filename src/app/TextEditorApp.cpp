@@ -321,6 +321,7 @@ bool TextEditorApp::loadInitialFile(const std::string& virtualPath) {
     m_scrollOffset = 0;
     m_dirty = false;
     clearDiscardArm();
+    clearSelection();
     refreshSyntaxMode();
     setStatus("Opened: " + getDisplayName());
     return true;
@@ -553,6 +554,264 @@ void TextEditorApp::handlePathPromptText(const char* text) {
     }
 }
 
+bool TextEditorApp::hasSelection() const {
+    return m_hasSelection
+        && (m_selAnchorRow != m_cursorRow || m_selAnchorCol != m_cursorCol);
+}
+
+void TextEditorApp::clearSelection() {
+    m_hasSelection = false;
+    m_selectingWithMouse = false;
+}
+
+void TextEditorApp::prepareMove(bool extendSelection) {
+    if (extendSelection) {
+        if (!m_hasSelection) {
+            m_selAnchorRow = m_cursorRow;
+            m_selAnchorCol = m_cursorCol;
+            m_hasSelection = true;
+        }
+    } else {
+        clearSelection();
+    }
+}
+
+void TextEditorApp::getOrderedSelection(int& r0, int& c0, int& r1, int& c1) const {
+    r0 = m_selAnchorRow;
+    c0 = m_selAnchorCol;
+    r1 = m_cursorRow;
+    c1 = m_cursorCol;
+    if (r0 > r1 || (r0 == r1 && c0 > c1)) {
+        std::swap(r0, r1);
+        std::swap(c0, c1);
+    }
+}
+
+std::string TextEditorApp::selectedText() const {
+    if (!hasSelection()) return {};
+    int r0 = 0, c0 = 0, r1 = 0, c1 = 0;
+    getOrderedSelection(r0, c0, r1, c1);
+    if (r0 == r1) {
+        if (r0 < 0 || r0 >= static_cast<int>(m_lines.size())) return {};
+        const std::string& line = m_lines[static_cast<size_t>(r0)];
+        c0 = std::clamp(c0, 0, static_cast<int>(line.size()));
+        c1 = std::clamp(c1, 0, static_cast<int>(line.size()));
+        if (c1 < c0) return {};
+        return line.substr(static_cast<size_t>(c0), static_cast<size_t>(c1 - c0));
+    }
+
+    std::string out;
+    for (int r = r0; r <= r1; ++r) {
+        if (r < 0 || r >= static_cast<int>(m_lines.size())) continue;
+        const std::string& line = m_lines[static_cast<size_t>(r)];
+        if (r == r0) {
+            const int start = std::clamp(c0, 0, static_cast<int>(line.size()));
+            out += line.substr(static_cast<size_t>(start));
+        } else if (r == r1) {
+            const int end = std::clamp(c1, 0, static_cast<int>(line.size()));
+            out += line.substr(0, static_cast<size_t>(end));
+        } else {
+            out += line;
+        }
+        if (r < r1) out.push_back('\n');
+    }
+    return out;
+}
+
+void TextEditorApp::deleteSelectionRange() {
+    if (!hasSelection()) return;
+    int r0 = 0, c0 = 0, r1 = 0, c1 = 0;
+    getOrderedSelection(r0, c0, r1, c1);
+    clampCursor();
+    if (r0 < 0) r0 = 0;
+    if (r1 >= static_cast<int>(m_lines.size())) r1 = static_cast<int>(m_lines.size()) - 1;
+
+    if (r0 == r1) {
+        std::string& line = m_lines[static_cast<size_t>(r0)];
+        c0 = std::clamp(c0, 0, static_cast<int>(line.size()));
+        c1 = std::clamp(c1, 0, static_cast<int>(line.size()));
+        if (c1 > c0) {
+            line.erase(static_cast<size_t>(c0), static_cast<size_t>(c1 - c0));
+        }
+        m_cursorRow = r0;
+        m_cursorCol = c0;
+    } else {
+        std::string& first = m_lines[static_cast<size_t>(r0)];
+        std::string& last = m_lines[static_cast<size_t>(r1)];
+        c0 = std::clamp(c0, 0, static_cast<int>(first.size()));
+        c1 = std::clamp(c1, 0, static_cast<int>(last.size()));
+        first = first.substr(0, static_cast<size_t>(c0)) + last.substr(static_cast<size_t>(c1));
+        m_lines.erase(m_lines.begin() + r0 + 1, m_lines.begin() + r1 + 1);
+        m_cursorRow = r0;
+        m_cursorCol = c0;
+    }
+    clearSelection();
+    if (m_lines.empty()) m_lines = {""};
+}
+
+void TextEditorApp::selectAll() {
+    if (m_lines.empty()) m_lines = {""};
+    m_selAnchorRow = 0;
+    m_selAnchorCol = 0;
+    m_cursorRow = static_cast<int>(m_lines.size()) - 1;
+    m_cursorCol = static_cast<int>(m_lines[static_cast<size_t>(m_cursorRow)].size());
+    m_hasSelection = true;
+    ensureCursorVisible();
+}
+
+void TextEditorApp::copySelection() {
+    if (!hasSelection()) {
+        setStatus("Copy: nothing selected");
+        return;
+    }
+    const std::string text = selectedText();
+    if (SDL_SetClipboardText(text.c_str()) != 0) {
+        setStatus("Copy failed");
+        return;
+    }
+    setStatus("Copied");
+}
+
+void TextEditorApp::cutSelection() {
+    if (!hasSelection()) {
+        setStatus("Cut: nothing selected");
+        return;
+    }
+    const std::string text = selectedText();
+    if (SDL_SetClipboardText(text.c_str()) != 0) {
+        setStatus("Cut failed");
+        return;
+    }
+    pushUndoState();
+    deleteSelectionRange();
+    m_dirty = true;
+    clearDiscardArm();
+    setStatus("Cut");
+    ensureCursorVisible();
+}
+
+void TextEditorApp::pasteClipboard() {
+    if (!SDL_HasClipboardText()) {
+        setStatus("Paste: clipboard empty");
+        return;
+    }
+    char* raw = SDL_GetClipboardText();
+    if (!raw) {
+        setStatus("Paste failed");
+        return;
+    }
+    std::string text = raw;
+    SDL_free(raw);
+
+    // Normalize CRLF / lone CR to LF; drop other controls except tab/newline.
+    std::string cleaned;
+    cleaned.reserve(text.size());
+    for (size_t i = 0; i < text.size(); ++i) {
+        const unsigned char c = static_cast<unsigned char>(text[i]);
+        if (c == '\r') {
+            if (i + 1 < text.size() && text[i + 1] == '\n') continue;
+            cleaned.push_back('\n');
+            continue;
+        }
+        if (c == '\n' || c == '\t' || c >= 32) {
+            cleaned.push_back(static_cast<char>(c));
+        }
+    }
+    if (cleaned.empty()) {
+        setStatus("Paste: nothing to insert");
+        return;
+    }
+
+    pushUndoState();
+    if (hasSelection()) {
+        deleteSelectionRange();
+    }
+
+    // Insert multi-line clipboard at cursor.
+    size_t start = 0;
+    while (start <= cleaned.size()) {
+        size_t nl = cleaned.find('\n', start);
+        const std::string piece = (nl == std::string::npos)
+            ? cleaned.substr(start)
+            : cleaned.substr(start, nl - start);
+
+        if (m_cursorRow < 0 || m_cursorRow >= static_cast<int>(m_lines.size())) break;
+        std::string& line = m_lines[static_cast<size_t>(m_cursorRow)];
+        m_cursorCol = std::clamp(m_cursorCol, 0, static_cast<int>(line.size()));
+        line.insert(static_cast<size_t>(m_cursorCol), piece);
+        m_cursorCol += static_cast<int>(piece.size());
+
+        if (nl == std::string::npos) break;
+
+        // Split line at cursor (newline from paste)
+        std::string remainder = line.substr(static_cast<size_t>(m_cursorCol));
+        line.erase(static_cast<size_t>(m_cursorCol));
+        m_lines.insert(m_lines.begin() + m_cursorRow + 1, remainder);
+        m_cursorRow++;
+        m_cursorCol = 0;
+        start = nl + 1;
+    }
+
+    m_dirty = true;
+    clearDiscardArm();
+    clearSelection();
+    setStatus("Pasted");
+    ensureCursorVisible();
+}
+
+int TextEditorApp::measureTextPrefixWidth(const std::string& line, int col) const {
+    if (!m_font || col <= 0 || line.empty()) return 0;
+    const int n = std::min(col, static_cast<int>(line.size()));
+    const std::string prefix = line.substr(0, static_cast<size_t>(n));
+    int w = 0, h = 0;
+    if (!prefix.empty()) {
+        TTF_SizeUTF8(m_font, prefix.c_str(), &w, &h);
+    }
+    return w;
+}
+
+bool TextEditorApp::clientToDocument(int clientX, int clientY, int& outRow, int& outCol) const {
+    if (m_lines.empty()) {
+        outRow = 0;
+        outCol = 0;
+        return true;
+    }
+    const int lineHeight = getLineHeight();
+    if (lineHeight <= 0) return false;
+
+    int relY = clientY - kPadding;
+    if (relY < 0) relY = 0;
+    int row = m_scrollOffset + relY / lineHeight;
+    if (row < 0) row = 0;
+    if (row >= static_cast<int>(m_lines.size())) {
+        row = static_cast<int>(m_lines.size()) - 1;
+    }
+
+    const std::string& line = m_lines[static_cast<size_t>(row)];
+    int textX = clientX - kPadding - kLineNumWidth;
+    if (textX <= 0) {
+        outRow = row;
+        outCol = 0;
+        return true;
+    }
+
+    // Walk codepoints until measured width exceeds click x.
+    int col = 0;
+    int bestCol = 0;
+    while (col < static_cast<int>(line.size())) {
+        const size_t step = utf8CodepointByteLen(line, static_cast<size_t>(col));
+        if (step == 0) break;
+        const int next = col + static_cast<int>(step);
+        const int w = measureTextPrefixWidth(line, next);
+        if (w > textX) break;
+        bestCol = next;
+        col = next;
+    }
+    outRow = row;
+    outCol = bestCol;
+    return true;
+}
+
 void TextEditorApp::insertText(const char* text) {
     if (!text || !*text) return;
 
@@ -566,6 +825,9 @@ void TextEditorApp::insertText(const char* text) {
     if (filtered.empty()) return;
 
     pushUndoState();
+    if (hasSelection()) {
+        deleteSelectionRange();
+    }
 
     if (m_cursorRow < 0 || m_cursorRow >= static_cast<int>(m_lines.size())) return;
 
@@ -577,12 +839,16 @@ void TextEditorApp::insertText(const char* text) {
     m_cursorCol += static_cast<int>(filtered.size());
     m_dirty = true;
     clearDiscardArm();
+    clearSelection();
     m_statusMessage.clear();
     ensureCursorVisible();
 }
 
 void TextEditorApp::insertNewline() {
     pushUndoState();
+    if (hasSelection()) {
+        deleteSelectionRange();
+    }
 
     if (m_cursorRow < 0 || m_cursorRow >= static_cast<int>(m_lines.size())) return;
 
@@ -596,10 +862,20 @@ void TextEditorApp::insertNewline() {
     m_cursorCol = 0;
     m_dirty = true;
     clearDiscardArm();
+    clearSelection();
     ensureCursorVisible();
 }
 
 void TextEditorApp::deleteChar() {
+    if (hasSelection()) {
+        pushUndoState();
+        deleteSelectionRange();
+        m_dirty = true;
+        clearDiscardArm();
+        ensureCursorVisible();
+        return;
+    }
+
     // Backspace — one UTF-8 codepoint (or join with previous line)
     if (m_cursorRow == 0 && m_cursorCol == 0) return;
 
@@ -627,6 +903,15 @@ void TextEditorApp::deleteChar() {
 }
 
 void TextEditorApp::deleteForward() {
+    if (hasSelection()) {
+        pushUndoState();
+        deleteSelectionRange();
+        m_dirty = true;
+        clearDiscardArm();
+        ensureCursorVisible();
+        return;
+    }
+
     if (m_cursorRow >= static_cast<int>(m_lines.size())) return;
 
     std::string& line = m_lines[m_cursorRow];
@@ -651,7 +936,19 @@ void TextEditorApp::deleteForward() {
     ensureCursorVisible();
 }
 
-void TextEditorApp::moveLeft() {
+void TextEditorApp::moveLeft(bool extendSelection) {
+    if (!extendSelection && hasSelection()) {
+        int r0 = 0, c0 = 0, r1 = 0, c1 = 0;
+        getOrderedSelection(r0, c0, r1, c1);
+        (void)r1;
+        (void)c1;
+        m_cursorRow = r0;
+        m_cursorCol = c0;
+        clearSelection();
+        ensureCursorVisible();
+        return;
+    }
+    prepareMove(extendSelection);
     if (m_cursorCol > 0) {
         const std::string& line = m_lines[m_cursorRow];
         m_cursorCol = static_cast<int>(utf8PrevCodepointStart(line, static_cast<size_t>(m_cursorCol)));
@@ -659,10 +956,25 @@ void TextEditorApp::moveLeft() {
         m_cursorRow--;
         m_cursorCol = static_cast<int>(m_lines[m_cursorRow].size());
     }
+    if (m_hasSelection && m_selAnchorRow == m_cursorRow && m_selAnchorCol == m_cursorCol) {
+        clearSelection();
+    }
     ensureCursorVisible();
 }
 
-void TextEditorApp::moveRight() {
+void TextEditorApp::moveRight(bool extendSelection) {
+    if (!extendSelection && hasSelection()) {
+        int r0 = 0, c0 = 0, r1 = 0, c1 = 0;
+        getOrderedSelection(r0, c0, r1, c1);
+        (void)r0;
+        (void)c0;
+        m_cursorRow = r1;
+        m_cursorCol = c1;
+        clearSelection();
+        ensureCursorVisible();
+        return;
+    }
+    prepareMove(extendSelection);
     if (m_cursorRow < static_cast<int>(m_lines.size()) &&
         m_cursorCol < static_cast<int>(m_lines[m_cursorRow].size())) {
         const std::string& line = m_lines[m_cursorRow];
@@ -672,35 +984,54 @@ void TextEditorApp::moveRight() {
         m_cursorRow++;
         m_cursorCol = 0;
     }
+    if (m_hasSelection && m_selAnchorRow == m_cursorRow && m_selAnchorCol == m_cursorCol) {
+        clearSelection();
+    }
     ensureCursorVisible();
 }
 
-void TextEditorApp::moveUp() {
+void TextEditorApp::moveUp(bool extendSelection) {
+    prepareMove(extendSelection);
     if (m_cursorRow > 0) {
         m_cursorRow--;
         int lineLen = static_cast<int>(m_lines[m_cursorRow].size());
         if (m_cursorCol > lineLen) m_cursorCol = lineLen;
     }
+    if (m_hasSelection && m_selAnchorRow == m_cursorRow && m_selAnchorCol == m_cursorCol) {
+        clearSelection();
+    }
     ensureCursorVisible();
 }
 
-void TextEditorApp::moveDown() {
+void TextEditorApp::moveDown(bool extendSelection) {
+    prepareMove(extendSelection);
     if (m_cursorRow + 1 < static_cast<int>(m_lines.size())) {
         m_cursorRow++;
         int lineLen = static_cast<int>(m_lines[m_cursorRow].size());
         if (m_cursorCol > lineLen) m_cursorCol = lineLen;
     }
+    if (m_hasSelection && m_selAnchorRow == m_cursorRow && m_selAnchorCol == m_cursorCol) {
+        clearSelection();
+    }
     ensureCursorVisible();
 }
 
-void TextEditorApp::moveHome() {
+void TextEditorApp::moveHome(bool extendSelection) {
+    prepareMove(extendSelection);
     m_cursorCol = 0;
+    if (m_hasSelection && m_selAnchorRow == m_cursorRow && m_selAnchorCol == m_cursorCol) {
+        clearSelection();
+    }
     ensureCursorVisible();
 }
 
-void TextEditorApp::moveEnd() {
+void TextEditorApp::moveEnd(bool extendSelection) {
+    prepareMove(extendSelection);
     if (m_cursorRow < static_cast<int>(m_lines.size())) {
         m_cursorCol = static_cast<int>(m_lines[m_cursorRow].size());
+    }
+    if (m_hasSelection && m_selAnchorRow == m_cursorRow && m_selAnchorCol == m_cursorCol) {
+        clearSelection();
     }
     ensureCursorVisible();
 }
@@ -821,7 +1152,7 @@ int TextEditorApp::getLineHeight() const {
 int TextEditorApp::getVisibleLineCount(const SDL_Rect& contentRect) const {
     int lh = getLineHeight();
     if (lh <= 0) return 8;
-    const int reserved = 8 + kStatusBarHeight + 4;
+    const int reserved = kPadding + kStatusBarHeight + 4;
     return std::max(3, (contentRect.h - reserved) / lh);
 }
 
@@ -840,7 +1171,7 @@ void TextEditorApp::render(SDL_Renderer* renderer, const SDL_Rect& contentRect) 
     SDL_RenderFillRect(renderer, &contentRect);
 
     const int lineHeight = getLineHeight();
-    const int padding = 8;
+    const int padding = kPadding;
     const int textStartY = contentRect.y + padding;
 
     SDL_Color cursorColor = {180, 200, 180, 230};
@@ -848,7 +1179,13 @@ void TextEditorApp::render(SDL_Renderer* renderer, const SDL_Rect& contentRect) 
 
     int visibleLines = getVisibleLineCount(contentRect);
     int y = textStartY;
-    const int lineNumWidth = 40;  // space for line numbers
+    const int lineNumWidth = kLineNumWidth;
+
+    int selR0 = 0, selC0 = 0, selR1 = 0, selC1 = 0;
+    const bool drawSel = hasSelection();
+    if (drawSel) {
+        getOrderedSelection(selR0, selC0, selR1, selC1);
+    }
 
     for (int i = 0; i < visibleLines; ++i) {
         int lineIdx = m_scrollOffset + i;
@@ -872,6 +1209,31 @@ void TextEditorApp::render(SDL_Renderer* renderer, const SDL_Rect& contentRect) 
                 SDL_DestroyTexture(numTex);
             }
             SDL_FreeSurface(numSurf);
+        }
+
+        // Selection highlight (behind text)
+        if (drawSel && lineIdx >= selR0 && lineIdx <= selR1) {
+            int fromCol = 0;
+            int toCol = static_cast<int>(line.size());
+            if (lineIdx == selR0) fromCol = selC0;
+            if (lineIdx == selR1) toCol = selC1;
+            fromCol = std::clamp(fromCol, 0, static_cast<int>(line.size()));
+            toCol = std::clamp(toCol, 0, static_cast<int>(line.size()));
+            if (toCol >= fromCol) {
+                const int x0 = measureTextPrefixWidth(line, fromCol);
+                const int x1 = measureTextPrefixWidth(line, toCol);
+                int w = std::max(2, x1 - x0);
+                // Empty line or end-of-line selection still shows a caret-width bar.
+                if (fromCol == toCol) w = 2;
+                SDL_SetRenderDrawColor(renderer, 48, 82, 130, 220);
+                SDL_Rect selRect = {
+                    contentRect.x + padding + lineNumWidth + x0,
+                    y + 1,
+                    w,
+                    lineHeight - 2
+                };
+                SDL_RenderFillRect(renderer, &selRect);
+            }
         }
 
         if (!m_findQuery.empty()) {
@@ -920,16 +1282,7 @@ void TextEditorApp::render(SDL_Renderer* renderer, const SDL_Rect& contentRect) 
 
         // Draw cursor if on this line
         if (lineIdx == m_cursorRow) {
-            // Measure text width up to cursor column
-            std::string before = (m_cursorCol <= static_cast<int>(line.size()))
-                ? line.substr(0, m_cursorCol)
-                : line;
-
-            int textW = 0, textH = 0;
-            if (!before.empty()) {
-                TTF_SizeUTF8(m_font, before.c_str(), &textW, &textH);
-            }
-
+            int textW = measureTextPrefixWidth(line, m_cursorCol);
             int cursorX = contentRect.x + padding + lineNumWidth + textW;
             int cursorY = y;
 
@@ -974,8 +1327,8 @@ void TextEditorApp::render(SDL_Renderer* renderer, const SDL_Rect& contentRect) 
             if (!m_statusMessage.empty()) {
                 status += "   |  " + m_statusMessage;
             } else {
-                status += "   |  Ctrl+S save   Ctrl+O open   Ctrl+Shift+S save as";
-                status += "   |  Ctrl+F find   Ctrl+Z undo   Ctrl+Y redo";
+                status += "   |  Ctrl+S save   Ctrl+C/X/V clipboard   Ctrl+A select all";
+                status += "   |  Ctrl+F find   Ctrl+Z undo";
             }
         }
 
@@ -1017,6 +1370,41 @@ void TextEditorApp::handleEvent(const SDL_Event& event) {
         return;
     }
 
+    if (event.type == SDL_MOUSEBUTTONDOWN && event.button.button == SDL_BUTTON_LEFT) {
+        if (m_findMode) return;
+        // Ignore clicks on status bar strip.
+        if (event.button.y >= m_clientHeight - kStatusBarHeight) return;
+
+        int row = 0, col = 0;
+        if (!clientToDocument(event.button.x, event.button.y, row, col)) return;
+        m_cursorRow = row;
+        m_cursorCol = col;
+        m_selAnchorRow = row;
+        m_selAnchorCol = col;
+        m_hasSelection = true; // zero-width until drag extends
+        m_selectingWithMouse = true;
+        ensureCursorVisible();
+        return;
+    }
+
+    if (event.type == SDL_MOUSEMOTION && m_selectingWithMouse) {
+        int row = 0, col = 0;
+        if (!clientToDocument(event.motion.x, event.motion.y, row, col)) return;
+        m_cursorRow = row;
+        m_cursorCol = col;
+        m_hasSelection = true;
+        ensureCursorVisible();
+        return;
+    }
+
+    if (event.type == SDL_MOUSEBUTTONUP && event.button.button == SDL_BUTTON_LEFT) {
+        m_selectingWithMouse = false;
+        if (m_hasSelection && m_selAnchorRow == m_cursorRow && m_selAnchorCol == m_cursorCol) {
+            clearSelection();
+        }
+        return;
+    }
+
     if (event.type == SDL_TEXTINPUT) {
         if (m_findMode) {
             const char* t = event.text.text;
@@ -1034,6 +1422,7 @@ void TextEditorApp::handleEvent(const SDL_Event& event) {
 
     if (event.type == SDL_KEYDOWN) {
         const SDL_Keysym& key = event.key.keysym;
+        const bool extend = (key.mod & KMOD_SHIFT) != 0;
 
         // Ctrl+F find
         if ((key.mod & KMOD_CTRL) && key.sym == SDLK_f) {
@@ -1067,6 +1456,24 @@ void TextEditorApp::handleEvent(const SDL_Event& event) {
                 default:
                     break;
             }
+            return;
+        }
+
+        // Clipboard + select all
+        if ((key.mod & KMOD_CTRL) && key.sym == SDLK_a) {
+            selectAll();
+            return;
+        }
+        if ((key.mod & KMOD_CTRL) && key.sym == SDLK_c) {
+            copySelection();
+            return;
+        }
+        if ((key.mod & KMOD_CTRL) && key.sym == SDLK_x) {
+            cutSelection();
+            return;
+        }
+        if ((key.mod & KMOD_CTRL) && key.sym == SDLK_v) {
+            pasteClipboard();
             return;
         }
 
@@ -1122,31 +1529,31 @@ void TextEditorApp::handleEvent(const SDL_Event& event) {
                 break;
 
             case SDLK_LEFT:
-                moveLeft();
+                moveLeft(extend);
                 break;
 
             case SDLK_RIGHT:
-                moveRight();
+                moveRight(extend);
                 break;
 
             case SDLK_UP:
-                moveUp();
+                moveUp(extend);
                 break;
 
             case SDLK_DOWN:
-                moveDown();
+                moveDown(extend);
                 break;
 
             case SDLK_HOME:
-                moveHome();
+                moveHome(extend);
                 break;
 
             case SDLK_END:
-                moveEnd();
+                moveEnd(extend);
                 break;
 
             case SDLK_ESCAPE:
-                // Could be used for something later (command mode?)
+                clearSelection();
                 break;
 
             default:
@@ -1181,6 +1588,7 @@ void TextEditorApp::applyEditorState(const EditorState& state) {
     m_cursorCol = state.cursorCol;
     m_dirty = true;
     clearDiscardArm();
+    clearSelection();
     clampCursor();
     ensureCursorVisible();
 }

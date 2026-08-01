@@ -11,7 +11,8 @@ namespace monolith::app {
 
 /**
  * A simple native text editor app.
- * Supports basic editing, cursor movement, scrolling, and optional load/save via the Monolith filesystem.
+ * Supports basic editing, selection + clipboard, cursor movement, scrolling,
+ * and optional load/save via the Monolith filesystem.
  */
 class TextEditorApp : public App {
 public:
@@ -43,15 +44,29 @@ private:
     void insertNewline();
     void deleteChar();        // Backspace: one UTF-8 codepoint (or join lines)
     void deleteForward();     // Delete: one UTF-8 codepoint (or join lines)
-    void moveLeft();
-    void moveRight();
-    void moveUp();
-    void moveDown();
-    void moveHome();
-    void moveEnd();
+    void moveLeft(bool extendSelection);
+    void moveRight(bool extendSelection);
+    void moveUp(bool extendSelection);
+    void moveDown(bool extendSelection);
+    void moveHome(bool extendSelection);
+    void moveEnd(bool extendSelection);
     void clampCursor();
     void ensureCursorVisible();
     void setStatus(const std::string& message);
+
+    // === Selection / clipboard ===
+    bool hasSelection() const;
+    void clearSelection();
+    void prepareMove(bool extendSelection);
+    void getOrderedSelection(int& r0, int& c0, int& r1, int& c1) const;
+    std::string selectedText() const;
+    void deleteSelectionRange();  // no undo push; caller pushes if needed
+    void selectAll();
+    void copySelection();
+    void cutSelection();
+    void pasteClipboard();
+    int measureTextPrefixWidth(const std::string& line, int col) const;
+    bool clientToDocument(int clientX, int clientY, int& outRow, int& outCol) const;
 
     // === File I/O ===
     bool loadInitialFile(const std::string& virtualPath);
@@ -106,6 +121,12 @@ private:
     int m_cursorCol = 0;
     int m_scrollOffset = 0;   // index of the first visible line
 
+    // Selection: active end is always the cursor; anchor is the other end.
+    bool m_hasSelection = false;
+    int m_selAnchorRow = 0;
+    int m_selAnchorCol = 0;
+    bool m_selectingWithMouse = false;
+
     std::string m_filePath;   // virtual path in Monolith FS (if set)
     bool m_dirty = false;
     std::string m_statusMessage;  // transient status-bar feedback (save/open errors, etc.)
@@ -126,6 +147,8 @@ private:
     SyntaxMode m_syntaxMode = SyntaxMode::Light;
 
     static constexpr int kStatusBarHeight = 22;
+    static constexpr int kPadding = 8;
+    static constexpr int kLineNumWidth = 40;
 
     // Cached for layout
     int m_clientWidth = 0;
