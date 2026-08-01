@@ -154,8 +154,8 @@ Main implementation files:
 
 - `src/app/DrawingApp.hpp`
 - `src/app/DrawingApp.cpp`
-- `src/window/WindowManager.cpp` — `launchDrawing()`, mouse-up forwarding for drag interactions
-- `src/app/App.hpp` — `IWindowController::restoreTrackedInstanceTitle()` for New/Ctrl+N title reset
+- `src/window/WindowManager.cpp` — `launchDrawing()`, mouse-up forwarding for drag interactions, session restore
+- `src/app/App.hpp` — `IWindowController::restoreTrackedInstanceTitle()`, `allowClose` for dirty guards
 
 Canvas GPU path (`syncTexture`): recreate the streaming texture only when missing or size-changed; upload CPU pixels only while `m_textureDirty` is set by paint/undo/load/resize.
 

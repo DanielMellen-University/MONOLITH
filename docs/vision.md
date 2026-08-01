@@ -101,9 +101,11 @@ The project will be built in phases, roughly in this order:
    - Simple IDE experience for the language — planned
    - Wallpaper images and richer appearance options — planned
 
-4. **Growth**
+4. **Growth** *(ongoing)*
    - ~~Games~~ — Snake and Minesweeper shipped
+   - Session restore, open-with routing, editor find/replace, FS multi-select — shipped (see [CHANGELOG](../CHANGELOG.md))
    - Deeper integration between apps
+   - Wallpaper images, richer Settings, custom language / IDE — still planned
    - Whatever feels worth adding over time
 
 The priority is to make the environment feel alive and usable early, even if many apps are still missing.

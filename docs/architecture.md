@@ -20,22 +20,22 @@ The core experience is built around **overlapping windows** with traditional des
 ┌─────────────────────────────────────────────────────────────┐
 │                        Monolith (SDL2)                       │
 ├─────────────────────────────────────────────────────────────┤
-│  Window Manager                                              │
-│  - Title bars, 3 buttons (close/minimize/maximize)           │
-│  - Dragging, resizing, z-order, focus                        │
-│  - Taskbar                                                   │
+│  Window Manager / desktop shell                              │
+│  - Frames, drag/resize, z-order, focus, taskbar, Start menu  │
+│  - Session restore, openPath routing, launchers              │
 ├─────────────────────────────────────────────────────────────┤
 │  App Host / Client Areas                                     │
-│  - Native C++ applications render into their window content  │
+│  - Native C++ apps render into their window content          │
 ├─────────────────────────────────────────────────────────────┤
 │  Built-in Apps (native)                                      │
-│  - Terminal, Filesystem, Editor, Drawing, Settings, Snake, Minesweeper │
+│  - Terminal, Filesystem, Editor, Drawing, Settings,          │
+│    Snake, Minesweeper                                        │
 ├─────────────────────────────────────────────────────────────┤
 │  Basic Filesystem                                            │
-│  - Hierarchical, persisted on host disk                      │
+│  - Hierarchical, persisted under ~/.monolith/fs/             │
 ├─────────────────────────────────────────────────────────────┤
-│  Language Runtime (scripting/automation)                     │
-│  - Used mainly from Terminal and other apps                  │
+│  Language Runtime (planned — not implemented)                │
+│  - Scripting / automation from Terminal and other apps       │
 └─────────────────────────────────────────────────────────────┘
 ```
 
@@ -111,7 +111,7 @@ The Start menu keeps most apps as top-level entries. Games that clearly form a g
 
 Each frame, `WindowManager::update()` calls `App::update()` on every non-minimized window's app. Most apps leave this as a no-op; games use it for fixed-rate ticks and timers.
 
-Apps can request shell actions on behalf of the user through `IWindowController` (currently `close()`, `setTitle()`, `restoreTrackedInstanceTitle()`, `openInTextEditor(virtualPath)`, `openInDrawing(virtualPath)`, editor/drawing file binding helpers, and desktop background get/set). This enables patterns like "double-click a file in the graphical filesystem browser to open it in the text editor or Drawing" without apps directly depending on each other. Apps that temporarily change the title (e.g. Drawing after save) use `restoreTrackedInstanceTitle()` to return to the WM-managed instance name.
+Apps can request shell actions through `IWindowController`: `close()`, `setTitle()`, `restoreTrackedInstanceTitle()`, `openInTextEditor` / `openInDrawing` / **`openPath`** (extension-based default), editor/drawing file binding helpers, and desktop background get/set. Apps do not depend on each other directly. Temporary title overrides (e.g. Drawing after save) restore via `restoreTrackedInstanceTitle()`.
 
 ### 3. Rendering
 
@@ -146,7 +146,7 @@ Native C++ apps render into window client areas and are launched via shell metho
 | Snake | [apps/snake.md](apps/snake.md) | `SnakeApp` |
 | Minesweeper | [apps/minesweeper.md](apps/minesweeper.md) | `MinesweeperApp` |
 
-**Shell coordination:** Apps request desktop actions through `IWindowController` (close, set title, open file in editor, get/set desktop background color). The Filesystem Browser uses `openInTextEditor()` so it does not depend on the Text Editor directly. Settings uses `setDesktopBackgroundColor()` to change the live desktop color, persisted by the Window Manager to `~/.monolith/desktop_settings.txt`.
+**Shell coordination:** Apps use `IWindowController` for close, titles, open/openPath, file bindings, and desktop color. Settings persists background to `~/.monolith/desktop_settings.txt`. Session layout persists to `~/.monolith/session.txt` via `WindowManager::saveSession` / `loadSession` (wired from `main`).
 
 **Input note:** The Window Manager forwards `SDL_MOUSEBUTTONUP` to the focused app's client area so drag interactions (e.g. Drawing strokes) end cleanly when the mouse is released outside the window.
 
@@ -173,8 +173,18 @@ The language is not expected to create or manage its own windows in the early ph
 - Not a real operating system.
 - Not primarily intended for other users.
 - Not trying to match the power or complexity of a modern desktop environment.
-- No requirement for window state persistence across sessions (for now).
 - The language is not required to build GUI applications directly.
+- Session restore is best-effort layout only (not a full workspace product).
+
+## Host-side paths (outside the virtual FS)
+
+| Path | Purpose |
+|------|---------|
+| `~/.monolith/fs/` | Virtual filesystem host root |
+| `~/.monolith/desktop_settings.txt` | Desktop background color |
+| `~/.monolith/session.txt` | Window session for restore |
+| `~/.monolith/snake_highscore.txt` | Snake high score |
+| `~/.monolith/minesweeper_best.txt` | Minesweeper best times |
 
 ## Next Areas to Explore
 
@@ -187,4 +197,4 @@ Per-app limitations and planned work are tracked in each [app guide](README.md#b
 
 ---
 
-*This document reflects the current understanding as of the latest design discussion. It will evolve as more decisions are made.*
+*This document reflects the architecture as of the current codebase. It will evolve as decisions change.*

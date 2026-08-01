@@ -129,7 +129,7 @@ Main implementation files:
 
 - `src/app/FilesystemApp.hpp`
 - `src/app/FilesystemApp.cpp`
-- `src/fs/Filesystem.*` — shared recursive copy/remove and path helpers
-- `src/window/WindowManager.cpp` — `launchFilesystem()`, `openInTextEditor()`, `openInDrawing()` shell bridges
+- `src/fs/Filesystem.*` — shared recursive copy/remove, path helpers, `fileSize`
+- `src/window/WindowManager.cpp` — `launchFilesystem()`, `openPath` / open-with shell bridges
 
-File open uses `IWindowController` shell methods so the browser does not depend directly on Text Editor or Drawing classes.
+File open uses `IWindowController` (`openPath`, `openInTextEditor`, `openInDrawing`) so the browser does not depend on Editor or Drawing classes.

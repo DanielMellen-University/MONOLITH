@@ -33,7 +33,16 @@ Documentation hub for the Monolith project. Start with the [root README](../READ
 |----------|-------------|
 | [Scripts & Verification](development/scripts.md) | Headless tests and integration checks |
 
+## Host layout (quick reference)
+
+| Location | Role |
+|----------|------|
+| `~/.monolith/fs/` | Virtual filesystem |
+| `~/.monolith/session.txt` | Window session restore |
+| `~/.monolith/desktop_settings.txt` | Desktop background |
+| `~/.monolith/snake_highscore.txt` / `minesweeper_best.txt` | Game scores |
+
 ## For Contributors & Agents
 
 - [AGENTS.md](../.agents/AGENTS.md) — project rules, doc discipline, commit workflow
-- [CHANGELOG.md](../CHANGELOG.md) — recent user-visible changes
+- [CHANGELOG.md](../CHANGELOG.md) — short current-state summary (history in git)

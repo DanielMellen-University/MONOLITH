@@ -111,6 +111,6 @@ Main implementation files:
 
 - `src/app/TextEditorApp.hpp`
 - `src/app/TextEditorApp.cpp`
-- `src/window/WindowManager.cpp` — `launchTextEditor()`, file singleton tracking via `m_fileEditors`
+- `src/window/WindowManager.cpp` — `launchTextEditor()`, file singleton tracking, session restore
 
-Shell integration: Filesystem Browser calls `IWindowController::openInTextEditor(virtualPath)` to open files.
+Shell integration: open via `openInTextEditor` / `openPath` (default for non-`.modr` files). Dirty buffers use `allowClose` and status-bar double-confirm for close/open.

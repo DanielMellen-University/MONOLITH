@@ -1,6 +1,6 @@
 # Development Scripts
 
-Headless verification scripts for Monolith. These run without launching the full SDL desktop and are useful for CI or quick sanity checks.
+Headless verification scripts for Monolith. These run without a full interactive desktop session and are useful for local sanity checks. There is no automated CI pipeline in-repo yet; treat “CI” as optional future use.
 
 ## Drawing Integration Check
 

@@ -102,6 +102,7 @@ Main implementation files:
 - `src/app/TerminalApp.hpp`
 - `src/app/TerminalApp.cpp`
 - `src/fs/Filesystem.*` — shared path + recursive copy/remove used by `cp` / `rm`
+- Shell `open` / `edit` go through `IWindowController::openPath` / `openInTextEditor`
 
 Launched via `WindowManager::launchTerminal()`.
 

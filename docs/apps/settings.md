@@ -39,8 +39,9 @@ Below the appearance controls, Settings shows read-only details:
 
 ## Current Limitations
 
-- Only desktop background color is configurable so far (no custom RGB picker).
+- Only desktop background color is configurable so far (six presets; no custom RGB picker).
 - No wallpaper image support yet.
+- Session restore and other shell prefs are not controlled from Settings (session is automatic via `~/.monolith/session.txt`).
 - Other preferences (keybindings, default paths, taskbar style) are not exposed yet.
 - Shut Down remains a separate Start menu item.
 

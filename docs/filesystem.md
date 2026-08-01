@@ -33,6 +33,15 @@ For example, `/home/monolith/welcome.txt` is stored at:
 
 The host root is created on startup if it does not exist. The Settings app displays the actual host path.
 
+Related host files (not inside the virtual tree):
+
+| Host path | Purpose |
+|-----------|---------|
+| `~/.monolith/desktop_settings.txt` | Desktop background color |
+| `~/.monolith/session.txt` | Open windows for session restore |
+| `~/.monolith/snake_highscore.txt` | Snake high score (games host file) |
+| `~/.monolith/minesweeper_best.txt` | Minesweeper best times (game host file) |
+
 ## API Overview
 
 The `monolith::fs::Filesystem` class provides:
