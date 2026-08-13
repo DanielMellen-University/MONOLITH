@@ -276,6 +276,14 @@ private:
     // After a launcher creates a window, apply restored geometry (session load).
     void applyRestoredGeometry(Window* window, int x, int y, int w, int h,
                                bool minimized, bool maximized);
+
+    bool tryHandleShellHotkeys(const SDL_Event& event);
+    void cycleFocus(int direction);
+    void endAltTabCycle();
+
+    bool m_altTabCycling = false;
+    int m_altTabIndex = 0;
+    std::vector<Window*> m_altTabOrder;
 };
 
 } // namespace monolith::window

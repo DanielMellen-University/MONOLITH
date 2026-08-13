@@ -1,5 +1,10 @@
 # Changelog
 
+## 2026-07: Alt+Tab switcher and Start hotkey
+
+- **Alt+Tab** / **Alt+Shift+Tab** cycles windows (restores minimized; overlay until Alt up).
+- **Ctrl+Escape** toggles the Start menu.
+
 ## 2026-07: Editor go-to-line and coalesced undo
 
 - **Ctrl+G** opens a status-bar line-number prompt (Enter jumps, Esc cancels).

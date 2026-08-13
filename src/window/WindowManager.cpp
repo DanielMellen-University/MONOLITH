@@ -73,6 +73,10 @@ Window* WindowManager::createWindow(const std::string& title, int x, int y, int 
 }
 
 void WindowManager::handleEvent(const SDL_Event& event) {
+    if (tryHandleShellHotkeys(event)) {
+        return;
+    }
+
     if (event.type == SDL_MOUSEMOTION) {
         m_mouseX = event.motion.x;
         m_mouseY = event.motion.y;
@@ -845,6 +849,43 @@ void WindowManager::render(SDL_Renderer* renderer) {
             }
         }
     }
+
+    // Alt+Tab switcher overlay
+    if (m_altTabCycling && !m_altTabOrder.empty() && m_font) {
+        Window* current = nullptr;
+        if (m_altTabIndex >= 0 && m_altTabIndex < static_cast<int>(m_altTabOrder.size())) {
+            current = m_altTabOrder[static_cast<size_t>(m_altTabIndex)];
+        }
+        const std::string label = current ? current->title : "(no window)";
+        SDL_Color textCol = {235, 235, 240, 255};
+        SDL_Surface* s = TTF_RenderUTF8_Blended(m_font, label.c_str(), textCol);
+        if (s) {
+            SDL_Texture* t = SDL_CreateTextureFromSurface(renderer, s);
+            if (t) {
+                const int boxW = std::min(m_logicalWidth - 80, std::max(220, s->w + 32));
+                const int boxH = 52;
+                SDL_Rect box = {
+                    logicalToScreenX((m_logicalWidth - boxW) / 2),
+                    logicalToScreenY((m_logicalHeight - boxH) / 2 - 20),
+                    static_cast<int>(boxW * m_contentScale),
+                    static_cast<int>(boxH * m_contentScale)
+                };
+                SDL_SetRenderDrawColor(renderer, 28, 30, 40, 240);
+                SDL_RenderFillRect(renderer, &box);
+                SDL_SetRenderDrawColor(renderer, 90, 120, 180, 255);
+                SDL_RenderDrawRect(renderer, &box);
+                SDL_Rect dst = {
+                    box.x + (box.w - s->w) / 2,
+                    box.y + (box.h - s->h) / 2,
+                    s->w,
+                    s->h
+                };
+                SDL_RenderCopy(renderer, t, nullptr, &dst);
+                SDL_DestroyTexture(t);
+            }
+            SDL_FreeSurface(s);
+        }
+    }
 }
 
 Window* WindowManager::getWindowAt(int mouseX, int mouseY) {
@@ -1196,6 +1237,8 @@ void WindowManager::closeWindow(Window* window) {
     if (window->app && !window->app->allowClose()) {
         return;
     }
+
+    endAltTabCycle();
 
     // Capture before any mutation so we know which app type (if any) needs compaction
     // after this window is gone.
@@ -1732,6 +1775,69 @@ bool WindowManager::saveSession(const std::string& hostPath) const {
 void WindowManager::requestQuit() {
     m_quitRequested = true;
     // Menu close is handled by the Start menu click handler (or caller).
+}
+
+void WindowManager::endAltTabCycle() {
+    m_altTabCycling = false;
+    m_altTabIndex = 0;
+    m_altTabOrder.clear();
+}
+
+void WindowManager::cycleFocus(int direction) {
+    if (m_windows.empty()) return;
+
+    if (!m_altTabCycling) {
+        m_altTabOrder.clear();
+        for (auto it = m_windows.rbegin(); it != m_windows.rend(); ++it) {
+            if (*it) m_altTabOrder.push_back(it->get());
+        }
+        m_altTabIndex = 0;
+        m_altTabCycling = true;
+    }
+
+    const int n = static_cast<int>(m_altTabOrder.size());
+    if (n == 0) return;
+
+    // Drop any windows that were closed (should not happen mid-cycle after closeWindow ends it).
+    m_altTabIndex = (m_altTabIndex + direction % n + n) % n;
+    Window* target = m_altTabOrder[static_cast<size_t>(m_altTabIndex)];
+    if (!target) return;
+    if (target->minimized) {
+        target->minimized = false;
+    }
+    bringToFront(target);
+}
+
+bool WindowManager::tryHandleShellHotkeys(const SDL_Event& event) {
+    if (event.type == SDL_KEYUP) {
+        const SDL_Keycode sym = event.key.keysym.sym;
+        if (sym == SDLK_LALT || sym == SDLK_RALT) {
+            endAltTabCycle();
+        }
+        return false;
+    }
+
+    if (event.type != SDL_KEYDOWN) return false;
+
+    const SDL_Keysym& key = event.key.keysym;
+    const bool alt = (key.mod & KMOD_ALT) != 0;
+    const bool ctrl = (key.mod & KMOD_CTRL) != 0;
+
+    if (alt && key.sym == SDLK_TAB) {
+        const int dir = (key.mod & KMOD_SHIFT) ? -1 : 1;
+        cycleFocus(dir);
+        m_showStartMenu = false;
+        return true;
+    }
+
+    if (ctrl && key.sym == SDLK_ESCAPE) {
+        m_showStartMenu = !m_showStartMenu;
+        m_startMenuHoverIndex = -1;
+        endAltTabCycle();
+        return true;
+    }
+
+    return false;
 }
 
 bool WindowManager::shouldQuit() const {

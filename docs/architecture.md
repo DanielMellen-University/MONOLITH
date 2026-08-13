@@ -122,6 +122,7 @@ Apps can request shell actions through `IWindowController`: `close()`, `setTitle
 ### 4. Input System
 
 - All input enters through the main SDL2 event loop.
+- **Shell hotkeys** are handled first (and not forwarded to apps): **Alt+Tab** / **Alt+Shift+Tab** cycles focused windows (minimized ones restore; a title overlay stays up until Alt is released); **Ctrl+Escape** toggles the Start menu.
 - The Window Manager performs hit testing to determine which window (and which part of the window) should receive the event.
 - Window frame interactions (dragging, resizing, buttons) are handled by the Window Manager.
 - Client area events are forwarded to the active application.
