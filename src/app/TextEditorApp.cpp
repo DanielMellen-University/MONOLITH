@@ -413,7 +413,24 @@ void TextEditorApp::beginPathPrompt(PathPromptMode mode) {
         } else {
             m_pathPromptBuffer = "/home/monolith/";
         }
+    } else if (mode == PathPromptMode::GoToLine) {
+        m_pathPromptBuffer.clear();
+        setStatus("Go to line (Enter jump, Esc cancel)");
     }
+}
+
+void TextEditorApp::goToLine(int lineNumber1Based) {
+    if (m_lines.empty()) m_lines = {""};
+    int target = lineNumber1Based - 1;
+    if (target < 0) target = 0;
+    if (target >= static_cast<int>(m_lines.size())) {
+        target = static_cast<int>(m_lines.size()) - 1;
+    }
+    m_cursorRow = target;
+    m_cursorCol = 0;
+    clearSelection();
+    ensureCursorVisible();
+    setStatus("Line " + std::to_string(m_cursorRow + 1) + " / " + std::to_string(m_lines.size()));
 }
 
 void TextEditorApp::finishPathPrompt(bool commit) {
@@ -421,6 +438,28 @@ void TextEditorApp::finishPathPrompt(bool commit) {
     const std::string buffer = m_pathPromptBuffer;
     m_pathPromptMode = PathPromptMode::None;
     m_pathPromptBuffer.clear();
+
+    if (mode == PathPromptMode::GoToLine) {
+        if (!commit) {
+            setStatus("Cancelled.");
+            return;
+        }
+        int line = 0;
+        for (char c : buffer) {
+            if (c < '0' || c > '9') {
+                setStatus("Go to line: enter a number");
+                return;
+            }
+            if (line > 100000000) break;
+            line = line * 10 + (c - '0');
+        }
+        if (line <= 0) {
+            setStatus("Go to line: enter a number");
+            return;
+        }
+        goToLine(line);
+        return;
+    }
 
     if (!commit) {
         setStatus("Cancelled.");
@@ -537,7 +576,9 @@ void TextEditorApp::handlePathPromptKey(const SDL_Keysym& keysym) {
             }
             break;
         case SDLK_TAB:
-            completePathPrompt();
+            if (m_pathPromptMode != PathPromptMode::GoToLine) {
+                completePathPrompt();
+            }
             break;
         default:
             break;
@@ -546,9 +587,14 @@ void TextEditorApp::handlePathPromptKey(const SDL_Keysym& keysym) {
 
 void TextEditorApp::handlePathPromptText(const char* text) {
     if (!text) return;
-    // Accept printable bytes including multi-byte UTF-8 for virtual paths.
     for (const char* p = text; *p; ++p) {
         const unsigned char c = static_cast<unsigned char>(*p);
+        if (m_pathPromptMode == PathPromptMode::GoToLine) {
+            if (c >= '0' && c <= '9') {
+                m_pathPromptBuffer.push_back(static_cast<char>(c));
+            }
+            continue;
+        }
         if (c < 32 || c == 127) continue;
         m_pathPromptBuffer.push_back(static_cast<char>(c));
     }
@@ -824,7 +870,7 @@ void TextEditorApp::insertText(const char* text) {
     }
     if (filtered.empty()) return;
 
-    pushUndoState();
+    pushUndoState(hasSelection() ? UndoCoalesce::None : UndoCoalesce::Insert);
     if (hasSelection()) {
         deleteSelectionRange();
     }
@@ -879,7 +925,8 @@ void TextEditorApp::deleteChar() {
     // Backspace — one UTF-8 codepoint (or join with previous line)
     if (m_cursorRow == 0 && m_cursorCol == 0) return;
 
-    pushUndoState();
+    // Joining lines is a distinct edit; only coalesce in-line backspaces.
+    pushUndoState(m_cursorCol > 0 ? UndoCoalesce::Backspace : UndoCoalesce::None);
 
     if (m_cursorCol > 0) {
         std::string& line = m_lines[m_cursorRow];
@@ -1465,16 +1512,21 @@ void TextEditorApp::render(SDL_Renderer* renderer, const SDL_Rect& contentRect) 
                 status += "   |  Enter next  Shift+Enter prev  Ctrl+H replace  Esc";
             }
         } else if (m_pathPromptMode != PathPromptMode::None) {
-            status = (m_pathPromptMode == PathPromptMode::Open) ? "Open: " : "Save as: ";
-            status += m_pathPromptBuffer + "_";
-            status += "   |  Tab complete, Enter confirm, Esc cancel";
+            if (m_pathPromptMode == PathPromptMode::GoToLine) {
+                status = "Go to line: " + m_pathPromptBuffer + "_";
+                status += "   |  Enter jump, Esc cancel";
+            } else {
+                status = (m_pathPromptMode == PathPromptMode::Open) ? "Open: " : "Save as: ";
+                status += m_pathPromptBuffer + "_";
+                status += "   |  Tab complete, Enter confirm, Esc cancel";
+            }
         } else {
             if (m_dirty) status += " *";
             if (!m_statusMessage.empty()) {
                 status += "   |  " + m_statusMessage;
             } else {
                 status += "   |  Ctrl+S save   Ctrl+C/X/V clipboard   Ctrl+A select all";
-                status += "   |  Ctrl+F find   Ctrl+H replace   Ctrl+Z undo";
+                status += "   |  Ctrl+F find   Ctrl+H replace   Ctrl+G line   Ctrl+Z undo";
             }
         }
 
@@ -1589,6 +1641,10 @@ void TextEditorApp::handleEvent(const SDL_Event& event) {
         }
         if ((key.mod & KMOD_CTRL) && key.sym == SDLK_h) {
             enterReplaceMode();
+            return;
+        }
+        if ((key.mod & KMOD_CTRL) && key.sym == SDLK_g) {
+            beginPathPrompt(PathPromptMode::GoToLine);
             return;
         }
 
@@ -1763,7 +1819,19 @@ void TextEditorApp::onResize(int clientWidth, int clientHeight) {
     ensureCursorVisible();
 }
 
-void TextEditorApp::pushUndoState() {
+void TextEditorApp::pushUndoState(UndoCoalesce kind) {
+    const std::uint32_t now = SDL_GetTicks();
+    if (kind != UndoCoalesce::None
+        && kind == m_undoCoalesce
+        && !m_undoStack.empty()
+        && now - m_lastCoalesceMs < kUndoCoalesceMs) {
+        m_lastCoalesceMs = now;
+        m_redoStack.clear();
+        return;
+    }
+
+    m_undoCoalesce = kind;
+    m_lastCoalesceMs = now;
     m_redoStack.clear();
 
     if (m_undoStack.size() > 50) {
@@ -1790,6 +1858,7 @@ void TextEditorApp::applyEditorState(const EditorState& state) {
 
 void TextEditorApp::undo() {
     if (m_undoStack.empty()) return;
+    m_undoCoalesce = UndoCoalesce::None;
 
     EditorState current;
     current.lines = m_lines;
@@ -1804,6 +1873,7 @@ void TextEditorApp::undo() {
 
 void TextEditorApp::redo() {
     if (m_redoStack.empty()) return;
+    m_undoCoalesce = UndoCoalesce::None;
 
     EditorState current;
     current.lines = m_lines;

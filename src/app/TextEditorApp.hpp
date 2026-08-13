@@ -4,6 +4,7 @@
 #include "../fs/Filesystem.hpp"
 #include <SDL2/SDL.h>
 #include <SDL2/SDL_ttf.h>
+#include <cstdint>
 #include <string>
 #include <vector>
 
@@ -73,15 +74,17 @@ private:
     std::string getDisplayName() const;
     void updateTitleForPath();
 
-    enum class PathPromptMode { None, Open, SaveAs };
+    enum class PathPromptMode { None, Open, SaveAs, GoToLine };
     void beginPathPrompt(PathPromptMode mode);
     void finishPathPrompt(bool commit);
     void completePathPrompt();
     void handlePathPromptKey(const SDL_Keysym& keysym);
     void handlePathPromptText(const char* text);
+    void goToLine(int lineNumber1Based);
 
     // === Undo / Redo ===
-    void pushUndoState();
+    enum class UndoCoalesce { None, Insert, Backspace };
+    void pushUndoState(UndoCoalesce kind = UndoCoalesce::None);
     void undo();
     void redo();
     void applyEditorState(const EditorState& state);
@@ -141,6 +144,9 @@ private:
 
     std::vector<EditorState> m_undoStack;
     std::vector<EditorState> m_redoStack;
+    UndoCoalesce m_undoCoalesce = UndoCoalesce::None;
+    std::uint32_t m_lastCoalesceMs = 0;
+    static constexpr std::uint32_t kUndoCoalesceMs = 1000;
 
     PathPromptMode m_pathPromptMode = PathPromptMode::None;
     std::string m_pathPromptBuffer;

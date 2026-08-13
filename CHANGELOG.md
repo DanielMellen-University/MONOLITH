@@ -1,5 +1,10 @@
 # Changelog
 
+## 2026-07: Editor go-to-line and coalesced undo
+
+- **Ctrl+G** opens a status-bar line-number prompt (Enter jumps, Esc cancels).
+- Consecutive typing or in-line backspace within ~1s shares one undo snapshot.
+
 ## Current (2026-07)
 
 Focused snapshot of Monolith as of the latest `beta` / `main` tip. Older detail lives in git history.

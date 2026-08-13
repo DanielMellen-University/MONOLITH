@@ -59,6 +59,7 @@ The editor applies lightweight per-line highlighting:
 | Ctrl+Y / Ctrl+Shift+Z | Redo |
 | Ctrl+F | Enter find mode |
 | Ctrl+H | Enter find & replace mode |
+| Ctrl+G | Go to line (status-bar number prompt) |
 | Shift+Arrows / Home / End | Extend selection |
 
 ### Find Mode (Ctrl+F)
@@ -96,7 +97,7 @@ Ctrl+S saves to the bound path when one exists. If the buffer is untitled, Ctrl+
 
 - Open/save-as use inline path prompts, not graphical file-picker dialogs (not a multi-button dialog).
 - Dirty close/open uses a second press of the same action to discard — there is no separate “Save / Discard / Cancel” modal.
-- Undo/redo store full buffer snapshots (capped stack); typing still pushes per keystroke.
+- Undo/redo store full buffer snapshots (capped stack). Consecutive typing or in-line backspace within ~1s is one undo step; Enter, paste, and other edits start a new step.
 - Highlighting is per-line only (no multiline strings or block comments).
 - No multiple buffers/tabs.
 - No horizontal scroll; long lines clip (selection still works by column).
