@@ -21,7 +21,7 @@ The core experience is built around **overlapping windows** with traditional des
 │                        Monolith (SDL2)                       │
 ├─────────────────────────────────────────────────────────────┤
 │  Window Manager / desktop shell                              │
-│  - Frames, drag/resize, z-order, focus, taskbar, Start menu  │
+│  - Frames, drag/resize, focus, taskbar (+ clock), Start menu │
 │  - Session restore, openPath routing, launchers              │
 ├─────────────────────────────────────────────────────────────┤
 │  App Host / Client Areas                                     │
@@ -50,7 +50,7 @@ The Window Manager is the most foundational subsystem.
 - Draws window frames (title bar + three buttons)
 - Handles window dragging and resizing
 - Manages z-order and focus
-- Provides a taskbar for window switching and status
+- Provides a taskbar for window switching and status (local-time clock on the right)
 - Routes input events to the correct window
 
 **Window Model:**
@@ -60,6 +60,7 @@ The Window Manager is the most foundational subsystem.
 - Windows can be minimized via the title-bar minimize button or by clicking the active window's taskbar button (XP-style toggle), and restored by clicking its taskbar entry.
 - When the focused window is closed, focus moves to the topmost non-minimized remaining window (z-order), with `onFocusLost` / `onFocusGained` fired so apps stay consistent. If every survivor is minimized, focus stays clear until the user activates a window.
 - When many windows are open, the taskbar scrolls horizontally (arrow buttons and mouse wheel). Arrow hit targets are recorded during render (same pattern as taskbar window buttons) and handled in the taskbar click path.
+- The taskbar shows a compact local-time clock on the right (12-hour). The time texture is rebuilt when the minute changes; hovering the clock tray shows the full local date in a small tooltip above the bar.
 - **Session restore**: on exit, open windows (kind, geometry, minimize/maximize, file paths for editors/drawings) are written to `~/.monolith/session.txt`. On next launch that file is restored if present; otherwise the demo window set opens.
 - **Open-with routing**: `WindowManager::openPath` / `IWindowController::openPath` maps `.modr` → Drawing and all other files → Text Editor (used by Terminal `open` and the Filesystem Browser default Open).
 - No snapping or automatic tiling.
