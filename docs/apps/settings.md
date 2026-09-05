@@ -42,7 +42,7 @@ Below the appearance controls, Settings shows read-only details:
 - Only desktop background color is configurable so far (six presets; no custom RGB picker).
 - No wallpaper image support yet.
 - Session restore and other shell prefs are not controlled from Settings (session is automatic via `~/.monolith/session.txt`).
-- Other preferences (keybindings, default paths, taskbar style) are not exposed yet.
+- Other preferences (keybindings, default paths, taskbar style, 12/24-hour clock) are not exposed yet. The taskbar clock lives in the shell, not Settings.
 - Shut Down remains a separate Start menu item.
 
 ## Developer Notes

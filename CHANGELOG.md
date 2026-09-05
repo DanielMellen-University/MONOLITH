@@ -1,5 +1,10 @@
 # Changelog
 
+## 2026-09: Taskbar clock
+
+- Local-time clock on the right of the taskbar (12-hour, updates each minute).
+- Hover the clock to see the full local date.
+
 ## 2026-07: Alt+Tab switcher and Start hotkey
 
 - **Alt+Tab** / **Alt+Shift+Tab** cycles windows (restores minimized; overlay until Alt up).
@@ -16,7 +21,7 @@ Focused snapshot of Monolith as of the latest `beta` / `main` tip. Older detail 
 
 ### Desktop shell
 - Overlapping windows: drag, 8-way resize, minimize / maximize, z-order, focus-after-close
-- Taskbar with Start menu (**Games** category), scroll arrows + wheel when crowded
+- Taskbar with Start menu (**Games** category), scroll arrows + wheel when crowded, local-time clock (hover for date)
 - Multi-instance titles with live compaction (`Terminal`, `Terminal 2`, …)
 - Session restore: `~/.monolith/session.txt` on exit; restored on next launch (demo set if missing)
 - Open-with routing: `.modr` → Drawing, else Text Editor (`openPath`)
