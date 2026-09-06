@@ -59,6 +59,10 @@ struct IWindowController {
         (void)b;
     }
 
+    // Taskbar clock format (owned by the shell; default is 12-hour).
+    virtual bool getClock24Hour() const { return false; }
+    virtual void setClock24Hour(bool enabled) { (void)enabled; }
+
     // Future extensions:
     // virtual void minimize() = 0;
     // virtual void maximize() = 0;

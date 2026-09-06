@@ -18,11 +18,16 @@ public:
     RGB desktopBackground() const { return m_desktopBackground; }
     void setDesktopBackground(RGB color) { m_desktopBackground = color; }
 
+    // false = 12-hour (default), true = 24-hour
+    bool clock24Hour() const { return m_clock24Hour; }
+    void setClock24Hour(bool enabled) { m_clock24Hour = enabled; }
+
     bool loadFromHostPath(const std::string& hostPath);
     bool saveToHostPath(const std::string& hostPath) const;
 
 private:
     RGB m_desktopBackground = kDefaultDesktopBackground;
+    bool m_clock24Hour = false;
 };
 
 } // namespace monolith::settings
