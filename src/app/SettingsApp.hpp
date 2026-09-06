@@ -41,6 +41,7 @@ private:
     void renderFooter(SDL_Renderer* renderer, const SDL_Rect& contentRect);
     void applyBackgroundPreset(const BackgroundPreset& preset);
     int activePresetIndex() const;
+    void applyClock24Hour(bool enabled);
     int scrollAreaHeight() const;
     int computeContentHeight() const;
     void clampScrollOffset();
@@ -60,6 +61,7 @@ private:
 
     std::vector<InfoLine> m_lines;
     std::array<SDL_Rect, kPresetCount> m_backgroundSwatches{};
+    std::array<SDL_Rect, 2> m_clockFormatHitRects{}; // 0 = 12-hour, 1 = 24-hour
     int m_contentHeight = 0;
     int m_scrollOffset = 0;
 
