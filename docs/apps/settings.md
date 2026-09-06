@@ -12,13 +12,21 @@ Open **Settings** from the Start menu. Multiple instances are supported:
 
 ## Appearance
 
-The **APPEARANCE** section at the top lets you change the desktop background color.
+The **APPEARANCE** section at the top lets you change live desktop preferences.
+
+### Desktop background
 
 - Six preset swatches: Default, Deep Blue, Slate, Forest, Wine, and Teal.
 - Select a preset to apply it immediately behind all windows.
-- Scroll with the mouse wheel or Page Up/Down if the window is resized smaller.
 - The active swatch is highlighted with a white border.
-- Your choice is saved to `~/.monolith/desktop_settings.txt` and restored on the next launch.
+
+### Taskbar clock
+
+- Two options: **12-hour** (default) and **24-hour**.
+- The active option is highlighted with a white border, matching the swatch pattern.
+- Changing the format updates the taskbar clock immediately.
+
+Scroll with the mouse wheel or Page Up/Down if the window is resized smaller. Background and clock choices are saved to `~/.monolith/desktop_settings.txt` and restored on the next launch.
 
 ## Information Panel
 
@@ -39,10 +47,10 @@ Below the appearance controls, Settings shows read-only details:
 
 ## Current Limitations
 
-- Only desktop background color is configurable so far (six presets; no custom RGB picker).
+- Desktop background color uses six presets only (no custom RGB picker).
 - No wallpaper image support yet.
 - Session restore and other shell prefs are not controlled from Settings (session is automatic via `~/.monolith/session.txt`).
-- Other preferences (keybindings, default paths, taskbar style, 12/24-hour clock) are not exposed yet. The taskbar clock lives in the shell, not Settings.
+- Other preferences (keybindings, default paths, taskbar style) are not exposed yet.
 - Shut Down remains a separate Start menu item.
 
 ## Developer Notes
@@ -52,8 +60,8 @@ Main implementation files:
 - `src/app/SettingsApp.hpp`
 - `src/app/SettingsApp.cpp`
 - `src/settings/DesktopSettings.hpp` / `.cpp` — load/save host settings file
-- `src/window/WindowManager.cpp` — owns live settings, `loadDesktopSettings()`, `setDesktopBackground()`
-- `src/app/App.hpp` — `IWindowController::get/setDesktopBackgroundColor()`
+- `src/window/WindowManager.cpp` — owns live settings, `loadDesktopSettings()`, `setDesktopBackground()`, `setClock24Hour()`
+- `src/app/App.hpp` — `IWindowController::get/setDesktopBackgroundColor()`, `get/setClock24Hour()`
 - `src/main.cpp` — loads settings at startup and uses them when clearing the desktop
 
 Settings changes go through `IWindowController` so the app does not reach into WindowManager internals directly.

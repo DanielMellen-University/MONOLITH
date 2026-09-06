@@ -17,26 +17,26 @@ The core experience is built around **overlapping windows** with traditional des
 ## High-Level Model
 
 ```
-┌─────────────────────────────────────────────────────────────┐
+┌──────────────────────────────────────────────────────────────┐
 │                        Monolith (SDL2)                       │
-├─────────────────────────────────────────────────────────────┤
+├──────────────────────────────────────────────────────────────┤
 │  Window Manager / desktop shell                              │
 │  - Frames, drag/resize, focus, taskbar (+ clock), Start menu │
 │  - Session restore, openPath routing, launchers              │
-├─────────────────────────────────────────────────────────────┤
+├──────────────────────────────────────────────────────────────┤
 │  App Host / Client Areas                                     │
 │  - Native C++ apps render into their window content          │
-├─────────────────────────────────────────────────────────────┤
+├──────────────────────────────────────────────────────────────┤
 │  Built-in Apps (native)                                      │
 │  - Terminal, Filesystem, Editor, Drawing, Settings,          │
 │    Snake, Minesweeper                                        │
-├─────────────────────────────────────────────────────────────┤
+├──────────────────────────────────────────────────────────────┤
 │  Basic Filesystem                                            │
 │  - Hierarchical, persisted under ~/.monolith/fs/             │
-├─────────────────────────────────────────────────────────────┤
+├──────────────────────────────────────────────────────────────┤
 │  Language Runtime (planned — not implemented)                │
 │  - Scripting / automation from Terminal and other apps       │
-└─────────────────────────────────────────────────────────────┘
+└──────────────────────────────────────────────────────────────┘
 ```
 
 ## Core Components
@@ -60,7 +60,7 @@ The Window Manager is the most foundational subsystem.
 - Windows can be minimized via the title-bar minimize button or by clicking the active window's taskbar button (XP-style toggle), and restored by clicking its taskbar entry.
 - When the focused window is closed, focus moves to the topmost non-minimized remaining window (z-order), with `onFocusLost` / `onFocusGained` fired so apps stay consistent. If every survivor is minimized, focus stays clear until the user activates a window.
 - When many windows are open, the taskbar scrolls horizontally (arrow buttons and mouse wheel). Arrow hit targets are recorded during render (same pattern as taskbar window buttons) and handled in the taskbar click path.
-- The taskbar shows a compact local-time clock on the right (12-hour). The time texture is rebuilt when the minute changes; hovering the clock tray shows the full local date in a small tooltip above the bar.
+- The taskbar shows a compact local-time clock on the right (12-hour by default; Settings can switch to 24-hour via `DesktopSettings`). The time texture is rebuilt when the minute or format changes; hovering the clock tray shows the full local date in a small tooltip above the bar.
 - **Session restore**: on exit, open windows (kind, geometry, minimize/maximize, file paths for editors/drawings) are written to `~/.monolith/session.txt`. On next launch that file is restored if present; otherwise the demo window set opens.
 - **Open-with routing**: `WindowManager::openPath` / `IWindowController::openPath` maps `.modr` → Drawing and all other files → Text Editor (used by Terminal `open` and the Filesystem Browser default Open).
 - No snapping or automatic tiling.
@@ -112,7 +112,7 @@ The Start menu keeps most apps as top-level entries. Games that clearly form a g
 
 Each frame, `WindowManager::update()` calls `App::update()` on every non-minimized window's app. Most apps leave this as a no-op; games use it for fixed-rate ticks and timers.
 
-Apps can request shell actions through `IWindowController`: `close()`, `setTitle()`, `restoreTrackedInstanceTitle()`, `openInTextEditor` / `openInDrawing` / **`openPath`** (extension-based default), editor/drawing file binding helpers, and desktop background get/set. Apps do not depend on each other directly. Temporary title overrides (e.g. Drawing after save) restore via `restoreTrackedInstanceTitle()`.
+Apps can request shell actions through `IWindowController`: `close()`, `setTitle()`, `restoreTrackedInstanceTitle()`, `openInTextEditor` / `openInDrawing` / **`openPath`** (extension-based default), editor/drawing file binding helpers, desktop background get/set, and taskbar clock 12/24-hour get/set. Apps do not depend on each other directly. Temporary title overrides (e.g. Drawing after save) restore via `restoreTrackedInstanceTitle()`.
 
 ### 3. Rendering
 

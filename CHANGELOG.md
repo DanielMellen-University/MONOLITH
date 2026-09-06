@@ -1,8 +1,14 @@
 # Changelog
 
+## 2026-09: Taskbar clock 12/24-hour toggle
+
+- Settings → Appearance: choose **12-hour** (default) or **24-hour** for the taskbar clock.
+- Choice persists in `~/.monolith/desktop_settings.txt` (`clock_24_hour=0|1`) with older files still loading as 12-hour.
+- Taskbar clock text updates immediately when the format changes.
+
 ## 2026-09: Taskbar clock
 
-- Local-time clock on the right of the taskbar (12-hour, updates each minute).
+- Local-time clock on the right of the taskbar (12-hour by default, updates each minute).
 - Hover the clock to see the full local date.
 
 ## 2026-07: Alt+Tab switcher and Start hotkey
@@ -21,7 +27,7 @@ Focused snapshot of Monolith as of the latest `beta` / `main` tip. Older detail 
 
 ### Desktop shell
 - Overlapping windows: drag, 8-way resize, minimize / maximize, z-order, focus-after-close
-- Taskbar with Start menu (**Games** category), scroll arrows + wheel when crowded, local-time clock (hover for date)
+- Taskbar with Start menu (**Games** category), scroll arrows + wheel when crowded, local-time clock with 12/24-hour setting (hover for date)
 - Multi-instance titles with live compaction (`Terminal`, `Terminal 2`, …)
 - Session restore: `~/.monolith/session.txt` on exit; restored on next launch (demo set if missing)
 - Open-with routing: `.modr` → Drawing, else Text Editor (`openPath`)
@@ -36,7 +42,7 @@ Focused snapshot of Monolith as of the latest `beta` / `main` tip. Older detail 
 ### Productivity apps
 - **Text Editor**: UTF-8, selection + clipboard, syntax highlight, find (**Ctrl+F**) and replace (**Ctrl+H**), dirty close/open
 - **Drawing**: pen/eraser/fill, `.modr` save/load, undo, dirty close/new/open, efficient texture upload
-- **Settings**: appearance swatches + about / environment panel
+- **Settings**: appearance swatches, taskbar clock 12/24-hour toggle, about / environment panel
 
 ### Games
 - **Snake** and **Minesweeper** under Start → Games (high scores / best times on host; Minesweeper pauses timer when unfocused)
