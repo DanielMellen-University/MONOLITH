@@ -1,1 +1,1 @@
-__LOAD_FROM__:/workspace/MONOLITH/src/window/WindowManager.cpp
+PLACEHOLDER_CPP
