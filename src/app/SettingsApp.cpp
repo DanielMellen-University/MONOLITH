@@ -61,8 +61,11 @@ void SettingsApp::clampScrollOffset() {
 int SettingsApp::computeContentHeight() const {
     int y = kPadY;
 
-    // Appearance section
+    // Appearance section (background swatches + clock format options)
     y += kLineH + 2 + 8;
+    y += kLineH + 6;
+    y += kSwatchSize + 8;
+    y += kLineH + 8;
     y += kLineH + 6;
     y += kSwatchSize + 8;
     y += kLineH + 8;
@@ -113,6 +116,12 @@ int SettingsApp::activePresetIndex() const {
 void SettingsApp::applyBackgroundPreset(const BackgroundPreset& preset) {
     if (auto* ctrl = getController()) {
         ctrl->setDesktopBackgroundColor(preset.r, preset.g, preset.b);
+    }
+}
+
+void SettingsApp::applyClock24Hour(bool enabled) {
+    if (auto* ctrl = getController()) {
+        ctrl->setClock24Hour(enabled);
     }
 }
 
@@ -205,6 +214,89 @@ int SettingsApp::renderAppearanceSection(SDL_Renderer* renderer, const SDL_Rect&
         }
         SDL_FreeSurface(hintSurf);
     }
+    y += kLineH + 8;
+
+    SDL_Surface* clockLabel = TTF_RenderUTF8_Blended(m_font, "Taskbar clock:", labelCol);
+    if (clockLabel) {
+        SDL_Texture* tex = SDL_CreateTextureFromSurface(renderer, clockLabel);
+        if (tex) {
+            SDL_Rect dst = {contentRect.x + kPadX, contentRect.y + y, clockLabel->w, clockLabel->h};
+            SDL_RenderCopy(renderer, tex, nullptr, &dst);
+            SDL_DestroyTexture(tex);
+        }
+        SDL_FreeSurface(clockLabel);
+    }
+    y += kLineH + 6;
+
+    const bool use24 = getController() ? getController()->getClock24Hour() : false;
+    const char* optionLabels[2] = {"12-hour", "24-hour"};
+    int optionX = kPadX;
+    const int optionH = kSwatchSize;
+    const int optionPadX = 10;
+
+    for (int i = 0; i < 2; ++i) {
+        SDL_Surface* optSurf = TTF_RenderUTF8_Blended(m_font, optionLabels[i], labelCol);
+        const int textW = optSurf ? optSurf->w : 60;
+        const int textH = optSurf ? optSurf->h : kLineH;
+        const int optionW = textW + optionPadX * 2;
+
+        SDL_Rect opt = {
+            contentRect.x + optionX,
+            contentRect.y + y,
+            optionW,
+            optionH
+        };
+        m_clockFormatHitRects[static_cast<size_t>(i)] = {
+            optionX,
+            y,
+            optionW,
+            optionH
+        };
+
+        const bool active = (i == 1) == use24;
+        SDL_SetRenderDrawColor(renderer, 40, 40, 48, 255);
+        SDL_RenderFillRect(renderer, &opt);
+        if (active) {
+            SDL_SetRenderDrawColor(renderer, 255, 255, 255, 255);
+            SDL_RenderDrawRect(renderer, &opt);
+            SDL_Rect inner = {opt.x + 1, opt.y + 1, opt.w - 2, opt.h - 2};
+            SDL_RenderDrawRect(renderer, &inner);
+        } else {
+            SDL_SetRenderDrawColor(renderer, 90, 90, 100, 255);
+            SDL_RenderDrawRect(renderer, &opt);
+        }
+
+        if (optSurf) {
+            SDL_Texture* tex = SDL_CreateTextureFromSurface(renderer, optSurf);
+            if (tex) {
+                SDL_Rect dst = {
+                    opt.x + optionPadX,
+                    opt.y + (optionH - textH) / 2,
+                    textW,
+                    textH
+                };
+                SDL_RenderCopy(renderer, tex, nullptr, &dst);
+                SDL_DestroyTexture(tex);
+            }
+            SDL_FreeSurface(optSurf);
+        }
+
+        optionX += optionW + kSwatchGap;
+    }
+
+    y += optionH + 8;
+
+    const char* clockHint = "12-hour (default) or 24-hour time on the taskbar.";
+    SDL_Surface* clockHintSurf = TTF_RenderUTF8_Blended(m_font, clockHint, dimCol);
+    if (clockHintSurf) {
+        SDL_Texture* tex = SDL_CreateTextureFromSurface(renderer, clockHintSurf);
+        if (tex) {
+            SDL_Rect dst = {contentRect.x + kPadX, contentRect.y + y, clockHintSurf->w, clockHintSurf->h};
+            SDL_RenderCopy(renderer, tex, nullptr, &dst);
+            SDL_DestroyTexture(tex);
+        }
+        SDL_FreeSurface(clockHintSurf);
+    }
 
     return y + kLineH + 8;
 }
@@ -220,11 +312,6 @@ int SettingsApp::renderInfoLines(SDL_Renderer* renderer, const SDL_Rect& content
     SDL_Color dimCol    = {160, 160, 170, 255};
 
     for (const auto& line : m_lines) {
-        if (line.label.empty() && line.value.empty()) {
-            y += 4;
-            continue;
-        }
-
         if (line.label.empty() && !line.value.empty()) {
             bool isHeader = true;
             for (char c : line.value) {
@@ -269,6 +356,11 @@ int SettingsApp::renderInfoLines(SDL_Renderer* renderer, const SDL_Rect& content
                 }
                 y += kLineH;
             }
+            continue;
+        }
+
+        if (line.label.empty() && line.value.empty()) {
+            y += 4;
             continue;
         }
 
@@ -405,6 +497,13 @@ void SettingsApp::handleEvent(const SDL_Event& event) {
     for (int i = 0; i < kPresetCount; ++i) {
         if (pointInRect(x, y, m_backgroundSwatches[static_cast<size_t>(i)])) {
             applyBackgroundPreset(kBackgroundPresets[static_cast<size_t>(i)]);
+            return;
+        }
+    }
+
+    for (int i = 0; i < 2; ++i) {
+        if (pointInRect(x, y, m_clockFormatHitRects[static_cast<size_t>(i)])) {
+            applyClock24Hour(i == 1);
             return;
         }
     }

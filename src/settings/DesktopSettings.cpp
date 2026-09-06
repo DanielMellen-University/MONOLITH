@@ -23,25 +23,49 @@ bool parseRgbTriplet(const std::string& value, RGB& out) {
     return true;
 }
 
+bool parseBool01(const std::string& value, bool& out) {
+    if (value == "1" || value == "true" || value == "True" || value == "yes") {
+        out = true;
+        return true;
+    }
+    if (value == "0" || value == "false" || value == "False" || value == "no") {
+        out = false;
+        return true;
+    }
+    return false;
+}
+
 } // namespace
 
 bool DesktopSettings::loadFromHostPath(const std::string& hostPath) {
     std::ifstream in(hostPath);
     if (!in) return false;
 
+    bool loadedAny = false;
     std::string line;
     while (std::getline(in, line)) {
-        const std::string key = "desktop_background=";
-        if (line.rfind(key, 0) != 0) continue;
+        const std::string bgKey = "desktop_background=";
+        if (line.rfind(bgKey, 0) == 0) {
+            RGB parsed;
+            if (parseRgbTriplet(line.substr(bgKey.size()), parsed)) {
+                m_desktopBackground = parsed;
+                loadedAny = true;
+            }
+            continue;
+        }
 
-        RGB parsed;
-        if (parseRgbTriplet(line.substr(key.size()), parsed)) {
-            m_desktopBackground = parsed;
-            return true;
+        const std::string clockKey = "clock_24_hour=";
+        if (line.rfind(clockKey, 0) == 0) {
+            bool parsed = false;
+            if (parseBool01(line.substr(clockKey.size()), parsed)) {
+                m_clock24Hour = parsed;
+                loadedAny = true;
+            }
+            continue;
         }
     }
 
-    return false;
+    return loadedAny;
 }
 
 bool DesktopSettings::saveToHostPath(const std::string& hostPath) const {
@@ -52,6 +76,7 @@ bool DesktopSettings::saveToHostPath(const std::string& hostPath) const {
         << static_cast<int>(m_desktopBackground.r) << ','
         << static_cast<int>(m_desktopBackground.g) << ','
         << static_cast<int>(m_desktopBackground.b) << '\n';
+    out << "clock_24_hour=" << (m_clock24Hour ? "1" : "0") << '\n';
     return static_cast<bool>(out);
 }
 

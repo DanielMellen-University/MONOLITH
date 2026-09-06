@@ -125,6 +125,8 @@ public:
     void loadDesktopSettings(const std::string& hostPath);
     monolith::settings::RGB getDesktopBackground() const;
     void setDesktopBackground(uint8_t r, uint8_t g, uint8_t b);
+    bool getClock24Hour() const;
+    void setClock24Hour(bool enabled);
 
     // Session: restore open windows from a host-side file; save current layout on exit.
     // Format is line-based (see saveSession). Returns true if at least one window was restored.
