@@ -63,6 +63,10 @@ struct IWindowController {
     virtual bool getClock24Hour() const { return false; }
     virtual void setClock24Hour(bool enabled) { (void)enabled; }
 
+    // Desktop wallpaper image (virtual FS path; empty = solid color only).
+    virtual std::string getWallpaperPath() const { return {}; }
+    virtual void setWallpaperPath(const std::string& virtualPath) { (void)virtualPath; }
+
     // Future extensions:
     // virtual void minimize() = 0;
     // virtual void maximize() = 0;
