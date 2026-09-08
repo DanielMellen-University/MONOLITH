@@ -37,7 +37,7 @@ Related host files (not inside the virtual tree):
 
 | Host path | Purpose |
 |-----------|---------|
-| `~/.monolith/desktop_settings.txt` | Desktop background color |
+| `~/.monolith/desktop_settings.txt` | Desktop background color + wallpaper path |
 | `~/.monolith/session.txt` | Open windows for session restore |
 | `~/.monolith/snake_highscore.txt` | Snake high score (games host file) |
 | `~/.monolith/minesweeper_best.txt` | Minesweeper best times (game host file) |
@@ -51,7 +51,7 @@ The `monolith::fs::Filesystem` class provides:
 - `readFile`, `writeFile`, `fileSize`
 - `copyRecursive` (file or directory tree; blocks copy into self/descendant)
 - `list`, `listEntries` (typed entries for the graphical browser)
-- Path helpers: `normalize`, `join`, `isSameOrDescendant`
+- Path helpers: `normalize`, `join`, `isSameOrDescendant`, `toHostPath`, `hostRoot`
 
 Implementation: `src/fs/Filesystem.hpp`, `src/fs/Filesystem.cpp`.
 
