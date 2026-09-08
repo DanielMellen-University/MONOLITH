@@ -46,9 +46,9 @@ Monolith is meant to contain several distinct apps and subsystems. Implemented a
 | Shipped | Settings | [apps/settings.md](apps/settings.md) |
 | Shipped | Snake | [apps/snake.md](apps/snake.md) |
 | Shipped | Minesweeper | [apps/minesweeper.md](apps/minesweeper.md) |
-| Partial | Wallpaper (desktop background color via Settings) | [apps/settings.md](apps/settings.md) |
+| Shipped (partial) | Wallpaper images (BMP via Settings; solid color fallback) | [apps/settings.md](apps/settings.md) |
 | Planned | IDE | — |
-| Planned | Wallpaper images | — |
+| Planned | Richer wallpaper formats (PNG/JPEG) | — |
 
 New apps can be added over time, either as native features or written in the custom language.
 
@@ -97,15 +97,16 @@ The project will be built in phases, roughly in this order:
 3. **More Apps** *(partially complete)*
    - ~~Drawing program~~ — shipped
    - ~~Settings panel~~ — shipped
-   - Desktop background color (early wallpaper work) — shipped via Settings
+   - Desktop background color — shipped via Settings
+   - Wallpaper images (BMP) — shipped (partial; PNG/JPEG still planned)
    - Simple IDE experience for the language — planned
-   - Wallpaper images and richer appearance options — planned
+   - Richer appearance options — planned
 
 4. **Growth** *(ongoing)*
    - ~~Games~~ — Snake and Minesweeper shipped
    - Session restore, open-with routing, editor find/replace, FS multi-select — shipped (see [CHANGELOG](../CHANGELOG.md))
    - Deeper integration between apps
-   - Wallpaper images, richer Settings, custom language / IDE — still planned
+   - Richer wallpaper formats, richer Settings, custom language / IDE — still planned
    - Whatever feels worth adding over time
 
 The priority is to make the environment feel alive and usable early, even if many apps are still missing.
