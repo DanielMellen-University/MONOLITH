@@ -1,5 +1,11 @@
 # Changelog
 
+## 2026-09: Filesystem Browser multi-copy, filter, rename
+
+- Copy/Cut apply to the whole multi-selection; Paste writes those items into the current folder (`Filesystem::copyItemsInto`).
+- Folder listing can be filtered by name (Ctrl+F / Filter box, case-insensitive substring).
+- Rename rejects names that contain `/` (and empty / `.` / `..`) via `Filesystem::renameEntry`.
+
 ## 2026-09: Desktop wallpaper images (BMP)
 
 - Settings → Appearance: set a wallpaper image by virtual FS path (text field + Set / Clear).

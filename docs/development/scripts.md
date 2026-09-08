@@ -22,6 +22,14 @@ Static checks that Snake and Minesweeper are wired into the shell:
 
 Verifies launchers, Start menu actions, `App::update()` dispatch, CMake entries, and docs hub links.
 
+## Filesystem Roadmap Checks
+
+Headless test of shipped `Filesystem` multi-item copy/paste, `/`-rejecting rename, and listing filter:
+
+```bash
+g++ -std=c++23 scripts/test_fs_roadmap.cpp src/fs/Filesystem.cpp -o build/test_fs_roadmap && ./build/test_fs_roadmap
+```
+
 ## `.modr` Format Roundtrip
 
 Compiles and runs a standalone test of the Drawing raster file format:

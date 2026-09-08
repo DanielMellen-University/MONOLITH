@@ -1,6 +1,7 @@
 #include "Filesystem.hpp"
 
 #include <algorithm>
+#include <cctype>
 #include <filesystem>
 #include <fstream>
 #include <iostream>
@@ -169,6 +170,80 @@ bool Filesystem::rename(const std::string& oldVirtualPath, const std::string& ne
         std::cerr << "rename failed: " << e.what() << std::endl;
         return false;
     }
+}
+
+bool Filesystem::isValidEntryName(const std::string& name) {
+    if (name.empty() || name == "." || name == "..") return false;
+    if (name.find('/') != std::string::npos) return false;
+    if (name.find('\0') != std::string::npos) return false;
+    return true;
+}
+
+bool Filesystem::renameEntry(const std::string& dirVirtualPath,
+                             const std::string& oldName,
+                             const std::string& newName) {
+    if (!isValidEntryName(oldName) || !isValidEntryName(newName)) {
+        return false;
+    }
+    const std::string dir = normalize(dirVirtualPath);
+    if (!isDirectory(dir)) return false;
+    return rename(join(dir, oldName), join(dir, newName));
+}
+
+std::string Filesystem::baseName(const std::string& virtualPath) const {
+    const std::string normalized = normalize(virtualPath);
+    if (normalized.empty() || normalized == "/") return "";
+    const size_t slash = normalized.find_last_of('/');
+    if (slash == std::string::npos) return normalized;
+    return normalized.substr(slash + 1);
+}
+
+int Filesystem::copyItemsInto(const std::vector<std::string>& srcVirtualPaths,
+                              const std::string& destDirVirtualPath) {
+    const std::string destDir = normalize(destDirVirtualPath);
+    if (!isDirectory(destDir)) return 0;
+
+    int copied = 0;
+    for (const auto& srcRaw : srcVirtualPaths) {
+        const std::string src = normalize(srcRaw);
+        if (!exists(src)) continue;
+        const std::string name = baseName(src);
+        if (!isValidEntryName(name)) continue;
+        const std::string dest = join(destDir, name);
+        if (src == dest) continue;
+        if (isSameOrDescendant(src, dest)) continue;
+        if (exists(dest)) continue;
+        if (copyRecursive(src, dest)) {
+            ++copied;
+        }
+    }
+    return copied;
+}
+
+bool Filesystem::entryNameMatches(const std::string& name, const std::string& query) {
+    if (query.empty()) return true;
+    auto lower = [](std::string s) {
+        for (char& c : s) {
+            c = static_cast<char>(std::tolower(static_cast<unsigned char>(c)));
+        }
+        return s;
+    };
+    const std::string n = lower(name);
+    const std::string q = lower(query);
+    return n.find(q) != std::string::npos;
+}
+
+std::vector<Filesystem::DirEntry> Filesystem::filterEntries(const std::vector<DirEntry>& entries,
+                                                            const std::string& query) {
+    if (query.empty()) return entries;
+    std::vector<DirEntry> out;
+    out.reserve(entries.size());
+    for (const auto& entry : entries) {
+        if (entryNameMatches(entry.name, query)) {
+            out.push_back(entry);
+        }
+    }
+    return out;
 }
 
 bool Filesystem::writeFile(const std::string& virtualPath, const std::string& content) {

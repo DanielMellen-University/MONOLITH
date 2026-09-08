@@ -44,6 +44,9 @@ private:
     void pasteFromClipboard();
     void startRenameSelected();
     void finishRename(bool commit);  // commit = true for Enter, false for Escape
+    void beginFilter();
+    void clearFilter();
+    void applyFilterQuery();
     void showPropertiesForSelection();
 
     std::string entryBaseName(const std::string& virtualPath) const;
@@ -102,6 +105,8 @@ private:
     SDL_Rect m_btnNewFile{0,0,0,0};
     SDL_Rect m_btnDelete{0,0,0,0};
     SDL_Rect m_btnRename{0,0,0,0};
+    SDL_Rect m_btnFilter{0,0,0,0};
+    SDL_Rect m_filterHitRect{0,0,0,0};
 
     // Rename state
     bool m_renaming = false;
@@ -122,10 +127,13 @@ private:
 
     std::string m_statusMessage;
 
-    // Clipboard for copy/cut + paste
-    std::string m_clipboardPath;
+    // Clipboard for copy/cut + paste (multi-select paths)
+    std::vector<std::string> m_clipboardPaths;
     bool m_clipboardIsCut = false;
-    bool m_clipboardValid = false;
+
+    // Folder listing filter/search (Ctrl+F)
+    bool m_filtering = false;
+    std::string m_filterQuery;
 
     // For double-click detection we use SDL's built-in clicks count
 };

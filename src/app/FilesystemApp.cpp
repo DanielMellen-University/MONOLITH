@@ -45,6 +45,8 @@ void FilesystemApp::setCurrentPath(const std::string& virtualPath) {
     std::string normalized = m_fs->normalize(virtualPath);
     if (m_fs->isDirectory(normalized)) {
         m_currentPath = normalized;
+        m_filtering = false;
+        m_filterQuery.clear();
         refreshEntries();
         clearMultiSelection();
         m_selectedIndex = -1;
@@ -89,7 +91,7 @@ void FilesystemApp::refreshEntries() {
     }
 
     auto raw = m_fs->listEntries(m_currentPath);
-    m_entries = std::move(raw);
+    m_entries = monolith::fs::Filesystem::filterEntries(raw, m_filterQuery);
 
     clearMultiSelection();
     if (hadSelection && selectEntryNamed(selectedName, selectedIsDirectory)) {
@@ -293,20 +295,27 @@ void FilesystemApp::showPropertiesForSelection() {
 }
 
 void FilesystemApp::copySelectedToClipboard(bool cut) {
-    const int idx = primarySelectedIndex();
-    if (!m_fs || idx < 0 || idx >= static_cast<int>(m_entries.size())) {
+    auto indices = selectedIndicesSorted();
+    if (!m_fs || indices.empty()) {
         setStatus(cut ? "Cut failed: no item selected" : "Copy failed: no item selected");
         return;
     }
-    if (selectedIndicesSorted().size() > 1) {
-        setStatus(cut ? "Cut: multi-select not supported (select one)" : "Copy: multi-select not supported (select one)");
+
+    m_clipboardPaths.clear();
+    for (int idx : indices) {
+        if (idx < 0 || idx >= static_cast<int>(m_entries.size())) continue;
+        m_clipboardPaths.push_back(fullPathFor(m_entries[static_cast<size_t>(idx)].name));
+    }
+    if (m_clipboardPaths.empty()) {
+        setStatus(cut ? "Cut failed: no item selected" : "Copy failed: no item selected");
         return;
     }
-
-    m_clipboardPath = fullPathFor(m_entries[static_cast<size_t>(idx)].name);
     m_clipboardIsCut = cut;
-    m_clipboardValid = true;
-    setStatus((cut ? "Cut: " : "Copied: ") + m_entries[static_cast<size_t>(idx)].name);
+    if (m_clipboardPaths.size() == 1) {
+        setStatus((cut ? "Cut: " : "Copied: ") + entryBaseName(m_clipboardPaths.front()));
+    } else {
+        setStatus((cut ? "Cut: " : "Copied: ") + std::to_string(m_clipboardPaths.size()) + " items");
+    }
 }
 
 void FilesystemApp::pasteFromClipboard() {
@@ -314,60 +323,57 @@ void FilesystemApp::pasteFromClipboard() {
         setStatus("Paste failed: filesystem not available");
         return;
     }
-    if (!m_clipboardValid || m_clipboardPath.empty()) {
+    if (m_clipboardPaths.empty()) {
         setStatus("Paste failed: clipboard is empty");
         return;
     }
-    if (!m_fs->exists(m_clipboardPath)) {
-        setStatus("Paste failed: source no longer exists");
-        m_clipboardValid = false;
-        m_clipboardPath.clear();
-        return;
-    }
 
-    const std::string baseName = entryBaseName(m_clipboardPath);
-    const std::string destPath = fullPathFor(baseName);
-
-    if (destPath == m_clipboardPath) {
-        setStatus("Paste failed: already in this location");
-        return;
-    }
-    if (m_fs->isSameOrDescendant(m_clipboardPath, destPath)) {
-        setStatus("Paste failed: cannot paste into itself");
-        return;
-    }
-    if (m_fs->exists(destPath)) {
-        setStatus("Paste failed: " + baseName + " already exists here");
-        return;
-    }
-
-    if (!m_fs->copyRecursive(m_clipboardPath, destPath)) {
-        setStatus("Paste failed: could not copy " + baseName);
-        return;
-    }
-
-    const bool wasCut = m_clipboardIsCut;
-    const std::string sourcePath = m_clipboardPath;
-    const std::string sourceName = baseName;
-    const bool sourceWasDirectory = m_fs->isDirectory(sourcePath);
-
-    if (wasCut) {
-        if (!m_fs->removeRecursive(sourcePath)) {
-            setStatus("Paste warning: copied but could not remove original");
-            m_clipboardValid = false;
-            m_clipboardPath.clear();
-            refreshEntries();
-            selectEntryNamed(sourceName, sourceWasDirectory);
-            return;
+    std::vector<std::string> sources;
+    sources.reserve(m_clipboardPaths.size());
+    for (const auto& src : m_clipboardPaths) {
+        if (m_fs->exists(src)) {
+            sources.push_back(src);
         }
-        m_clipboardValid = false;
-        m_clipboardPath.clear();
+    }
+    if (sources.empty()) {
+        setStatus("Paste failed: source no longer exists");
+        m_clipboardPaths.clear();
         m_clipboardIsCut = false;
+        return;
+    }
+
+    const int copied = m_fs->copyItemsInto(sources, m_currentPath);
+    const bool wasCut = m_clipboardIsCut;
+
+    if (wasCut && copied > 0) {
+        int removed = 0;
+        for (const auto& src : sources) {
+            const std::string dest = fullPathFor(m_fs->baseName(src));
+            if (src == dest) continue;
+            if (!m_fs->exists(dest)) continue;
+            if (m_fs->removeRecursive(src)) {
+                ++removed;
+            }
+        }
+        m_clipboardPaths.clear();
+        m_clipboardIsCut = false;
+        (void)removed;
     }
 
     refreshEntries();
-    selectEntryNamed(sourceName, sourceWasDirectory);
-    setStatus(wasCut ? ("Moved: " + sourceName) : ("Pasted: " + sourceName));
+    if (copied == 0) {
+        setStatus("Paste failed: nothing copied (name exists, same folder, or blocked)");
+        return;
+    }
+    if (copied == 1) {
+        const std::string name = m_fs->baseName(sources.front());
+        selectEntryNamed(name, m_fs->isDirectory(fullPathFor(name)));
+        setStatus(wasCut ? ("Moved: " + name) : ("Pasted: " + name));
+    } else {
+        setStatus(wasCut
+            ? ("Moved: " + std::to_string(copied) + " items")
+            : ("Pasted: " + std::to_string(copied) + " items"));
+    }
 }
 
 void FilesystemApp::cancelPendingDelete() {
@@ -470,16 +476,15 @@ void FilesystemApp::finishRename(bool commit) {
     const auto& entry = m_entries[m_renameIndex];
     std::string oldName = entry.name;
     bool wasDirectory = entry.isDirectory;
-    std::string oldPath = fullPathFor(entry.name);
 
     if (commit && m_renameBuffer.empty()) {
         setStatus("Rename failed: name cannot be empty");
+    } else if (commit && !monolith::fs::Filesystem::isValidEntryName(m_renameBuffer)) {
+        setStatus("Rename failed: name cannot contain /");
     } else if (commit && m_renameBuffer != entry.name) {
-        std::string newPath = fullPathFor(m_renameBuffer);
-
-        if (m_fs->exists(newPath)) {
+        if (m_fs->exists(fullPathFor(m_renameBuffer))) {
             setStatus("Rename failed: name already exists");
-        } else if (m_fs->rename(oldPath, newPath)) {
+        } else if (m_fs->renameEntry(m_currentPath, oldName, m_renameBuffer)) {
             refreshEntries();
             selectEntryNamed(m_renameBuffer, wasDirectory);
             setStatus("Renamed " + oldName + " to " + m_renameBuffer);
@@ -495,6 +500,37 @@ void FilesystemApp::finishRename(bool commit) {
     m_renaming = false;
     m_renameIndex = -1;
     m_renameBuffer.clear();
+}
+
+void FilesystemApp::beginFilter() {
+    m_filtering = true;
+    if (m_renaming) {
+        finishRename(false);
+    }
+    closeContextMenu();
+    setStatus(m_filterQuery.empty()
+        ? "Filter: type to search this folder (Enter keep, Esc clear)"
+        : ("Filter: " + m_filterQuery));
+}
+
+void FilesystemApp::clearFilter() {
+    const bool hadFilter = m_filtering || !m_filterQuery.empty();
+    m_filtering = false;
+    m_filterQuery.clear();
+    if (hadFilter) {
+        refreshEntries();
+        setStatus("Filter cleared");
+    }
+}
+
+void FilesystemApp::applyFilterQuery() {
+    refreshEntries();
+    if (m_filterQuery.empty()) {
+        setStatus("Filter: (all items)");
+    } else {
+        setStatus("Filter: " + m_filterQuery + "  (" + std::to_string(m_entries.size()) + " match"
+                  + (m_entries.size() == 1 ? ")" : "es)"));
+    }
 }
 
 void FilesystemApp::setSelection(int index, bool additive) {
@@ -648,6 +684,14 @@ void FilesystemApp::handleMouseButton(const SDL_MouseButtonEvent& e) {
         startRenameSelected();
         return;
     }
+    if (SDL_PointInRect(&pt, &m_btnFilter)) {
+        beginFilter();
+        return;
+    }
+    if (SDL_PointInRect(&pt, &m_filterHitRect)) {
+        beginFilter();
+        return;
+    }
 
     // If we click anywhere while renaming, finish (cancel) the rename
     if (m_renaming) {
@@ -714,6 +758,30 @@ void FilesystemApp::handleKeyDown(const SDL_Keysym& keysym) {
         return; // Ignore other keys while renaming
     }
 
+    if (m_filtering) {
+        if (keysym.sym == SDLK_RETURN || keysym.sym == SDLK_KP_ENTER) {
+            m_filtering = false;
+            applyFilterQuery();
+            return;
+        }
+        if (keysym.sym == SDLK_ESCAPE) {
+            clearFilter();
+            return;
+        }
+        if (keysym.sym == SDLK_BACKSPACE) {
+            if (!m_filterQuery.empty()) {
+                m_filterQuery.pop_back();
+                applyFilterQuery();
+            }
+            return;
+        }
+        if (keysym.sym == SDLK_UP || keysym.sym == SDLK_DOWN) {
+            // Allow moving the selection while the filter is applied.
+        } else {
+            return;
+        }
+    }
+
     if (m_confirmingDelete) {
         if (keysym.sym == SDLK_ESCAPE) {
             cancelPendingDelete();
@@ -778,6 +846,13 @@ void FilesystemApp::handleKeyDown(const SDL_Keysym& keysym) {
             setStatus("Refreshed");
             break;
 
+        case SDLK_f:
+            if (keysym.mod & KMOD_CTRL) {
+                beginFilter();
+                return;
+            }
+            break;
+
         case SDLK_a:
             if (keysym.mod & KMOD_CTRL) {
                 if (!m_entries.empty()) {
@@ -817,6 +892,8 @@ void FilesystemApp::handleKeyDown(const SDL_Keysym& keysym) {
                 closeContextMenu();
             } else if (m_renaming) {
                 finishRename(false);
+            } else if (m_filtering || !m_filterQuery.empty()) {
+                clearFilter();
             }
             break;
 
@@ -829,6 +906,14 @@ void FilesystemApp::handleEvent(const SDL_Event& event) {
     if (m_renaming && event.type == SDL_TEXTINPUT) {
         if (event.text.text) {
             m_renameBuffer += event.text.text;
+        }
+        return;
+    }
+
+    if (m_filtering && event.type == SDL_TEXTINPUT) {
+        if (event.text.text) {
+            m_filterQuery += event.text.text;
+            applyFilterQuery();
         }
         return;
     }
@@ -865,6 +950,8 @@ void FilesystemApp::drawPathBar(SDL_Renderer* r, const SDL_Rect& contentRect, in
     SDL_RenderFillRect(r, &bar);
 
     // Current path text
+    const int filterBoxW = std::min(180, std::max(90, contentRect.w / 3));
+    m_filterHitRect = {contentRect.w - filterBoxW - 8, 4, filterBoxW, kPathBarHeight - 8};
     if (m_font) {
         SDL_Color pathColor = {180, 190, 200, 255};
         SDL_Surface* surf = TTF_RenderUTF8_Blended(m_font, m_currentPath.c_str(), pathColor);
@@ -874,13 +961,49 @@ void FilesystemApp::drawPathBar(SDL_Renderer* r, const SDL_Rect& contentRect, in
                 SDL_Rect dst = {
                     contentRect.x + 10,
                     contentRect.y + (kPathBarHeight - surf->h) / 2,
-                    std::min(surf->w, contentRect.w - 120),
+                    std::min(surf->w, contentRect.w - filterBoxW - 24),
                     surf->h
                 };
                 SDL_RenderCopy(r, tex, nullptr, &dst);
                 SDL_DestroyTexture(tex);
             }
             SDL_FreeSurface(surf);
+        }
+
+        SDL_Rect filterDraw = {
+            contentRect.x + m_filterHitRect.x,
+            contentRect.y + m_filterHitRect.y,
+            m_filterHitRect.w,
+            m_filterHitRect.h
+        };
+        if (m_filtering) {
+            SDL_SetRenderDrawColor(r, 55, 70, 95, 255);
+        } else {
+            SDL_SetRenderDrawColor(r, 36, 38, 44, 255);
+        }
+        SDL_RenderFillRect(r, &filterDraw);
+        SDL_SetRenderDrawColor(r, 70, 75, 85, 255);
+        SDL_RenderDrawRect(r, &filterDraw);
+
+        std::string filterLabel = m_filterQuery.empty() ? "Filter..." : m_filterQuery;
+        if (m_filtering) filterLabel += "_";
+        SDL_Color filterCol = m_filterQuery.empty() && !m_filtering
+            ? SDL_Color{120, 125, 130, 255}
+            : SDL_Color{210, 215, 220, 255};
+        SDL_Surface* fs = TTF_RenderUTF8_Blended(m_font, filterLabel.c_str(), filterCol);
+        if (fs) {
+            SDL_Texture* ft = SDL_CreateTextureFromSurface(r, fs);
+            if (ft) {
+                SDL_Rect dst = {
+                    filterDraw.x + 6,
+                    filterDraw.y + (filterDraw.h - fs->h) / 2,
+                    std::min(fs->w, filterDraw.w - 12),
+                    fs->h
+                };
+                SDL_RenderCopy(r, ft, nullptr, &dst);
+                SDL_DestroyTexture(ft);
+            }
+            SDL_FreeSurface(fs);
         }
     }
 
@@ -937,6 +1060,7 @@ void FilesystemApp::drawToolbar(SDL_Renderer* r, const SDL_Rect& contentRect) {
     drawButton(m_btnNewFile, "New File", 80);
     drawButton(m_btnRename, "Rename", 68);
     drawButton(m_btnDelete, "Delete", 68);
+    drawButton(m_btnFilter, "Filter", 56);
 }
 
 void FilesystemApp::drawList(SDL_Renderer* r, const SDL_Rect& contentRect, int listTopY) {
@@ -964,7 +1088,8 @@ void FilesystemApp::drawList(SDL_Renderer* r, const SDL_Rect& contentRect, int l
 
     if (m_entries.empty()) {
         SDL_Color dim = {140, 145, 150, 255};
-        SDL_Surface* surf = TTF_RenderUTF8_Blended(m_font, "(empty directory)", dim);
+        const char* emptyMsg = m_filterQuery.empty() ? "(empty directory)" : "(no matching items)";
+        SDL_Surface* surf = TTF_RenderUTF8_Blended(m_font, emptyMsg, dim);
         if (surf) {
             SDL_Texture* tex = SDL_CreateTextureFromSurface(r, surf);
             if (tex) {
@@ -1112,7 +1237,7 @@ void FilesystemApp::showContextMenu(int x, int y, int targetIndex) {
         // Background menu
         m_contextMenuItems.push_back("New Folder");
         m_contextMenuItems.push_back("New File");
-        if (m_clipboardValid) {
+        if (!m_clipboardPaths.empty()) {
             m_contextMenuItems.push_back("Paste");
         }
         m_contextMenuItems.push_back("Refresh");
@@ -1126,7 +1251,7 @@ void FilesystemApp::showContextMenu(int x, int y, int targetIndex) {
         m_contextMenuItems.push_back("Properties");
         m_contextMenuItems.push_back("Copy");
         m_contextMenuItems.push_back("Cut");
-        if (m_clipboardValid) {
+        if (!m_clipboardPaths.empty()) {
             m_contextMenuItems.push_back("Paste");
         }
         m_contextMenuItems.push_back("Rename");
@@ -1187,12 +1312,16 @@ void FilesystemApp::executeContextMenuAction(int menuIndex) {
         }
     } else if (action == "Copy") {
         if (target >= 0) {
-            setSelection(target, false);
+            if (!isIndexSelected(target)) {
+                setSelection(target, false);
+            }
             copySelectedToClipboard(false);
         }
     } else if (action == "Cut") {
         if (target >= 0) {
-            setSelection(target, false);
+            if (!isIndexSelected(target)) {
+                setSelection(target, false);
+            }
             copySelectedToClipboard(true);
         }
     } else if (action == "Paste") {

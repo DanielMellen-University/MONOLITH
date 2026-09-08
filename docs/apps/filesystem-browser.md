@@ -32,7 +32,7 @@ The window has four regions:
 - **Shift+click** or **Shift+Up/Down** selects a range from the anchor.
 - **Ctrl+A** selects all entries in the current folder.
 - Primary selection is drawn slightly brighter than other selected rows.
-- Delete can apply to the whole multi-selection (with confirmation). Copy/Cut/Rename still require a single item.
+- Delete, Copy, and Cut apply to the whole multi-selection. Rename still requires a single item.
 
 ### Properties
 
@@ -50,6 +50,7 @@ The browser starts at `/home/monolith` when that path exists.
 | New File | Create `New File.txt` (auto-increments if name exists) |
 | Delete | Request delete of selected entry (files or folder trees; confirmation required) |
 | Rename | Rename selected entry (inline edit) |
+| Filter | Focus the name filter box (same as Ctrl+F) |
 
 ## Keyboard Shortcuts
 
@@ -61,13 +62,24 @@ The browser starts at `/home/monolith` when that path exists.
 | Delete | Request delete (second press confirms; multi-select OK) |
 | Space | Properties for selection |
 | Ctrl+A | Select all in folder |
+| Ctrl+C / Ctrl+X / Ctrl+V | Copy / cut / paste selection (multi-select OK) |
+| Ctrl+F | Filter the current folder listing by name |
 | F2 | Start rename on selected entry (single item) |
 | F5 | Refresh directory listing |
-| Esc | Cancel rename, cancel pending delete, or close context menu |
+| Esc | Cancel rename, clear filter, cancel pending delete, or close context menu |
 
 ### Rename Mode
 
-Press **F2** or choose Rename from the context menu. Type the new name, then **Enter** to commit or **Esc** to cancel.
+Press **F2** or choose Rename from the context menu. Type the new name, then **Enter** to commit or **Esc** to cancel. Names that contain `/` (or that are empty, `.`, or `..`) are rejected so rename cannot create a nested path.
+
+### Filter / search
+
+**Ctrl+F**, the toolbar **Filter** button, or the filter box on the right of the path bar focuses name search in the current folder.
+
+- Type to filter the listing (case-insensitive substring).
+- **Enter** keeps the filter and leaves typing mode.
+- **Esc** clears the filter.
+- Changing directory clears the filter.
 
 ### Delete Confirmation
 
@@ -111,16 +123,15 @@ Deletion uses `Filesystem::removeRecursive` (whole directory trees). The virtual
 
 ## Copy, Cut, and Paste
 
-- **Copy** or **Cut** a selected file or folder from the right-click menu (or Ctrl+C / Ctrl+X).
+- **Copy** or **Cut** the current selection (one item or multi-select) from the right-click menu (or Ctrl+C / Ctrl+X).
 - **Paste** into the current directory from the right-click menu (or Ctrl+V).
-- Cut + Paste moves items; Copy + Paste duplicates them (including directory trees via `Filesystem::copyRecursive` / `removeRecursive`).
-- Paste is blocked if the destination already contains an item with the same name, or if you try to paste a folder into itself (`isSameOrDescendant`).
+- Cut + Paste moves items; Copy + Paste duplicates them (including directory trees via `Filesystem::copyItemsInto` → `copyRecursive` / `removeRecursive`).
+- Paste skips items whose names already exist in the destination, same-folder sources, and folders pasted into themselves (`isSameOrDescendant`).
 
 ## Current Limitations
 
 - Default open supports text + `.modr` only; force open-with can open any file in Editor or Drawing (Drawing rejects non-`.modr` loads).
 - No drag-and-drop.
-- Copy/Cut of multi-select is not supported yet.
 - Clipboard is per browser window (not shared across Filesystem instances or the host OS).
 
 ## Developer Notes

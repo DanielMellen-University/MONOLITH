@@ -52,6 +52,20 @@ public:
     /** Renames or moves a file/directory to a new virtual path. Returns false on failure. */
     bool rename(const std::string& oldVirtualPath, const std::string& newVirtualPath);
 
+    /**
+     * True if `name` is a single directory entry: non-empty, not `.` or `..`, and
+     * contains no `/`. Used by the Filesystem Browser rename path.
+     */
+    static bool isValidEntryName(const std::string& name);
+
+    /**
+     * Rename `oldName` to `newName` inside `dirVirtualPath`.
+     * Rejects invalid names (including those containing `/`) without creating nested paths.
+     */
+    bool renameEntry(const std::string& dirVirtualPath,
+                     const std::string& oldName,
+                     const std::string& newName);
+
     /** Writes (or overwrites) a file with the given content. */
     bool writeFile(const std::string& virtualPath, const std::string& content);
 
@@ -70,6 +84,23 @@ public:
      */
     bool copyRecursive(const std::string& srcVirtualPath, const std::string& dstVirtualPath);
 
+    /**
+     * Copy each source path into `destDirVirtualPath` under its basename, via copyRecursive.
+     * Skips missing sources, existing destinations, self-copy, and invalid names.
+     * Returns the number of items successfully copied (0 if dest is not a directory).
+     */
+    int copyItemsInto(const std::vector<std::string>& srcVirtualPaths,
+                      const std::string& destDirVirtualPath);
+
+    /** Last path component after normalize. Empty string for "/". */
+    std::string baseName(const std::string& virtualPath) const;
+
+    /**
+     * Case-insensitive substring match of `query` against `name`.
+     * An empty query matches every name.
+     */
+    static bool entryNameMatches(const std::string& name, const std::string& query);
+
     /** Lists the names of entries in a directory (not full paths). */
     std::vector<std::string> list(const std::string& virtualPath) const;
 
@@ -81,6 +112,12 @@ public:
         std::string name;
         bool isDirectory = false;
     };
+
+    /**
+     * Filter directory entries by name query (entryNameMatches). Empty query returns all.
+     */
+    static std::vector<DirEntry> filterEntries(const std::vector<DirEntry>& entries,
+                                               const std::string& query);
 
     /** Lists entries with type info (directories first, then files, both alpha-sorted). */
     std::vector<DirEntry> listEntries(const std::string& virtualPath) const;
