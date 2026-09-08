@@ -17,6 +17,7 @@ WindowManager::~WindowManager() {
     }
     m_titleCache.clear();
     destroyClockTextures();
+    destroyWallpaperTexture();
 }
 
 void WindowManager::destroyClockTextures() {
@@ -149,7 +150,7 @@ void WindowManager::handleEvent(const SDL_Event& event) {
 
             // Click inside the menu rect (header or background, not on an item) → consume, keep menu open
             SDL_Point p = {m_mouseX, m_mouseY};
-            if (SDL_PointInRect(&p, &m_startMenuRect)) {
+            if (SDL_PointInRect(&p, &item.rect)) {
                 return;
             }
 
