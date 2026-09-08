@@ -22,12 +22,17 @@ public:
     bool clock24Hour() const { return m_clock24Hour; }
     void setClock24Hour(bool enabled) { m_clock24Hour = enabled; }
 
+    // Empty clears wallpaper (solid color only).
+    const std::string& wallpaperPath() const { return m_wallpaperPath; }
+    void setWallpaperPath(std::string path) { m_wallpaperPath = std::move(path); }
+
     bool loadFromHostPath(const std::string& hostPath);
     bool saveToHostPath(const std::string& hostPath) const;
 
 private:
     RGB m_desktopBackground = kDefaultDesktopBackground;
     bool m_clock24Hour = false;
+    std::string m_wallpaperPath;
 };
 
 } // namespace monolith::settings
