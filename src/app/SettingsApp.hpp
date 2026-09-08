@@ -42,9 +42,12 @@ private:
     void applyBackgroundPreset(const BackgroundPreset& preset);
     int activePresetIndex() const;
     void applyClock24Hour(bool enabled);
+    void applyWallpaperPath();
+    void clearWallpaperPath();
     int scrollAreaHeight() const;
     int computeContentHeight() const;
     void clampScrollOffset();
+    void syncWallpaperBufferFromShell();
 
     static constexpr int kPresetCount = 6;
     static constexpr std::array<BackgroundPreset, kPresetCount> kBackgroundPresets{{
@@ -62,6 +65,14 @@ private:
     std::vector<InfoLine> m_lines;
     std::array<SDL_Rect, kPresetCount> m_backgroundSwatches{};
     std::array<SDL_Rect, 2> m_clockFormatHitRects{}; // 0 = 12-hour, 1 = 24-hour
+
+    SDL_Rect m_wallpaperFieldRect{0, 0, 0, 0}; // client-local hit rect
+    SDL_Rect m_wallpaperSetRect{0, 0, 0, 0};
+    SDL_Rect m_wallpaperClearRect{0, 0, 0, 0};
+    std::string m_wallpaperEditBuffer;
+    bool m_wallpaperFieldFocused = false;
+    bool m_wallpaperBufferSynced = false;
+
     int m_contentHeight = 0;
     int m_scrollOffset = 0;
 

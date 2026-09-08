@@ -134,6 +134,9 @@ void WindowManager::update() {
 }
 
 void WindowManager::render(SDL_Renderer* renderer) {
+    // Solid color is cleared by main; paint wallpaper image (if any) under windows.
+    renderWallpaper(renderer);
+
     // Draw from back to front so the focused window (last in vector) is drawn last and appears on top
     for (auto it = m_windows.begin(); it != m_windows.end(); ++it) {
         Window& win = **it;

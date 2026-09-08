@@ -1,7 +1,11 @@
 #include <SDL2/SDL.h>
 #include <SDL2/SDL_ttf.h>
 #include <filesystem>
+#include <fstream>
 #include <iostream>
+#include <algorithm>
+#include <cstdint>
+#include <string>
 #include <vector>
 
 #include "window/WindowManager.hpp"
@@ -113,8 +117,97 @@ int main(int /*argc*/, char* /*argv*/[])
         monolithFs.createDirectory("/home/monolith");
         monolithFs.createDirectory("/home/monolith/documents");
         monolithFs.createDirectory("/home/monolith/drawings");
+        monolithFs.createDirectory("/Wallpapers");
         if (!monolithFs.exists("/home/monolith/welcome.txt")) {
             monolithFs.writeFile("/home/monolith/welcome.txt", "Welcome to Monolith's filesystem!\n");
+        }
+        // Seed a sample BMP wallpaper for Settings → Appearance playtesting.
+        if (!monolithFs.exists("/Wallpapers/sample.bmp")) {
+            auto makeSampleBmp = []() -> std::string {
+                const int w = 64;
+                const int h = 48;
+                const int rowPad = (4 - (w * 3) % 4) % 4;
+                std::string pixels;
+                pixels.reserve(static_cast<size_t>((w * 3 + rowPad) * h));
+                for (int y = 0; y < h; ++y) {
+                    const int srcY = h - 1 - y;
+                    const float t = (h == 1) ? 0.f : static_cast<float>(srcY) / static_cast<float>(h - 1);
+                    const int r0 = static_cast<int>(18 + t * (16 - 18));
+                    const int g0 = static_cast<int>(24 + t * (80 - 24));
+                    const int b0 = static_cast<int>(42 + t * (90 - 42));
+                    for (int x = 0; x < w; ++x) {
+                        const float u = (w == 1) ? 0.f : static_cast<float>(x) / static_cast<float>(w - 1);
+                        const int rr = std::min(255, static_cast<int>(r0 + u * 20));
+                        const int gg = std::min(255, static_cast<int>(g0 + u * 10));
+                        const int bb = std::min(255, static_cast<int>(b0 + (1.f - u) * 15));
+                        pixels.push_back(static_cast<char>(bb));
+                        pixels.push_back(static_cast<char>(gg));
+                        pixels.push_back(static_cast<char>(rr));
+                    }
+                    for (int p = 0; p < rowPad; ++p) {
+                        pixels.push_back(static_cast<char>(0));
+                    }
+                }
+                const uint32_t pixelBytes = static_cast<uint32_t>(pixels.size());
+                const uint32_t dibSize = 40;
+                const uint32_t offset = 14 + dibSize;
+                const uint32_t fileSize = offset + pixelBytes;
+                std::string out(fileSize, char(0));
+                out[0] = 'B';
+                out[1] = 'M';
+                auto put32 = [&](size_t at, uint32_t v) {
+                    out[at] = static_cast<char>(v & 0xff);
+                    out[at + 1] = static_cast<char>((v >> 8) & 0xff);
+                    out[at + 2] = static_cast<char>((v >> 16) & 0xff);
+                    out[at + 3] = static_cast<char>((v >> 24) & 0xff);
+                };
+                auto put16 = [&](size_t at, uint16_t v) {
+                    out[at] = static_cast<char>(v & 0xff);
+                    out[at + 1] = static_cast<char>((v >> 8) & 0xff);
+                };
+                put32(2, fileSize);
+                put32(6, 0);
+                put32(10, offset);
+                put32(14, dibSize);
+                put32(18, static_cast<uint32_t>(w));
+                put32(22, static_cast<uint32_t>(h));
+                put16(26, 1);
+                put16(28, 24);
+                put32(30, 0);
+                put32(34, pixelBytes);
+                put32(38, 2835);
+                put32(42, 2835);
+                put32(46, 0);
+                put32(50, 0);
+                for (size_t i = 0; i < pixels.size(); ++i) {
+                    out[offset + i] = pixels[i];
+                }
+                return out;
+            };
+
+            bool seeded = false;
+            const char* sampleCandidates[] = {
+                "assets/wallpapers/sample.bmp",
+                "../assets/wallpapers/sample.bmp",
+                nullptr
+            };
+            for (int i = 0; sampleCandidates[i]; ++i) {
+                std::ifstream in(sampleCandidates[i], std::ios::binary);
+                if (!in) continue;
+                std::string bytes((std::istreambuf_iterator<char>(in)),
+                                  std::istreambuf_iterator<char>());
+                if (!bytes.empty() && monolithFs.writeFile("/Wallpapers/sample.bmp", bytes)) {
+                    std::cout << "Seeded /Wallpapers/sample.bmp from " << sampleCandidates[i] << std::endl;
+                    seeded = true;
+                    break;
+                }
+            }
+            if (!seeded) {
+                const std::string bytes = makeSampleBmp();
+                if (monolithFs.writeFile("/Wallpapers/sample.bmp", bytes)) {
+                    std::cout << "Seeded /Wallpapers/sample.bmp (synthesized BMP)" << std::endl;
+                }
+            }
         }
     } else {
         std::cerr << "Failed to initialize filesystem at: " << fsRoot << std::endl;

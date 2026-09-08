@@ -17,6 +17,7 @@ WindowManager::~WindowManager() {
     }
     m_titleCache.clear();
     destroyClockTextures();
+    destroyWallpaperTexture();
 }
 
 void WindowManager::destroyClockTextures() {

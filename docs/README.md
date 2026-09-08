@@ -39,7 +39,7 @@ Documentation hub for the Monolith project. Start with the [root README](../READ
 |----------|------|
 | `~/.monolith/fs/` | Virtual filesystem |
 | `~/.monolith/session.txt` | Window session restore |
-| `~/.monolith/desktop_settings.txt` | Desktop background |
+| `~/.monolith/desktop_settings.txt` | Desktop background + wallpaper path |
 | `~/.monolith/snake_highscore.txt` / `minesweeper_best.txt` | Game scores |
 
 ## For Contributors & Agents

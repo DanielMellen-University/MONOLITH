@@ -1,5 +1,13 @@
 # Changelog
 
+## 2026-09: Desktop wallpaper images (BMP)
+
+- Settings → Appearance: set a wallpaper image by virtual FS path (text field + Set / Clear).
+- Empty path keeps the solid color background; presets still apply underneath the image.
+- Wallpaper path persists in `~/.monolith/desktop_settings.txt` (`wallpaper_path=`).
+- Shell loads BMP via `SDL_LoadBMP` (no SDL_image); cover-scales over the desktop; fails soft on missing/bad files.
+- Sample image seeded at `/Wallpapers/sample.bmp` from `assets/wallpapers/sample.bmp`.
+
 ## 2026-09: Taskbar clock 12/24-hour toggle
 
 - Settings → Appearance: choose **12-hour** (default) or **24-hour** for the taskbar clock.
@@ -31,7 +39,7 @@ Focused snapshot of Monolith as of the latest `beta` / `main` tip. Older detail 
 - Multi-instance titles with live compaction (`Terminal`, `Terminal 2`, …)
 - Session restore: `~/.monolith/session.txt` on exit; restored on next launch (demo set if missing)
 - Open-with routing: `.modr` → Drawing, else Text Editor (`openPath`)
-- Desktop background color presets via Settings (`~/.monolith/desktop_settings.txt`)
+- Desktop background color presets and BMP wallpaper path via Settings (`~/.monolith/desktop_settings.txt`)
 - Controllers owned per window; `App::allowClose` for dirty-document guards
 
 ### Filesystem
@@ -42,7 +50,7 @@ Focused snapshot of Monolith as of the latest `beta` / `main` tip. Older detail 
 ### Productivity apps
 - **Text Editor**: UTF-8, selection + clipboard, syntax highlight, find (**Ctrl+F**) and replace (**Ctrl+H**), dirty close/open
 - **Drawing**: pen/eraser/fill, `.modr` save/load, undo, dirty close/new/open, efficient texture upload
-- **Settings**: appearance swatches, taskbar clock 12/24-hour toggle, about / environment panel
+- **Settings**: appearance swatches, BMP wallpaper path, taskbar clock 12/24-hour toggle, about / environment panel
 
 ### Games
 - **Snake** and **Minesweeper** under Start → Games (high scores / best times on host; Minesweeper pauses timer when unfocused)

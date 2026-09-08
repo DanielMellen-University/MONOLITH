@@ -99,11 +99,14 @@ public:
      */
     bool isSameOrDescendant(const std::string& ancestor, const std::string& path) const;
 
+    /**
+     * Converts a virtual path to a real path on the host disk under hostRoot().
+     * Useful for host APIs (e.g. SDL_LoadBMP) that need a filesystem path.
+     */
+    std::string toHostPath(const std::string& virtualPath) const;
+
 private:
     std::string m_hostRoot;
-
-    // Converts a virtual path to a real path on the host disk.
-    std::string toHostPath(const std::string& virtualPath) const;
 };
 
 } // namespace monolith::fs
