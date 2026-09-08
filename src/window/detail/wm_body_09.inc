@@ -182,6 +182,16 @@ struct WindowController : public monolith::app::IWindowController {
             wm->setClock24Hour(enabled);
         }
     }
+
+    std::string getWallpaperPath() const override {
+        return wm ? wm->getWallpaperPath() : std::string{};
+    }
+
+    void setWallpaperPath(const std::string& virtualPath) override {
+        if (wm) {
+            wm->setWallpaperPath(virtualPath);
+        }
+    }
 };
 
 } // anonymous namespace
