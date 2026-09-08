@@ -29,7 +29,7 @@ The core experience is built around **overlapping windows** with traditional des
 ├──────────────────────────────────────────────────────────────┤
 │  Built-in Apps (native)                                      │
 │  - Terminal, Filesystem, Editor, Drawing, Settings,          │
-│    Snake, Minesweeper                                        │
+│    Snake, Minesweeper, Pong                                  │
 ├──────────────────────────────────────────────────────────────┤
 │  Basic Filesystem                                            │
 │  - Hierarchical, persisted under ~/.monolith/fs/             │

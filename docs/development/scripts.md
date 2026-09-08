@@ -14,13 +14,19 @@ Verifies `launchDrawing` declarations, Start menu entry, and related integration
 
 ## Games Integration Check
 
-Static checks that Snake and Minesweeper are wired into the shell:
+Static checks that Snake, Minesweeper, and Pong are wired into the shell:
 
 ```bash
 ./scripts/verify_games_integration.sh
 ```
 
-Verifies launchers, Start menu actions, `App::update()` dispatch, CMake entries, and docs hub links.
+Verifies launchers, Start menu actions (including Pong), `App::update()` dispatch, CMake entries, and docs hub links.
+
+Headless Pong state test:
+
+```bash
+g++ -std=c++23 scripts/test_pong_state.cpp src/app/PongLogic.cpp -o build/test_pong_state && ./build/test_pong_state
+```
 
 ## Filesystem Roadmap Checks
 

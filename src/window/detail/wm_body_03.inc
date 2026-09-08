@@ -41,8 +41,9 @@
             {"Games", -1, 0},            // category header
             {"Snake", 5, 1},
             {"Minesweeper", 6, 1},
+            {"Pong", 7, 1},
             {"", -2, 0},                 // separator before Shut Down
-            {"Shut Down", 7, 0},
+            {"Shut Down", 8, 0},
         };
         const size_t entryCount = sizeof(entries) / sizeof(entries[0]);
 

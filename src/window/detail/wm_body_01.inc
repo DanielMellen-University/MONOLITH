@@ -140,7 +140,8 @@ void WindowManager::handleEvent(const SDL_Event& event) {
                         case 4: launchDrawing(); break;
                         case 5: launchSnake(); break;
                         case 6: launchMinesweeper(); break;
-                        case 7: requestQuit(); break;
+                        case 7: launchPong(); break;
+                        case 8: requestQuit(); break;
                         default: break;
                     }
                     m_showStartMenu = false;

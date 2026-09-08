@@ -1,5 +1,10 @@
 # Changelog
 
+## 2026-09: Pong under Start → Games
+
+- Third native game: **Pong** (player vs AI, first to 5).
+- Arrow keys / WASD move the paddle; Space pauses; R restarts after a win or loss.
+
 ## 2026-09: Drawing line, rectangle, and custom RGB
 
 - Line and Rect tools paint 1px strokes on the canvas (drag from press to release).
@@ -65,7 +70,7 @@ Focused snapshot of Monolith as of the latest `beta` / `main` tip. Older detail 
 - **Settings**: appearance swatches, BMP wallpaper path, taskbar clock 12/24-hour toggle, about / environment panel
 
 ### Games
-- **Snake** and **Minesweeper** under Start → Games (high scores / best times on host; Minesweeper pauses timer when unfocused)
+- **Snake**, **Minesweeper**, and **Pong** under Start → Games (high scores / best times on host; Minesweeper pauses timer when unfocused)
 
 ### Build
 - C++23, CMake, SDL2 + SDL2_ttf; see README for package names

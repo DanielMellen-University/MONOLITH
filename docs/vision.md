@@ -46,6 +46,7 @@ Monolith is meant to contain several distinct apps and subsystems. Implemented a
 | Shipped | Settings | [apps/settings.md](apps/settings.md) |
 | Shipped | Snake | [apps/snake.md](apps/snake.md) |
 | Shipped | Minesweeper | [apps/minesweeper.md](apps/minesweeper.md) |
+| Shipped | Pong | [apps/pong.md](apps/pong.md) |
 | Shipped (partial) | Wallpaper images (BMP via Settings; solid color fallback) | [apps/settings.md](apps/settings.md) |
 | Planned | IDE | — |
 | Planned | Richer wallpaper formats (PNG/JPEG) | — |
@@ -103,7 +104,7 @@ The project will be built in phases, roughly in this order:
    - Richer appearance options — planned
 
 4. **Growth** *(ongoing)*
-   - ~~Games~~ — Snake and Minesweeper shipped
+   - ~~Games~~ — Snake, Minesweeper, and Pong shipped
    - Session restore, open-with routing, editor find/replace, FS multi-select — shipped (see [CHANGELOG](../CHANGELOG.md))
    - Deeper integration between apps
    - Richer wallpaper formats, richer Settings, custom language / IDE — still planned

@@ -26,6 +26,7 @@ Documentation hub for the Monolith project. Start with the [root README](../READ
 | Settings | [apps/settings.md](apps/settings.md) |
 | Snake | [apps/snake.md](apps/snake.md) |
 | Minesweeper | [apps/minesweeper.md](apps/minesweeper.md) |
+| Pong | [apps/pong.md](apps/pong.md) |
 
 ## Development
 

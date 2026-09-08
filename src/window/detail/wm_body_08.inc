@@ -27,6 +27,16 @@ void WindowManager::launchMinesweeper() {
     createWindow(title, x, y, 360, 420, std::move(app), "Minesweeper", inst);
 }
 
+void WindowManager::launchPong() {
+    if (!m_appFont) return;
+
+    auto [title, inst] = claimNextAppInstanceTitle("Pong");
+    auto app = std::make_unique<monolith::app::PongApp>(m_appFont);
+    int x = 150 + (static_cast<int>(m_windows.size()) % 5) * 26;
+    int y = 75 + (static_cast<int>(m_windows.size()) % 4) * 20;
+    createWindow(title, x, y, 420, 320, std::move(app), "Pong", inst);
+}
+
 void WindowManager::openPath(const std::string& virtualPath) {
     if (virtualPath.empty()) return;
 
@@ -106,6 +116,8 @@ bool WindowManager::loadSession(const std::string& hostPath) {
             launchSnake();
         } else if (kind == "minesweeper") {
             launchMinesweeper();
+        } else if (kind == "pong") {
+            launchPong();
         } else if (kind == "editor") {
             launchTextEditor(path);
         } else if (kind == "drawing") {
@@ -153,6 +165,8 @@ bool WindowManager::saveSession(const std::string& hostPath) const {
             kind = "snake";
         } else if (w.appBaseTitle == "Minesweeper") {
             kind = "minesweeper";
+        } else if (w.appBaseTitle == "Pong") {
+            kind = "pong";
         } else if (w.appBaseTitle == "Editor") {
             kind = "editor";
         } else if (w.appBaseTitle == "Drawing") {

@@ -7,6 +7,7 @@
 #include "../app/DrawingApp.hpp"
 #include "../app/SnakeApp.hpp"
 #include "../app/MinesweeperApp.hpp"
+#include "../app/PongApp.hpp"
 #include <algorithm>
 #include <cctype>
 #include <cstdio>

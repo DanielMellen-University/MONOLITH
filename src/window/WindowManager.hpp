@@ -113,6 +113,7 @@ public:
     void launchSettings();
     void launchSnake();
     void launchMinesweeper();
+    void launchPong();
 
     // Open a virtual path with the default app for its type (.modr → Drawing, else Editor).
     void openPath(const std::string& virtualPath);
@@ -259,7 +260,7 @@ private:
     struct StartMenuItem {
         SDL_Rect rect;  // in screen coordinates
         // 0=Terminal, 1=Text Editor, 2=Filesystem, 3=Settings, 4=Drawing,
-        // 5=Snake, 6=Minesweeper, 7=Shut Down
+        // 5=Snake, 6=Minesweeper, 7=Pong, 8=Shut Down
         // Category headers / separators are not added to this list.
         int action;
     };
