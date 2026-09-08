@@ -125,6 +125,8 @@ public:
     void loadDesktopSettings(const std::string& hostPath);
     monolith::settings::RGB getDesktopBackground() const;
     void setDesktopBackground(uint8_t r, uint8_t g, uint8_t b);
+    std::string getWallpaperPath() const;
+    void setWallpaperPath(const std::string& virtualPath);
     bool getClock24Hour() const;
     void setClock24Hour(bool enabled);
 
@@ -223,6 +225,12 @@ private:
     monolith::settings::DesktopSettings m_desktopSettings;
     std::string m_desktopSettingsHostPath;
 
+    // Wallpaper image (BMP via SDL_LoadBMP). Cover-scaled over the solid background.
+    SDL_Texture* m_wallpaperTexture = nullptr;
+    std::string m_wallpaperLoadedPath; // path currently represented by m_wallpaperTexture
+    int m_wallpaperTexW = 0;
+    int m_wallpaperTexH = 0;
+
     // Taskbar XP-style horizontal scrolling
     int m_taskbarScrollOffset = 0;        // logical pixels, can be negative
     int m_taskbarButtonAreaLeft = 0;      // logical left edge of button strip
@@ -244,6 +252,9 @@ private:
     int m_clockDateTexH = 0;
 
     void destroyClockTextures();
+    void destroyWallpaperTexture();
+    void ensureWallpaperTexture(SDL_Renderer* renderer);
+    void renderWallpaper(SDL_Renderer* renderer);
 
     struct StartMenuItem {
         SDL_Rect rect;  // in screen coordinates
