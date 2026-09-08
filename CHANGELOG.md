@@ -1,5 +1,11 @@
 # Changelog
 
+## 2026-09: Drawing line, rectangle, and custom RGB
+
+- Line and Rect tools paint 1px strokes on the canvas (drag from press to release).
+- RGB toolbar control accepts a custom `r,g,b` color beyond the swatch set.
+- Line/rect/color and `.modr` encode/decode live in `DrawingRaster` so save/load still round-trips those pixels.
+
 ## 2026-09: Filesystem Browser multi-copy, filter, rename
 
 - Copy/Cut apply to the whole multi-selection; Paste writes those items into the current folder (`Filesystem::copyItemsInto`).

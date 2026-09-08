@@ -27,9 +27,9 @@ public:
     bool allowClose() override;
 
 private:
-    enum class Tool { Pen, Eraser, Fill };
+    enum class Tool { Pen, Eraser, Fill, Line, Rect };
     enum class BrushSize { Small, Medium, Large };
-    enum class PathPromptMode { None, Save, Open };
+    enum class PathPromptMode { None, Save, Open, Rgb };
     enum class DiscardKind { None, Close, New, Open };
 
     bool requestDiscard(DiscardKind kind, const char* statusMessage);
@@ -59,6 +59,7 @@ private:
     void setPixel(int x, int y, uint8_t r, uint8_t g, uint8_t b);
     void stampBrush(int x, int y);
     void drawStroke(int x0, int y0, int x1, int y1);
+    void commitShape(int x0, int y0, int x1, int y1);
     void floodFill(int x, int y);
     int brushRadius() const;
     uint8_t activeRed() const;
@@ -97,6 +98,10 @@ private:
     Tool m_tool = Tool::Pen;
     BrushSize m_brush = BrushSize::Medium;
     int m_colorIndex = 0;
+    bool m_usingCustomColor = false;
+    uint8_t m_customR = 220;
+    uint8_t m_customG = 70;
+    uint8_t m_customB = 70;
     static constexpr ColorSwatch kColors[] = {
         {"Black",  20,  20,  24},
         {"White",  245, 245, 248},
@@ -112,6 +117,8 @@ private:
     bool m_drawing = false;
     int m_lastCanvasX = -1;
     int m_lastCanvasY = -1;
+    int m_shapeAnchorX = -1;
+    int m_shapeAnchorY = -1;
 
     std::string m_filePath;
     bool m_dirty = false;
@@ -119,7 +126,7 @@ private:
 
     int m_clientWidth = 0;
     int m_clientHeight = 0;
-    int m_canvasTop = 68;
+    int m_canvasTop = 96;
     int m_statusBarHeight = 22;
 
     std::string m_statusMessage;
@@ -137,6 +144,9 @@ private:
     SDL_Rect m_btnPen{0, 0, 0, 0};
     SDL_Rect m_btnEraser{0, 0, 0, 0};
     SDL_Rect m_btnFill{0, 0, 0, 0};
+    SDL_Rect m_btnLine{0, 0, 0, 0};
+    SDL_Rect m_btnRect{0, 0, 0, 0};
+    SDL_Rect m_btnRgb{0, 0, 0, 0};
     SDL_Rect m_btnClear{0, 0, 0, 0};
     SDL_Rect m_btnBrushSmall{0, 0, 0, 0};
     SDL_Rect m_btnBrushMedium{0, 0, 0, 0};

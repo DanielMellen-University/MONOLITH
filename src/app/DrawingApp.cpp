@@ -1,4 +1,5 @@
 #include "DrawingApp.hpp"
+#include "DrawingRaster.hpp"
 
 #include <algorithm>
 #include <cmath>
@@ -19,26 +20,8 @@ constexpr uint8_t kCanvasBackgroundR = 245;
 constexpr uint8_t kCanvasBackgroundG = 245;
 constexpr uint8_t kCanvasBackgroundB = 248;
 
-constexpr char kModrMagic[4] = {'M', 'O', 'D', 'R'};
-
 bool pointInRect(int x, int y, const SDL_Rect& rect) {
     return x >= rect.x && x < rect.x + rect.w && y >= rect.y && y < rect.y + rect.h;
-}
-
-void writeU32LE(std::string& out, uint32_t value) {
-    out.push_back(static_cast<char>(value & 0xFF));
-    out.push_back(static_cast<char>((value >> 8) & 0xFF));
-    out.push_back(static_cast<char>((value >> 16) & 0xFF));
-    out.push_back(static_cast<char>((value >> 24) & 0xFF));
-}
-
-uint32_t readU32LE(const std::string& data, size_t offset) {
-    if (offset + 4 > data.size()) return 0;
-    const auto* bytes = reinterpret_cast<const unsigned char*>(data.data() + offset);
-    return static_cast<uint32_t>(bytes[0])
-         | (static_cast<uint32_t>(bytes[1]) << 8)
-         | (static_cast<uint32_t>(bytes[2]) << 16)
-         | (static_cast<uint32_t>(bytes[3]) << 24);
 }
 
 bool hasSuffix(const std::string& value, const std::string& suffix) {
@@ -250,26 +233,38 @@ int DrawingApp::brushRadius() const {
 
 uint8_t DrawingApp::activeRed() const {
     if (m_tool == Tool::Eraser) return kCanvasBackgroundR;
+    if (m_usingCustomColor) return m_customR;
     return kColors[m_colorIndex].r;
 }
 
 uint8_t DrawingApp::activeGreen() const {
     if (m_tool == Tool::Eraser) return kCanvasBackgroundG;
+    if (m_usingCustomColor) return m_customG;
     return kColors[m_colorIndex].g;
 }
 
 uint8_t DrawingApp::activeBlue() const {
     if (m_tool == Tool::Eraser) return kCanvasBackgroundB;
+    if (m_usingCustomColor) return m_customB;
     return kColors[m_colorIndex].b;
 }
 
 void DrawingApp::setPixel(int x, int y, uint8_t r, uint8_t g, uint8_t b) {
-    if (x < 0 || y < 0 || x >= m_canvasWidth || y >= m_canvasHeight) return;
-    const size_t idx = (static_cast<size_t>(y) * static_cast<size_t>(m_canvasWidth) + static_cast<size_t>(x)) * 4;
-    m_pixels[idx + 0] = r;
-    m_pixels[idx + 1] = g;
-    m_pixels[idx + 2] = b;
-    m_pixels[idx + 3] = 255;
+    monolith::drawing::setPixel(m_pixels, m_canvasWidth, m_canvasHeight, x, y, r, g, b);
+}
+
+void DrawingApp::commitShape(int x0, int y0, int x1, int y1) {
+    const uint8_t r = activeRed();
+    const uint8_t g = activeGreen();
+    const uint8_t b = activeBlue();
+    if (m_tool == Tool::Line) {
+        monolith::drawing::drawLine(m_pixels, m_canvasWidth, m_canvasHeight, x0, y0, x1, y1, r, g, b);
+    } else if (m_tool == Tool::Rect) {
+        monolith::drawing::drawRect(m_pixels, m_canvasWidth, m_canvasHeight, x0, y0, x1, y1, r, g, b);
+    }
+    m_dirty = true;
+    clearDiscardArm();
+    markTextureDirty();
 }
 
 void DrawingApp::stampBrush(int x, int y) {
@@ -424,19 +419,10 @@ bool DrawingApp::saveToPath(const std::string& virtualPath) {
         }
     }
 
-    std::string blob;
-    blob.reserve(12 + static_cast<size_t>(m_canvasWidth) * static_cast<size_t>(m_canvasHeight) * 3);
-    blob.append(kModrMagic, 4);
-    writeU32LE(blob, static_cast<uint32_t>(m_canvasWidth));
-    writeU32LE(blob, static_cast<uint32_t>(m_canvasHeight));
-
-    for (int y = 0; y < m_canvasHeight; ++y) {
-        for (int x = 0; x < m_canvasWidth; ++x) {
-            const size_t idx = (static_cast<size_t>(y) * static_cast<size_t>(m_canvasWidth) + static_cast<size_t>(x)) * 4;
-            blob.push_back(static_cast<char>(m_pixels[idx + 0]));
-            blob.push_back(static_cast<char>(m_pixels[idx + 1]));
-            blob.push_back(static_cast<char>(m_pixels[idx + 2]));
-        }
+    const std::string blob = monolith::drawing::encodeModr(m_canvasWidth, m_canvasHeight, m_pixels);
+    if (blob.empty()) {
+        setStatus("Save failed: could not encode canvas.");
+        return false;
     }
 
     if (!m_fs->writeFile(path, blob)) {
@@ -472,38 +458,16 @@ bool DrawingApp::loadFromPath(const std::string& virtualPath) {
     }
 
     const std::string blob = m_fs->readFile(path);
-    if (blob.size() < 12) {
-        setStatus("Open failed: file is too small or missing.");
-        return false;
-    }
-    if (std::memcmp(blob.data(), kModrMagic, 4) != 0) {
-        setStatus("Open failed: not a .modr drawing file.");
-        return false;
-    }
-
-    const uint32_t width = readU32LE(blob, 4);
-    const uint32_t height = readU32LE(blob, 8);
-    if (width == 0 || height == 0 || width > 4096 || height > 4096) {
-        setStatus("Open failed: invalid canvas dimensions.");
+    int width = 0;
+    int height = 0;
+    std::vector<uint8_t> rgba;
+    if (!monolith::drawing::decodeModr(blob, width, height, rgba)) {
+        setStatus("Open failed: not a valid .modr drawing file.");
         return false;
     }
 
-    const size_t expectedPixels = static_cast<size_t>(width) * static_cast<size_t>(height) * 3;
-    if (blob.size() != 12 + expectedPixels) {
-        setStatus("Open failed: corrupt .modr file.");
-        return false;
-    }
-
-    resizeCanvas(static_cast<int>(width), static_cast<int>(height), false);
-    size_t offset = 12;
-    for (int y = 0; y < static_cast<int>(height); ++y) {
-        for (int x = 0; x < static_cast<int>(width); ++x) {
-            const uint8_t r = static_cast<uint8_t>(blob[offset++]);
-            const uint8_t g = static_cast<uint8_t>(blob[offset++]);
-            const uint8_t b = static_cast<uint8_t>(blob[offset++]);
-            setPixel(x, y, r, g, b);
-        }
-    }
+    resizeCanvas(width, height, false);
+    m_pixels = std::move(rgba);
 
     m_filePath = path;
     m_dirty = false;
@@ -578,6 +542,13 @@ void DrawingApp::beginPathPrompt(PathPromptMode mode) {
     } else if (mode == PathPromptMode::Open) {
         m_pathPromptBuffer = "/home/monolith/drawings/";
         setStatus("Open path (Tab complete, Enter confirm, Esc cancel):");
+    } else if (mode == PathPromptMode::Rgb) {
+        std::ostringstream oss;
+        oss << static_cast<int>(activeRed()) << ","
+            << static_cast<int>(activeGreen()) << ","
+            << static_cast<int>(activeBlue());
+        m_pathPromptBuffer = oss.str();
+        setStatus("Custom RGB 0-255 as r,g,b (Enter confirm, Esc cancel):");
     }
 }
 
@@ -593,7 +564,27 @@ void DrawingApp::finishPathPrompt(bool commit) {
     }
 
     if (buffer.empty()) {
-        setStatus("Path cannot be empty.");
+        setStatus(mode == PathPromptMode::Rgb ? "RGB cannot be empty." : "Path cannot be empty.");
+        return;
+    }
+
+    if (mode == PathPromptMode::Rgb) {
+        uint8_t r = 0, g = 0, b = 0;
+        if (!monolith::drawing::parseRgb(buffer, r, g, b)) {
+            setStatus("RGB failed: use r,g,b with each channel 0-255.");
+            return;
+        }
+        m_customR = r;
+        m_customG = g;
+        m_customB = b;
+        m_usingCustomColor = true;
+        if (m_tool == Tool::Eraser || m_tool == Tool::Fill) {
+            m_tool = Tool::Pen;
+        }
+        std::ostringstream oss;
+        oss << "Color: custom RGB " << static_cast<int>(r) << ","
+            << static_cast<int>(g) << "," << static_cast<int>(b);
+        setStatus(oss.str());
         return;
     }
 
@@ -614,6 +605,7 @@ void DrawingApp::finishPathPrompt(bool commit) {
 }
 
 void DrawingApp::completePathPrompt() {
+    if (m_pathPromptMode == PathPromptMode::Rgb) return;
     if (!m_fs || m_pathPromptBuffer.empty()) return;
 
     const size_t slash = m_pathPromptBuffer.find_last_of('/');
@@ -745,6 +737,20 @@ void DrawingApp::handleToolbarClick(int x, int y) {
         setStatus("Tool: Fill (click a region)");
         return;
     }
+    if (pointInRect(x, y, m_btnLine)) {
+        m_tool = Tool::Line;
+        setStatus("Tool: Line (drag to draw a straight stroke)");
+        return;
+    }
+    if (pointInRect(x, y, m_btnRect)) {
+        m_tool = Tool::Rect;
+        setStatus("Tool: Rect (drag to draw a rectangle)");
+        return;
+    }
+    if (pointInRect(x, y, m_btnRgb)) {
+        beginPathPrompt(PathPromptMode::Rgb);
+        return;
+    }
     if (pointInRect(x, y, m_btnClear)) {
         clearCanvas();
         return;
@@ -768,6 +774,7 @@ void DrawingApp::handleToolbarClick(int x, int y) {
     for (int i = 0; i < kColorCount; ++i) {
         if (pointInRect(x, y, m_colorSwatches[i])) {
             m_colorIndex = i;
+            m_usingCustomColor = false;
             m_tool = Tool::Pen;
             setStatus(std::string("Color: ") + kColors[i].name);
             return;
@@ -838,25 +845,31 @@ void DrawingApp::drawToolbar(SDL_Renderer* renderer, const SDL_Rect& contentRect
     drawButton(m_btnPen, "Pen", 44, m_tool == Tool::Pen, relX, toolRowY);
     drawButton(m_btnEraser, "Eraser", 54, m_tool == Tool::Eraser, relX, toolRowY);
     drawButton(m_btnFill, "Fill", 40, m_tool == Tool::Fill, relX, toolRowY);
+    drawButton(m_btnLine, "Line", 42, m_tool == Tool::Line, relX, toolRowY);
+    drawButton(m_btnRect, "Rect", 42, m_tool == Tool::Rect, relX, toolRowY);
     drawButton(m_btnClear, "Clear", 48, false, relX, toolRowY);
     relX += 4;
     drawButton(m_btnBrushSmall, "S", 24, m_brush == BrushSize::Small, relX, toolRowY);
     drawButton(m_btnBrushMedium, "M", 24, m_brush == BrushSize::Medium, relX, toolRowY);
     drawButton(m_btnBrushLarge, "L", 24, m_brush == BrushSize::Large, relX, toolRowY);
 
+    relX = kToolbarPadding;
+    const int colorRowY = toolRowY + kToolbarButtonHeight + 6;
+    drawButton(m_btnRgb, "RGB", 42, m_usingCustomColor, relX, colorRowY);
+
     relX += 6;
     for (int i = 0; i < kColorCount; ++i) {
-        m_colorSwatches[i] = {relX, toolRowY + 2, kSwatchSize, kSwatchSize};
+        m_colorSwatches[i] = {relX, colorRowY + 2, kSwatchSize, kSwatchSize};
         SDL_Rect swatch = {
             contentRect.x + relX,
-            contentRect.y + toolRowY + 2,
+            contentRect.y + colorRowY + 2,
             kSwatchSize,
             kSwatchSize
         };
         SDL_SetRenderDrawColor(renderer, kColors[i].r, kColors[i].g, kColors[i].b, 255);
         SDL_RenderFillRect(renderer, &swatch);
 
-        if (i == m_colorIndex) {
+        if (!m_usingCustomColor && i == m_colorIndex) {
             SDL_SetRenderDrawColor(renderer, 255, 255, 255, 255);
             SDL_RenderDrawRect(renderer, &swatch);
             SDL_Rect inner = {swatch.x + 1, swatch.y + 1, swatch.w - 2, swatch.h - 2};
@@ -867,6 +880,17 @@ void DrawingApp::drawToolbar(SDL_Renderer* renderer, const SDL_Rect& contentRect
         }
 
         relX += kSwatchSize + kSwatchGap;
+    }
+
+    if (m_usingCustomColor) {
+        SDL_Rect custom = {
+            contentRect.x + m_btnRgb.x + 2,
+            contentRect.y + m_btnRgb.y + m_btnRgb.h + 2,
+            14,
+            4
+        };
+        SDL_SetRenderDrawColor(renderer, m_customR, m_customG, m_customB, 255);
+        SDL_RenderFillRect(renderer, &custom);
     }
 }
 
@@ -1019,7 +1043,12 @@ void DrawingApp::handleEvent(const SDL_Event& event) {
             m_drawing = true;
             m_lastCanvasX = cx;
             m_lastCanvasY = cy;
+            m_shapeAnchorX = cx;
+            m_shapeAnchorY = cy;
             pushUndoSnapshot();
+            if (m_tool == Tool::Line || m_tool == Tool::Rect) {
+                return;
+            }
             stampBrush(cx, cy);
             m_dirty = true;
             clearDiscardArm();
@@ -1029,9 +1058,22 @@ void DrawingApp::handleEvent(const SDL_Event& event) {
     }
 
     if (event.type == SDL_MOUSEBUTTONUP && event.button.button == SDL_BUTTON_LEFT) {
+        if (m_drawing && (m_tool == Tool::Line || m_tool == Tool::Rect)
+            && m_shapeAnchorX >= 0 && m_shapeAnchorY >= 0) {
+            int cx = m_lastCanvasX;
+            int cy = m_lastCanvasY;
+            const int x = event.button.x;
+            const int y = event.button.y;
+            if (isInCanvas(x, y)) {
+                canvasPointFromClient(x, y, cx, cy);
+            }
+            commitShape(m_shapeAnchorX, m_shapeAnchorY, cx, cy);
+        }
         m_drawing = false;
         m_lastCanvasX = -1;
         m_lastCanvasY = -1;
+        m_shapeAnchorX = -1;
+        m_shapeAnchorY = -1;
         return;
     }
 
@@ -1043,6 +1085,12 @@ void DrawingApp::handleEvent(const SDL_Event& event) {
         int cx = 0;
         int cy = 0;
         canvasPointFromClient(x, y, cx, cy);
+
+        if (m_tool == Tool::Line || m_tool == Tool::Rect) {
+            m_lastCanvasX = cx;
+            m_lastCanvasY = cy;
+            return;
+        }
 
         if (m_lastCanvasX >= 0 && m_lastCanvasY >= 0) {
             drawStroke(m_lastCanvasX, m_lastCanvasY, cx, cy);

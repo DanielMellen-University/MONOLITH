@@ -16,7 +16,7 @@ After saving or opening a file, the window title changes to the file name, for e
 
 ## Toolbar
 
-The toolbar has two rows.
+The toolbar has three rows.
 
 Top row:
 
@@ -31,15 +31,23 @@ Second row:
 - **Pen**: paints with the selected color.
 - **Eraser**: paints with the canvas background color.
 - **Fill**: flood-fills a connected region with the selected color.
+- **Line**: drag to paint a straight 1px stroke between two points.
+- **Rect**: drag to paint a 1px rectangle boundary.
 - **Clear**: clears the whole canvas.
 - **S / M / L**: selects small, medium, or large brush size.
-- Color swatches: selects the active pen color and switches back to Pen.
+
+Third row:
+
+- **RGB**: type a custom `r,g,b` color (0–255) in the status bar.
+- Color swatches: selects the active pen color and switches back to Pen (clears custom RGB).
 
 ## Mouse Controls
 
 - Drag on the canvas to draw.
 - Drag with Pen selected to paint with the active color.
 - Drag with Eraser selected to restore the canvas background color.
+- Drag with Line selected to stroke a straight line from press to release.
+- Drag with Rect selected to stroke a rectangle from press to release.
 - Click with Fill selected to flood-fill the connected region under the cursor.
 - Click a toolbar button to change tools, open prompts, or run file/history actions.
 
@@ -143,7 +151,7 @@ Clear (toolbar) remains undoable and does not use this guard.
 
 ## Current Limitations
 
-- No custom color picker yet.
+- Custom RGB is a status-bar `r,g,b` prompt, not a visual picker.
 - No clipboard import/export yet.
 - Dirty guards use status-bar double-confirm, not a modal dialog.
 - Undo history is in memory only and resets when a drawing file is opened, the canvas is resized, or the app exits.
@@ -154,6 +162,7 @@ Main implementation files:
 
 - `src/app/DrawingApp.hpp`
 - `src/app/DrawingApp.cpp`
+- `src/app/DrawingRaster.hpp` / `DrawingRaster.cpp` — line/rect raster, custom RGB parse, `.modr` encode/decode (shared with headless tests)
 - `src/window/WindowManager.cpp` — `launchDrawing()`, mouse-up forwarding for drag interactions, session restore
 - `src/app/App.hpp` — `IWindowController::restoreTrackedInstanceTitle()`, `allowClose` for dirty guards
 

@@ -30,6 +30,14 @@ Headless test of shipped `Filesystem` multi-item copy/paste, `/`-rejecting renam
 g++ -std=c++23 scripts/test_fs_roadmap.cpp src/fs/Filesystem.cpp -o build/test_fs_roadmap && ./build/test_fs_roadmap
 ```
 
+## Drawing Raster / `.modr` Roadmap Checks
+
+Headless test of shipped line/rect raster, custom RGB parse, and `.modr` round-trip:
+
+```bash
+g++ -std=c++23 scripts/test_drawing_roadmap.cpp src/app/DrawingRaster.cpp -o build/test_drawing_roadmap && ./build/test_drawing_roadmap
+```
+
 ## `.modr` Format Roundtrip
 
 Compiles and runs a standalone test of the Drawing raster file format:

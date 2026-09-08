@@ -22,6 +22,7 @@ add_executable(monolith
     src/app/FilesystemApp.cpp
     src/app/SettingsApp.cpp
     src/app/DrawingApp.cpp
+    src/app/DrawingRaster.cpp
     src/app/SnakeApp.cpp
     src/app/MinesweeperApp.cpp
 
