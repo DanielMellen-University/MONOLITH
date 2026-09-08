@@ -54,6 +54,13 @@ bool DesktopSettings::loadFromHostPath(const std::string& hostPath) {
             continue;
         }
 
+        const std::string wallpaperKey = "wallpaper_path=";
+        if (line.rfind(wallpaperKey, 0) == 0) {
+            m_wallpaperPath = line.substr(wallpaperKey.size());
+            loadedAny = true;
+            continue;
+        }
+
         const std::string clockKey = "clock_24_hour=";
         if (line.rfind(clockKey, 0) == 0) {
             bool parsed = false;
@@ -76,6 +83,7 @@ bool DesktopSettings::saveToHostPath(const std::string& hostPath) const {
         << static_cast<int>(m_desktopBackground.r) << ','
         << static_cast<int>(m_desktopBackground.g) << ','
         << static_cast<int>(m_desktopBackground.b) << '\n';
+    out << "wallpaper_path=" << m_wallpaperPath << '\n';
     out << "clock_24_hour=" << (m_clock24Hour ? "1" : "0") << '\n';
     return static_cast<bool>(out);
 }
