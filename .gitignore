@@ -30,7 +30,3 @@ Thumbs.db
 # Logs and temporary files
 *.log
 *.tmp
-
-# Agent instruction file (hidden + gitignored by design)
-# There should only be one: the hidden .agents.md for local agent preferences/workflow.
-.agents.md

@@ -45,5 +45,5 @@ Documentation hub for the Monolith project. Start with the [root README](../READ
 
 ## For Contributors & Agents
 
-- [AGENTS.md](../.agents/AGENTS.md) — project rules, doc discipline, commit workflow
+- [.agents.md](../.agents.md) — agent playbook (chunks, git, conventions); root `AGENTS.md` points here
 - [CHANGELOG.md](../CHANGELOG.md) — short current-state summary (history in git)
