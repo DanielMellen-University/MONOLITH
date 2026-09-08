@@ -1,6 +1,7 @@
 #include "SettingsApp.hpp"
 
 #include <algorithm>
+#include <cctype>
 
 namespace monolith::app {
 
@@ -12,9 +13,33 @@ constexpr int kSwatchSize = 22;
 constexpr int kSwatchGap = 8;
 constexpr int kFooterHeight = 28;
 constexpr int kScrollStep = 24;
+constexpr int kFieldH = 24;
+constexpr int kBtnPadX = 10;
 
 bool pointInRect(int x, int y, const SDL_Rect& rect) {
     return x >= rect.x && x < rect.x + rect.w && y >= rect.y && y < rect.y + rect.h;
+}
+
+void drawLabel(SDL_Renderer* renderer, TTF_Font* font, const char* text,
+               SDL_Color color, int screenX, int screenY) {
+    if (!font || !text) return;
+    SDL_Surface* surf = TTF_RenderUTF8_Blended(font, text, color);
+    if (!surf) return;
+    SDL_Texture* tex = SDL_CreateTextureFromSurface(renderer, surf);
+    if (tex) {
+        SDL_Rect dst = {screenX, screenY, surf->w, surf->h};
+        SDL_RenderCopy(renderer, tex, nullptr, &dst);
+        SDL_DestroyTexture(tex);
+    }
+    SDL_FreeSurface(surf);
+}
+
+int measureTextWidth(TTF_Font* font, const char* text) {
+    if (!font || !text) return 0;
+    int w = 0;
+    int h = 0;
+    if (TTF_SizeUTF8(font, text, &w, &h) != 0) return 0;
+    return w;
 }
 } // namespace
 
@@ -61,11 +86,18 @@ void SettingsApp::clampScrollOffset() {
 int SettingsApp::computeContentHeight() const {
     int y = kPadY;
 
-    // Appearance section (background swatches + clock format options)
+    // Appearance section (background swatches + wallpaper + clock format)
     y += kLineH + 2 + 8;
     y += kLineH + 6;
     y += kSwatchSize + 8;
     y += kLineH + 8;
+
+    // Wallpaper block
+    y += kLineH + 6;
+    y += kFieldH + 8;
+    y += kLineH + 8;
+
+    // Clock block
     y += kLineH + 6;
     y += kSwatchSize + 8;
     y += kLineH + 8;
@@ -125,25 +157,55 @@ void SettingsApp::applyClock24Hour(bool enabled) {
     }
 }
 
+void SettingsApp::syncWallpaperBufferFromShell() {
+    if (m_wallpaperFieldFocused) return;
+    auto* ctrl = getController();
+    if (!ctrl) {
+        m_wallpaperEditBuffer.clear();
+        return;
+    }
+    m_wallpaperEditBuffer = ctrl->getWallpaperPath();
+    m_wallpaperBufferSynced = true;
+}
+
+void SettingsApp::applyWallpaperPath() {
+    if (auto* ctrl = getController()) {
+        // Trim trailing whitespace
+        std::string path = m_wallpaperEditBuffer;
+        while (!path.empty() && std::isspace(static_cast<unsigned char>(path.back()))) {
+            path.pop_back();
+        }
+        size_t start = 0;
+        while (start < path.size() && std::isspace(static_cast<unsigned char>(path[start]))) {
+            ++start;
+        }
+        path = path.substr(start);
+        ctrl->setWallpaperPath(path);
+        m_wallpaperEditBuffer = ctrl->getWallpaperPath();
+        m_wallpaperFieldFocused = false;
+    }
+}
+
+void SettingsApp::clearWallpaperPath() {
+    m_wallpaperEditBuffer.clear();
+    if (auto* ctrl = getController()) {
+        ctrl->setWallpaperPath("");
+    }
+    m_wallpaperFieldFocused = false;
+}
+
 int SettingsApp::renderAppearanceSection(SDL_Renderer* renderer, const SDL_Rect& contentRect, int clientY) {
     if (!m_font) return clientY;
 
     SDL_Color headerCol = {255, 255, 255, 255};
     SDL_Color labelCol  = {200, 200, 210, 255};
     SDL_Color dimCol    = {160, 160, 170, 255};
+    SDL_Color valueCol  = {230, 230, 240, 255};
 
     int y = clientY;
 
-    SDL_Surface* header = TTF_RenderUTF8_Blended(m_font, "APPEARANCE", headerCol);
-    if (header) {
-        SDL_Texture* tex = SDL_CreateTextureFromSurface(renderer, header);
-        if (tex) {
-            SDL_Rect dst = {contentRect.x + kPadX, contentRect.y + y, header->w, header->h};
-            SDL_RenderCopy(renderer, tex, nullptr, &dst);
-            SDL_DestroyTexture(tex);
-        }
-        SDL_FreeSurface(header);
-    }
+    drawLabel(renderer, m_font, "APPEARANCE", headerCol,
+              contentRect.x + kPadX, contentRect.y + y);
     y += kLineH + 2;
 
     SDL_SetRenderDrawColor(renderer, 70, 70, 80, 255);
@@ -154,16 +216,8 @@ int SettingsApp::renderAppearanceSection(SDL_Renderer* renderer, const SDL_Rect&
         contentRect.y + y - 2);
     y += 8;
 
-    SDL_Surface* label = TTF_RenderUTF8_Blended(m_font, "Desktop background:", labelCol);
-    if (label) {
-        SDL_Texture* tex = SDL_CreateTextureFromSurface(renderer, label);
-        if (tex) {
-            SDL_Rect dst = {contentRect.x + kPadX, contentRect.y + y, label->w, label->h};
-            SDL_RenderCopy(renderer, tex, nullptr, &dst);
-            SDL_DestroyTexture(tex);
-        }
-        SDL_FreeSurface(label);
-    }
+    drawLabel(renderer, m_font, "Desktop background:", labelCol,
+              contentRect.x + kPadX, contentRect.y + y);
     y += kLineH + 6;
 
     const int swatchRowY = y;
@@ -203,29 +257,102 @@ int SettingsApp::renderAppearanceSection(SDL_Renderer* renderer, const SDL_Rect&
 
     y = swatchRowY + kSwatchSize + 8;
 
-    const char* hint = "Background presets.";
-    SDL_Surface* hintSurf = TTF_RenderUTF8_Blended(m_font, hint, dimCol);
-    if (hintSurf) {
-        SDL_Texture* tex = SDL_CreateTextureFromSurface(renderer, hintSurf);
-        if (tex) {
-            SDL_Rect dst = {contentRect.x + kPadX, contentRect.y + y, hintSurf->w, hintSurf->h};
-            SDL_RenderCopy(renderer, tex, nullptr, &dst);
-            SDL_DestroyTexture(tex);
-        }
-        SDL_FreeSurface(hintSurf);
-    }
+    drawLabel(renderer, m_font, "Background presets.", dimCol,
+              contentRect.x + kPadX, contentRect.y + y);
     y += kLineH + 8;
 
-    SDL_Surface* clockLabel = TTF_RenderUTF8_Blended(m_font, "Taskbar clock:", labelCol);
-    if (clockLabel) {
-        SDL_Texture* tex = SDL_CreateTextureFromSurface(renderer, clockLabel);
-        if (tex) {
-            SDL_Rect dst = {contentRect.x + kPadX, contentRect.y + y, clockLabel->w, clockLabel->h};
-            SDL_RenderCopy(renderer, tex, nullptr, &dst);
-            SDL_DestroyTexture(tex);
-        }
-        SDL_FreeSurface(clockLabel);
+    // === Wallpaper ===
+    if (!m_wallpaperBufferSynced || !m_wallpaperFieldFocused) {
+        syncWallpaperBufferFromShell();
     }
+
+    drawLabel(renderer, m_font, "Wallpaper image:", labelCol,
+              contentRect.x + kPadX, contentRect.y + y);
+    y += kLineH + 6;
+
+    const int setW = measureTextWidth(m_font, "Set") + kBtnPadX * 2;
+    const int clearW = measureTextWidth(m_font, "Clear") + kBtnPadX * 2;
+    const int btnGap = 6;
+    const int rightReserve = setW + clearW + btnGap * 2;
+    const int fieldW = std::max(80, contentRect.w - kPadX * 2 - rightReserve);
+
+    m_wallpaperFieldRect = {kPadX, y, fieldW, kFieldH};
+    m_wallpaperSetRect = {kPadX + fieldW + btnGap, y, setW, kFieldH};
+    m_wallpaperClearRect = {kPadX + fieldW + btnGap + setW + btnGap, y, clearW, kFieldH};
+
+    // Field background
+    {
+        SDL_Rect field = {
+            contentRect.x + m_wallpaperFieldRect.x,
+            contentRect.y + m_wallpaperFieldRect.y,
+            m_wallpaperFieldRect.w,
+            m_wallpaperFieldRect.h
+        };
+        SDL_SetRenderDrawColor(renderer, 30, 30, 36, 255);
+        SDL_RenderFillRect(renderer, &field);
+        if (m_wallpaperFieldFocused) {
+            SDL_SetRenderDrawColor(renderer, 255, 255, 255, 255);
+        } else {
+            SDL_SetRenderDrawColor(renderer, 90, 90, 100, 255);
+        }
+        SDL_RenderDrawRect(renderer, &field);
+
+        std::string display = m_wallpaperEditBuffer;
+        if (display.empty() && !m_wallpaperFieldFocused) {
+            display = "(none)";
+        }
+        if (m_wallpaperFieldFocused) {
+            display += "_";
+        }
+
+        // Clip text into the field
+        SDL_Rect clip = field;
+        clip.x += 4;
+        clip.w -= 8;
+        clip.y += 2;
+        clip.h -= 4;
+        SDL_RenderSetClipRect(renderer, &clip);
+        drawLabel(renderer, m_font, display.c_str(),
+                  display == "(none)" ? dimCol : valueCol,
+                  field.x + 6, field.y + (kFieldH - kLineH) / 2 + 2);
+        // Restore outer clip (appearance section lives inside Settings scroll clip)
+        SDL_Rect outerClip = {
+            contentRect.x,
+            contentRect.y,
+            contentRect.w,
+            scrollAreaHeight()
+        };
+        SDL_RenderSetClipRect(renderer, &outerClip);
+    }
+
+    auto drawButton = [&](const SDL_Rect& local, const char* label) {
+        SDL_Rect btn = {
+            contentRect.x + local.x,
+            contentRect.y + local.y,
+            local.w,
+            local.h
+        };
+        SDL_SetRenderDrawColor(renderer, 40, 40, 48, 255);
+        SDL_RenderFillRect(renderer, &btn);
+        SDL_SetRenderDrawColor(renderer, 90, 90, 100, 255);
+        SDL_RenderDrawRect(renderer, &btn);
+        const int tw = measureTextWidth(m_font, label);
+        drawLabel(renderer, m_font, label, labelCol,
+                  btn.x + (btn.w - tw) / 2,
+                  btn.y + (kFieldH - kLineH) / 2 + 2);
+    };
+    drawButton(m_wallpaperSetRect, "Set");
+    drawButton(m_wallpaperClearRect, "Clear");
+
+    y += kFieldH + 8;
+
+    drawLabel(renderer, m_font, "BMP path in the virtual FS (e.g. /Wallpapers/sample.bmp).", dimCol,
+              contentRect.x + kPadX, contentRect.y + y);
+    y += kLineH + 8;
+
+    // === Clock ===
+    drawLabel(renderer, m_font, "Taskbar clock:", labelCol,
+              contentRect.x + kPadX, contentRect.y + y);
     y += kLineH + 6;
 
     const bool use24 = getController() ? getController()->getClock24Hour() : false;
@@ -253,10 +380,10 @@ int SettingsApp::renderAppearanceSection(SDL_Renderer* renderer, const SDL_Rect&
             optionH
         };
 
-        const bool active = (i == 1) == use24;
+        const bool isActive = (i == 1) == use24;
         SDL_SetRenderDrawColor(renderer, 40, 40, 48, 255);
         SDL_RenderFillRect(renderer, &opt);
-        if (active) {
+        if (isActive) {
             SDL_SetRenderDrawColor(renderer, 255, 255, 255, 255);
             SDL_RenderDrawRect(renderer, &opt);
             SDL_Rect inner = {opt.x + 1, opt.y + 1, opt.w - 2, opt.h - 2};
@@ -286,17 +413,8 @@ int SettingsApp::renderAppearanceSection(SDL_Renderer* renderer, const SDL_Rect&
 
     y += optionH + 8;
 
-    const char* clockHint = "12-hour (default) or 24-hour time on the taskbar.";
-    SDL_Surface* clockHintSurf = TTF_RenderUTF8_Blended(m_font, clockHint, dimCol);
-    if (clockHintSurf) {
-        SDL_Texture* tex = SDL_CreateTextureFromSurface(renderer, clockHintSurf);
-        if (tex) {
-            SDL_Rect dst = {contentRect.x + kPadX, contentRect.y + y, clockHintSurf->w, clockHintSurf->h};
-            SDL_RenderCopy(renderer, tex, nullptr, &dst);
-            SDL_DestroyTexture(tex);
-        }
-        SDL_FreeSurface(clockHintSurf);
-    }
+    drawLabel(renderer, m_font, "12-hour (default) or 24-hour time on the taskbar.", dimCol,
+              contentRect.x + kPadX, contentRect.y + y);
 
     return y + kLineH + 8;
 }
@@ -460,13 +578,45 @@ void SettingsApp::render(SDL_Renderer* renderer, const SDL_Rect& contentRect) {
 }
 
 void SettingsApp::handleEvent(const SDL_Event& event) {
+    if (m_wallpaperFieldFocused) {
+        if (event.type == SDL_TEXTINPUT) {
+            const char* text = event.text.text;
+            for (const char* p = text; *p; ++p) {
+                const unsigned char c = static_cast<unsigned char>(*p);
+                if (c >= 32 && c != 127) {
+                    m_wallpaperEditBuffer.push_back(static_cast<char>(c));
+                }
+            }
+            return;
+        }
+        if (event.type == SDL_KEYDOWN) {
+            switch (event.key.keysym.sym) {
+                case SDLK_RETURN:
+                case SDLK_KP_ENTER:
+                    applyWallpaperPath();
+                    return;
+                case SDLK_ESCAPE:
+                    m_wallpaperFieldFocused = false;
+                    syncWallpaperBufferFromShell();
+                    return;
+                case SDLK_BACKSPACE:
+                    if (!m_wallpaperEditBuffer.empty()) {
+                        m_wallpaperEditBuffer.pop_back();
+                    }
+                    return;
+                default:
+                    break;
+            }
+        }
+    }
+
     if (event.type == SDL_MOUSEWHEEL) {
         m_scrollOffset -= event.wheel.y * kScrollStep;
         clampScrollOffset();
         return;
     }
 
-    if (event.type == SDL_KEYDOWN) {
+    if (event.type == SDL_KEYDOWN && !m_wallpaperFieldFocused) {
         switch (event.key.keysym.sym) {
             case SDLK_PAGEUP:
                 m_scrollOffset -= kScrollStep * 3;
@@ -496,9 +646,36 @@ void SettingsApp::handleEvent(const SDL_Event& event) {
 
     for (int i = 0; i < kPresetCount; ++i) {
         if (pointInRect(x, y, m_backgroundSwatches[static_cast<size_t>(i)])) {
+            m_wallpaperFieldFocused = false;
             applyBackgroundPreset(kBackgroundPresets[static_cast<size_t>(i)]);
             return;
         }
+    }
+
+    if (pointInRect(x, y, m_wallpaperSetRect)) {
+        applyWallpaperPath();
+        return;
+    }
+    if (pointInRect(x, y, m_wallpaperClearRect)) {
+        clearWallpaperPath();
+        return;
+    }
+    if (pointInRect(x, y, m_wallpaperFieldRect)) {
+        m_wallpaperFieldFocused = true;
+        if (m_wallpaperEditBuffer.empty()) {
+            syncWallpaperBufferFromShell();
+            // When focusing an empty "(none)" display, start with empty buffer for typing.
+            if (auto* ctrl = getController()) {
+                m_wallpaperEditBuffer = ctrl->getWallpaperPath();
+            }
+        }
+        return;
+    }
+
+    // Click elsewhere in the panel drops wallpaper focus.
+    if (m_wallpaperFieldFocused) {
+        m_wallpaperFieldFocused = false;
+        syncWallpaperBufferFromShell();
     }
 
     for (int i = 0; i < 2; ++i) {
