@@ -1,5 +1,9 @@
 # Changelog
 
+## 2026-09: Drawing app documentation
+
+- Added a complete Drawing workflow guide covering tool behavior, canvas resizing, undo history, `.modr` state, path prompts, and current raster-editor limitations.
+
 ## 2026-09: Unicode-safe browser prompts
 
 - Filesystem Browser rename and filter Backspace now removes a complete UTF-8 codepoint instead of one raw byte.

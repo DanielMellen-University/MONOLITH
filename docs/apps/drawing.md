@@ -13,6 +13,17 @@ Drawing files use the `.modr` extension (Monolith Drawing Raster).
 
 The canvas is a raster surface. It fills the space between the toolbar and the status bar, and its pixel dimensions follow the Drawing window's client area. Resizing the window preserves the existing pixels from the top-left corner and clears undo/redo history for the new canvas size.
 
+## Basic Workflow
+
+1. Start with **New** if you want a blank sketch.
+2. Pick a swatch or set a custom color with **RGB**.
+3. Choose **Pen**, **Eraser**, **Fill**, **Line**, or **Rect**.
+4. Choose **S**, **M**, or **L** for brush-based tools, then draw on the canvas.
+5. Use **Ctrl+Z** and **Ctrl+Y** while refining the sketch.
+6. Press **Ctrl+S**, accept the suggested `.modr` path, and press Enter.
+
+The canvas is the source of truth: tools modify raster pixels directly, and every saved file contains the complete opaque canvas. Drawing does not create vector objects or layers, so a completed line or rectangle cannot be selected and edited separately.
+
 ## Launching
 
 Open **Drawing** from the Start menu. Multiple Drawing windows can be open at once:
@@ -52,6 +63,33 @@ Third row:
 - Color swatches: selects the active pen color and switches back to Pen (clears custom RGB).
 
 The **S**, **M**, and **L** buttons select brush radii of 2, 5, and 10 pixels. The brush stamps a filled circle at each point in a drag. Line and Rect are always 1 pixel wide and do not use the brush size.
+
+### Tool Behavior
+
+| Tool | Interaction | History |
+|------|-------------|---------|
+| Pen | Drag to paint with a filled circular brush | One undo state per drag |
+| Eraser | Drag to paint the canvas background color | One undo state per drag |
+| Fill | Click a connected region | One undo state per fill |
+| Pick | Click one pixel to copy its RGB value, then return to Pen | No canvas change |
+| Line | Drag from one endpoint to the other | One undo state per drag |
+| Rect | Drag the two opposite corners | One undo state per drag |
+| Clear | Clear the entire canvas | One undo state per clear |
+
+Pen and Eraser interpolate between mouse events, so fast drags remain continuous. Line and Rect commit when the mouse button is released; releasing outside the canvas uses the last canvas point reached.
+
+## Canvas Behavior
+
+The canvas is sized from the Drawing client area. The toolbar occupies the top 96 pixels and the status bar occupies the bottom 22 pixels; the remaining area is the raster surface. Canvas coordinates are logical pixels, not host-window pixels.
+
+When the window is resized:
+
+- Existing pixels stay at their original top-left coordinates.
+- A larger canvas is filled with the standard light background.
+- A smaller canvas crops pixels at the right and bottom edges.
+- Undo and redo history is cleared because the canvas dimensions changed.
+
+The standard canvas background is RGB `245,245,248`. Eraser uses that same color, so it restores the background rather than revealing transparency.
 
 ## Colors
 
@@ -143,9 +181,11 @@ Opening a missing file, a non-`.modr` path, or corrupt data leaves the current s
 Drawing stores a capped history of canvas snapshots.
 
 - A snapshot is recorded before each stroke.
+- A snapshot is recorded before each Fill operation.
 - A snapshot is recorded before Clear.
 - Undo and redo operate on full canvas states.
 - Starting a new stroke or clearing after an undo resets redo history.
+- Picking a color does not create a history state.
 - Opening a file clears history.
 - Resizing the canvas clears history so old snapshots are not applied to the wrong canvas size.
 
@@ -164,6 +204,8 @@ Width and height must be between 1 and 4096 pixels. The decoder requires the fil
 
 Internally, the live canvas stores pixels as `R,G,B,A`. The saved file stores only RGB because the canvas is fully opaque.
 
+The format has no metadata for tools, brush size, custom color, undo history, or layers. Those are editor state and are not restored when the file is reopened.
+
 ## Unsaved Changes
 
 A dirty sketch (status bar `[modified]`) guards destructive actions:
@@ -179,6 +221,7 @@ Clear (toolbar) remains undoable and does not use this guard.
 ## Current Limitations
 
 - Custom RGB can be entered through the status-bar `r,g,b` prompt or sampled with Pick; there is no palette editor yet.
+- The editor is raster-only: there are no layers, selections, transforms, zoom controls, or vector objects.
 - No clipboard import/export yet.
 - Dirty guards use status-bar double-confirm, not a modal dialog.
 - Undo history is in memory only and resets when a drawing file is opened, the canvas is resized, or the app exits.
