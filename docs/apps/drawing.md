@@ -100,6 +100,7 @@ Drawing participates in the same file workflow as the Terminal and Filesystem Br
 - Double-clicking a `.modr` file in the Filesystem Browser opens it in Drawing.
 - The Filesystem Browser can also use **Open with Drawing**; Drawing still rejects paths that are not `.modr` files.
 - Opening a `.modr` file that is already open focuses its existing Drawing window instead of creating a duplicate. A minimized matching window is restored first.
+- A missing or invalid initial `.modr` does not reserve a file binding, so correcting the file and opening it again retries the load normally.
 - When Monolith restores a saved desktop session, an open Drawing window keeps its geometry and bound `.modr` path.
 
 All other file types continue to open in Text Editor through the shell's default routing. In particular, `.mod` is a text file, not a Drawing file.

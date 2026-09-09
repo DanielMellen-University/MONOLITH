@@ -1,5 +1,10 @@
 # Changelog
 
+## 2026-09: Retry failed file-backed app opens
+
+- Editor and Drawing no longer reserve singleton file bindings when an initial path is missing, unreadable, or corrupt.
+- Added a WindowManager regression test covering retry after an Editor file appears and a Drawing file is repaired.
+
 ## 2026-09: Add Drawing keyboard reference
 
 - Added a compact shortcut table and prompt-focus guidance to the Drawing app documentation.

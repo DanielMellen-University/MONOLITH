@@ -25,6 +25,9 @@ public:
     void onResize(int clientWidth, int clientHeight) override;
     bool allowClose() override;
 
+    // True only after an initial or prompted open has loaded a real file.
+    bool hasFilePath() const { return !m_filePath.empty(); }
+
     // Optional: allow external trigger to save (future use)
     bool saveCurrentFile();
 

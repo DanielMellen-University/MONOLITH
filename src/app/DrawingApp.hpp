@@ -26,6 +26,9 @@ public:
     void onResize(int clientWidth, int clientHeight) override;
     bool allowClose() override;
 
+    // True only after a .modr file has loaded successfully.
+    bool hasFilePath() const { return !m_filePath.empty(); }
+
 private:
     enum class Tool { Pen, Eraser, Fill, Eyedropper, Line, Rect };
     enum class BrushSize { Small, Medium, Large };

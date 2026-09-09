@@ -179,9 +179,13 @@ void WindowManager::launchTextEditor(const std::string& initialPath) {
     Window* w = createWindow(title, x, y, 540, 420, std::move(app),
                              appBaseForTracking, instForTracking);
 
-    // Register for singleton tracking if this editor is bound to a specific file
+    // The constructor may reject a missing, unreadable, or invalid path. Only
+    // reserve singleton state after a real file was loaded successfully.
     if (w && !initialPath.empty() && m_fs) {
-        associateEditorWithFile(w, initialPath);
+        auto* editor = dynamic_cast<monolith::app::TextEditorApp*>(w->app.get());
+        if (editor && editor->hasFilePath()) {
+            associateEditorWithFile(w, initialPath);
+        }
     }
     // Note: caller (e.g. Start menu) is responsible for m_showStartMenu = false.
 }
@@ -234,8 +238,13 @@ void WindowManager::launchDrawing(const std::string& initialPath) {
     Window* w = createWindow(title, x, y, 560, 440, std::move(app),
                              appBaseForTracking, instForTracking);
 
+    // Drawing normally binds through the controller during loadFromPath(). The
+    // fallback remains success-gated so a rejected initial path stays retryable.
     if (w && !initialPath.empty() && m_fs) {
-        associateDrawingWithFile(w, initialPath);
+        auto* drawing = dynamic_cast<monolith::app::DrawingApp*>(w->app.get());
+        if (drawing && drawing->hasFilePath() && w->drawingFilePath.empty()) {
+            associateDrawingWithFile(w, initialPath);
+        }
     }
 }
 

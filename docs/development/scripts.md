@@ -102,6 +102,12 @@ Headless Text Editor state test for Save As collisions and failed-write recovery
 g++ -std=c++23 scripts/test_text_editor_state.cpp src/app/TextEditorApp.cpp src/fs/Filesystem.cpp $(pkg-config --cflags --libs sdl2 SDL2_ttf) -o build/test_text_editor_state && ./build/test_text_editor_state
 ```
 
+Headless WindowManager test that failed Editor and Drawing opens do not reserve stale file singletons and can be retried:
+
+```bash
+g++ -std=c++23 scripts/test_window_file_open.cpp src/window/WindowManager.cpp src/app/*.cpp src/fs/Filesystem.cpp src/settings/DesktopSettings.cpp $(pkg-config --cflags --libs sdl2 SDL2_ttf) -o build/test_window_file_open && ./build/test_window_file_open
+```
+
 Headless test of scaled WindowManager hit testing, drag math, resize edges, and client coordinates:
 
 ```bash
