@@ -1,5 +1,9 @@
 # Changelog
 
+## 2026-09: Filesystem context-menu selection
+
+- Filesystem context menus now preserve an existing multi-selection when opened on a selected row and clear stale selection when opened on empty space.
+
 ## 2026-09: Terminal long-line editing
 
 - Terminal input now clips to its input bar and follows the cursor horizontally through long commands.

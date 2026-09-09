@@ -689,13 +689,23 @@ void FilesystemApp::handleMouseButton(const SDL_MouseButtonEvent& e) {
             int clickedRow = m_scrollOffset + (relY / rowHeight);
 
             if (clickedRow >= 0 && clickedRow < static_cast<int>(m_entries.size())) {
-                setSelection(clickedRow);
+                // Preserve a multi-selection when the context menu is opened on
+                // one of its rows. Right-clicking an unselected row starts a new
+                // single selection, matching ordinary click behavior.
+                if (isIndexSelected(clickedRow)) {
+                    m_selectedIndex = clickedRow;
+                    if (m_confirmingDelete) cancelPendingDelete();
+                } else {
+                    setSelection(clickedRow);
+                }
                 showContextMenu(mx, my, clickedRow);
             } else {
+                clearMultiSelection();
                 m_selectedIndex = -1;
                 showContextMenu(mx, my, -1);
             }
         } else {
+            clearMultiSelection();
             m_selectedIndex = -1;
             showContextMenu(mx, my, -1);
         }

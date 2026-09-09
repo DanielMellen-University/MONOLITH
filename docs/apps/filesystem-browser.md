@@ -121,6 +121,8 @@ Deletion uses `Filesystem::removeRecursive` (whole directory trees). The virtual
 - Paste (when something is on the clipboard)
 - Refresh
 
+Right-clicking an already selected row keeps the current multi-selection, so context-menu Copy, Cut, Delete, and Properties can operate on the whole selection. Right-clicking an unselected row starts a new single selection.
+
 ## Copy, Cut, and Paste
 
 - **Copy** or **Cut** the current selection (one item or multi-select) from the right-click menu (or Ctrl+C / Ctrl+X).
