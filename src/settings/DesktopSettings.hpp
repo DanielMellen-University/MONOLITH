@@ -15,6 +15,8 @@ class DesktopSettings {
 public:
     static constexpr RGB kDefaultDesktopBackground{25, 25, 30};
 
+    static bool isSupportedUiScalePercent(int percent);
+
     RGB desktopBackground() const { return m_desktopBackground; }
     void setDesktopBackground(RGB color) { m_desktopBackground = color; }
 
@@ -24,7 +26,9 @@ public:
 
     // Stored as a percentage. The Settings app exposes 90, 100, and 115.
     int uiScalePercent() const { return m_uiScalePercent; }
-    void setUiScalePercent(int percent) { m_uiScalePercent = percent; }
+    void setUiScalePercent(int percent) {
+        if (isSupportedUiScalePercent(percent)) m_uiScalePercent = percent;
+    }
 
     // Empty clears wallpaper (solid color only).
     const std::string& wallpaperPath() const { return m_wallpaperPath; }

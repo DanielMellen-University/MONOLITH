@@ -1,5 +1,9 @@
 # Changelog
 
+## 2026-09: Keep UI scale persistence aligned with Settings
+
+- Settings now rejects UI scale values that are not one of the three choices exposed by the app, keeping persisted and live values consistent.
+
 ## 2026-09: Bind dirty-open confirmation to its path
 
 - Text Editor and Drawing now reset a pending dirty-open confirmation when the requested path changes, preventing an accidental discard for a different file.

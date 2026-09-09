@@ -39,11 +39,11 @@ The **APPEARANCE** section at the top lets you change live desktop preferences.
 
 ### Interface text size
 
-- Three options: **Small (90%)**, **Default (100%)**, and **Large (115%)**.
+- Three options: **Small (90%)**, **Default (100%)**, and **Large (115%)**. These are the only supported persisted values.
 - The active option is highlighted with a white border.
 - Changing the size updates the shared app and window text immediately.
 
-Scroll with the mouse wheel or Page Up/Down if the window is resized smaller. Background, wallpaper path, clock, and interface text choices are saved to `~/.monolith/desktop_settings.txt` and restored on the next launch. Malformed persisted values are ignored so defaults remain intact; omitted values in a valid legacy file use their defaults.
+Scroll with the mouse wheel or Page Up/Down if the window is resized smaller. Background, wallpaper path, clock, and interface text choices are saved to `~/.monolith/desktop_settings.txt` and restored on the next launch. Malformed or unsupported persisted values are ignored so defaults remain intact; omitted values in a valid legacy file use their defaults.
 
 The settings file accepts both Unix and Windows line endings, so copying it between systems does not add a hidden carriage return to a wallpaper path or other value.
 

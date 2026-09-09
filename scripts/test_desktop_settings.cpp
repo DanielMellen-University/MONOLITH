@@ -71,6 +71,19 @@ int main() {
     check(bounded.uiScalePercent() == 100, "out-of-range UI scale is ignored");
 
     {
+        std::ofstream unsupported(path, std::ios::trunc);
+        unsupported << "ui_scale_percent=110\n";
+    }
+    DesktopSettings supportedChoicesOnly;
+    check(!supportedChoicesOnly.loadFromHostPath(path.string()),
+          "ignore in-range but unsupported scale file");
+    check(supportedChoicesOnly.uiScalePercent() == 100,
+          "unsupported UI scale leaves the default intact");
+    supportedChoicesOnly.setUiScalePercent(110);
+    check(supportedChoicesOnly.uiScalePercent() == 100,
+          "programmatic unsupported UI scale is ignored");
+
+    {
         std::ofstream malformed(path, std::ios::trunc);
         malformed << "desktop_background=18,24,42oops\n";
     }

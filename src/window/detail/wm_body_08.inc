@@ -402,7 +402,7 @@ int WindowManager::getUiScalePercent() const {
 }
 
 void WindowManager::setUiScalePercent(int percent) {
-    if (percent < 80 || percent > 140) return;
+    if (!monolith::settings::DesktopSettings::isSupportedUiScalePercent(percent)) return;
     if (m_desktopSettings.uiScalePercent() == percent) return;
 
     m_desktopSettings.setUiScalePercent(percent);

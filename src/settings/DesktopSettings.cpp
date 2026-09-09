@@ -43,12 +43,16 @@ bool parseUiScalePercent(const std::string& value, int& out) {
     char extra = 0;
     std::istringstream iss(value);
     if (!(iss >> percent) || (iss >> extra)) return false;
-    if (percent < 80 || percent > 140) return false;
+    if (!DesktopSettings::isSupportedUiScalePercent(percent)) return false;
     out = percent;
     return true;
 }
 
 } // namespace
+
+bool DesktopSettings::isSupportedUiScalePercent(int percent) {
+    return percent == 90 || percent == 100 || percent == 115;
+}
 
 bool DesktopSettings::loadFromHostPath(const std::string& hostPath) {
     std::ifstream in(hostPath);
