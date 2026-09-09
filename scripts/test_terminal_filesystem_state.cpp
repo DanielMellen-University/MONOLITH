@@ -39,6 +39,8 @@ int main() {
     check(fs.writeFile("/home/monolith/note.txt", "hello"), "create regular file");
     check(fs.writeFile("/home/monolith/line-endings.txt", "first\r\nsecond\rthird\r"),
           "create mixed line-ending file");
+    check(fs.writeFile("/home/monolith/my  file.txt", "exact spacing"),
+          "create file with repeated spaces");
 
     monolith::app::TerminalApp terminal(nullptr, &fs);
     check(terminal.m_commandHistory == std::vector<std::string>{"echo first", "echo second"},
@@ -86,6 +88,11 @@ int main() {
     terminal.executeCommand("cat /home/monolith/line-endings.txt");
     check(terminal.m_history == std::vector<std::string>{"first", "second", "third", ""},
           "cat normalizes CRLF and lone-CR line endings");
+
+    terminal.m_history.clear();
+    terminal.executeCommand("cat \"/home/monolith/my  file.txt\"");
+    check(terminal.m_history == std::vector<std::string>{"exact spacing"},
+          "quoted command paths preserve repeated spaces");
 
     terminal.m_inputBuffer = "ls /";
     terminal.m_inputCursorPos = static_cast<int>(terminal.m_inputBuffer.size());

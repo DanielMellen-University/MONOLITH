@@ -138,11 +138,12 @@ void TerminalApp::executeCommand(const std::string& commandLine) {
     }
     else if (cmd == "ls") {
         if (m_fs) {
-            std::string target = rest.empty() ? m_cwd : resolvePath(rest);
+            const std::string operand = args.size() > 1 ? args[1] : "";
+            std::string target = operand.empty() ? m_cwd : resolvePath(operand);
             if (m_fs->isFile(target)) {
                 addOutput("• " + m_fs->baseName(target));
             } else if (!m_fs->isDirectory(target)) {
-                addOutput("ls: " + (rest.empty() ? target : rest)
+                addOutput("ls: " + (operand.empty() ? target : operand)
                           + ": No such file or directory");
             } else {
                 auto entries = m_fs->listEntries(target);
@@ -252,27 +253,29 @@ void TerminalApp::executeCommand(const std::string& commandLine) {
     else if (cmd == "cd") {
         if (!m_fs) {
             addOutput("Filesystem not available");
-        } else if (rest.empty()) {
+        } else if (args.size() <= 1 || args[1].empty()) {
             m_cwd = "/home/monolith";
             addOutput(m_cwd);
         } else {
-            std::string newPath = resolvePath(rest);
+            const std::string& operand = args[1];
+            std::string newPath = resolvePath(operand);
             if (m_fs->isDirectory(newPath)) {
                 m_cwd = newPath;
             } else {
-                addOutput("cd: " + rest + ": No such directory");
+                addOutput("cd: " + operand + ": No such directory");
             }
         }
     }
     else if (cmd == "cat") {
-        if (m_fs && !rest.empty()) {
-            std::string path = resolvePath(rest);
+        const std::string operand = args.size() > 1 ? args[1] : "";
+        if (m_fs && !operand.empty()) {
+            std::string path = resolvePath(operand);
             if (!m_fs->isFile(path)) {
-                addOutput("cat: " + rest + ": No such file");
+                addOutput("cat: " + operand + ": No such file");
             } else {
                 std::string content;
                 if (!m_fs->readFile(path, content)) {
-                    addOutput("cat: " + rest + ": Could not read file");
+                    addOutput("cat: " + operand + ": Could not read file");
                     return;
                 }
                 content = normalizeLineEndings(content);
@@ -305,16 +308,17 @@ void TerminalApp::executeCommand(const std::string& commandLine) {
     else if (cmd == "mkdir") {
         if (!m_fs) {
             addOutput("Filesystem not available");
-        } else if (rest.empty()) {
+        } else if (args.size() <= 1 || args[1].empty()) {
             addOutput("mkdir: missing operand");
         } else {
-            std::string path = resolvePath(rest);
+            const std::string& operand = args[1];
+            std::string path = resolvePath(operand);
             if (m_fs->exists(path)) {
-                addOutput("mkdir: cannot create directory '" + rest + "': File exists");
+                addOutput("mkdir: cannot create directory '" + operand + "': File exists");
             } else if (m_fs->createDirectory(path)) {
                 // success - silent like real mkdir
             } else {
-                addOutput("mkdir: cannot create directory '" + rest + "'");
+                addOutput("mkdir: cannot create directory '" + operand + "'");
             }
         }
     }
@@ -369,12 +373,13 @@ void TerminalApp::executeCommand(const std::string& commandLine) {
     else if (cmd == "edit") {
         if (!m_fs) {
             addOutput("Filesystem not available");
-        } else if (rest.empty()) {
+        } else if (args.size() <= 1 || args[1].empty()) {
             addOutput("edit: missing file operand");
         } else {
-            std::string path = resolvePath(rest);
+            const std::string& operand = args[1];
+            std::string path = resolvePath(operand);
             if (!m_fs->isFile(path)) {
-                addOutput("edit: " + rest + ": No such file");
+                addOutput("edit: " + operand + ": No such file");
             } else if (auto* ctrl = getController()) {
                 ctrl->openInTextEditor(path);
                 addOutput("Opened in Text Editor: " + path);
@@ -386,12 +391,13 @@ void TerminalApp::executeCommand(const std::string& commandLine) {
     else if (cmd == "open") {
         if (!m_fs) {
             addOutput("Filesystem not available");
-        } else if (rest.empty()) {
+        } else if (args.size() <= 1 || args[1].empty()) {
             addOutput("open: missing file operand");
         } else {
-            std::string path = resolvePath(rest);
+            const std::string& operand = args[1];
+            std::string path = resolvePath(operand);
             if (!m_fs->isFile(path)) {
-                addOutput("open: " + rest + ": No such file");
+                addOutput("open: " + operand + ": No such file");
             } else if (auto* ctrl = getController()) {
                 // Shell routes by extension (.modr → Drawing, else Editor).
                 ctrl->openPath(path);
@@ -406,18 +412,19 @@ void TerminalApp::executeCommand(const std::string& commandLine) {
     else if (cmd == "touch") {
         if (!m_fs) {
             addOutput("Filesystem not available");
-        } else if (rest.empty()) {
+        } else if (args.size() <= 1 || args[1].empty()) {
             addOutput("touch: missing file operand");
         } else {
-            std::string path = resolvePath(rest);
+            const std::string& operand = args[1];
+            std::string path = resolvePath(operand);
             if (m_fs->isDirectory(path)) {
-                addOutput("touch: cannot touch '" + rest + "': Is a directory");
+                addOutput("touch: cannot touch '" + operand + "': Is a directory");
             } else if (m_fs->isFile(path)) {
                 // Already exists: leave content unchanged (do not truncate).
             } else if (m_fs->writeFile(path, "")) {
                 // Created empty file.
             } else {
-                addOutput("touch: cannot touch '" + rest + "'");
+                addOutput("touch: cannot touch '" + operand + "'");
             }
         }
     }

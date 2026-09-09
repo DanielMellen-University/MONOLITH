@@ -1,5 +1,10 @@
 # Changelog
 
+## 2026-09: Preserve exact quoted Terminal paths
+
+- Single-path Terminal commands now use the lexer token directly, so quoted filenames with repeated spaces are not collapsed before lookup.
+- Added command-state coverage for a filename containing repeated spaces.
+
 ## 2026-09: Normalize Terminal file output line endings
 
 - Terminal `cat` now normalizes CRLF and lone-CR separators before writing file contents to scrollback.
