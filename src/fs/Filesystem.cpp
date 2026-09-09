@@ -11,6 +11,24 @@ namespace stdfs = std::filesystem;
 
 namespace monolith::fs {
 
+namespace {
+
+std::string lowercaseAscii(std::string value) {
+    for (char& c : value) {
+        c = static_cast<char>(std::tolower(static_cast<unsigned char>(c)));
+    }
+    return value;
+}
+
+bool entryNameLess(const Filesystem::DirEntry& left, const Filesystem::DirEntry& right) {
+    const std::string leftLower = lowercaseAscii(left.name);
+    const std::string rightLower = lowercaseAscii(right.name);
+    if (leftLower != rightLower) return leftLower < rightLower;
+    return left.name < right.name;
+}
+
+} // namespace
+
 Filesystem::Filesystem(const std::string& hostRootPath)
     : m_hostRoot(hostRootPath)
 {
@@ -357,13 +375,9 @@ std::vector<Filesystem::DirEntry> Filesystem::listEntries(const std::string& vir
         return {};
     }
 
-    // Sort each group alphabetically (case-insensitive would be nicer but simple compare is fine)
-    std::sort(dirs.begin(), dirs.end(), [](const DirEntry& a, const DirEntry& b) {
-        return a.name < b.name;
-    });
-    std::sort(files.begin(), files.end(), [](const DirEntry& a, const DirEntry& b) {
-        return a.name < b.name;
-    });
+    // Keep listing order aligned with case-insensitive filtering, with a raw-name tie-break.
+    std::sort(dirs.begin(), dirs.end(), entryNameLess);
+    std::sort(files.begin(), files.end(), entryNameLess);
 
     // Directories first, then files
     dirs.insert(dirs.end(), std::make_move_iterator(files.begin()), std::make_move_iterator(files.end()));

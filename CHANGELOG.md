@@ -1,5 +1,9 @@
 # Changelog
 
+## 2026-09: Predictable Filesystem listing order
+
+- Filesystem Browser listings now sort names case-insensitively, with directories still grouped before files and raw names used as a deterministic tie-break.
+
 ## 2026-09: Verified Filesystem file copies
 
 - Recursive file copies now verify the source size and complete read before writing the destination, preventing read failures from becoming empty files.

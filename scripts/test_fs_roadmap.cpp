@@ -3,6 +3,7 @@
 
 #include "../src/fs/Filesystem.hpp"
 
+#include <algorithm>
 #include <cstdint>
 #include <filesystem>
 #include <iostream>
@@ -44,6 +45,8 @@ int main() {
     check(fs.writeFile("/src/b.txt", "bravo"), "write /src/b.txt");
     check(fs.writeFile("/src/notes.txt", "memo"), "write /src/notes.txt");
     check(fs.writeFile("/src/folder/c.txt", "charlie"), "write nested file");
+    check(fs.writeFile("/src/Alpha.txt", "upper"), "write /src/Alpha.txt");
+    check(fs.writeFile("/src/alpha.txt", "lower"), "write /src/alpha.txt");
     check(fs.writeFile("/src/other.dat", "zzz"), "write /src/other.dat");
     check(fs.writeFile("/src/empty.txt", ""), "write empty file");
     check(fs.isFile("/src/empty.txt") && fs.readFile("/src/empty.txt").empty(),
@@ -99,6 +102,18 @@ int main() {
 
     // Listing filter/search by name.
     auto listed = fs.listEntries("/src");
+    auto folderIt = std::find_if(listed.begin(), listed.end(), [](const auto& entry) {
+        return entry.name == "folder";
+    });
+    auto upperIt = std::find_if(listed.begin(), listed.end(), [](const auto& entry) {
+        return entry.name == "Alpha.txt";
+    });
+    auto lowerIt = std::find_if(listed.begin(), listed.end(), [](const auto& entry) {
+        return entry.name == "alpha.txt";
+    });
+    check(folderIt != listed.end() && upperIt != listed.end() && lowerIt != listed.end()
+              && folderIt < upperIt && upperIt < lowerIt,
+          "listEntries keeps directories first and sorts names case-insensitively");
     auto notes = Filesystem::filterEntries(listed, "note");
     check(notes.size() == 1 && notes.front().name == "notes.txt",
           "filterEntries matches notes.txt");

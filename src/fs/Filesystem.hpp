@@ -127,7 +127,7 @@ public:
     static std::vector<DirEntry> filterEntries(const std::vector<DirEntry>& entries,
                                                const std::string& query);
 
-    /** Lists entries with type info (directories first, then files, both alpha-sorted). */
+    /** Lists entries with type info (directories first, then case-insensitive alpha-sorted files). */
     std::vector<DirEntry> listEntries(const std::string& virtualPath) const;
 
     // === Path utilities ===

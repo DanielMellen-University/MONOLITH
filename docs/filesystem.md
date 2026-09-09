@@ -52,7 +52,7 @@ The `monolith::fs::Filesystem` class provides:
 - `copyRecursive` (file or directory tree; blocks copy into self/descendant)
 - `copyItemsInto` (multi-source paste into a directory, via `copyRecursive`)
 - `moveItemsInto` (multi-source cut/paste into a directory, via non-overwriting rename)
-- `list`, `listEntries` (typed entries for the graphical browser)
+- `list`, `listEntries` (typed entries for the graphical browser; `listEntries` keeps directories first and sorts names case-insensitively)
 - `filterEntries` / `entryNameMatches` (case-insensitive name search)
 - `isValidEntryName` (rejects empty, `.`, `..`, and names containing `/`)
 - Path helpers: `normalize`, `join`, `baseName`, `isSameOrDescendant`, `toHostPath`, `hostRoot`

@@ -16,7 +16,7 @@ The window has four regions:
 
 1. **Path bar** — shows the current virtual directory
 2. **Toolbar** — Up, New Folder, New File, Delete, Rename, Filter
-3. **List view** — directories (`▶`) and files (`•`), sorted with directories first
+3. **List view** — directories (`▶`) and files (`•`), sorted with directories first and names case-insensitively
 4. **Status bar** — feedback messages for actions
 
 ## Navigation
