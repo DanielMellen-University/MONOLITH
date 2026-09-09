@@ -94,6 +94,7 @@ void TerminalApp::loadCommandHistory() {
     std::istringstream iss(content);
     std::string line;
     while (std::getline(iss, line)) {
+        if (!line.empty() && line.back() == '\r') line.pop_back();
         if (!line.empty()) {
             m_commandHistory.push_back(line);
         }

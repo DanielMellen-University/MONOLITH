@@ -1,5 +1,10 @@
 # Changelog
 
+## 2026-09: Normalize Terminal history line endings
+
+- Terminal history loading now strips carriage returns from CRLF files before commands are recalled.
+- Added state coverage for Windows-style history files.
+
 ## 2026-09: Read CRLF desktop settings
 
 - Desktop settings now strip carriage returns while loading, so CRLF files preserve wallpaper, clock, scale, and color values.

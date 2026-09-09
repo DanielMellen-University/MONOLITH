@@ -91,6 +91,8 @@ Command history persists across sessions in:
 
 History is saved after each submitted command. Command history is capped (oldest entries drop); on-screen scrollback is also capped so long sessions stay responsive.
 
+History loading accepts both Unix and Windows line endings, so recalled commands do not carry a hidden carriage return into command parsing.
+
 ## Argument Quoting
 
 Whitespace splits arguments unless you quote them:

@@ -32,10 +32,15 @@ int main() {
 
     monolith::fs::Filesystem fs(hostRoot.string());
     check(fs.initialize(), "terminal filesystem initialize");
+    check(fs.createDirectory("/home/monolith"), "create terminal home directory");
+    check(fs.writeFile("/home/monolith/.terminal_history", "echo first\r\necho second\r\n"),
+          "write CRLF terminal history");
     check(fs.createDirectory("/home/monolith/empty"), "create empty directory");
     check(fs.writeFile("/home/monolith/note.txt", "hello"), "create regular file");
 
     monolith::app::TerminalApp terminal(nullptr, &fs);
+    check(terminal.m_commandHistory == std::vector<std::string>{"echo first", "echo second"},
+          "CRLF history entries lose their carriage returns");
 
     auto key = [&](SDL_Keycode sym, SDL_Keymod mod = KMOD_NONE) {
         SDL_Keysym keysym{};
