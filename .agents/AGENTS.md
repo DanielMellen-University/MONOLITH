@@ -445,6 +445,7 @@ When unspecified, choose:
 | 2026-09-09 | cleanup | Bounded Text Editor Replace All so replacement text is not processed again; added expansion coverage; CURRENT_CHUNK remains 7.1 |
 | 2026-09-09 | cleanup | Canceled Filesystem Browser delete confirmation on Ctrl and Shift selection changes; extended state coverage; CURRENT_CHUNK remains 7.1 |
 | 2026-09-09 | cleanup | Cleared stale Terminal history navigation after reverse search; added recalled-command coverage; CURRENT_CHUNK remains 7.1 |
+| 2026-09-09 | docs | Added a focused Drawing file-lifecycle reference covering saves, failures, resizing, and dirty-state confirmation; CURRENT_CHUNK remains 7.1 |
 
 ---
 

@@ -1,5 +1,9 @@
 # Changelog
 
+## 2026-09: Document Drawing file lifecycle
+
+- Added a focused Drawing reference for new sketches, existing-file saves, failed-operation recovery, resize behavior, and dirty-state confirmation.
+
 ## 2026-09: Reset Terminal history navigation after reverse search
 
 - Accepting or canceling Ctrl+R search now clears stale Up/Down navigation state instead of allowing a later Down press to overwrite the search result.

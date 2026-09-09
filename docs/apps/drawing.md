@@ -82,6 +82,24 @@ Opening a file replaces the current canvas and clears its undo/redo history. The
 
 The canvas is the source of truth: tools modify raster pixels directly, and every saved file contains the complete opaque canvas. Drawing does not create vector objects or layers, so a completed line or rectangle cannot be selected and edited separately.
 
+## File Lifecycle
+
+Drawing keeps the live canvas separate from the file path and from editor-session settings. This is the quickest way to predict what an action will do:
+
+| Situation | Result |
+|-----------|--------|
+| Start Drawing or choose **New** | A blank, clean canvas is created. The file path is cleared and the normal Drawing instance title returns. |
+| Paint, fill, clear, or resize a loaded sketch | The canvas becomes `[modified]`. The change exists only in memory until Save succeeds. |
+| Press **Save** on a new sketch | The status bar opens a path prompt with the next free `/home/monolith/drawings/sketch*.modr` name. |
+| Press **Save** on a loaded sketch | The current `.modr` path is written immediately; Drawing has no separate Save As command. |
+| Save fails | The current canvas and file binding stay open, the failure is shown in the status bar, and any pending discard confirmation is cleared. |
+| Open fails | The current canvas remains open and unchanged. Correct the path or save the current sketch elsewhere. |
+| Open succeeds | The canvas dimensions and pixels are replaced, the file becomes clean, and undo/redo history is cleared. Tools, brush size, and color stay as session settings. |
+| Resize a loaded sketch | Pixels keep their top-left alignment, the canvas may crop or grow, history is cleared, and the file becomes modified until saved again. |
+| Close, choose **New**, or open while modified | The first action shows a status-bar warning. Repeat the same action to discard, or save first. |
+
+There is no automatic recovery file. If the process exits before Save succeeds, unsaved pixels and in-memory undo history are lost.
+
 ## Launching
 
 Open **Drawing** from the Start menu. Multiple Drawing windows can be open at once:
