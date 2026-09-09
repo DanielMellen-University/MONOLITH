@@ -1,5 +1,11 @@
 # Changelog
 
+## 2026-09: Keep failed file launches untitled
+
+- Failed initial Editor and Drawing opens now use the normal tracked untitled title instead of a misleading file-backed title.
+- Failed launches remain eligible for desktop session restore while still avoiding stale file singleton bindings.
+- Extended the file-open regression coverage for titles, instance tracking, and session persistence.
+
 ## 2026-09: Preserve exact quoted Terminal paths
 
 - Single-path Terminal commands now use the lexer token directly, so quoted filenames with repeated spaces are not collapsed before lookup.

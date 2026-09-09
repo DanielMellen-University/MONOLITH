@@ -13,7 +13,7 @@ Open **Text Editor** from the Start menu, or double-click a file in the Filesyst
 
 File-backed editors are singletons per path — opening the same file again focuses the existing window instead of creating a duplicate.
 
-If an initial path is missing or unreadable, the failed window remains an untitled editor and does not reserve that path. Creating or repairing the file and opening it again retries the load normally.
+If an initial path is missing or unreadable, the failed window falls back to the normal bare `Editor` title, remains an untitled editor, and does not reserve that path. Creating or repairing the file and opening it again retries the load normally.
 
 ## Editing
 

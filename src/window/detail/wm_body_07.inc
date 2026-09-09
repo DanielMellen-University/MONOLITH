@@ -148,14 +148,16 @@ void WindowManager::launchTextEditor(const std::string& initialPath) {
     }
 
     auto app = std::make_unique<monolith::app::TextEditorApp>(m_appFont, m_fs, initialPath);
+    const bool loadedInitialFile = !initialPath.empty() && app->hasFilePath();
 
     std::string title;
     std::string appBaseForTracking;
     int instForTracking = 0;
 
-    if (!initialPath.empty()) {
-        size_t slash = initialPath.find_last_of('/');
-        std::string baseName = (slash != std::string::npos) ? initialPath.substr(slash + 1) : initialPath;
+    if (loadedInitialFile) {
+        const std::string titlePath = m_fs ? m_fs->normalize(initialPath) : initialPath;
+        size_t slash = titlePath.find_last_of('/');
+        std::string baseName = (slash != std::string::npos) ? titlePath.substr(slash + 1) : titlePath;
         if (!baseName.empty()) {
             title = "Editor - " + baseName;
             // File-backed editors keep their descriptive title and do not consume
@@ -217,35 +219,32 @@ void WindowManager::launchDrawing(const std::string& initialPath) {
 
     auto app = std::make_unique<monolith::app::DrawingApp>(m_appFont, m_fs, initialPath);
 
-    std::string title;
-    std::string appBaseForTracking;
-    int instForTracking = 0;
-
-    if (!initialPath.empty() && m_fs) {
-        std::string normalized = m_fs->normalize(initialPath);
-        size_t slash = normalized.find_last_of('/');
-        std::string baseName = (slash != std::string::npos) ? normalized.substr(slash + 1) : normalized;
-        title = baseName.empty() ? "Drawing" : ("Drawing - " + baseName);
-    } else {
-        auto [t, n] = claimNextAppInstanceTitle("Drawing");
-        title = t;
-        appBaseForTracking = "Drawing";
-        instForTracking = n;
+    // Drawing loads an initial path during the first resize notification in
+    // createWindow, so file success is classified after the window exists.
+    if (initialPath.empty()) {
+        auto [title, inst] = claimNextAppInstanceTitle("Drawing");
+        int x = 220 + (static_cast<int>(m_windows.size()) % 6) * 28;
+        int y = 100 + (static_cast<int>(m_windows.size()) % 4) * 22;
+        createWindow(title, x, y, 560, 440, std::move(app), "Drawing", inst);
+        return;
     }
 
     int x = 220 + (static_cast<int>(m_windows.size()) % 6) * 28;
     int y = 100 + (static_cast<int>(m_windows.size()) % 4) * 22;
-    Window* w = createWindow(title, x, y, 560, 440, std::move(app),
-                             appBaseForTracking, instForTracking);
+    Window* w = createWindow("Drawing", x, y, 560, 440, std::move(app));
+    if (!w) return;
 
-    // Drawing normally binds through the controller during loadFromPath(). The
-    // fallback remains success-gated so a rejected initial path stays retryable.
-    if (w && !initialPath.empty() && m_fs) {
-        auto* drawing = dynamic_cast<monolith::app::DrawingApp*>(w->app.get());
-        if (drawing && drawing->hasFilePath() && w->drawingFilePath.empty()) {
-            associateDrawingWithFile(w, initialPath);
-        }
+    auto* drawing = dynamic_cast<monolith::app::DrawingApp*>(w->app.get());
+    if (drawing && drawing->hasFilePath()) {
+        return;
     }
+
+    // A failed initial path is an ordinary untitled Drawing window. Track it
+    // so its title, close bookkeeping, and session restore remain coherent.
+    auto [title, inst] = claimNextAppInstanceTitle("Drawing");
+    w->title = title;
+    w->appBaseTitle = "Drawing";
+    w->appInstanceNumber = inst;
 }
 
 void WindowManager::launchSettings() {
