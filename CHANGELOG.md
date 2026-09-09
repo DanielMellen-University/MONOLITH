@@ -1,5 +1,10 @@
 # Changelog
 
+## 2026-09: Drawing app guide
+
+- Documented `.modr` open routing, including the fact that `.mod` remains a text file.
+- Updated Drawing developer references for the split WindowManager source layout.
+
 ## 2026-09: Settings interface text scale
 
 - Settings now offers Small (90%), Default (100%), and Large (115%) interface text sizes.

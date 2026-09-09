@@ -89,7 +89,7 @@ If you save without typing `.modr`, Drawing adds it automatically.
 
 ## Opening
 
-Drawing opens `.modr` files only. This keeps drawing files distinct from future module-style files that may use similar names.
+Drawing opens `.modr` files only. The shell routes `.modr` paths from Terminal `open` and the Filesystem Browser to Drawing; `.mod` remains a text file and does not open in Drawing. This keeps drawing files distinct from future module-style files that may use similar names.
 
 The Open prompt starts in:
 
@@ -163,7 +163,8 @@ Main implementation files:
 - `src/app/DrawingApp.hpp`
 - `src/app/DrawingApp.cpp`
 - `src/app/DrawingRaster.hpp` / `DrawingRaster.cpp` — line/rect raster, custom RGB parse, `.modr` encode/decode (shared with headless tests)
-- `src/window/WindowManager.cpp` — `launchDrawing()`, mouse-up forwarding for drag interactions, session restore
+- `src/window/detail/wm_body_07.inc` — `launchDrawing()` and Drawing window creation
+- `src/window/detail/wm_body_01.inc` / `wm_body_08.inc` — mouse-up forwarding, open routing, and session restore
 - `src/app/App.hpp` — `IWindowController::restoreTrackedInstanceTitle()`, `allowClose` for dirty guards
 
 Canvas GPU path (`syncTexture`): recreate the streaming texture only when missing or size-changed; upload CPU pixels only while `m_textureDirty` is set by paint/undo/load/resize.
