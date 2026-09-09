@@ -1,5 +1,9 @@
 # Changelog
 
+## 2026-09: Native-size Settings text
+
+- Settings information and footer text now render at native size and clip at their panel boundaries instead of being horizontally squeezed.
+
 ## 2026-09: Native-size window titles
 
 - Long window titles now render at native text size and clip before the title-bar controls instead of being horizontally squeezed.

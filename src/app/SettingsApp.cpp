@@ -22,14 +22,33 @@ bool pointInRect(int x, int y, const SDL_Rect& rect) {
 }
 
 void drawLabel(SDL_Renderer* renderer, TTF_Font* font, const char* text,
-               SDL_Color color, int screenX, int screenY) {
+               SDL_Color color, int screenX, int screenY,
+               const SDL_Rect* clip = nullptr) {
     if (!font || !text) return;
     SDL_Surface* surf = TTF_RenderUTF8_Blended(font, text, color);
     if (!surf) return;
     SDL_Texture* tex = SDL_CreateTextureFromSurface(renderer, surf);
     if (tex) {
         SDL_Rect dst = {screenX, screenY, surf->w, surf->h};
-        SDL_RenderCopy(renderer, tex, nullptr, &dst);
+        if (clip) {
+            SDL_Rect previousClip{};
+            SDL_RenderGetClipRect(renderer, &previousClip);
+            const bool hadPreviousClip = previousClip.w > 0 && previousClip.h > 0;
+            SDL_Rect effectiveClip = *clip;
+            const bool hasEffectiveClip = !hadPreviousClip
+                || SDL_IntersectRect(&previousClip, clip, &effectiveClip);
+            if (hasEffectiveClip && effectiveClip.w > 0 && effectiveClip.h > 0) {
+                SDL_RenderSetClipRect(renderer, &effectiveClip);
+                SDL_RenderCopy(renderer, tex, nullptr, &dst);
+            }
+            if (hadPreviousClip) {
+                SDL_RenderSetClipRect(renderer, &previousClip);
+            } else {
+                SDL_RenderSetClipRect(renderer, nullptr);
+            }
+        } else {
+            SDL_RenderCopy(renderer, tex, nullptr, &dst);
+        }
         SDL_DestroyTexture(tex);
     }
     SDL_FreeSurface(surf);
@@ -541,6 +560,12 @@ int SettingsApp::renderInfoLines(SDL_Renderer* renderer, const SDL_Rect& content
     SDL_Color labelCol  = {200, 200, 210, 255};
     SDL_Color valueCol  = {230, 230, 240, 255};
     SDL_Color dimCol    = {160, 160, 170, 255};
+    const SDL_Rect infoClip = {
+        contentRect.x + kPadX,
+        contentRect.y,
+        std::max(0, contentRect.w - kPadX * 2),
+        scrollAreaHeight()
+    };
 
     for (const auto& line : m_lines) {
         if (line.label.empty() && !line.value.empty()) {
@@ -553,16 +578,8 @@ int SettingsApp::renderInfoLines(SDL_Renderer* renderer, const SDL_Rect& content
             }
 
             if (isHeader) {
-                SDL_Surface* s = TTF_RenderUTF8_Blended(m_font, line.value.c_str(), headerCol);
-                if (s) {
-                    SDL_Texture* t = SDL_CreateTextureFromSurface(renderer, s);
-                    if (t) {
-                        SDL_Rect dst = {contentRect.x + kPadX, contentRect.y + y, s->w, s->h};
-                        SDL_RenderCopy(renderer, t, nullptr, &dst);
-                        SDL_DestroyTexture(t);
-                    }
-                    SDL_FreeSurface(s);
-                }
+                drawLabel(renderer, m_font, line.value.c_str(), headerCol,
+                          contentRect.x + kPadX, contentRect.y + y, &infoClip);
                 y += kLineH + 2;
                 SDL_SetRenderDrawColor(renderer, 70, 70, 80, 255);
                 SDL_RenderDrawLine(renderer,
@@ -572,19 +589,8 @@ int SettingsApp::renderInfoLines(SDL_Renderer* renderer, const SDL_Rect& content
                     contentRect.y + y - 2);
                 y += 4;
             } else {
-                SDL_Surface* s = TTF_RenderUTF8_Blended(m_font, line.value.c_str(), dimCol);
-                if (s) {
-                    SDL_Texture* t = SDL_CreateTextureFromSurface(renderer, s);
-                    if (t) {
-                        SDL_Rect dst = {contentRect.x + kPadX, contentRect.y + y, s->w, s->h};
-                        if (dst.x + dst.w > contentRect.x + contentRect.w - kPadX) {
-                            dst.w = contentRect.x + contentRect.w - kPadX - dst.x;
-                        }
-                        SDL_RenderCopy(renderer, t, nullptr, &dst);
-                        SDL_DestroyTexture(t);
-                    }
-                    SDL_FreeSurface(s);
-                }
+                drawLabel(renderer, m_font, line.value.c_str(), dimCol,
+                          contentRect.x + kPadX, contentRect.y + y, &infoClip);
                 y += kLineH;
             }
             continue;
@@ -596,39 +602,23 @@ int SettingsApp::renderInfoLines(SDL_Renderer* renderer, const SDL_Rect& content
         }
 
         std::string left = line.label + ":";
-        SDL_Surface* lab = TTF_RenderUTF8_Blended(m_font, left.c_str(), labelCol);
-        SDL_Surface* val = TTF_RenderUTF8_Blended(m_font, line.value.c_str(), valueCol);
+        int labelTextH = kLineH;
+        TTF_SizeUTF8(m_font, left.c_str(), nullptr, &labelTextH);
+        const int textY = y + (kLineH - labelTextH) / 2;
+        const int labelX = contentRect.x + kPadX;
+        const int valueX = labelX + 140;
+        const SDL_Rect labelClip = {labelX, contentRect.y, 140, scrollAreaHeight()};
+        const SDL_Rect valueClip = {
+            valueX,
+            contentRect.y,
+            std::max(0, contentRect.x + contentRect.w - kPadX - valueX),
+            scrollAreaHeight()
+        };
 
-        int textY = y + (kLineH - (lab ? lab->h : kLineH)) / 2;
-
-        if (lab) {
-            SDL_Texture* t = SDL_CreateTextureFromSurface(renderer, lab);
-            if (t) {
-                SDL_Rect dst = {contentRect.x + kPadX, contentRect.y + textY, lab->w, lab->h};
-                SDL_RenderCopy(renderer, t, nullptr, &dst);
-                SDL_DestroyTexture(t);
-            }
-            SDL_FreeSurface(lab);
-        }
-
-        if (val) {
-            SDL_Texture* t = SDL_CreateTextureFromSurface(renderer, val);
-            if (t) {
-                int labelWidth = 140;
-                SDL_Rect dst = {
-                    contentRect.x + kPadX + labelWidth,
-                    contentRect.y + textY,
-                    val->w,
-                    val->h
-                };
-                if (dst.x + dst.w > contentRect.x + contentRect.w - kPadX) {
-                    dst.w = contentRect.x + contentRect.w - kPadX - dst.x;
-                }
-                SDL_RenderCopy(renderer, t, nullptr, &dst);
-                SDL_DestroyTexture(t);
-            }
-            SDL_FreeSurface(val);
-        }
+        drawLabel(renderer, m_font, left.c_str(), labelCol,
+                  labelX, contentRect.y + textY, &labelClip);
+        drawLabel(renderer, m_font, line.value.c_str(), valueCol,
+                  valueX, contentRect.y + textY, &valueClip);
 
         y += kLineH;
     }
@@ -641,21 +631,17 @@ void SettingsApp::renderFooter(SDL_Renderer* renderer, const SDL_Rect& contentRe
 
     SDL_Color dimCol = {160, 160, 170, 255};
     const char* hint = "Changes take effect immediately.";
-    SDL_Surface* s = TTF_RenderUTF8_Blended(m_font, hint, dimCol);
-    if (!s) return;
-
-    SDL_Texture* t = SDL_CreateTextureFromSurface(renderer, s);
-    if (t) {
-        int hx = contentRect.x + kPadX;
-        int hy = contentRect.y + m_clientHeight - s->h - 8;
-        SDL_Rect dst = {hx, hy, s->w, s->h};
-        if (dst.x + dst.w > contentRect.x + contentRect.w - kPadX) {
-            dst.w = (contentRect.x + contentRect.w - kPadX) - dst.x;
-        }
-        SDL_RenderCopy(renderer, t, nullptr, &dst);
-        SDL_DestroyTexture(t);
-    }
-    SDL_FreeSurface(s);
+    int hintH = kLineH;
+    if (TTF_SizeUTF8(m_font, hint, nullptr, &hintH) != 0) return;
+    const int hx = contentRect.x + kPadX;
+    const int hy = contentRect.y + m_clientHeight - hintH - 8;
+    const SDL_Rect footerClip = {
+        contentRect.x + kPadX,
+        contentRect.y + m_clientHeight - kFooterHeight,
+        std::max(0, contentRect.w - kPadX * 2),
+        kFooterHeight
+    };
+    drawLabel(renderer, m_font, hint, dimCol, hx, hy, &footerClip);
 
     const int separatorY = m_clientHeight - kFooterHeight;
     SDL_SetRenderDrawColor(renderer, 55, 55, 62, 255);

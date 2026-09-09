@@ -415,6 +415,7 @@ When unspecified, choose:
 | 2026-09-09 | cleanup | Kept Filesystem Browser path and status labels at native size with regional clipping; CURRENT_CHUNK remains 7.1 |
 | 2026-09-09 | docs | Added a Drawing status-bar and recovery reference for prompts, completion misses, invalid input, and failed file operations; CURRENT_CHUNK remains 7.1 |
 | 2026-09-09 | cleanup | Kept window title labels at native size and clipped them before title-bar controls; CURRENT_CHUNK remains 7.1 |
+| 2026-09-09 | cleanup | Kept Settings information and footer text at native size with panel clipping; CURRENT_CHUNK remains 7.1 |
 
 ---
 

@@ -61,6 +61,8 @@ Below the appearance controls, Settings shows read-only details:
 - Development status reminder
 - Hint to use the Start menu or taskbar to launch apps
 
+Long information labels, values, and the footer stay at their normal text size. If a Settings window is too narrow to show all of a string, the excess is clipped at the panel boundary instead of being stretched.
+
 ## Current Limitations
 
 - Desktop background color uses six presets only (no custom RGB picker).
