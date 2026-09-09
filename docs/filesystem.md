@@ -51,6 +51,7 @@ The `monolith::fs::Filesystem` class provides:
 - `readFile`, `writeFile`, `fileSize`
 - `copyRecursive` (file or directory tree; blocks copy into self/descendant)
 - `copyItemsInto` (multi-source paste into a directory, via `copyRecursive`)
+- `moveItemsInto` (multi-source cut/paste into a directory, via non-overwriting rename)
 - `list`, `listEntries` (typed entries for the graphical browser)
 - `filterEntries` / `entryNameMatches` (case-insensitive name search)
 - `isValidEntryName` (rejects empty, `.`, `..`, and names containing `/`)
@@ -65,6 +66,7 @@ Implementation: `src/fs/Filesystem.hpp`, `src/fs/Filesystem.cpp`.
 | `removeRecursive(path)` | Deletes a file or whole directory tree (children first). Refuses virtual root `/`. |
 | `copyRecursive(src, dst)` | Copies a file or tree; creates destination directories as needed. Fails if `dst` is the same as or under `src`. |
 | `copyItemsInto(srcs, destDir)` | Copies each source into `destDir` under its basename (uses `copyRecursive`). Skips existing names, self-copy, and invalid names. Returns the count copied. |
+| `moveItemsInto(srcs, destDir)` | Moves each source into `destDir` under its basename. Uses non-overwriting rename, so existing destination names leave their original sources untouched. Returns the count moved. |
 | `renameEntry(dir, old, new)` | Renames one entry in `dir`. Rejects names that fail `isValidEntryName` (including `/`). |
 | `filterEntries(entries, query)` | Case-insensitive substring filter on entry names. Empty query returns all. |
 | `isSameOrDescendant(a, p)` | True when `p` is `a` or a path under `a` (after normalize). |

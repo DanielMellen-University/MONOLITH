@@ -1,5 +1,10 @@
 # Changelog
 
+## 2026-09: Safe multi-item cut/paste
+
+- Filesystem Browser cut/paste now moves sources through a shared non-overwriting rename operation.
+- When one destination name conflicts during a multi-item paste, only successful moves complete; conflicting originals are preserved.
+
 ## 2026-09: Consistent Drawing extension routing
 
 - `.modr` matching is now case-insensitive across shell open-with routing, Drawing save/open, tab completion, Terminal status text, and Filesystem Browser default open.

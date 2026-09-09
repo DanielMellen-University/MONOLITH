@@ -92,6 +92,14 @@ public:
     int copyItemsInto(const std::vector<std::string>& srcVirtualPaths,
                       const std::string& destDirVirtualPath);
 
+    /**
+     * Moves each source path into `destDirVirtualPath` under its basename.
+     * Uses non-overwriting renames, so conflicting sources remain untouched.
+     * Returns the number of items successfully moved.
+     */
+    int moveItemsInto(const std::vector<std::string>& srcVirtualPaths,
+                      const std::string& destDirVirtualPath);
+
     /** Last path component after normalize. Empty string for "/". */
     std::string baseName(const std::string& virtualPath) const;
 

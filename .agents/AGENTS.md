@@ -377,6 +377,7 @@ When unspecified, choose:
 | 2026-09-09 | cleanup | Hardened zero-byte Filesystem reads and added regression coverage; CURRENT_CHUNK remains 7.1 |
 | 2026-09-09 | cleanup | Quoted session file paths and added a headless legacy/round-trip check; CURRENT_CHUNK remains 7.1 |
 | 2026-09-09 | cleanup | Centralized case-insensitive `.modr` matching across Drawing and shell routing; CURRENT_CHUNK remains 7.1 |
+| 2026-09-09 | cleanup | Fixed multi-item cut/paste so destination conflicts never delete original sources; CURRENT_CHUNK remains 7.1 |
 
 ---
 

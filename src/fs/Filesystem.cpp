@@ -220,6 +220,28 @@ int Filesystem::copyItemsInto(const std::vector<std::string>& srcVirtualPaths,
     return copied;
 }
 
+int Filesystem::moveItemsInto(const std::vector<std::string>& srcVirtualPaths,
+                              const std::string& destDirVirtualPath) {
+    const std::string destDir = normalize(destDirVirtualPath);
+    if (!isDirectory(destDir)) return 0;
+
+    int moved = 0;
+    for (const auto& srcRaw : srcVirtualPaths) {
+        const std::string src = normalize(srcRaw);
+        if (!exists(src)) continue;
+
+        const std::string name = baseName(src);
+        if (!isValidEntryName(name)) continue;
+
+        const std::string dest = join(destDir, name);
+        if (src == dest || isSameOrDescendant(src, dest) || exists(dest)) continue;
+        if (rename(src, dest)) {
+            ++moved;
+        }
+    }
+    return moved;
+}
+
 bool Filesystem::entryNameMatches(const std::string& name, const std::string& query) {
     if (query.empty()) return true;
     auto lower = [](std::string s) {

@@ -70,6 +70,17 @@ int main() {
     check(fs.fileSize("/dst/empty.txt", copiedEmptySize) && copiedEmptySize == 0,
           "copied empty file remains zero bytes");
 
+    check(fs.writeFile("/src/move.txt", "move me"), "write move source");
+    check(fs.writeFile("/src/conflict.txt", "keep source"), "write conflicting source");
+    check(fs.writeFile("/dst/conflict.txt", "keep destination"), "write conflicting destination");
+    const int moved = fs.moveItemsInto({"/src/move.txt", "/src/conflict.txt"}, "/dst");
+    check(moved == 1, "moveItemsInto moves only non-conflicting source");
+    check(!fs.exists("/src/move.txt") && fs.readFile("/dst/move.txt") == "move me",
+          "moved source leaves destination content");
+    check(fs.readFile("/src/conflict.txt") == "keep source"
+              && fs.readFile("/dst/conflict.txt") == "keep destination",
+          "conflicting source and destination remain intact");
+
     // Same-folder / existing dest should not overwrite.
     const int copiedAgain = fs.copyItemsInto({"/src/a.txt"}, "/dst");
     check(copiedAgain == 0, "copyItemsInto skips existing dest name");

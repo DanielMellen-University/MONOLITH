@@ -375,21 +375,21 @@ void FilesystemApp::pasteFromClipboard() {
         return;
     }
 
-    const int copied = m_fs->copyItemsInto(sources, m_currentPath);
     const bool wasCut = clipboardIsCut;
+    std::vector<std::string> candidateNames;
+    candidateNames.reserve(sources.size());
+    for (const auto& src : sources) {
+        const std::string name = m_fs->baseName(src);
+        const std::string dest = fullPathFor(name);
+        if (src == dest || m_fs->isSameOrDescendant(src, dest) || m_fs->exists(dest)) continue;
+        candidateNames.push_back(name);
+    }
+    const int copied = wasCut
+        ? m_fs->moveItemsInto(sources, m_currentPath)
+        : m_fs->copyItemsInto(sources, m_currentPath);
 
     if (wasCut && copied > 0) {
-        int removed = 0;
-        for (const auto& src : sources) {
-            const std::string dest = fullPathFor(m_fs->baseName(src));
-            if (src == dest) continue;
-            if (!m_fs->exists(dest)) continue;
-            if (m_fs->removeRecursive(src)) {
-                ++removed;
-            }
-        }
         clearClipboard();
-        (void)removed;
     }
 
     refreshEntries();
@@ -398,9 +398,19 @@ void FilesystemApp::pasteFromClipboard() {
         return;
     }
     if (copied == 1) {
-        const std::string name = m_fs->baseName(sources.front());
-        selectEntryNamed(name, m_fs->isDirectory(fullPathFor(name)));
-        setStatus(wasCut ? ("Moved: " + name) : ("Pasted: " + name));
+        std::string name;
+        for (const auto& candidate : candidateNames) {
+            if (m_fs->exists(fullPathFor(candidate))) {
+                name = candidate;
+                break;
+            }
+        }
+        if (!name.empty()) {
+            selectEntryNamed(name, m_fs->isDirectory(fullPathFor(name)));
+            setStatus((wasCut ? "Moved: " : "Pasted: ") + name);
+        } else {
+            setStatus(wasCut ? "Moved 1 item" : "Pasted 1 item");
+        }
     } else {
         setStatus(wasCut
             ? ("Moved: " + std::to_string(copied) + " items")
