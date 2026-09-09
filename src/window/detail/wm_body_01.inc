@@ -85,16 +85,20 @@ void WindowManager::handleEvent(const SDL_Event& event) {
         m_mouseX = event.motion.x;
         m_mouseY = event.motion.y;
 
-        // Forward motion to the focused window's app if the pointer is in its content area.
-        // Do NOT forward while the Start menu is open (the popup owns input in its area
-        // and we don't want buried apps to see hovers/motion under the menu).
-        if (m_focusedWindow && m_focusedWindow->app && !m_focusedWindow->minimized && !m_showStartMenu) {
+        // While a client owns the left-button press, keep sending motion to it even
+        // outside its content area so drag tools can finish cleanly on release.
+        Window* motionWindow = (m_mouseDown && m_mouseCaptureWindow)
+            ? m_mouseCaptureWindow
+            : m_focusedWindow;
+        const bool capturedMotion = motionWindow && motionWindow == m_mouseCaptureWindow;
+        if (motionWindow && motionWindow->app && !motionWindow->minimized
+            && (capturedMotion || !m_showStartMenu)) {
             const int logicalX = screenToLogicalX(m_mouseX);
             const int logicalY = screenToLogicalY(m_mouseY);
-            if (isInContentArea(*m_focusedWindow, logicalX, logicalY)) {
+            if (capturedMotion || isInContentArea(*motionWindow, logicalX, logicalY)) {
                 SDL_Event clientEvent = event;
-                translateMouseEventToClient(*m_focusedWindow, clientEvent);
-                m_focusedWindow->app->handleEvent(clientEvent);
+                translateMouseEventToClient(*motionWindow, clientEvent);
+                motionWindow->app->handleEvent(clientEvent);
             }
         }
     }
@@ -112,6 +116,9 @@ void WindowManager::handleEvent(const SDL_Event& event) {
 
     // === Global UI first: Taskbar + Start Menu (must be checked even if click misses all windows) ===
     if (event.type == SDL_MOUSEBUTTONDOWN && event.button.button == SDL_BUTTON_LEFT) {
+        if (!m_mouseDown) {
+            m_mouseCaptureWindow = nullptr;
+        }
         m_mouseDown = true;
         m_mouseX = event.button.x;
         m_mouseY = event.button.y;

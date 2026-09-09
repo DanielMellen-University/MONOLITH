@@ -76,6 +76,12 @@ Headless test of scaled WindowManager hit testing, drag math, resize edges, and 
 g++ -std=c++23 scripts/test_window_coordinates.cpp src/window/WindowManager.cpp src/app/*.cpp src/fs/Filesystem.cpp src/settings/DesktopSettings.cpp $(pkg-config --cflags --libs sdl2 SDL2_ttf) -o build/test_window_coordinates && ./build/test_window_coordinates
 ```
 
+Headless test of WindowManager client mouse capture across focus changes and pointer exit:
+
+```bash
+g++ -std=c++23 scripts/test_window_mouse_capture.cpp src/window/WindowManager.cpp src/app/*.cpp src/fs/Filesystem.cpp src/settings/DesktopSettings.cpp $(pkg-config --cflags --libs sdl2 SDL2_ttf) -o build/test_window_mouse_capture && ./build/test_window_mouse_capture
+```
+
 ## `.modr` Format Roundtrip
 
 Compiles and runs a standalone test of the Drawing raster file format:

@@ -48,6 +48,9 @@
         // Forward to the app (if any), with coordinates translated to the app's local space.
         if (isInContentArea(*clicked, eventLogicalX, eventLogicalY)) {
             if (clicked->app) {
+                if (!m_mouseCaptureWindow) {
+                    m_mouseCaptureWindow = clicked;
+                }
                 SDL_Event clientEvent = event;
                 translateMouseEventToClient(*clicked, clientEvent);
                 clicked->app->handleEvent(clientEvent);
@@ -92,9 +95,15 @@
             m_resizeDirection = ResizeDirection::None;
         }
 
-        // Forward mouse-up to the focused app (needed for drawing and other drag-release flows).
-        // Always deliver to the focused window so releases outside the client rect still end drags.
-        if (m_focusedWindow && m_focusedWindow->app && !m_focusedWindow->minimized && !m_showStartMenu) {
+        // Forward release to the client that received the press. This is a small
+        // pointer-capture rule: focus and pointer location may have changed since down.
+        Window* releaseWindow = m_mouseCaptureWindow;
+        m_mouseCaptureWindow = nullptr;
+        if (releaseWindow && releaseWindow->app) {
+            SDL_Event clientEvent = event;
+            translateMouseEventToClient(*releaseWindow, clientEvent);
+            releaseWindow->app->handleEvent(clientEvent);
+        } else if (m_focusedWindow && m_focusedWindow->app && !m_focusedWindow->minimized && !m_showStartMenu) {
             SDL_Event clientEvent = event;
             translateMouseEventToClient(*m_focusedWindow, clientEvent);
             m_focusedWindow->app->handleEvent(clientEvent);

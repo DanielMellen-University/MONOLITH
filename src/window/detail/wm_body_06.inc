@@ -190,6 +190,7 @@ void WindowManager::closeWindow(Window* window) {
 
         if (m_focusedWindow == window) m_focusedWindow = nullptr;
         if (m_draggedWindow == window) m_draggedWindow = nullptr;
+        if (m_mouseCaptureWindow == window) m_mouseCaptureWindow = nullptr;
         if (m_resizingWindow == window) {
             m_resizingWindow = nullptr;
             m_resizeDirection = ResizeDirection::None;
@@ -269,4 +270,3 @@ void WindowManager::clampSingleWindow(Window& w) {
     if (r.y + titleH > desktopBottom) {
         r.y = desktopBottom - titleH;
     }
-

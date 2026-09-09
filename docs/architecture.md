@@ -128,6 +128,7 @@ Apps can request shell actions through `IWindowController`: `close()`, `setTitle
 - **Shell hotkeys** are handled first (and not forwarded to apps): **Alt+Tab** / **Alt+Shift+Tab** cycles focused windows (minimized ones restore; a title overlay stays up until Alt is released); **Ctrl+Escape** toggles the Start menu.
 - The Window Manager performs hit testing to determine which window (and which part of the window) should receive the event.
 - Screen-space mouse events are converted to logical desktop pixels once at the shell boundary before window hit testing, drag/resize math, or client-area forwarding.
+- A client that receives a left-button press keeps receiving matching motion and release events until that button is released, even if the pointer leaves the window or focus changes. This keeps drag interactions such as Drawing strokes from getting stuck.
 - Window frame interactions (dragging, resizing, buttons) are handled by the Window Manager.
 - Client area events are forwarded to the active application.
 
@@ -153,7 +154,7 @@ Native C++ apps render into window client areas and are launched via shell metho
 
 **Shell coordination:** Apps use `IWindowController` for close, titles, open/openPath, file bindings, shared virtual filesystem clipboard, desktop color, wallpaper path, clock format, and interface text scale. Settings persists these preferences to `~/.monolith/desktop_settings.txt`. Session layout persists to `~/.monolith/session.txt` via `WindowManager::saveSession` / `loadSession` (wired from `main`).
 
-**Input note:** The Window Manager forwards `SDL_MOUSEBUTTONUP` to the focused app's client area so drag interactions (e.g. Drawing strokes) end cleanly when the mouse is released outside the window.
+**Input note:** The Window Manager captures the client that receives `SDL_MOUSEBUTTONDOWN` and forwards matching motion and `SDL_MOUSEBUTTONUP` events to that same client, so drag interactions (e.g. Drawing strokes) end cleanly when the mouse leaves or focus changes.
 
 **Close note:** Before destroying a window, the shell calls `App::allowClose()`. Apps may return false once to warn about unsaved work (second close discards). Default is always allow.
 

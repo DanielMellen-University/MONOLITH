@@ -1,5 +1,10 @@
 # Changelog
 
+## 2026-09: Reliable client mouse release
+
+- Client apps now retain left-button motion and release routing for an active drag, even when the pointer leaves the window or focus changes.
+- Closing a captured window clears the capture safely.
+
 ## 2026-09: Scale-aware window input
 
 - Window hit testing, title-bar interaction, dragging, resizing, and client mouse coordinates now convert screen pixels to logical desktop pixels consistently.

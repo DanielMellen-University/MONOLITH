@@ -179,6 +179,9 @@ private:
     int m_mouseX = 0;
     int m_mouseY = 0;
     bool m_mouseDown = false;
+    // Client window that received the active left-button press, if any.
+    // Its release must be delivered even if focus changes or the pointer leaves it.
+    Window* m_mouseCaptureWindow = nullptr;
 
     // Font used for window titles (not owned by WindowManager)
     TTF_Font* m_font = nullptr;
