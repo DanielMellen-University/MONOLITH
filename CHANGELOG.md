@@ -1,5 +1,10 @@
 # Changelog
 
+## 2026-09: Verified Filesystem file copies
+
+- Recursive file copies now verify the source size and complete read before writing the destination, preventing read failures from becoming empty files.
+- Filesystem documentation now reflects Terminal quoting and all persisted desktop settings.
+
 ## 2026-09: Native-size Text Editor status prompts
 
 - Long Find, Replace, Open, Save, and Go-to-line prompts now clip at native text size and keep the active caret visible.

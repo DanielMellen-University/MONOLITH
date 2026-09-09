@@ -136,7 +136,11 @@ bool Filesystem::copyRecursive(const std::string& srcVirtualPath, const std::str
     if (isSameOrDescendant(src, dst)) return false;
 
     if (isFile(src)) {
-        return writeFile(dst, readFile(src));
+        std::uint64_t expectedBytes = 0;
+        if (!fileSize(src, expectedBytes)) return false;
+        const std::string content = readFile(src);
+        if (content.size() != expectedBytes) return false;
+        return writeFile(dst, content);
     }
     if (!isDirectory(src)) {
         return false;
