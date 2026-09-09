@@ -37,6 +37,20 @@ Drawing has no separate file-picker or modal prompt. Save, Open, and custom RGB 
 
 The canvas is a raster surface. It fills the space between the toolbar and the status bar, and its pixel dimensions follow the Drawing window's client area. Resizing the window preserves the existing pixels from the top-left corner and clears undo/redo history for the new canvas size.
 
+## Keyboard-First Reference
+
+| Intent | Shortcut | Result |
+|--------|----------|--------|
+| Save | **Ctrl+S** | Saves the current file, or opens the Save path prompt for a new sketch. |
+| Open | **Ctrl+O** | Opens the `.modr` path prompt. |
+| New | **Ctrl+N** | Starts a blank sketch after the dirty-sketch confirmation, if needed. |
+| Undo | **Ctrl+Z** | Restores the previous canvas snapshot. |
+| Redo | **Ctrl+Y** or **Ctrl+Shift+Z** | Restores the next canvas snapshot. |
+| Complete a path | **Tab** | Completes a directory or `.modr` filename while Save, Open, or RGB input is active. |
+| Confirm or cancel | **Enter** / **Esc** | Accepts or abandons the active status-bar prompt. |
+
+The status bar is the active prompt whenever Drawing asks for a path or RGB value. Keep the pointer in the canvas for painting; keyboard shortcuts are handled by the Drawing window while no prompt is active.
+
 ## First Session Walkthrough
 
 ### Create And Save A Sketch

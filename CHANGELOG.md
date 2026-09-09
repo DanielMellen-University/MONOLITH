@@ -1,5 +1,9 @@
 # Changelog
 
+## 2026-09: Add Drawing keyboard reference
+
+- Added a compact shortcut table and prompt-focus guidance to the Drawing app documentation.
+
 ## 2026-09: Reset omitted desktop settings on reload
 
 - Loading a valid partial or legacy desktop settings file now starts from defaults instead of retaining fields from a previous snapshot.
