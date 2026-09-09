@@ -1,5 +1,9 @@
 # Changelog
 
+## 2026-09: Native-size Filesystem chrome
+
+- Filesystem Browser paths and status messages now stay at native text size and clip within their own regions instead of being horizontally squeezed.
+
 ## 2026-09: Clamp restored windows before focus
 
 - Reopening a minimized Editor or Drawing window now re-applies desktop geometry clamping before showing it, keeping stale session rectangles above the taskbar and inside the desktop bounds.

@@ -19,6 +19,8 @@ The window has four regions:
 3. **List view** — directories (`▶`) and files (`•`), sorted with directories first and names case-insensitively
 4. **Status bar** — feedback messages for actions
 
+Long paths and status messages stay at the font's native size and clip at their region's edge. The browser does not horizontally squeeze text to fit a narrow window.
+
 ## Navigation
 
 - **Double-click** a directory to enter it.

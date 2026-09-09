@@ -1070,13 +1070,22 @@ void FilesystemApp::drawPathBar(SDL_Renderer* r, const SDL_Rect& contentRect, in
         if (surf) {
             SDL_Texture* tex = SDL_CreateTextureFromSurface(r, surf);
             if (tex) {
+                const int pathVisibleWidth = std::max(1, contentRect.w - filterBoxW - 24);
+                SDL_Rect pathClip = {
+                    contentRect.x + 10,
+                    contentRect.y,
+                    pathVisibleWidth,
+                    kPathBarHeight
+                };
+                SDL_RenderSetClipRect(r, &pathClip);
                 SDL_Rect dst = {
                     contentRect.x + 10,
                     contentRect.y + (kPathBarHeight - surf->h) / 2,
-                    std::min(surf->w, contentRect.w - filterBoxW - 24),
+                    surf->w,
                     surf->h
                 };
                 SDL_RenderCopy(r, tex, nullptr, &dst);
+                SDL_RenderSetClipRect(r, nullptr);
                 SDL_DestroyTexture(tex);
             }
             SDL_FreeSurface(surf);
@@ -1624,13 +1633,22 @@ void FilesystemApp::drawStatusBar(SDL_Renderer* r, const SDL_Rect& contentRect) 
     if (surf) {
         SDL_Texture* tex = SDL_CreateTextureFromSurface(r, surf);
         if (tex) {
+            const int visibleWidth = std::max(1, contentRect.w - 20);
+            SDL_Rect statusClip = {
+                contentRect.x + 10,
+                bar.y,
+                visibleWidth,
+                bar.h
+            };
+            SDL_RenderSetClipRect(r, &statusClip);
             SDL_Rect dst = {
                 contentRect.x + 10,
                 bar.y + (kStatusBarHeight - surf->h) / 2,
-                std::min(surf->w, contentRect.w - 20),
+                surf->w,
                 surf->h
             };
             SDL_RenderCopy(r, tex, nullptr, &dst);
+            SDL_RenderSetClipRect(r, nullptr);
             SDL_DestroyTexture(tex);
         }
         SDL_FreeSurface(surf);
