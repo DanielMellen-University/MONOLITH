@@ -45,6 +45,8 @@ The **APPEARANCE** section at the top lets you change live desktop preferences.
 
 Scroll with the mouse wheel or Page Up/Down if the window is resized smaller. Background, wallpaper path, clock, and interface text choices are saved to `~/.monolith/desktop_settings.txt` and restored on the next launch. Malformed persisted values are ignored so defaults remain intact; omitted values in a valid legacy file use their defaults.
 
+The settings file accepts both Unix and Windows line endings, so copying it between systems does not add a hidden carriage return to a wallpaper path or other value.
+
 ## Information Panel
 
 Below the appearance controls, Settings shows read-only details:

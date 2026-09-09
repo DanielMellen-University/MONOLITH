@@ -80,6 +80,23 @@ int main() {
     check(strictBackground.r == 25 && strictBackground.g == 25 && strictBackground.b == 30,
           "malformed RGB leaves the default background intact");
 
+    {
+        std::ofstream windows(path, std::ios::trunc | std::ios::binary);
+        windows << "desktop_background=18,24,42\r\n"
+                << "wallpaper_path=/Wallpapers/sample.bmp\r\n"
+                << "clock_24_hour=1\r\n"
+                << "ui_scale_percent=115\r\n";
+    }
+    DesktopSettings windowsLineEndings;
+    check(windowsLineEndings.loadFromHostPath(path.string()),
+          "load CRLF settings file");
+    const auto windowsBackground = windowsLineEndings.desktopBackground();
+    check(windowsBackground.r == 18 && windowsBackground.g == 24 && windowsBackground.b == 42
+              && windowsLineEndings.wallpaperPath() == "/Wallpapers/sample.bmp"
+              && windowsLineEndings.clock24Hour()
+              && windowsLineEndings.uiScalePercent() == 115,
+          "CRLF settings preserve every persisted value");
+
     std::filesystem::remove(path, ec);
     if (failures == 0) {
         std::cout << "ALL DESKTOP SETTINGS TESTS PASSED\n";

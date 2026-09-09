@@ -1,5 +1,10 @@
 # Changelog
 
+## 2026-09: Read CRLF desktop settings
+
+- Desktop settings now strip carriage returns while loading, so CRLF files preserve wallpaper, clock, scale, and color values.
+- Added persistence coverage for Windows-style line endings.
+
 ## 2026-09: Preserve empty Text Editor files
 
 - Opening a zero-byte file now creates one editable blank line instead of an extra phantom line.

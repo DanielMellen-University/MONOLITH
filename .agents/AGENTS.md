@@ -453,6 +453,7 @@ When unspecified, choose:
 | 2026-09-09 | cleanup | Cleared canceled dirty-Open confirmations in Text Editor and Drawing; extended both app-state checks; CURRENT_CHUNK remains 7.1 |
 | 2026-09-09 | docs | Documented Drawing close and shutdown guards, session restore, file singleton routing, and implementation boundaries; CURRENT_CHUNK remains 7.1 |
 | 2026-09-09 | cleanup | Fixed zero-byte Text Editor files opening with an extra blank line; added state coverage; CURRENT_CHUNK remains 7.1 |
+| 2026-09-09 | cleanup | Made DesktopSettings accept CRLF files and added persistence coverage; CURRENT_CHUNK remains 7.1 |
 
 ---
 

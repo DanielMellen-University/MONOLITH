@@ -61,6 +61,8 @@ bool DesktopSettings::loadFromHostPath(const std::string& hostPath) {
     bool loadedAny = false;
     std::string line;
     while (std::getline(in, line)) {
+        if (!line.empty() && line.back() == '\r') line.pop_back();
+
         const std::string bgKey = "desktop_background=";
         if (line.rfind(bgKey, 0) == 0) {
             RGB parsed;
