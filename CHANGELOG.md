@@ -1,5 +1,10 @@
 # Changelog
 
+## 2026-09: Reset Filesystem delete confirmation on selection changes
+
+- Ctrl-click and Shift-range selection changes now cancel an armed delete confirmation before the selection can change.
+- Extended Filesystem Browser state coverage for both selection paths.
+
 ## 2026-09: Stabilize Text Editor Replace All
 
 - Replace All now processes each original match once, even when replacement text contains the search text.

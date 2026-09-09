@@ -233,6 +233,9 @@ int FilesystemApp::primarySelectedIndex() const {
 
 void FilesystemApp::toggleSelection(int index) {
     if (index < 0 || index >= static_cast<int>(m_entries.size())) return;
+    if (m_confirmingDelete) {
+        cancelPendingDelete();
+    }
     if (m_selectedSet.count(index)) {
         m_selectedSet.erase(index);
         if (m_selectedIndex == index) {
@@ -247,6 +250,9 @@ void FilesystemApp::toggleSelection(int index) {
 
 void FilesystemApp::selectRange(int fromIndex, int toIndex) {
     if (m_entries.empty()) return;
+    if (m_confirmingDelete) {
+        cancelPendingDelete();
+    }
     fromIndex = std::clamp(fromIndex, 0, static_cast<int>(m_entries.size()) - 1);
     toIndex = std::clamp(toIndex, 0, static_cast<int>(m_entries.size()) - 1);
     if (fromIndex > toIndex) std::swap(fromIndex, toIndex);

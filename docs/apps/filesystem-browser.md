@@ -90,7 +90,7 @@ Press **F2** or choose Rename from the context menu. The caret starts at the end
 
 Deleting always requires confirmation (files and non-empty folders):
 
-1. **Toolbar Delete** or **Delete** key: status bar asks to confirm; press **Delete** / **Enter** again to remove, or **Esc** to cancel. Changing selection cancels the pending delete.
+1. **Toolbar Delete** or **Delete** key: status bar asks to confirm; press **Delete** / **Enter** again to remove, or **Esc** to cancel. Any selection change, including Ctrl-click or Shift-range selection, cancels the pending delete.
 2. **Context menu Delete**: submenu with **Confirm Delete** / **Cancel**.
 
 Deletion uses `Filesystem::removeRecursive` (whole directory trees). The virtual root `/` cannot be deleted.

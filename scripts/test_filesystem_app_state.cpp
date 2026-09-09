@@ -79,6 +79,31 @@ int main() {
     text(browser, "b");
     check(browser.m_selectedIndex == 0 && browser.m_entries.front().name == "b.txt",
           "filter restores the selected entry by name");
+    key(browser, SDLK_ESCAPE);
+    check(browser.m_entries.size() == 15, "clear the filter before delete selection coverage");
+
+    check(browser.selectEntryNamed("a.txt", false), "select an item before delete confirmation");
+    browser.requestDeleteSelected();
+    check(browser.m_confirmingDelete, "delete confirmation arms for the selected item");
+    int bIndex = -1;
+    for (size_t i = 0; i < browser.m_entries.size(); ++i) {
+        if (browser.m_entries[i].name == "b.txt") {
+            bIndex = static_cast<int>(i);
+            break;
+        }
+    }
+    check(bIndex >= 0, "find the alternate selection target");
+    if (bIndex >= 0) {
+        browser.toggleSelection(bIndex);
+        check(!browser.m_confirmingDelete,
+              "Ctrl-style selection changes cancel delete confirmation");
+        browser.selectEntryNamed("a.txt", false);
+        browser.requestDeleteSelected();
+        browser.selectRange(0, bIndex);
+        check(!browser.m_confirmingDelete,
+              "range selection changes cancel delete confirmation");
+    }
+    browser.cancelPendingDelete();
 
     check(fs.writeFile("/home/monolith/move_a.txt", "a"), "create first cut source");
     check(fs.writeFile("/home/monolith/move_b.txt", "b"), "create second cut source");
