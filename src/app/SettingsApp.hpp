@@ -51,6 +51,7 @@ private:
     int activeUiScaleIndex() const;
     void applyWallpaperPath();
     void clearWallpaperPath();
+    void completeWallpaperPath();
     int scrollAreaHeight() const;
     int computeContentHeight() const;
     void clampScrollOffset();

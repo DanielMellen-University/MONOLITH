@@ -447,6 +447,7 @@ When unspecified, choose:
 | 2026-09-09 | cleanup | Cleared stale Terminal history navigation after reverse search; added recalled-command coverage; CURRENT_CHUNK remains 7.1 |
 | 2026-09-09 | docs | Added a focused Drawing file-lifecycle reference covering saves, failures, resizing, and dirty-state confirmation; CURRENT_CHUNK remains 7.1 |
 | 2026-09-09 | cleanup | Blocked Filesystem renames into a source subtree or the virtual root; extended the shared roadmap check; CURRENT_CHUNK remains 7.1 |
+| 2026-09-09 | cleanup | Added Tab completion for Settings wallpaper directories and BMP files; added focused state coverage; CURRENT_CHUNK remains 7.1 |
 
 ---
 

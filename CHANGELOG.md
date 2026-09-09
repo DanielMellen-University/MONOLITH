@@ -1,5 +1,10 @@
 # Changelog
 
+## 2026-09: Add wallpaper path completion
+
+- Settings wallpaper editing now completes virtual directories and BMP filenames with Tab, including shared-prefix completion for multiple matches.
+- Added the completion hint to the Settings appearance panel and documented the keyboard behavior.
+
 ## 2026-09: Guard filesystem renames against self-descendants
 
 - Renaming now rejects moving the virtual root or a directory into itself or one of its descendants, preserving the source tree instead of relying on host filesystem behavior.

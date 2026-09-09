@@ -90,6 +90,12 @@ Headless test of desktop preference save/load, UI scale persistence, legacy file
 g++ -std=c++23 scripts/test_desktop_settings.cpp src/settings/DesktopSettings.cpp -o build/test_desktop_settings && ./build/test_desktop_settings
 ```
 
+Headless Settings app test for wallpaper directory/BMP filename completion and shell binding:
+
+```bash
+g++ -std=c++23 scripts/test_settings_app_state.cpp src/app/SettingsApp.cpp src/fs/Filesystem.cpp $(pkg-config --cflags --libs sdl2 SDL2_ttf) -o build/test_settings_app_state && ./build/test_settings_app_state
+```
+
 Headless test of quoted session paths, including spaces and legacy unquoted paths:
 
 ```bash

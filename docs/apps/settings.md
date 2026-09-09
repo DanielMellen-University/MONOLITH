@@ -24,6 +24,7 @@ The **APPEARANCE** section at the top lets you change live desktop preferences.
 
 - Enter a virtual filesystem path to a **BMP** file (for example `/Wallpapers/sample.bmp`) and press **Set**.
 - While the path field is focused, Left/Right/Home/End move the caret, typed text is inserted at the caret, Delete removes the next complete UTF-8 character, and Backspace removes the previous one.
+- Press Tab to complete a directory or BMP filename. With several matches, completion extends the shared prefix; the caret must be in the final path component.
 - Long paths scroll horizontally to keep the caret visible while editing.
 - **Clear** removes the image and returns to solid color only.
 - Empty path means solid color only. Missing or unloadable files fail soft (solid color stays).
@@ -67,7 +68,7 @@ Long information labels, values, and the footer stay at their normal text size. 
 
 - Desktop background color uses six presets only (no custom RGB picker).
 - Wallpaper images are BMP-only (`SDL_LoadBMP`; no SDL_image / PNG / JPEG yet).
-- Path entry is typed (no full file picker dialog yet).
+- Path entry is typed with Tab completion (no full file picker dialog yet).
 - Session restore and other shell prefs are not controlled from Settings (session is automatic via `~/.monolith/session.txt`).
 - Other preferences (keybindings, default paths, taskbar style) are not exposed yet.
 - Shut Down remains a separate Start menu item.

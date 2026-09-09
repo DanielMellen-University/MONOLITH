@@ -1,8 +1,10 @@
 #include "SettingsApp.hpp"
+#include "FilePath.hpp"
 #include "Utf8.hpp"
 
 #include <algorithm>
 #include <cctype>
+#include <vector>
 
 namespace monolith::app {
 
@@ -60,6 +62,22 @@ int measureTextWidth(TTF_Font* font, const char* text) {
     int h = 0;
     if (TTF_SizeUTF8(font, text, &w, &h) != 0) return 0;
     return w;
+}
+
+std::string commonPrefix(const std::vector<std::string>& values) {
+    if (values.empty()) return "";
+
+    std::string common = values.front();
+    for (size_t i = 1; i < values.size(); ++i) {
+        size_t length = 0;
+        while (length < common.size() && length < values[i].size()
+               && common[length] == values[i][length]) {
+            ++length;
+        }
+        common.resize(length);
+        if (common.empty()) break;
+    }
+    return common;
 }
 } // namespace
 
@@ -244,6 +262,60 @@ void SettingsApp::clearWallpaperPath() {
     m_wallpaperFieldFocused = false;
 }
 
+void SettingsApp::completeWallpaperPath() {
+    if (!m_fs || m_wallpaperEditBuffer.empty()) return;
+
+    m_wallpaperCursorPos = std::min(m_wallpaperCursorPos, m_wallpaperEditBuffer.size());
+    if (m_wallpaperEditBuffer.find('/', m_wallpaperCursorPos) != std::string::npos) {
+        return;
+    }
+
+    const std::string prefixBuffer =
+        m_wallpaperEditBuffer.substr(0, m_wallpaperCursorPos);
+    const size_t slash = prefixBuffer.find_last_of('/');
+    const size_t nameStart = slash == std::string::npos ? 0 : slash + 1;
+    const std::string dirPart =
+        slash == std::string::npos ? "" : prefixBuffer.substr(0, slash);
+    const std::string namePrefix = prefixBuffer.substr(nameStart);
+    const std::string searchDir = m_fs->normalize(dirPart.empty() ? "/" : dirPart);
+    const std::string completionBase = slash == std::string::npos
+        ? ""
+        : (slash == 0 ? "/" : dirPart + "/");
+
+    std::vector<std::string> matches;
+    for (const auto& entry : m_fs->listEntries(searchDir)) {
+        if (entry.name.size() < namePrefix.size()
+            || entry.name.compare(0, namePrefix.size(), namePrefix) != 0) {
+            continue;
+        }
+
+        std::string completion = completionBase + entry.name;
+        const std::string candidatePath = m_fs->normalize(
+            searchDir == "/" ? "/" + entry.name : searchDir + "/" + entry.name);
+        if (!entry.isDirectory
+            && !hasCaseInsensitiveSuffix(candidatePath, ".bmp")) {
+            continue;
+        }
+        if (entry.isDirectory && (completion.empty() || completion.back() != '/')) {
+            completion += "/";
+        }
+        matches.push_back(std::move(completion));
+    }
+
+    if (matches.empty()) return;
+
+    const std::string replacement = matches.size() == 1
+        ? matches.front()
+        : commonPrefix(matches);
+    if (replacement.size() <= prefixBuffer.size()) return;
+
+    const std::string suffix = replacement.substr(nameStart);
+    m_wallpaperEditBuffer.replace(
+        nameStart, m_wallpaperCursorPos - nameStart, suffix);
+    m_wallpaperCursorPos = nameStart + suffix.size();
+    m_wallpaperScrollPx = 0;
+}
+
 int SettingsApp::renderAppearanceSection(SDL_Renderer* renderer, const SDL_Rect& contentRect, int clientY) {
     if (!m_font) return clientY;
 
@@ -412,7 +484,7 @@ int SettingsApp::renderAppearanceSection(SDL_Renderer* renderer, const SDL_Rect&
 
     y += kFieldH + 8;
 
-    drawLabel(renderer, m_font, "BMP path in the virtual FS (e.g. /Wallpapers/sample.bmp).", dimCol,
+    drawLabel(renderer, m_font, "BMP path in the virtual FS (Tab completes directories/files).", dimCol,
               contentRect.x + kPadX, contentRect.y + y);
     y += kLineH + 8;
 
@@ -730,6 +802,9 @@ void SettingsApp::handleEvent(const SDL_Event& event) {
                     return;
                 case SDLK_END:
                     m_wallpaperCursorPos = m_wallpaperEditBuffer.size();
+                    return;
+                case SDLK_TAB:
+                    completeWallpaperPath();
                     return;
                 default:
                     break;
