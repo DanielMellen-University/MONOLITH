@@ -105,14 +105,33 @@ void PongApp::handleEvent(const SDL_Event& event) {
     }
 }
 
-void PongApp::drawText(SDL_Renderer* renderer, const char* text, int x, int y, SDL_Color color) const {
+void PongApp::drawText(SDL_Renderer* renderer, const char* text, int x, int y, SDL_Color color,
+                       const SDL_Rect* clip) const {
     if (!m_font || !text || !*text) return;
     SDL_Surface* surf = TTF_RenderUTF8_Blended(m_font, text, color);
     if (!surf) return;
     SDL_Texture* tex = SDL_CreateTextureFromSurface(renderer, surf);
     if (tex) {
         SDL_Rect dst{x, y, surf->w, surf->h};
-        SDL_RenderCopy(renderer, tex, nullptr, &dst);
+        if (clip) {
+            SDL_Rect previousClip{};
+            SDL_RenderGetClipRect(renderer, &previousClip);
+            const bool hadPreviousClip = previousClip.w > 0 && previousClip.h > 0;
+            SDL_Rect effectiveClip = *clip;
+            const bool hasEffectiveClip = !hadPreviousClip
+                || SDL_IntersectRect(&previousClip, clip, &effectiveClip);
+            if (hasEffectiveClip && effectiveClip.w > 0 && effectiveClip.h > 0) {
+                SDL_RenderSetClipRect(renderer, &effectiveClip);
+                SDL_RenderCopy(renderer, tex, nullptr, &dst);
+            }
+            if (hadPreviousClip) {
+                SDL_RenderSetClipRect(renderer, &previousClip);
+            } else {
+                SDL_RenderSetClipRect(renderer, nullptr);
+            }
+        } else {
+            SDL_RenderCopy(renderer, tex, nullptr, &dst);
+        }
         SDL_DestroyTexture(tex);
     }
     SDL_FreeSurface(surf);
@@ -160,7 +179,8 @@ void PongApp::render(SDL_Renderer* renderer, const SDL_Rect& contentRect) {
     char hud[64];
     std::snprintf(hud, sizeof(hud), "You %d   AI %d   first to %d",
                   m_game.playerScore, m_game.aiScore, monolith::pong::Game::kWinScore);
-    drawText(renderer, hud, contentRect.x + 10, contentRect.y + 8, kHud);
+    const SDL_Rect hudClip = {contentRect.x, contentRect.y, contentRect.w, kHudHeight};
+    drawText(renderer, hud, contentRect.x + 10, contentRect.y + 8, kHud, &hudClip);
 
     SDL_Rect field;
     fieldToScreen(contentRect, 0, 0, monolith::pong::Game::kFieldW, monolith::pong::Game::kFieldH, field);

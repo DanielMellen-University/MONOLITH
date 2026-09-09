@@ -417,6 +417,7 @@ When unspecified, choose:
 | 2026-09-09 | cleanup | Kept window title labels at native size and clipped them before title-bar controls; CURRENT_CHUNK remains 7.1 |
 | 2026-09-09 | cleanup | Kept Settings information and footer text at native size with panel clipping; CURRENT_CHUNK remains 7.1 |
 | 2026-09-09 | cleanup | Bounded Minesweeper HUD and footer text with native-size clipping around controls; CURRENT_CHUNK remains 7.1 |
+| 2026-09-09 | cleanup | Bounded Snake and Pong HUD text with native-size clipping inside their client strips; CURRENT_CHUNK remains 7.1 |
 
 ---
 

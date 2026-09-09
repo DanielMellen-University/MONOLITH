@@ -227,12 +227,12 @@ void SnakeApp::layoutBoard(const SDL_Rect& contentRect) {
 }
 
 void SnakeApp::drawText(SDL_Renderer* renderer, const char* text, int x, int y,
-                        SDL_Color color) const {
-    (void)drawTextReturnWidth(renderer, text, x, y, color);
+                        SDL_Color color, const SDL_Rect* clip) const {
+    (void)drawTextReturnWidth(renderer, text, x, y, color, clip);
 }
 
 int SnakeApp::drawTextReturnWidth(SDL_Renderer* renderer, const char* text, int x, int y,
-                                  SDL_Color color) const {
+                                  SDL_Color color, const SDL_Rect* clip) const {
     if (!m_font || !text || !*text) return 0;
     SDL_Surface* surf = TTF_RenderUTF8_Blended(m_font, text, color);
     if (!surf) return 0;
@@ -240,7 +240,25 @@ int SnakeApp::drawTextReturnWidth(SDL_Renderer* renderer, const char* text, int 
     SDL_Texture* tex = SDL_CreateTextureFromSurface(renderer, surf);
     if (tex) {
         SDL_Rect dst{x, y, surf->w, surf->h};
-        SDL_RenderCopy(renderer, tex, nullptr, &dst);
+        if (clip) {
+            SDL_Rect previousClip{};
+            SDL_RenderGetClipRect(renderer, &previousClip);
+            const bool hadPreviousClip = previousClip.w > 0 && previousClip.h > 0;
+            SDL_Rect effectiveClip = *clip;
+            const bool hasEffectiveClip = !hadPreviousClip
+                || SDL_IntersectRect(&previousClip, clip, &effectiveClip);
+            if (hasEffectiveClip && effectiveClip.w > 0 && effectiveClip.h > 0) {
+                SDL_RenderSetClipRect(renderer, &effectiveClip);
+                SDL_RenderCopy(renderer, tex, nullptr, &dst);
+            }
+            if (hadPreviousClip) {
+                SDL_RenderSetClipRect(renderer, &previousClip);
+            } else {
+                SDL_RenderSetClipRect(renderer, nullptr);
+            }
+        } else {
+            SDL_RenderCopy(renderer, tex, nullptr, &dst);
+        }
         SDL_DestroyTexture(tex);
     }
     SDL_FreeSurface(surf);
@@ -374,16 +392,17 @@ void SnakeApp::render(SDL_Renderer* renderer, const SDL_Rect& contentRect) {
     const int gap = 16;
     const int textY = contentRect.y + (kHudHeight - 16) / 2;
     int x = contentRect.x + padL;
+    const SDL_Rect hudClip = {contentRect.x, contentRect.y, contentRect.w, kHudHeight};
 
-    x += drawTextReturnWidth(renderer, scoreText.c_str(), x, textY, kHudText) + gap;
-    x += drawTextReturnWidth(renderer, bestText.c_str(), x, textY, kBestText) + gap;
-    x += drawTextReturnWidth(renderer, lenText.c_str(), x, textY, kDimText);
+    x += drawTextReturnWidth(renderer, scoreText.c_str(), x, textY, kHudText, &hudClip) + gap;
+    x += drawTextReturnWidth(renderer, bestText.c_str(), x, textY, kBestText, &hudClip) + gap;
+    x += drawTextReturnWidth(renderer, lenText.c_str(), x, textY, kDimText, &hudClip);
 
     // Right-align controls hint when it fits without overlapping the stats.
     const int hintW = measureTextWidth(controlsHint);
     const int hintX = contentRect.x + contentRect.w - padR - hintW;
     if (hintW > 0 && hintX >= x + gap) {
-        drawText(renderer, controlsHint, hintX, textY, kDimText);
+        drawText(renderer, controlsHint, hintX, textY, kDimText, &hudClip);
     }
 
     // Board background

@@ -46,10 +46,10 @@ private:
     void applySpeedForScore();
     void layoutBoard(const SDL_Rect& contentRect);
     void drawText(SDL_Renderer* renderer, const char* text, int x, int y,
-                  SDL_Color color) const;
+                  SDL_Color color, const SDL_Rect* clip = nullptr) const;
     // Draw text and return pixel width (0 if nothing drawn).
     int drawTextReturnWidth(SDL_Renderer* renderer, const char* text, int x, int y,
-                            SDL_Color color) const;
+                            SDL_Color color, const SDL_Rect* clip = nullptr) const;
     int measureTextWidth(const char* text) const;
     void drawCenteredText(SDL_Renderer* renderer, const char* text,
                           const SDL_Rect& area, SDL_Color color) const;

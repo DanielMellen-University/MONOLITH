@@ -26,7 +26,8 @@ public:
 private:
     static constexpr int kHudHeight = 32;
 
-    void drawText(SDL_Renderer* renderer, const char* text, int x, int y, SDL_Color color) const;
+    void drawText(SDL_Renderer* renderer, const char* text, int x, int y, SDL_Color color,
+                  const SDL_Rect* clip = nullptr) const;
     void drawCentered(SDL_Renderer* renderer, const char* text, const SDL_Rect& area, SDL_Color color) const;
     void fieldToScreen(const SDL_Rect& contentRect, float fx, float fy, int fw, int fh,
                        SDL_Rect& out) const;

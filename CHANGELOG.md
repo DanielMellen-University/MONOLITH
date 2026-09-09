@@ -1,5 +1,9 @@
 # Changelog
 
+## 2026-09: Bounded Snake and Pong HUD text
+
+- Snake and Pong HUD labels now render at native size and clip inside their HUD strips instead of overflowing narrow game windows.
+
 ## 2026-09: Bounded Minesweeper HUD text
 
 - Minesweeper status, difficulty labels, and footer text now stay at native size and clip within their controls instead of covering the face button or extending past the window.
