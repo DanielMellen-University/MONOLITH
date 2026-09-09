@@ -1,5 +1,10 @@
 # Changelog
 
+## 2026-09: Session restore paths
+
+- Session files now quote editor and Drawing paths, preserving virtual filenames with spaces, quotes, or backslashes across restarts.
+- Older session files with unquoted path tokens remain readable.
+
 ## 2026-09: Filesystem empty-file handling
 
 - Reading zero-byte virtual files is now handled without indexing an empty buffer.

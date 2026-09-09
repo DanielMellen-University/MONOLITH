@@ -99,11 +99,11 @@ bool WindowManager::loadSession(const std::string& hostPath) {
         std::istringstream iss(line);
         std::string kind;
         int x = 0, y = 0, w = 400, h = 300, minFlag = 0, maxFlag = 0;
-        std::string pathToken;
-        if (!(iss >> kind >> x >> y >> w >> h >> minFlag >> maxFlag >> pathToken)) {
+        std::string path;
+        if (!(iss >> kind >> x >> y >> w >> h >> minFlag >> maxFlag)
+            || !monolith::window::session::readPath(iss, path)) {
             continue;
         }
-        std::string path = (pathToken == "-") ? std::string{} : pathToken;
 
         const size_t before = m_windows.size();
         if (kind == "terminal") {
@@ -140,7 +140,7 @@ bool WindowManager::saveSession(const std::string& hostPath) const {
     if (!out) return false;
 
     out << "session_v1\n";
-    out << "# kind x y w h minimized maximized path\n";
+    out << "# kind x y w h minimized maximized quoted-path\n";
 
     for (const auto& winPtr : m_windows) {
         if (!winPtr) continue;
@@ -182,8 +182,9 @@ bool WindowManager::saveSession(const std::string& hostPath) const {
         out << kind << ' '
             << r.x << ' ' << r.y << ' ' << r.w << ' ' << r.h << ' '
             << (w.minimized ? 1 : 0) << ' '
-            << (w.maximized ? 1 : 0) << ' '
-            << path << '\n';
+            << (w.maximized ? 1 : 0) << ' ';
+        monolith::window::session::writePath(out, path);
+        out << '\n';
     }
     return static_cast<bool>(out);
 }

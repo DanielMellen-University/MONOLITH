@@ -374,6 +374,7 @@ When unspecified, choose:
 | 2026-09-09 | cleanup | Shared virtual Filesystem clipboard across browser windows; CURRENT_CHUNK remains 7.1 |
 | 2026-09-09 | docs | Expanded the Drawing app guide and corrected the `[modified]` status indicator; CURRENT_CHUNK remains 7.1 |
 | 2026-09-09 | cleanup | Hardened zero-byte Filesystem reads and added regression coverage; CURRENT_CHUNK remains 7.1 |
+| 2026-09-09 | cleanup | Quoted session file paths and added a headless legacy/round-trip check; CURRENT_CHUNK remains 7.1 |
 
 ---
 

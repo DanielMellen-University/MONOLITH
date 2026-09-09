@@ -1,4 +1,5 @@
 #include "WindowManager.hpp"
+#include "SessionFormat.hpp"
 #include "../app/App.hpp"
 #include "../app/TerminalApp.hpp"
 #include "../app/TextEditorApp.hpp"
