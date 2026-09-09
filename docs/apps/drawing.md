@@ -338,6 +338,8 @@ The status bar is both the command hint area and the app's lightweight feedback 
 
 When the canvas has unsaved edits, `[modified]` is appended to the status bar. Save before closing, creating a new sketch, or opening another file. A failed save or open does not discard the current canvas.
 
+A failed save also clears any pending discard confirmation. Closing, choosing **New**, or opening another sketch afterward requires a fresh confirmation before the still-modified canvas can be discarded.
+
 ## Troubleshooting
 
 | Symptom | Cause and fix |

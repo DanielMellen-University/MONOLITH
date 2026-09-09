@@ -1,5 +1,10 @@
 # Changelog
 
+## 2026-09: Re-arm dirty documents after failed saves
+
+- Failed Text Editor and Drawing saves now clear stale discard confirmations, preventing the next close or open from silently discarding unsaved work.
+- Extended both headless app-state checks to cover the failed-save recovery path.
+
 ## 2026-09: Complete Drawing app documentation
 
 - Clarified prompt focus, RGB confirmation, path completion scope, and the full Drawing verification command set.

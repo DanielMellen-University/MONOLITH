@@ -441,6 +441,7 @@ When unspecified, choose:
 | 2026-09-09 | cleanup | Marked loaded Drawing canvases dirty after resize and added state coverage for resize history reset; CURRENT_CHUNK remains 7.1 |
 | 2026-09-09 | cleanup | Pruned successfully moved sources from partial Filesystem Browser cut clipboards while retaining conflicts for retry; extended state coverage; CURRENT_CHUNK remains 7.1 |
 | 2026-09-09 | docs | Completed the Drawing prompt reference and listed the focused state check; CURRENT_CHUNK remains 7.1 |
+| 2026-09-09 | cleanup | Cleared stale dirty-document discard arms after failed Text Editor and Drawing saves; extended both state checks; CURRENT_CHUNK remains 7.1 |
 
 ---
 

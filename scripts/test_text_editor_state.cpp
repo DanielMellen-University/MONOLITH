@@ -97,6 +97,13 @@ int main() {
     check(fs.readFile("/new.txt") == "original", "successful Save As writes the document");
     check(controller.boundPath == "/new.txt", "successful Save As updates the shell binding");
 
+    check(fs.createDirectory("/blocked.txt"), "create blocked direct-save target");
+    editor.m_filePath = "/blocked.txt";
+    editor.m_dirty = true;
+    check(!editor.allowClose(), "first close arms the dirty editor guard");
+    check(!editor.saveCurrentFile(), "direct save failure is reported");
+    check(!editor.allowClose(), "failed save clears the stale dirty guard arm");
+
     std::filesystem::remove_all(hostRoot, ec);
     if (failures == 0) {
         std::cout << "ALL TEXT EDITOR STATE TESTS PASSED\n";

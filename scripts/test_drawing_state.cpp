@@ -51,6 +51,13 @@ int main() {
     check(drawing.m_undoStack.empty() && drawing.m_redoStack.empty(),
           "resizing a loaded drawing clears incompatible history");
 
+    check(fs.createDirectory("/blocked.modr"), "create blocked drawing save target");
+    drawing.m_filePath = "/blocked.modr";
+    drawing.m_dirty = true;
+    check(!drawing.allowClose(), "first close arms the dirty drawing guard");
+    check(!drawing.saveToPath("/blocked.modr"), "drawing save failure is reported");
+    check(!drawing.allowClose(), "failed drawing save clears the stale dirty guard arm");
+
     std::filesystem::remove_all(hostRoot, ec);
     if (failures == 0) {
         std::cout << "ALL DRAWING STATE TESTS PASSED\n";

@@ -310,10 +310,12 @@ bool TextEditorApp::loadInitialFile(const std::string& virtualPath) {
 
 bool TextEditorApp::saveCurrentFile() {
     if (!m_fs) {
+        clearDiscardArm();
         setStatus("Save failed: filesystem not available");
         return false;
     }
     if (m_filePath.empty()) {
+        clearDiscardArm();
         setStatus("Save failed: no path (use Save as)");
         return false;
     }
@@ -333,6 +335,7 @@ bool TextEditorApp::saveCurrentFile() {
         clearDiscardArm();
         setStatus("Saved: " + getDisplayName());
     } else {
+        clearDiscardArm();
         setStatus("Save failed: could not write " + m_filePath);
     }
     return ok;

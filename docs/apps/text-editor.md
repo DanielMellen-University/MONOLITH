@@ -31,6 +31,7 @@ If an initial path is missing or unreadable, the failed window remains an untitl
 - Open/save results and errors appear in the status bar (e.g. `Saved: note.txt`, `Open failed: …`).
 - Failed reads are reported as open errors instead of being treated as empty documents.
 - Closing the window or opening another file while dirty asks once via the status bar; confirm the same action again to discard, or save first (Ctrl+S).
+- A failed save clears any pending discard confirmation, so closing or opening again always asks before discarding the still-dirty buffer.
 
 ## Syntax Highlighting
 

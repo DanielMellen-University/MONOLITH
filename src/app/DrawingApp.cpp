@@ -410,10 +410,12 @@ std::string DrawingApp::defaultSavePath() {
 
 bool DrawingApp::saveToPath(const std::string& virtualPath) {
     if (!m_fs) {
+        clearDiscardArm();
         setStatus("Save failed: filesystem not available.");
         return false;
     }
     if (m_canvasWidth <= 0 || m_canvasHeight <= 0) {
+        clearDiscardArm();
         setStatus("Save failed: canvas is empty.");
         return false;
     }
@@ -434,11 +436,13 @@ bool DrawingApp::saveToPath(const std::string& virtualPath) {
 
     const std::string blob = monolith::drawing::encodeModr(m_canvasWidth, m_canvasHeight, m_pixels);
     if (blob.empty()) {
+        clearDiscardArm();
         setStatus("Save failed: could not encode canvas.");
         return false;
     }
 
     if (!m_fs->writeFile(path, blob)) {
+        clearDiscardArm();
         setStatus("Save failed: could not write file.");
         return false;
     }
