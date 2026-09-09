@@ -1,5 +1,11 @@
 # Changelog
 
+## 2026-09: Keep open documents attached across virtual moves
+
+- Filesystem Browser rename, Filesystem Browser cut/paste, and Terminal `mv` now update open Text Editor and Drawing bindings when a file or parent directory moves.
+- Updated titles, Save targets, session records, and singleton focus routing follow the normalized destination path, including nested files under moved directories.
+- Added regression coverage for renamed editor and Drawing files plus nested directory moves.
+
 ## 2026-09: Keep windows inside narrow logical desktops
 
 - Window clamping now handles desktops narrower than the normal minimum window width without producing a negative left coordinate.

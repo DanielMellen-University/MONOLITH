@@ -23,6 +23,7 @@ public:
     void render(SDL_Renderer* renderer, const SDL_Rect& contentRect) override;
     void handleEvent(const SDL_Event& event) override;
     void onResize(int clientWidth, int clientHeight) override;
+    void onBoundFileMoved(const std::string& newPath) override;
     bool allowClose() override;
 
     // True only after an initial or prompted open has loaded a real file.

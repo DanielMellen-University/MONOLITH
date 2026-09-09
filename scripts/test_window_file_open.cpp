@@ -74,6 +74,34 @@ int main() {
         check(wm.focusEditorForFile("/docs/retry.txt"),
               "editor can retry and bind after the file appears");
 
+        check(fs.rename("/docs/retry.txt", "/docs/renamed.txt"),
+              "rename bound editor file");
+        wm.notifyVirtualPathMoved("/docs/retry.txt", "/docs/renamed.txt");
+        check(!wm.focusEditorForFile("/docs/retry.txt")
+                  && wm.focusEditorForFile("/docs/renamed.txt"),
+              "renamed editor file keeps its singleton binding");
+        auto renamedEditor = std::find_if(
+            wm.m_windows.begin(), wm.m_windows.end(),
+            [](const auto& window) {
+                return window && window->editedFilePath == "/docs/renamed.txt";
+            });
+        check(renamedEditor != wm.m_windows.end()
+                  && (*renamedEditor)->title == "Editor - renamed.txt",
+              "renamed editor file updates its title and path");
+
+        check(fs.createDirectory("/archive"), "create directory move destination");
+        check(fs.createDirectory("/docs/nested"), "create nested editor directory");
+        check(fs.writeFile("/docs/nested/child.txt", "nested"),
+              "write nested editor file");
+        wm.openPath("/docs/nested/child.txt");
+        check(wm.focusEditorForFile("/docs/nested/child.txt"),
+              "open nested editor file");
+        check(fs.rename("/docs/nested", "/archive/nested"),
+              "move bound editor directory");
+        wm.notifyVirtualPathMoved("/docs/nested", "/archive/nested");
+        check(wm.focusEditorForFile("/archive/nested/child.txt"),
+              "moved directory remaps nested editor binding");
+
         wm.openPath("/drawings/retry.modr");
         check(!wm.focusDrawingForFile("/drawings/retry.modr"),
               "failed drawing open does not reserve a file singleton");
@@ -94,6 +122,21 @@ int main() {
         wm.openPath("/drawings/retry.modr");
         check(wm.focusDrawingForFile("/drawings/retry.modr"),
               "drawing can retry and bind after the file is repaired");
+
+        check(fs.rename("/drawings/retry.modr", "/archive/retry.modr"),
+              "rename bound drawing file");
+        wm.notifyVirtualPathMoved("/drawings/retry.modr", "/archive/retry.modr");
+        check(!wm.focusDrawingForFile("/drawings/retry.modr")
+                  && wm.focusDrawingForFile("/archive/retry.modr"),
+              "renamed drawing file keeps its singleton binding");
+        auto renamedDrawing = std::find_if(
+            wm.m_windows.begin(), wm.m_windows.end(),
+            [](const auto& window) {
+                return window && window->drawingFilePath == "/archive/retry.modr";
+            });
+        check(renamedDrawing != wm.m_windows.end()
+                  && (*renamedDrawing)->title == "Drawing - retry.modr",
+              "renamed drawing file updates its title and path");
     }
 
     TTF_CloseFont(font);

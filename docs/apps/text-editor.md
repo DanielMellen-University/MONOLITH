@@ -130,3 +130,5 @@ Main implementation files:
 - `src/window/detail/wm_body_08.inc` / `wm_body_09.inc` — open routing, session restore, and file singleton bindings
 
 Shell integration: open via `openInTextEditor` / `openPath` (default for non-`.modr` files). Dirty buffers use `allowClose` and status-bar double-confirm for close/open.
+
+When the bound file is renamed in Filesystem Browser, moved with Filesystem Browser cut/paste, or moved with Terminal `mv`, the open editor follows the normalized virtual path. Its title, Save target, session record, and singleton focus binding update with it. Moving a directory also remaps open files below that directory.

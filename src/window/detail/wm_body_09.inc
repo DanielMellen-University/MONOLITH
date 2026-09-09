@@ -75,6 +75,55 @@ void WindowManager::clearDrawingFileBinding(Window* window) {
     window->drawingFilePath.clear();
 }
 
+void WindowManager::notifyVirtualPathMoved(const std::string& oldPath,
+                                           const std::string& newPath) {
+    if (!m_fs) return;
+
+    const std::string oldNormalized = m_fs->normalize(oldPath);
+    const std::string newNormalized = m_fs->normalize(newPath);
+    if (oldNormalized == newNormalized || oldNormalized == "/") return;
+
+    auto remap = [&](const std::string& current) -> std::string {
+        if (!m_fs->isSameOrDescendant(oldNormalized, current)) return {};
+        return newNormalized + current.substr(oldNormalized.size());
+    };
+
+    std::vector<std::pair<Window*, std::string>> editorUpdates;
+    std::vector<std::pair<Window*, std::string>> drawingUpdates;
+    for (const auto& windowPtr : m_windows) {
+        Window* window = windowPtr.get();
+        if (!window) continue;
+        if (!window->editedFilePath.empty()) {
+            const std::string next = remap(window->editedFilePath);
+            if (!next.empty()) editorUpdates.emplace_back(window, next);
+        }
+        if (!window->drawingFilePath.empty()) {
+            const std::string next = remap(window->drawingFilePath);
+            if (!next.empty()) drawingUpdates.emplace_back(window, next);
+        }
+    }
+
+    for (const auto& [window, next] : editorUpdates) {
+        auto current = m_fileEditors.find(window->editedFilePath);
+        if (current != m_fileEditors.end() && current->second == window) {
+            m_fileEditors.erase(current);
+        }
+        window->editedFilePath = next;
+        m_fileEditors[next] = window;
+        if (window->app) window->app->onBoundFileMoved(next);
+    }
+
+    for (const auto& [window, next] : drawingUpdates) {
+        auto current = m_fileDrawings.find(window->drawingFilePath);
+        if (current != m_fileDrawings.end() && current->second == window) {
+            m_fileDrawings.erase(current);
+        }
+        window->drawingFilePath = next;
+        m_fileDrawings[next] = window;
+        if (window->app) window->app->onBoundFileMoved(next);
+    }
+}
+
 bool WindowManager::getFilesystemClipboard(std::vector<std::string>& paths, bool& isCut) const {
     paths = m_filesystemClipboardPaths;
     isCut = m_filesystemClipboardIsCut;
@@ -161,6 +210,13 @@ struct WindowController : public monolith::app::IWindowController {
     void bindDrawingFile(const std::string& virtualPath) override {
         if (wm && targetWindow) {
             wm->associateDrawingWithFile(targetWindow, virtualPath);
+        }
+    }
+
+    void notifyVirtualPathMoved(const std::string& oldPath,
+                                const std::string& newPath) override {
+        if (wm) {
+            wm->notifyVirtualPathMoved(oldPath, newPath);
         }
     }
 

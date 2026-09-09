@@ -67,7 +67,7 @@ Run `help` for the full list. Current commands:
 | `edit <file>` | Open a text file in the Text Editor |
 | `open <path>` | Open via shell routing (case-insensitive `.modr` → Drawing, else Text Editor) |
 | `cp [-r] <src> <dst>` | Copy file or directory tree (`Filesystem::copyRecursive`; verifies file reads and refuses copy into self) |
-| `mv <src> <dst>` | Move or rename (destination directory supported) |
+| `mv <src> <dst>` | Move or rename (destination directory supported; open Editor and Drawing bindings follow the move) |
 | `rm [-r] <path>` | Remove file or directory tree (`Filesystem::removeRecursive` with `-r`; cannot remove `/`) |
 | `history` | Show command history |
 | `help` | Show command list |
@@ -80,6 +80,8 @@ Reverse history search has its own editable query. Left/Right/Home/End move thro
 Completion replaces only the token text before the cursor. Opening quotes remain in place, and unquoted completions escape spaces, backslashes, and quote characters so the completed command keeps the same meaning when it runs.
 
 `cat` prints one scrollback line per file line (truncated after many lines so huge files cannot flood the terminal). CRLF and lone-CR separators are normalized to LF before output. It reports a read failure separately from a valid empty file.
+
+After a successful `mv`, any open Text Editor or Drawing window bound to the source path follows the normalized destination path. Moving a directory also updates bindings for open files beneath it.
 
 ## Command History
 

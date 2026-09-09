@@ -187,7 +187,9 @@ void TerminalApp::executeCommand(const std::string& commandLine) {
                         dstPath = joinPath(dstPath, base);
                     }
                     if (m_fs->rename(srcPath, dstPath)) {
-                        // success
+                        if (auto* ctrl = getController()) {
+                            ctrl->notifyVirtualPathMoved(srcPath, dstPath);
+                        }
                     } else {
                         addOutput("mv: cannot move '" + src + "' to '" + dst + "'");
                     }

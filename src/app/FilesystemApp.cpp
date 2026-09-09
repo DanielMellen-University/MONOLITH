@@ -439,18 +439,28 @@ void FilesystemApp::pasteFromClipboard() {
 
     const bool wasCut = clipboardIsCut;
     std::vector<std::string> candidateNames;
+    std::vector<std::pair<std::string, std::string>> candidateMoves;
     candidateNames.reserve(sources.size());
+    candidateMoves.reserve(sources.size());
     for (const auto& src : sources) {
         const std::string name = m_fs->baseName(src);
         const std::string dest = fullPathFor(name);
         if (src == dest || m_fs->isSameOrDescendant(src, dest) || m_fs->exists(dest)) continue;
         candidateNames.push_back(name);
+        candidateMoves.emplace_back(src, dest);
     }
     const int copied = wasCut
         ? m_fs->moveItemsInto(sources, m_currentPath)
         : m_fs->copyItemsInto(sources, m_currentPath);
 
     if (wasCut) {
+        if (auto* ctrl = getController()) {
+            for (const auto& [source, destination] : candidateMoves) {
+                if (!m_fs->exists(source) && m_fs->exists(destination)) {
+                    ctrl->notifyVirtualPathMoved(source, destination);
+                }
+            }
+        }
         // Keep only sources that still exist. A partial move should leave
         // destination-conflicted items available for retry, not already-moved
         // paths that can never be pasted again.
@@ -605,6 +615,10 @@ void FilesystemApp::finishRename(bool commit) {
         if (m_fs->exists(fullPathFor(m_renameBuffer))) {
             setStatus("Rename failed: name already exists");
         } else if (m_fs->renameEntry(m_currentPath, oldName, m_renameBuffer)) {
+            if (auto* ctrl = getController()) {
+                ctrl->notifyVirtualPathMoved(
+                    fullPathFor(oldName), fullPathFor(m_renameBuffer));
+            }
             refreshEntries();
             selectEntryNamed(m_renameBuffer, wasDirectory);
             setStatus("Renamed " + oldName + " to " + m_renameBuffer);

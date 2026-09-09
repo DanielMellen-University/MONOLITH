@@ -44,6 +44,10 @@ struct IWindowController {
     // Register this Drawing window as the singleton owner of a .modr path.
     virtual void bindDrawingFile(const std::string& /*virtualPath*/) {}
 
+    // Notify the shell that a bound virtual path was renamed or moved.
+    virtual void notifyVirtualPathMoved(const std::string& /*oldPath*/,
+                                        const std::string& /*newPath*/) {}
+
     // Clear a Drawing window's file binding (e.g. after New sketch).
     virtual void clearDrawingFileBinding() {}
 
@@ -137,6 +141,9 @@ public:
     // Called whenever the client area size changes (resize, maximize, etc.).
     // Dimensions are in logical pixels (excluding title bar height).
     virtual void onResize(int /*clientWidth*/, int /*clientHeight*/) {}
+
+    // Called when the virtual path bound to this app is renamed or moved.
+    virtual void onBoundFileMoved(const std::string& /*newPath*/) {}
 
     // === Controller access (provided by WindowManager) ===
     IWindowController* getController() const { return m_controller; }

@@ -8,6 +8,7 @@
 #include <set>
 #include <string>
 #include <unordered_map>
+#include <utility>
 #include <vector>
 
 // App interface for client-area delegation
@@ -145,6 +146,7 @@ public:
     // Associate a Drawing window with a .modr path (singleton-per-file, like editors).
     void associateDrawingWithFile(Window* window, const std::string& virtualPath);
     void clearDrawingFileBinding(Window* window);
+    void notifyVirtualPathMoved(const std::string& oldPath, const std::string& newPath);
 
     bool focusEditorForFile(const std::string& virtualPath);
     bool focusDrawingForFile(const std::string& virtualPath);

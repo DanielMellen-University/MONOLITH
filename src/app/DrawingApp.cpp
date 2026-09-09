@@ -511,6 +511,21 @@ void DrawingApp::setStatus(const std::string& message) {
     m_statusMessage = message;
 }
 
+void DrawingApp::onBoundFileMoved(const std::string& newPath) {
+    if (newPath.empty()) return;
+    m_filePath = newPath;
+    clearDiscardArm();
+
+    const size_t nameStart = newPath.find_last_of('/');
+    const std::string baseName = nameStart != std::string::npos
+        ? newPath.substr(nameStart + 1)
+        : newPath;
+    if (auto* ctrl = getController()) {
+        ctrl->setTitle("Drawing - " + baseName);
+    }
+    setStatus("File moved: " + newPath);
+}
+
 void DrawingApp::clearDiscardArm() {
     m_discardKind = DiscardKind::None;
     m_discardPath.clear();

@@ -404,6 +404,15 @@ void TextEditorApp::updateTitleForPath() {
     }
 }
 
+void TextEditorApp::onBoundFileMoved(const std::string& newPath) {
+    if (newPath.empty()) return;
+    m_filePath = newPath;
+    refreshSyntaxMode();
+    clearDiscardArm();
+    updateTitleForPath();
+    setStatus("File moved: " + newPath);
+}
+
 void TextEditorApp::beginPathPrompt(PathPromptMode mode) {
     // A new prompt is a new user action. Do not carry a discarded confirmation
     // from an earlier Open/New attempt into it.
