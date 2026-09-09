@@ -71,8 +71,8 @@ The editor applies lightweight per-line highlighting:
 | Enter | Jump to next match |
 | Shift+Enter | Jump to previous match |
 | Tab | Switch to replace mode (focus replacement field) |
-| Backspace | Delete last character of query |
-| Delete | Clear query |
+| Left / Right / Home / End | Move the active query caret |
+| Backspace / Delete | Remove the previous or next complete UTF-8 character |
 | Esc | Exit find mode |
 
 The status bar shows match count (e.g. `2/5`). The current match is selected in the buffer.
@@ -83,12 +83,15 @@ The status bar shows match count (e.g. `2/5`). The current match is selected in 
 |-----|--------|
 | Type | Edit the active field (find or replacement) |
 | Tab | Toggle between find and replacement fields |
+| Left / Right / Home / End | Move the active field caret |
+| Backspace / Delete | Remove the previous or next complete UTF-8 character |
 | Enter / Shift+Enter | Next / previous match |
 | Ctrl+R | Replace current match, then jump forward |
 | Ctrl+Shift+R | Replace all matches (one undo step) |
 | Esc | Exit |
 
 Replacement is case-sensitive substring match (same as find). Multi-line find is not supported.
+Both search fields insert text at the caret, and long prompts scroll horizontally to keep the active caret visible.
 
 ## Saving
 

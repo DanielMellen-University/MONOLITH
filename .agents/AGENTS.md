@@ -405,6 +405,7 @@ When unspecified, choose:
 | 2026-09-09 | cleanup | Made Drawing Save/Open/RGB prompts caret-aware with UTF-8-safe edits and status-bar caret tracking; CURRENT_CHUNK remains 7.1 |
 | 2026-09-09 | cleanup | Made Filesystem Browser filtering caret-aware with UTF-8-safe edits and horizontal caret tracking; CURRENT_CHUNK remains 7.1 |
 | 2026-09-09 | cleanup | Made Terminal reverse history search caret-aware with UTF-8-safe edits and horizontal caret tracking; CURRENT_CHUNK remains 7.1 |
+| 2026-09-09 | cleanup | Made Text Editor Find and Replace fields caret-aware with UTF-8-safe edits and status-bar caret tracking; CURRENT_CHUNK remains 7.1 |
 
 ---
 

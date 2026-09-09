@@ -1149,6 +1149,9 @@ void TextEditorApp::enterFindMode() {
     m_replaceText.clear();
     m_findMatches.clear();
     m_currentFindMatch = -1;
+    m_findCursorPos = 0;
+    m_replaceCursorPos = 0;
+    m_searchPromptScrollPx = 0;
     clearSelection();
     m_statusMessage.clear();
 }
@@ -1162,6 +1165,9 @@ void TextEditorApp::enterReplaceMode() {
     }
     m_searchMode = SearchMode::Replace;
     m_searchField = SearchField::Query;
+    m_findCursorPos = std::min(m_findCursorPos, m_findQuery.size());
+    m_replaceCursorPos = m_replaceText.size();
+    m_searchPromptScrollPx = 0;
     clearSelection();
     m_statusMessage.clear();
     if (!m_findQuery.empty()) {
@@ -1176,6 +1182,9 @@ void TextEditorApp::exitFindMode() {
     m_replaceText.clear();
     m_findMatches.clear();
     m_currentFindMatch = -1;
+    m_findCursorPos = 0;
+    m_replaceCursorPos = 0;
+    m_searchPromptScrollPx = 0;
     clearSelection();
 }
 
@@ -1533,19 +1542,35 @@ void TextEditorApp::render(SDL_Renderer* renderer, const SDL_Rect& contentRect) 
         SDL_RenderFillRect(renderer, &statusBar);
 
         std::string status = getDisplayName();
+        bool searchPromptActive = false;
+        int searchCursorPx = 0;
         if (m_searchMode != SearchMode::None) {
             const bool onQuery = (m_searchField == SearchField::Query);
             const bool onRepl = (m_searchField == SearchField::Replacement);
             if (m_searchMode == SearchMode::Replace) {
-                status = "Find: ";
-                status += m_findQuery;
-                if (onQuery) status += "_";
-                status += "  Repl: ";
-                status += m_replaceText;
-                if (onRepl) status += "_";
+                m_findCursorPos = std::min(m_findCursorPos, m_findQuery.size());
+                m_replaceCursorPos = std::min(m_replaceCursorPos, m_replaceText.size());
+                const std::string findBefore = m_findQuery.substr(0, m_findCursorPos);
+                const std::string findAfter = m_findQuery.substr(m_findCursorPos);
+                const std::string replaceBefore = m_replaceText.substr(0, m_replaceCursorPos);
+                const std::string replaceAfter = m_replaceText.substr(m_replaceCursorPos);
+                status = "Find: " + findBefore + (onQuery ? "_" : "") + findAfter;
+                status += "  Repl: " + replaceBefore + (onRepl ? "_" : "") + replaceAfter;
+                const std::string cursorText = onQuery
+                    ? "Find: " + findBefore + "_"
+                    : "Find: " + m_findQuery + "  Repl: " + replaceBefore + "_";
+                int cursorHeight = 0;
+                TTF_SizeUTF8(m_font, cursorText.c_str(), &searchCursorPx, &cursorHeight);
             } else {
-                status = "Find: " + m_findQuery + "_";
+                m_findCursorPos = std::min(m_findCursorPos, m_findQuery.size());
+                const std::string findBefore = m_findQuery.substr(0, m_findCursorPos);
+                const std::string findAfter = m_findQuery.substr(m_findCursorPos);
+                status = "Find: " + findBefore + "_" + findAfter;
+                const std::string cursorText = "Find: " + findBefore + "_";
+                int cursorHeight = 0;
+                TTF_SizeUTF8(m_font, cursorText.c_str(), &searchCursorPx, &cursorHeight);
             }
+            searchPromptActive = true;
             if (m_findQuery.empty()) {
                 status += "   |  type to search";
             } else if (m_findMatches.empty()) {
@@ -1572,6 +1597,7 @@ void TextEditorApp::render(SDL_Renderer* renderer, const SDL_Rect& contentRect) 
                 status += "   |  Tab complete, Enter confirm, Esc cancel";
             }
         } else {
+            m_searchPromptScrollPx = 0;
             if (m_dirty) status += " *";
             if (!m_statusMessage.empty()) {
                 status += "   |  " + m_statusMessage;
@@ -1586,13 +1612,33 @@ void TextEditorApp::render(SDL_Renderer* renderer, const SDL_Rect& contentRect) 
         if (surf) {
             SDL_Texture* tex = SDL_CreateTextureFromSurface(renderer, surf);
             if (tex) {
-                SDL_Rect dst = {
+                const int visibleWidth = std::max(1, contentRect.w - padding * 2);
+                if (searchPromptActive) {
+                    if (searchCursorPx > m_searchPromptScrollPx + visibleWidth) {
+                        m_searchPromptScrollPx = searchCursorPx - visibleWidth;
+                    } else if (searchCursorPx < m_searchPromptScrollPx) {
+                        m_searchPromptScrollPx = searchCursorPx;
+                    }
+                    const int maxScroll = std::max(0, surf->w - visibleWidth);
+                    m_searchPromptScrollPx = std::clamp(
+                        m_searchPromptScrollPx, 0, maxScroll);
+                }
+                SDL_Rect statusClip = {
                     contentRect.x + padding,
+                    statusBar.y,
+                    visibleWidth,
+                    statusBar.h
+                };
+                SDL_RenderSetClipRect(renderer, &statusClip);
+                SDL_Rect dst = {
+                    contentRect.x + padding
+                        - (searchPromptActive ? m_searchPromptScrollPx : 0),
                     statusBar.y + (kStatusBarHeight - surf->h) / 2,
-                    std::min(surf->w, contentRect.w - padding * 2),
+                    surf->w,
                     surf->h
                 };
                 SDL_RenderCopy(renderer, tex, nullptr, &dst);
+                SDL_RenderSetClipRect(renderer, nullptr);
                 SDL_DestroyTexture(tex);
             }
             SDL_FreeSurface(surf);
@@ -1670,16 +1716,28 @@ void TextEditorApp::handleEvent(const SDL_Event& event) {
             if (!t || !*t) return;
             if (m_searchField == SearchField::Replacement
                 && m_searchMode == SearchMode::Replace) {
+                m_replaceCursorPos = std::min(m_replaceCursorPos, m_replaceText.size());
+                std::string inserted;
                 for (const char* p = t; *p; ++p) {
                     const unsigned char c = static_cast<unsigned char>(*p);
                     if (c < 32 || c == 127) continue;
-                    m_replaceText.push_back(static_cast<char>(c));
+                    inserted.push_back(static_cast<char>(c));
+                }
+                if (!inserted.empty()) {
+                    m_replaceText.insert(m_replaceCursorPos, inserted);
+                    m_replaceCursorPos += inserted.size();
                 }
             } else {
+                m_findCursorPos = std::min(m_findCursorPos, m_findQuery.size());
+                std::string inserted;
                 for (const char* p = t; *p; ++p) {
                     const unsigned char c = static_cast<unsigned char>(*p);
                     if (c < 32 || c == 127) continue;
-                    m_findQuery.push_back(static_cast<char>(c));
+                    inserted.push_back(static_cast<char>(c));
+                }
+                if (!inserted.empty()) {
+                    m_findQuery.insert(m_findCursorPos, inserted);
+                    m_findCursorPos += inserted.size();
                 }
                 updateFindMatches();
             }
@@ -1727,6 +1785,11 @@ void TextEditorApp::handleEvent(const SDL_Event& event) {
                         m_searchField = (m_searchField == SearchField::Query)
                             ? SearchField::Replacement
                             : SearchField::Query;
+                        if (m_searchField == SearchField::Query) {
+                            m_findCursorPos = std::min(m_findCursorPos, m_findQuery.size());
+                        } else {
+                            m_replaceCursorPos = std::min(m_replaceCursorPos, m_replaceText.size());
+                        }
                     } else {
                         // Promote find → replace, focus replacement field.
                         enterReplaceMode();
@@ -1742,22 +1805,69 @@ void TextEditorApp::handleEvent(const SDL_Event& event) {
                 case SDLK_BACKSPACE:
                     if (m_searchField == SearchField::Replacement
                         && m_searchMode == SearchMode::Replace) {
-                        if (!m_replaceText.empty()) {
-                            popLastUtf8Codepoint(m_replaceText);
-                        }
+                        erasePreviousUtf8Codepoint(m_replaceText, m_replaceCursorPos);
                     } else if (!m_findQuery.empty()) {
-                        popLastUtf8Codepoint(m_findQuery);
+                        erasePreviousUtf8Codepoint(m_findQuery, m_findCursorPos);
                         updateFindMatches();
                     }
                     break;
 
-                case SDLK_DELETE:
+                case SDLK_DELETE: {
                     if (m_searchField == SearchField::Replacement
                         && m_searchMode == SearchMode::Replace) {
-                        m_replaceText.clear();
+                        m_replaceCursorPos = std::min(m_replaceCursorPos, m_replaceText.size());
+                        const std::size_t next = utf8NextCodepointStart(
+                            m_replaceText, m_replaceCursorPos);
+                        if (next > m_replaceCursorPos) {
+                            m_replaceText.erase(m_replaceCursorPos, next - m_replaceCursorPos);
+                        }
                     } else {
-                        m_findQuery.clear();
-                        updateFindMatches();
+                        m_findCursorPos = std::min(m_findCursorPos, m_findQuery.size());
+                        const std::size_t next = utf8NextCodepointStart(
+                            m_findQuery, m_findCursorPos);
+                        if (next > m_findCursorPos) {
+                            m_findQuery.erase(m_findCursorPos, next - m_findCursorPos);
+                            updateFindMatches();
+                        }
+                    }
+                    break;
+                }
+
+                case SDLK_LEFT:
+                    if (m_searchField == SearchField::Replacement
+                        && m_searchMode == SearchMode::Replace) {
+                        m_replaceCursorPos = utf8PrevCodepointStart(
+                            m_replaceText, m_replaceCursorPos);
+                    } else {
+                        m_findCursorPos = utf8PrevCodepointStart(m_findQuery, m_findCursorPos);
+                    }
+                    break;
+
+                case SDLK_RIGHT:
+                    if (m_searchField == SearchField::Replacement
+                        && m_searchMode == SearchMode::Replace) {
+                        m_replaceCursorPos = utf8NextCodepointStart(
+                            m_replaceText, m_replaceCursorPos);
+                    } else {
+                        m_findCursorPos = utf8NextCodepointStart(m_findQuery, m_findCursorPos);
+                    }
+                    break;
+
+                case SDLK_HOME:
+                    if (m_searchField == SearchField::Replacement
+                        && m_searchMode == SearchMode::Replace) {
+                        m_replaceCursorPos = 0;
+                    } else {
+                        m_findCursorPos = 0;
+                    }
+                    break;
+
+                case SDLK_END:
+                    if (m_searchField == SearchField::Replacement
+                        && m_searchMode == SearchMode::Replace) {
+                        m_replaceCursorPos = m_replaceText.size();
+                    } else {
+                        m_findCursorPos = m_findQuery.size();
                     }
                     break;
 

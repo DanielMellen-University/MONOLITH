@@ -1,5 +1,10 @@
 # Changelog
 
+## 2026-09: Caret-aware Text Editor find and replace
+
+- Find and Replace fields now support caret movement, insertion, Delete, and UTF-8-safe Backspace.
+- Long search prompts keep the active caret visible without compressing the status bar.
+
 ## 2026-09: Caret-aware Terminal history search
 
 - Reverse Ctrl+R search now supports caret movement, insertion, Delete, and UTF-8-safe Backspace.
