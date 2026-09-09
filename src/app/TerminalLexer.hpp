@@ -13,6 +13,18 @@ struct CommandTokens {
 };
 
 /**
+ * The token currently being edited for Tab completion.
+ * `replacementStart` points after an opening quote when one is active.
+ */
+struct CompletionContext {
+    std::size_t replacementStart = 0;
+    std::string prefix;
+    bool firstWord = true;
+    bool hasToken = false;
+    char quote = '\0';
+};
+
+/**
  * Split a command line with shell-style quoting.
  *
  * - Unquoted whitespace separates tokens.
@@ -21,5 +33,11 @@ struct CommandTokens {
  * - Outside quotes, a backslash escapes the next character (including space).
  */
 CommandTokens tokenizeCommandLine(const std::string& line);
+
+/** Decode the current token prefix using the same quote rules as the lexer. */
+CompletionContext completionContextAt(const std::string& line, std::size_t cursor);
+
+/** Escape a completion for insertion into an unquoted or quoted token. */
+std::string escapeCompletion(const std::string& value, char quote);
 
 } // namespace monolith::app

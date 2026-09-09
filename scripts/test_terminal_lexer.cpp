@@ -8,6 +8,9 @@
 #include <vector>
 
 using monolith::app::CommandTokens;
+using monolith::app::CompletionContext;
+using monolith::app::completionContextAt;
+using monolith::app::escapeCompletion;
 using monolith::app::tokenizeCommandLine;
 
 int main() {
@@ -64,6 +67,34 @@ int main() {
 
     CommandTokens bad2 = tokenizeCommandLine("echo 'oops");
     check(!bad2.error.empty(), "unterminated single quote reports error");
+
+    {
+        const CompletionContext context = completionContextAt(
+            "open \"/home/monolith/my file", 29);
+        check(!context.firstWord, "quoted completion is an argument");
+        check(context.hasToken, "quoted completion has a token");
+        check(context.quote == '"', "quoted completion keeps double-quote mode");
+        check(context.prefix == "/home/monolith/my file",
+              "quoted completion decodes spaces");
+        check(context.replacementStart == 6,
+              "quoted completion replaces after opening quote");
+    }
+
+    {
+        const std::string line = "open /home/monolith/my\\ file";
+        const CompletionContext context = completionContextAt(line, line.size());
+        check(context.prefix == "/home/monolith/my file",
+              "escaped completion decodes escaped spaces");
+        check(context.quote == '\0', "escaped completion is unquoted");
+        check(escapeCompletion("/home/monolith/my file", '\0')
+                  == "/home/monolith/my\\ file",
+              "unquoted completion escapes spaces");
+    }
+
+    check(escapeCompletion("my file", '"') == "my file",
+          "double-quoted completion keeps spaces literal");
+    check(escapeCompletion("a\\b\"c", '"') == "a\\\\b\\\"c",
+          "double-quoted completion escapes syntax characters");
 
     if (failures == 0) {
         std::cout << "ALL TERMINAL LEXER TESTS PASSED\n";

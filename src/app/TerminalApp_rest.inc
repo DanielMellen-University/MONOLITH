@@ -108,36 +108,26 @@ void TerminalApp::saveCommandHistory() {
 }
 
 void TerminalApp::handleTabCompletion() {
-    if (m_inputCursorPos == 0) return;
-
-    // Only complete up to the cursor position
-    std::string textBeforeCursor = m_inputBuffer.substr(0, m_inputCursorPos);
-
-    // Find the start of the current word
-    size_t spacePos = textBeforeCursor.find_last_of(' ');
-    std::string prefix;
-    size_t wordStart = 0;
-
-    if (spacePos != std::string::npos) {
-        wordStart = spacePos + 1;
-        prefix = textBeforeCursor.substr(wordStart);
-    } else {
-        prefix = textBeforeCursor;
-    }
-
-    if (prefix.empty()) return;
+    const CompletionContext context = completionContextAt(m_inputBuffer, m_inputCursorPos);
+    if (!context.hasToken || context.prefix.empty()) return;
 
     std::vector<std::string> matches;
 
-    bool isFirstWord = (spacePos == std::string::npos);
-
-    if (isFirstWord) {
-        matches = getCommandCompletions(prefix);
+    if (context.firstWord) {
+        matches = getCommandCompletions(context.prefix);
     } else {
-        matches = getPathCompletions(prefix);
+        matches = getPathCompletions(context.prefix);
     }
 
     if (matches.empty()) return;
+
+    auto replacePrefix = [&](const std::string& completion) {
+        const std::string encoded = escapeCompletion(completion, context.quote);
+        const std::size_t replaceLength = static_cast<std::size_t>(m_inputCursorPos)
+                                         - context.replacementStart;
+        m_inputBuffer.replace(context.replacementStart, replaceLength, encoded);
+        m_inputCursorPos = static_cast<int>(context.replacementStart + encoded.size());
+    };
 
     if (matches.size() == 1) {
         // Single match - complete it
@@ -145,30 +135,25 @@ void TerminalApp::handleTabCompletion() {
         std::string newWord = completion;
 
         // For paths, append / if it's a directory
-        if (!isFirstWord) {
+        if (!context.firstWord) {
             std::string fullPath = resolvePath(newWord);
             if (m_fs && m_fs->isDirectory(fullPath) && !newWord.empty() && newWord.back() != '/') {
                 newWord += "/";
             }
         }
 
-        // Replace the partial word
-        m_inputBuffer.replace(wordStart, prefix.size(), newWord);
-        m_inputCursorPos = wordStart + newWord.size();
+        replacePrefix(newWord);
     } else {
         // Multiple matches - complete common prefix if possible
-        std::string common = prefix;
+        std::string common = context.prefix;
         for (const auto& m : matches) {
-            size_t len = std::min(common.size(), m.size());
-            while (len > common.size() || common.substr(0, len) != m.substr(0, len)) {
-                len--;
-            }
+            std::size_t len = std::min(common.size(), m.size());
+            while (len > 0 && common.compare(0, len, m, 0, len) != 0) --len;
             common = common.substr(0, len);
         }
 
-        if (common.size() > prefix.size()) {
-            m_inputBuffer.replace(wordStart, prefix.size(), common);
-            m_inputCursorPos = wordStart + common.size();
+        if (common.size() > context.prefix.size()) {
+            replacePrefix(common);
         } else {
             // Show possible completions in output
             addOutput("Possible completions:");

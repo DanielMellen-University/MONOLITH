@@ -73,7 +73,9 @@ Run `help` for the full list. Current commands:
 | `help` | Show command list |
 | `exit` / `quit` | Close this terminal window |
 
-Paths may be absolute or relative to the current working directory. Tab completion works for both command names and paths. The input cursor and Backspace move through complete UTF-8 characters, so accented characters and emoji are not split into invalid byte fragments. Long commands scroll horizontally to keep the cursor visible.
+Paths may be absolute or relative to the current working directory. Tab completion works for both command names and paths, including paths inside double or single quotes and paths with backslash-escaped spaces. The input cursor and Backspace move through complete UTF-8 characters, so accented characters and emoji are not split into invalid byte fragments. Long commands scroll horizontally to keep the cursor visible.
+
+Completion replaces only the token text before the cursor. Opening quotes remain in place, and unquoted completions escape spaces, backslashes, and quote characters so the completed command keeps the same meaning when it runs.
 
 `cat` prints one scrollback line per file line (truncated after many lines so huge files cannot flood the terminal).
 
@@ -113,6 +115,7 @@ Unterminated quotes print `parse error: ...` and do not run the command.
 - No script execution or custom language integration yet.
 - `touch` creates an empty file if missing; existing files are left unchanged (no mtime update yet).
 - The prompt is a single line and does not provide Text Editor-style selection or clipboard editing.
+- Tab completion does not add a closing quote automatically when completing inside an open quoted path.
 - Scrollback lines stay at native text size and clip at the viewport edge instead of being horizontally scaled.
 - Esc clears the current input and resets the insertion point, so typing can continue immediately.
 
@@ -122,7 +125,7 @@ Main implementation files:
 
 - `src/app/TerminalApp.hpp`
 - `src/app/TerminalApp.cpp`
-- `src/app/TerminalLexer.*` - command-line quoting / argv split (headless-testable)
+- `src/app/TerminalLexer.*` - command-line quoting, completion context, and argv split (headless-testable)
 - `src/fs/Filesystem.*` - shared path + recursive copy/remove used by `cp` / `rm`
 - Shell `open` / `edit` go through `IWindowController::openPath` / `openInTextEditor`
 

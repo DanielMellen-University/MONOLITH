@@ -1,5 +1,10 @@
 # Changelog
 
+## 2026-09: Quoted Terminal path completion
+
+- Terminal Tab completion now follows the command lexer for quoted paths and backslash-escaped spaces.
+- Completions preserve opening quotes and escape syntax characters when inserted into unquoted input.
+
 ## 2026-09: Drawing documentation reference
 
 - Documented Drawing shell routing, minimized-window reuse, session restore, and the distinct behaviors of Save, Open, and RGB prompts.

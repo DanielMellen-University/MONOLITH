@@ -22,6 +22,14 @@ Static checks that Snake, Minesweeper, and Pong are wired into the shell:
 
 Verifies launchers, Start menu actions (including Pong), `App::update()` dispatch, CMake entries, and docs hub links.
 
+## Terminal Lexer Check
+
+Headless test of Terminal quoting, UTF-8-safe command inputs, and quoted or escaped path completion context:
+
+```bash
+g++ -std=c++23 scripts/test_terminal_lexer.cpp src/app/TerminalLexer.cpp -o build/test_terminal_lexer && ./build/test_terminal_lexer
+```
+
 Headless Pong state test:
 
 ```bash
