@@ -294,6 +294,37 @@ void FilesystemApp::showPropertiesForSelection() {
     setStatus(oss.str());
 }
 
+bool FilesystemApp::readClipboard(std::vector<std::string>& paths, bool& isCut) const {
+    if (auto* ctrl = getController()) {
+        return ctrl->getFilesystemClipboard(paths, isCut);
+    }
+    paths = m_clipboardPaths;
+    isCut = m_clipboardIsCut;
+    return !paths.empty();
+}
+
+bool FilesystemApp::hasClipboard() const {
+    std::vector<std::string> paths;
+    bool isCut = false;
+    return readClipboard(paths, isCut) && !paths.empty();
+}
+
+void FilesystemApp::writeClipboard(const std::vector<std::string>& paths, bool isCut) {
+    m_clipboardPaths = paths;
+    m_clipboardIsCut = isCut;
+    if (auto* ctrl = getController()) {
+        ctrl->setFilesystemClipboard(paths, isCut);
+    }
+}
+
+void FilesystemApp::clearClipboard() {
+    m_clipboardPaths.clear();
+    m_clipboardIsCut = false;
+    if (auto* ctrl = getController()) {
+        ctrl->clearFilesystemClipboard();
+    }
+}
+
 void FilesystemApp::copySelectedToClipboard(bool cut) {
     auto indices = selectedIndicesSorted();
     if (!m_fs || indices.empty()) {
@@ -301,20 +332,21 @@ void FilesystemApp::copySelectedToClipboard(bool cut) {
         return;
     }
 
-    m_clipboardPaths.clear();
+    std::vector<std::string> paths;
+    paths.reserve(indices.size());
     for (int idx : indices) {
         if (idx < 0 || idx >= static_cast<int>(m_entries.size())) continue;
-        m_clipboardPaths.push_back(fullPathFor(m_entries[static_cast<size_t>(idx)].name));
+        paths.push_back(fullPathFor(m_entries[static_cast<size_t>(idx)].name));
     }
-    if (m_clipboardPaths.empty()) {
+    if (paths.empty()) {
         setStatus(cut ? "Cut failed: no item selected" : "Copy failed: no item selected");
         return;
     }
-    m_clipboardIsCut = cut;
-    if (m_clipboardPaths.size() == 1) {
-        setStatus((cut ? "Cut: " : "Copied: ") + entryBaseName(m_clipboardPaths.front()));
+    writeClipboard(paths, cut);
+    if (paths.size() == 1) {
+        setStatus((cut ? "Cut: " : "Copied: ") + entryBaseName(paths.front()));
     } else {
-        setStatus((cut ? "Cut: " : "Copied: ") + std::to_string(m_clipboardPaths.size()) + " items");
+        setStatus((cut ? "Cut: " : "Copied: ") + std::to_string(paths.size()) + " items");
     }
 }
 
@@ -323,27 +355,28 @@ void FilesystemApp::pasteFromClipboard() {
         setStatus("Paste failed: filesystem not available");
         return;
     }
-    if (m_clipboardPaths.empty()) {
+    std::vector<std::string> clipboardPaths;
+    bool clipboardIsCut = false;
+    if (!readClipboard(clipboardPaths, clipboardIsCut) || clipboardPaths.empty()) {
         setStatus("Paste failed: clipboard is empty");
         return;
     }
 
     std::vector<std::string> sources;
-    sources.reserve(m_clipboardPaths.size());
-    for (const auto& src : m_clipboardPaths) {
+    sources.reserve(clipboardPaths.size());
+    for (const auto& src : clipboardPaths) {
         if (m_fs->exists(src)) {
             sources.push_back(src);
         }
     }
     if (sources.empty()) {
         setStatus("Paste failed: source no longer exists");
-        m_clipboardPaths.clear();
-        m_clipboardIsCut = false;
+        clearClipboard();
         return;
     }
 
     const int copied = m_fs->copyItemsInto(sources, m_currentPath);
-    const bool wasCut = m_clipboardIsCut;
+    const bool wasCut = clipboardIsCut;
 
     if (wasCut && copied > 0) {
         int removed = 0;
@@ -355,8 +388,7 @@ void FilesystemApp::pasteFromClipboard() {
                 ++removed;
             }
         }
-        m_clipboardPaths.clear();
-        m_clipboardIsCut = false;
+        clearClipboard();
         (void)removed;
     }
 
@@ -1237,7 +1269,7 @@ void FilesystemApp::showContextMenu(int x, int y, int targetIndex) {
         // Background menu
         m_contextMenuItems.push_back("New Folder");
         m_contextMenuItems.push_back("New File");
-        if (!m_clipboardPaths.empty()) {
+        if (hasClipboard()) {
             m_contextMenuItems.push_back("Paste");
         }
         m_contextMenuItems.push_back("Refresh");
@@ -1251,7 +1283,7 @@ void FilesystemApp::showContextMenu(int x, int y, int targetIndex) {
         m_contextMenuItems.push_back("Properties");
         m_contextMenuItems.push_back("Copy");
         m_contextMenuItems.push_back("Cut");
-        if (!m_clipboardPaths.empty()) {
+        if (hasClipboard()) {
             m_contextMenuItems.push_back("Paste");
         }
         m_contextMenuItems.push_back("Rename");

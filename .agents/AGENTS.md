@@ -101,12 +101,11 @@ Remote: SSH `git@github.com:DanielMellen-University/MONOLITH.git`
 
 ### Known debts
 
-- Drawing custom RGB is a status-bar prompt, not a picker; no PNG export
+- Drawing custom RGB supports both the status-bar prompt and canvas eyedropper; no PNG export
 - Wallpaper is BMP-only (no SDL_image)
 - Start menu launchers are hard-coded (no app registry)
 - No CI; headless scripts are local sanity checks
 - Custom language + IDE not started (parked)
-- Clipboard in FS browser is per-window, not shared
 - WindowManager is still a shell god class (split only if a chunk needs it)
 
 ---
@@ -372,6 +371,7 @@ When unspecified, choose:
 | 2026-09-09 | 4.2 | Settings interface text scale; CURRENT_CHUNK -> 4.3 |
 | 2026-09-09 | 4.3 | Text Editor horizontal scrolling; CURRENT_CHUNK -> 4.4 |
 | 2026-09-09 | 4.4 | Drawing eyedropper; CURRENT_CHUNK -> 7.1 pending dependency decision |
+| 2026-09-09 | cleanup | Shared virtual Filesystem clipboard across browser windows; CURRENT_CHUNK remains 7.1 |
 
 ---
 

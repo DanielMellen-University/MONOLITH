@@ -3,6 +3,7 @@
 #include <SDL2/SDL.h>
 #include <cstdint>
 #include <string>
+#include <vector>
 
 namespace monolith::window {
 class WindowManager;
@@ -45,6 +46,19 @@ struct IWindowController {
 
     // Clear a Drawing window's file binding (e.g. after New sketch).
     virtual void clearDrawingFileBinding() {}
+
+    // Shared virtual filesystem clipboard for Filesystem browser instances.
+    // The shell owns the paths; they are not host OS clipboard data.
+    virtual bool getFilesystemClipboard(std::vector<std::string>& paths, bool& isCut) const {
+        paths.clear();
+        isCut = false;
+        return false;
+    }
+    virtual void setFilesystemClipboard(const std::vector<std::string>& paths, bool isCut) {
+        (void)paths;
+        (void)isCut;
+    }
+    virtual void clearFilesystemClipboard() {}
 
     // Desktop appearance (owned by the shell; defaults match the built-in background).
     virtual void getDesktopBackgroundColor(uint8_t& r, uint8_t& g, uint8_t& b) const {

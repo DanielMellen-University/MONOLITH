@@ -42,6 +42,10 @@ private:
     void cancelPendingDelete();
     void copySelectedToClipboard(bool cut);
     void pasteFromClipboard();
+    bool readClipboard(std::vector<std::string>& paths, bool& isCut) const;
+    bool hasClipboard() const;
+    void writeClipboard(const std::vector<std::string>& paths, bool isCut);
+    void clearClipboard();
     void startRenameSelected();
     void finishRename(bool commit);  // commit = true for Enter, false for Escape
     void beginFilter();

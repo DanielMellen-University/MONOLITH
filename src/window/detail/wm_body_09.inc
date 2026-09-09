@@ -75,6 +75,22 @@ void WindowManager::clearDrawingFileBinding(Window* window) {
     window->drawingFilePath.clear();
 }
 
+bool WindowManager::getFilesystemClipboard(std::vector<std::string>& paths, bool& isCut) const {
+    paths = m_filesystemClipboardPaths;
+    isCut = m_filesystemClipboardIsCut;
+    return !paths.empty();
+}
+
+void WindowManager::setFilesystemClipboard(const std::vector<std::string>& paths, bool isCut) {
+    m_filesystemClipboardPaths = paths;
+    m_filesystemClipboardIsCut = isCut && !paths.empty();
+}
+
+void WindowManager::clearFilesystemClipboard() {
+    m_filesystemClipboardPaths.clear();
+    m_filesystemClipboardIsCut = false;
+}
+
 // =============================================================================
 // Per-window controller for apps (IWindowController implementation)
 // =============================================================================
@@ -190,6 +206,22 @@ struct WindowController : public monolith::app::IWindowController {
     void setUiScalePercent(int percent) override {
         if (wm) {
             wm->setUiScalePercent(percent);
+        }
+    }
+
+    bool getFilesystemClipboard(std::vector<std::string>& paths, bool& isCut) const override {
+        return wm ? wm->getFilesystemClipboard(paths, isCut) : false;
+    }
+
+    void setFilesystemClipboard(const std::vector<std::string>& paths, bool isCut) override {
+        if (wm) {
+            wm->setFilesystemClipboard(paths, isCut);
+        }
+    }
+
+    void clearFilesystemClipboard() override {
+        if (wm) {
+            wm->clearFilesystemClipboard();
         }
     }
 

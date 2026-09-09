@@ -149,6 +149,11 @@ public:
     bool focusEditorForFile(const std::string& virtualPath);
     bool focusDrawingForFile(const std::string& virtualPath);
 
+    // Shared virtual filesystem clipboard used by all Filesystem windows.
+    bool getFilesystemClipboard(std::vector<std::string>& paths, bool& isCut) const;
+    void setFilesystemClipboard(const std::vector<std::string>& paths, bool isCut);
+    void clearFilesystemClipboard();
+
     // Coordinate conversion helpers (screen <-> logical desktop space)
     int screenToLogicalX(int screenX) const { return static_cast<int>(screenX / m_contentScale); }
     int screenToLogicalY(int screenY) const { return static_cast<int>((screenY - m_headerOffset) / m_contentScale); }
@@ -215,6 +220,9 @@ private:
     std::unordered_map<std::string, Window*> m_fileEditors;
 
     std::unordered_map<std::string, Window*> m_fileDrawings;
+
+    std::vector<std::string> m_filesystemClipboardPaths;
+    bool m_filesystemClipboardIsCut = false;
 
     // Tracks active instance numbers per app base type ("Terminal", "Filesystem", etc.)
     // for the dynamic titling system. Populated by claimNextAppInstanceTitle and

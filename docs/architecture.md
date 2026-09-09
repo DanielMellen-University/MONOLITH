@@ -114,7 +114,7 @@ The Start menu keeps most apps as top-level entries. Games that clearly form a g
 
 Each frame, `WindowManager::update()` calls `App::update()` on every non-minimized window's app. Most apps leave this as a no-op; games use it for fixed-rate ticks and timers.
 
-Apps can request shell actions through `IWindowController`: `close()`, `setTitle()`, `restoreTrackedInstanceTitle()`, `openInTextEditor` / `openInDrawing` / **`openPath`** (extension-based default), editor/drawing file binding helpers, desktop background get/set, wallpaper path get/set, taskbar clock 12/24-hour get/set, and interface text scale get/set. Apps do not depend on each other directly. Temporary title overrides (e.g. Drawing after save) restore via `restoreTrackedInstanceTitle()`.
+Apps can request shell actions through `IWindowController`: `close()`, `setTitle()`, `restoreTrackedInstanceTitle()`, `openInTextEditor` / `openInDrawing` / **`openPath`** (extension-based default), editor/drawing file binding helpers, the shared virtual filesystem clipboard, desktop background get/set, wallpaper path get/set, taskbar clock 12/24-hour get/set, and interface text scale get/set. Apps do not depend on each other directly. Temporary title overrides (e.g. Drawing after save) restore via `restoreTrackedInstanceTitle()`.
 
 ### 3. Rendering
 
@@ -150,7 +150,7 @@ Native C++ apps render into window client areas and are launched via shell metho
 | Snake | [apps/snake.md](apps/snake.md) | `SnakeApp` |
 | Minesweeper | [apps/minesweeper.md](apps/minesweeper.md) | `MinesweeperApp` |
 
-**Shell coordination:** Apps use `IWindowController` for close, titles, open/openPath, file bindings, desktop color, wallpaper path, clock format, and interface text scale. Settings persists these preferences to `~/.monolith/desktop_settings.txt`. Session layout persists to `~/.monolith/session.txt` via `WindowManager::saveSession` / `loadSession` (wired from `main`).
+**Shell coordination:** Apps use `IWindowController` for close, titles, open/openPath, file bindings, shared virtual filesystem clipboard, desktop color, wallpaper path, clock format, and interface text scale. Settings persists these preferences to `~/.monolith/desktop_settings.txt`. Session layout persists to `~/.monolith/session.txt` via `WindowManager::saveSession` / `loadSession` (wired from `main`).
 
 **Input note:** The Window Manager forwards `SDL_MOUSEBUTTONUP` to the focused app's client area so drag interactions (e.g. Drawing strokes) end cleanly when the mouse is released outside the window.
 

@@ -1,5 +1,10 @@
 # Changelog
 
+## 2026-09: Shared Filesystem clipboard
+
+- Copy and cut state is now owned by the desktop shell and shared across Filesystem Browser windows.
+- Paste still operates on virtual paths only and does not connect to the host OS clipboard.
+
 ## 2026-09: Drawing eyedropper
 
 - The Drawing toolbar now includes Pick, which samples a canvas pixel into the existing custom RGB color and returns to Pen.

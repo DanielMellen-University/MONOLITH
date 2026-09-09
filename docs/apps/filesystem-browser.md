@@ -132,7 +132,7 @@ Deletion uses `Filesystem::removeRecursive` (whole directory trees). The virtual
 
 - Default open supports text + `.modr` only; force open-with can open any file in Editor or Drawing (Drawing rejects non-`.modr` loads).
 - No drag-and-drop.
-- Clipboard is per browser window (not shared across Filesystem instances or the host OS).
+- The virtual clipboard is shared across Filesystem instances, but it is not connected to the host OS clipboard.
 
 ## Developer Notes
 
@@ -141,6 +141,7 @@ Main implementation files:
 - `src/app/FilesystemApp.hpp`
 - `src/app/FilesystemApp.cpp`
 - `src/fs/Filesystem.*` — shared recursive copy/remove, path helpers, `fileSize`
-- `src/window/WindowManager.cpp` — `launchFilesystem()`, `openPath` / open-with shell bridges
+- `src/window/detail/wm_body_07.inc` — `launchFilesystem()`
+- `src/window/detail/wm_body_08.inc` / `wm_body_09.inc` — `openPath` / open-with bridges and shared virtual clipboard controller methods
 
 File open uses `IWindowController` (`openPath`, `openInTextEditor`, `openInDrawing`) so the browser does not depend on Editor or Drawing classes.
