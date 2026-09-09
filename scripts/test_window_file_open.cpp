@@ -52,6 +52,24 @@ int main() {
         monolith::window::WindowManager wm;
         wm.setAppResources(font, &fs);
 
+        const auto settingsPath = hostRoot / "desktop-settings.txt";
+        wm.loadDesktopSettings(settingsPath.string());
+        check(fs.createDirectory("/Wallpapers"), "create wallpaper directory");
+        check(fs.createDirectory("/archive"), "create directory move destination");
+        check(fs.writeFile("/Wallpapers/old.bmp", "placeholder"),
+              "write wallpaper move source");
+        wm.setWallpaperPath("/Wallpapers/old.bmp");
+        check(fs.rename("/Wallpapers/old.bmp", "/archive/moved.bmp"),
+              "move configured wallpaper");
+        wm.notifyVirtualPathMoved("/Wallpapers/old.bmp", "/archive/moved.bmp");
+        check(wm.getWallpaperPath() == "/archive/moved.bmp",
+              "wallpaper setting follows a moved file");
+        std::ifstream settingsFile(settingsPath);
+        const std::string settingsText(
+            std::istreambuf_iterator<char>(settingsFile), {});
+        check(settingsText.find("wallpaper_path=/archive/moved.bmp") != std::string::npos,
+              "moved wallpaper path is persisted");
+
         wm.openPath("/docs/retry.txt");
         check(!wm.focusEditorForFile("/docs/retry.txt"),
               "failed editor open does not reserve a file singleton");
@@ -89,7 +107,7 @@ int main() {
                   && (*renamedEditor)->title == "Editor - renamed.txt",
               "renamed editor file updates its title and path");
 
-        check(fs.createDirectory("/archive"), "create directory move destination");
+        check(fs.isDirectory("/archive"), "directory move destination remains available");
         check(fs.createDirectory("/docs/nested"), "create nested editor directory");
         check(fs.writeFile("/docs/nested/child.txt", "nested"),
               "write nested editor file");

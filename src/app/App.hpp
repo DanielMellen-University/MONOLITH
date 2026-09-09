@@ -145,6 +145,10 @@ public:
     // Called when the virtual path bound to this app is renamed or moved.
     virtual void onBoundFileMoved(const std::string& /*newPath*/) {}
 
+    // Called when any virtual file or directory is renamed or moved.
+    virtual void onVirtualPathMoved(const std::string& /*oldPath*/,
+                                    const std::string& /*newPath*/) {}
+
     // === Controller access (provided by WindowManager) ===
     IWindowController* getController() const { return m_controller; }
 

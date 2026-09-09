@@ -23,6 +23,8 @@ public:
     void render(SDL_Renderer* renderer, const SDL_Rect& contentRect) override;
     void handleEvent(const SDL_Event& event) override;
     void onResize(int clientWidth, int clientHeight) override;
+    void onVirtualPathMoved(const std::string& oldPath,
+                            const std::string& newPath) override;
 
 private:
     // === Navigation ===

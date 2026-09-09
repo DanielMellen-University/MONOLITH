@@ -100,6 +100,15 @@ int main() {
     check(terminal.m_inputBuffer == "ls /home/",
           "absolute-root completion searches the virtual root");
 
+    check(fs.createDirectory("/home/monolith/work/nested"),
+          "create terminal cwd move source");
+    terminal.m_cwd = "/home/monolith/work/nested";
+    check(fs.rename("/home/monolith/work", "/home/monolith/moved-work"),
+          "move terminal cwd parent");
+    terminal.onVirtualPathMoved("/home/monolith/work", "/home/monolith/moved-work");
+    check(terminal.m_cwd == "/home/monolith/moved-work/nested",
+          "terminal cwd follows a moved parent directory");
+
     std::filesystem::remove_all(hostRoot, ec);
     if (failures == 0) {
         std::cout << "ALL TERMINAL FILESYSTEM TESTS PASSED\n";

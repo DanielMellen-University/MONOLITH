@@ -104,6 +104,13 @@ int main() {
               && !settings.m_wallpaperFieldFocused,
           "completed wallpaper path applies through the shell controller");
 
+    settings.m_wallpaperFieldFocused = true;
+    settings.m_wallpaperEditBuffer = "/Wallpapers/alpha.bmp";
+    settings.m_wallpaperCursorPos = settings.m_wallpaperEditBuffer.size();
+    settings.onVirtualPathMoved("/Wallpapers", "/Archive");
+    check(settings.m_wallpaperEditBuffer == "/Archive/alpha.bmp",
+          "focused wallpaper prompt follows a moved parent directory");
+
     std::filesystem::remove_all(hostRoot, ec);
     if (failures == 0) {
         std::cout << "ALL SETTINGS APP STATE TESTS PASSED\n";

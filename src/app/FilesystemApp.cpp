@@ -38,6 +38,21 @@ FilesystemApp::FilesystemApp(TTF_Font* font, monolith::fs::Filesystem* fs)
     refreshEntries();
 }
 
+void FilesystemApp::onVirtualPathMoved(const std::string& oldPath,
+                                       const std::string& newPath) {
+    if (!m_fs) return;
+
+    const std::string oldNormalized = m_fs->normalize(oldPath);
+    const std::string newNormalized = m_fs->normalize(newPath);
+    if (oldNormalized == newNormalized || oldNormalized == "/") return;
+    if (!m_fs->isSameOrDescendant(oldNormalized, m_currentPath)) return;
+
+    m_currentPath = newNormalized + m_currentPath.substr(oldNormalized.size());
+    cancelPendingDelete();
+    refreshEntries();
+    setStatus("Folder moved: " + m_currentPath);
+}
+
 void FilesystemApp::setCurrentPath(const std::string& virtualPath) {
     if (!m_fs) {
         setStatus("Filesystem not available");

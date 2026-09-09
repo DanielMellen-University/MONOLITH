@@ -87,6 +87,31 @@ SettingsApp::SettingsApp(TTF_Font* font, monolith::fs::Filesystem* fs)
     buildInfoLines();
 }
 
+void SettingsApp::onVirtualPathMoved(const std::string& oldPath,
+                                     const std::string& newPath) {
+    if (!m_fs) return;
+
+    const std::string oldNormalized = m_fs->normalize(oldPath);
+    const std::string newNormalized = m_fs->normalize(newPath);
+    if (oldNormalized == newNormalized || oldNormalized == "/") return;
+
+    auto remap = [&](const std::string& current) -> std::string {
+        if (!m_fs->isSameOrDescendant(oldNormalized, current)) return {};
+        return newNormalized + current.substr(oldNormalized.size());
+    };
+
+    if (m_wallpaperFieldFocused) {
+        const std::string next = remap(m_wallpaperEditBuffer);
+        if (!next.empty()) {
+            m_wallpaperEditBuffer = next;
+            m_wallpaperCursorPos = std::min(m_wallpaperCursorPos, m_wallpaperEditBuffer.size());
+            m_wallpaperScrollPx = 0;
+        }
+    } else {
+        syncWallpaperBufferFromShell();
+    }
+}
+
 void SettingsApp::buildInfoLines() {
     m_lines.clear();
 

@@ -30,6 +30,7 @@ The **APPEARANCE** section at the top lets you change live desktop preferences.
 - Empty path means solid color only. Missing or unloadable files fail soft (solid color stays).
 - A sample BMP is seeded at `/Wallpapers/sample.bmp` on first launch (from `assets/wallpapers/sample.bmp`).
 - The image is cover-scaled to fill the logical desktop.
+- Renaming or moving the configured wallpaper in Filesystem Browser or Terminal updates the setting and persists the new virtual path. If the wallpaper field is being edited at the same time, its prompt follows the move too.
 
 ### Taskbar clock
 

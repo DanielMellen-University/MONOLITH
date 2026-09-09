@@ -88,6 +88,16 @@ void WindowManager::notifyVirtualPathMoved(const std::string& oldPath,
         return newNormalized + current.substr(oldNormalized.size());
     };
 
+    const std::string nextWallpaperPath = remap(m_desktopSettings.wallpaperPath());
+    if (!nextWallpaperPath.empty()) {
+        m_desktopSettings.setWallpaperPath(nextWallpaperPath);
+        destroyWallpaperTexture();
+        m_wallpaperLoadedPath.clear();
+        if (!m_desktopSettingsHostPath.empty()) {
+            m_desktopSettings.saveToHostPath(m_desktopSettingsHostPath);
+        }
+    }
+
     std::vector<std::pair<Window*, std::string>> editorUpdates;
     std::vector<std::pair<Window*, std::string>> drawingUpdates;
     for (const auto& windowPtr : m_windows) {
@@ -121,6 +131,12 @@ void WindowManager::notifyVirtualPathMoved(const std::string& oldPath,
         window->drawingFilePath = next;
         m_fileDrawings[next] = window;
         if (window->app) window->app->onBoundFileMoved(next);
+    }
+
+    for (const auto& windowPtr : m_windows) {
+        if (windowPtr && windowPtr->app) {
+            windowPtr->app->onVirtualPathMoved(oldNormalized, newNormalized);
+        }
     }
 }
 

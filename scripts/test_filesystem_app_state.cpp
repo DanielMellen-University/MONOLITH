@@ -168,6 +168,21 @@ int main() {
               && browser.m_clipboardIsCut,
           "partial cut clipboard keeps only the retryable source");
 
+    check(fs.createDirectory("/home/monolith/dest/sub"),
+          "create browser folder move source");
+    check(fs.writeFile("/home/monolith/dest/sub/inside.txt", "inside"),
+          "write browser folder move child");
+    browser.setCurrentPath("/home/monolith/dest/sub");
+    check(browser.m_currentPath == "/home/monolith/dest/sub",
+          "open browser folder move source");
+    check(fs.rename("/home/monolith/dest/sub", "/home/monolith/moved-sub"),
+          "move browser current folder");
+    browser.onVirtualPathMoved("/home/monolith/dest/sub", "/home/monolith/moved-sub");
+    check(browser.m_currentPath == "/home/monolith/moved-sub"
+              && browser.m_entries.size() == 1
+              && browser.m_entries.front().name == "inside.txt",
+          "browser view follows a moved parent directory");
+
     std::filesystem::remove_all(hostRoot, ec);
     if (failures == 0) {
         std::cout << "ALL FILESYSTEM APP STATE TESTS PASSED\n";

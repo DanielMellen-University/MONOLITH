@@ -75,7 +75,7 @@ The browser starts at `/home/monolith` when that path exists.
 
 Press **F2** or choose Rename from the context menu. The caret starts at the end of the existing name. Use Left/Right/Home/End to move it, type to insert, Backspace/Delete to remove complete UTF-8 characters, then press **Enter** to commit or **Esc** to cancel. Names that contain `/` (or that are empty, `.`, or `..`) are rejected so rename cannot create a nested path.
 
-If the renamed entry is open in Text Editor or Drawing, the shell updates that window's bound virtual path, title, session record, and singleton focus binding. Renaming a directory also updates open files and drawings below it.
+If the renamed entry is open in Text Editor or Drawing, the shell updates that window's bound virtual path, title, session record, and singleton focus binding. Renaming a directory also updates open files and drawings below it, plus any Terminal or Filesystem Browser currently inside the directory.
 
 ### Filter / search
 
@@ -136,6 +136,7 @@ Right-clicking an already selected row keeps the current multi-selection, so con
 - **Paste** into the current directory from the right-click menu (or Ctrl+V).
 - Cut + Paste moves items via `Filesystem::moveItemsInto`; Copy + Paste duplicates them, including directory trees via `copyItemsInto` → `copyRecursive`.
 - Successful cut + paste moves notify open Text Editor and Drawing windows, so bound paths follow files and directories into their new location.
+- A browser currently viewing a moved directory follows it and refreshes the listing at the new path.
 - Paste skips items whose names already exist in the destination, same-folder sources, and folders pasted into themselves (`isSameOrDescendant`).
 - Backspace in rename and filter prompts removes one UTF-8 codepoint at a time.
 - Long names stay at their normal text size and are clipped within the list; while renaming, the visible text follows the caret so edits remain visible at either end of the name.

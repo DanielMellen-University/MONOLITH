@@ -6,6 +6,12 @@
 - Updated titles, Save targets, session records, and singleton focus routing follow the normalized destination path, including nested files under moved directories.
 - Added regression coverage for renamed editor and Drawing files plus nested directory moves.
 
+## 2026-09: Keep desktop path state aligned across virtual moves
+
+- Terminal working directories and Filesystem Browser views now follow moved parent directories.
+- Configured wallpaper paths are remapped and persisted when their file or parent directory moves, including an active Settings path prompt.
+- Added state coverage for Terminal, Filesystem Browser, Settings, and wallpaper persistence.
+
 ## 2026-09: Keep windows inside narrow logical desktops
 
 - Window clamping now handles desktops narrower than the normal minimum window width without producing a negative left coordinate.

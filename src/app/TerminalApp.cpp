@@ -41,6 +41,19 @@ TerminalApp::TerminalApp(TTF_Font* font, monolith::fs::Filesystem* fs)
     addOutput("");
 }
 
+void TerminalApp::onVirtualPathMoved(const std::string& oldPath,
+                                     const std::string& newPath) {
+    if (!m_fs) return;
+
+    const std::string oldNormalized = m_fs->normalize(oldPath);
+    const std::string newNormalized = m_fs->normalize(newPath);
+    if (oldNormalized == newNormalized || oldNormalized == "/") return;
+    if (!m_fs->isSameOrDescendant(oldNormalized, m_cwd)) return;
+
+    m_cwd = newNormalized + m_cwd.substr(oldNormalized.size());
+    addOutput("Working directory moved to " + m_cwd);
+}
+
 void TerminalApp::addOutput(const std::string& line) {
     m_history.push_back(line);
     while (m_history.size() > kMaxScrollbackLines) {
