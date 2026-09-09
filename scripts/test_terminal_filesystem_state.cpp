@@ -36,6 +36,32 @@ int main() {
     check(fs.writeFile("/home/monolith/note.txt", "hello"), "create regular file");
 
     monolith::app::TerminalApp terminal(nullptr, &fs);
+
+    auto key = [&](SDL_Keycode sym, SDL_Keymod mod = KMOD_NONE) {
+        SDL_Keysym keysym{};
+        keysym.sym = sym;
+        keysym.mod = mod;
+        terminal.handleKeyDown(keysym);
+    };
+    auto text = [&](const char* value) {
+        terminal.processTextInput(value);
+    };
+
+    terminal.m_commandHistory = {"echo one", "echo two", "echo three"};
+    terminal.m_inputBuffer.clear();
+    terminal.m_inputCursorPos = 0;
+    key(SDLK_UP);
+    check(terminal.m_historyIndex == 2 && terminal.m_inputBuffer == "echo three",
+          "history navigation recalls the newest command");
+    key(SDLK_r, KMOD_CTRL);
+    text("two");
+    key(SDLK_RETURN);
+    check(terminal.m_inputBuffer == "echo two" && terminal.m_historyIndex == -1,
+          "accepted reverse search clears stale history navigation");
+    key(SDLK_DOWN);
+    check(terminal.m_inputBuffer == "echo two",
+          "down does not replace an accepted search result with stale input");
+
     terminal.executeCommand("ls /home/monolith/empty");
     check(!terminal.m_history.empty() && terminal.m_history.back() == "(empty)",
           "ls reports an empty directory");

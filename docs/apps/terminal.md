@@ -75,7 +75,7 @@ Run `help` for the full list. Current commands:
 
 Paths may be absolute or relative to the current working directory. Tab completion works for both command names and paths, including the virtual root (`/`), paths inside double or single quotes, and paths with backslash-escaped spaces. The input cursor and Backspace move through complete UTF-8 characters, so accented characters and emoji are not split into invalid byte fragments. Long commands scroll horizontally to keep the cursor visible.
 
-Reverse history search has its own editable query. Left/Right/Home/End move through the query, typed text is inserted at the caret, Delete removes the next complete UTF-8 character, and Backspace removes the previous one. Long search queries scroll horizontally to keep the caret visible. Up/Down cancel search and return to normal history navigation.
+Reverse history search has its own editable query. Left/Right/Home/End move through the query, typed text is inserted at the caret, Delete removes the next complete UTF-8 character, and Backspace removes the previous one. Long search queries scroll horizontally to keep the caret visible. Up/Down cancel search and return to normal history navigation. Accepting or canceling a search also clears any older Up/Down navigation state, so the accepted or restored input is not overwritten by a stale history slot.
 
 Completion replaces only the token text before the cursor. Opening quotes remain in place, and unquoted completions escape spaces, backslashes, and quote characters so the completed command keeps the same meaning when it runs.
 

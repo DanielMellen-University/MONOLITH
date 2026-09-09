@@ -1,5 +1,10 @@
 # Changelog
 
+## 2026-09: Reset Terminal history navigation after reverse search
+
+- Accepting or canceling Ctrl+R search now clears stale Up/Down navigation state instead of allowing a later Down press to overwrite the search result.
+- Extended Terminal state coverage for recalled-command reverse search.
+
 ## 2026-09: Reset Filesystem delete confirmation on selection changes
 
 - Ctrl-click and Shift-range selection changes now cancel an armed delete confirmation before the selection can change.

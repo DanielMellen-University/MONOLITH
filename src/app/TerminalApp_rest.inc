@@ -47,6 +47,8 @@ void TerminalApp::exitReverseSearch(bool accept) {
     m_searchHorizontalScrollPx = 0;
     m_searchMatchIndex = -1;
     m_searchSavedInput.clear();
+    m_historyIndex = -1;
+    m_savedInputBuffer.clear();
     m_scrollOffset = 0;
 }
 
