@@ -143,7 +143,8 @@ While a path prompt is active, typed printable UTF-8 characters are added to the
 - **Save** starts with the current file path when one exists. A new sketch starts with the next free name under `/home/monolith/drawings/`.
 - **Open** starts at `/home/monolith/drawings/` and filters file completion to `.modr` entries.
 - **RGB** starts with the current active color and accepts exactly three integer channels. Tab completion does not apply to RGB input.
-- Enter accepts the active prompt. Escape cancels it. Backspace removes one complete UTF-8 character.
+- These prompts are inline status-bar inputs. Typed text is appended at the end; there is no caret navigation or in-place editing. Backspace removes one complete UTF-8 character.
+- Enter accepts the active prompt and Escape cancels it. Save adds `.modr` when the entered path does not already end in `.modr`; entering `picture.mod` therefore saves as `picture.mod.modr`.
 - If a dirty sketch blocks Open, the first confirmation keeps the path prompt active. Confirming the same open action again discards the unsaved canvas and loads the file.
 
 ## Saving
