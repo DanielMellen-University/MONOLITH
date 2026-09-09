@@ -501,6 +501,16 @@ void TerminalApp::handleKeyDown(const SDL_Keysym& keysym) {
             }
             break;
 
+        case SDLK_DELETE: {
+            const std::size_t cursor = static_cast<std::size_t>(
+                std::clamp(m_inputCursorPos, 0, static_cast<int>(m_inputBuffer.size())));
+            const std::size_t next = utf8NextCodepointStart(m_inputBuffer, cursor);
+            if (next > cursor) {
+                m_inputBuffer.erase(cursor, next - cursor);
+            }
+            break;
+        }
+
         case SDLK_ESCAPE:
             m_inputBuffer.clear();
             m_inputCursorPos = 0;

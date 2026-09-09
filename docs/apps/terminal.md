@@ -38,7 +38,7 @@ Type commands at the prompt and press **Enter** to run them. Output appears abov
 | Up / Down | Navigate command history |
 | Left / Right | Move cursor within the input line |
 | Home / End | Jump to start / end of input |
-| Backspace | Delete the complete UTF-8 character before the cursor |
+| Backspace / Delete | Delete the previous or next complete UTF-8 character |
 | Tab | Complete command name or filesystem path |
 | Ctrl+R | Enter reverse history search |
 | Ctrl+R (in search) | Find older matching command |

@@ -1,5 +1,9 @@
 # Changelog
 
+## 2026-09: Forward Delete in Terminal input
+
+- Terminal command input now removes the next complete UTF-8 character with Delete, matching the editor cursor model.
+
 ## 2026-09: Caret-aware Text Editor find and replace
 
 - Find and Replace fields now support caret movement, insertion, Delete, and UTF-8-safe Backspace.
