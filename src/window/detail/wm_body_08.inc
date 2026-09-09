@@ -180,13 +180,15 @@ bool WindowManager::saveSession(const std::string& hostPath) const {
 void WindowManager::requestQuit() {
     if (m_quitRequested) return;
 
-    // Shut Down is still a close operation: every dirty app gets one warning
-    // before the shell permits the process to exit.
+    // Shut Down is still a close operation. Ask every app in this request so
+    // multiple dirty documents are armed together instead of serializing them.
+    bool allAllowed = true;
     for (const auto& window : m_windows) {
         if (window && window->app && !window->app->allowClose()) {
-            return;
+            allAllowed = false;
         }
     }
+    if (!allAllowed) return;
 
     m_quitRequested = true;
     // Menu close is handled by the Start menu click handler (or caller).

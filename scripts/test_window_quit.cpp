@@ -67,6 +67,27 @@ int main() {
         check(dirtyPtr->allowCloseCalls == 2, "confirmed shutdown checks the app a second time");
     }
 
+    {
+        monolith::window::WindowManager wm;
+        auto first = std::make_unique<QuitProbe>(true);
+        QuitProbe* firstPtr = first.get();
+        wm.createWindow("First dirty", 40, 40, 260, 180, std::move(first));
+
+        auto second = std::make_unique<QuitProbe>(true);
+        QuitProbe* secondPtr = second.get();
+        wm.createWindow("Second dirty", 340, 40, 260, 180, std::move(second));
+
+        wm.requestQuit();
+        check(!wm.shouldQuit(), "multiple dirty shutdown is blocked on the first request");
+        check(firstPtr->allowCloseCalls == 1 && secondPtr->allowCloseCalls == 1,
+              "first shutdown request arms every dirty app");
+
+        wm.requestQuit();
+        check(wm.shouldQuit(), "multiple dirty shutdown succeeds on the second request");
+        check(firstPtr->allowCloseCalls == 2 && secondPtr->allowCloseCalls == 2,
+              "second shutdown request confirms every dirty app");
+    }
+
     if (failures == 0) {
         std::cout << "ALL WINDOW QUIT TESTS PASSED\n";
         return 0;

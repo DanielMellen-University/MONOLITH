@@ -1,5 +1,9 @@
 # Changelog
 
+## 2026-09: Complete multi-document shutdown confirmation
+
+- Shut Down now arms every dirty open document in the first request, so confirming once handles multiple Editor or Drawing windows together.
+
 ## 2026-09: Explicit filesystem read results
 
 - Added a boolean-output `Filesystem::readFile` overload so empty files and read failures are distinguishable.

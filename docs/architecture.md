@@ -164,7 +164,7 @@ Native C++ apps render into window client areas and are launched via shell metho
 
 **Input note:** The Window Manager captures the client that receives `SDL_MOUSEBUTTONDOWN` and forwards matching motion and `SDL_MOUSEBUTTONUP` events to that same client, so drag interactions (e.g. Drawing strokes) end cleanly when the mouse leaves or focus changes.
 
-**Close note:** Before destroying a window, the shell calls `App::allowClose()`. Apps may return false once to warn about unsaved work (second close discards). Shut Down uses the same contract across every open app before allowing the process to exit. Default is always allow.
+**Close note:** Before destroying a window, the shell calls `App::allowClose()`. Apps may return false once to warn about unsaved work (second close discards). Shut Down calls the same contract on every open app in each request, so multiple dirty documents are warned together before the process can exit. Default is always allow.
 
 ### 7. Language Runtime
 
