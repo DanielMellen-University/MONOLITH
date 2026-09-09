@@ -1,5 +1,10 @@
 # Changelog
 
+## 2026-09: Reject unusable filesystem roots
+
+- Filesystem initialization now fails when the configured host root is a regular file instead of a directory.
+- Extended the filesystem roadmap check for the invalid-root startup case.
+
 ## 2026-09: Retry failed file-backed app opens
 
 - Editor and Drawing no longer reserve singleton file bindings when an initial path is missing, unreadable, or corrupt.

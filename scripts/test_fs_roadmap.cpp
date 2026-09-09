@@ -6,6 +6,7 @@
 #include <algorithm>
 #include <cstdint>
 #include <filesystem>
+#include <fstream>
 #include <iostream>
 #include <string>
 #include <unistd.h>
@@ -37,6 +38,17 @@ int main() {
 
     Filesystem fs(hostRoot.string());
     check(fs.initialize(), "filesystem initialize");
+
+    const stdfs::path fileRoot = stdfs::temp_directory_path()
+        / ("monolith-fs-file-root-" + std::to_string(getpid()));
+    stdfs::remove_all(fileRoot, ec);
+    {
+        std::ofstream blocker(fileRoot);
+        blocker << "not a directory";
+    }
+    Filesystem invalidRoot(fileRoot.string());
+    check(!invalidRoot.initialize(), "filesystem rejects a file as the host root");
+    stdfs::remove(fileRoot, ec);
 
     check(fs.createDirectory("/src"), "create /src");
     check(fs.createDirectory("/dst"), "create /dst");

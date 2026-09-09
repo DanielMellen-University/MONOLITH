@@ -31,7 +31,7 @@ For example, `/home/monolith/welcome.txt` is stored at:
 ~/.monolith/fs/home/monolith/welcome.txt
 ```
 
-The host root is created on startup if it does not exist. The Settings app displays the actual host path.
+The host root is created on startup if it does not exist. Startup rejects a host path that exists but is not a directory. The Settings app displays the actual host path.
 
 Related host files (not inside the virtual tree):
 

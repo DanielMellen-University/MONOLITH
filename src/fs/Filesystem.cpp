@@ -36,10 +36,13 @@ Filesystem::Filesystem(const std::string& hostRootPath)
 
 bool Filesystem::initialize() {
     try {
-        if (!stdfs::exists(m_hostRoot)) {
-            stdfs::create_directories(m_hostRoot);
+        const stdfs::path root(m_hostRoot);
+        if (!stdfs::exists(root)) {
+            if (!stdfs::create_directories(root) && !stdfs::is_directory(root)) {
+                return false;
+            }
         }
-        return true;
+        return stdfs::is_directory(root);
     } catch (const std::exception& e) {
         std::cerr << "Filesystem::initialize failed: " << e.what() << std::endl;
         return false;

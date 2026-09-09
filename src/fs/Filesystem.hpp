@@ -24,7 +24,7 @@ public:
 
     /**
      * Ensures the root directory exists on disk.
-     * Returns true on success.
+     * Returns false when the configured root cannot be created or is not a directory.
      */
     bool initialize();
 

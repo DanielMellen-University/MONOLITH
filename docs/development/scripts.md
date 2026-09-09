@@ -50,7 +50,7 @@ g++ -std=c++23 scripts/test_minesweeper_state.cpp src/app/MinesweeperApp.cpp $(p
 
 ## Filesystem Roadmap Checks
 
-Headless test of shipped `Filesystem` multi-item copy/paste, `/`-rejecting rename, and listing filter:
+Headless test of shipped `Filesystem` initialization, multi-item copy/paste, `/`-rejecting rename, and listing filter:
 
 ```bash
 g++ -std=c++23 scripts/test_fs_roadmap.cpp src/fs/Filesystem.cpp -o build/test_fs_roadmap && ./build/test_fs_roadmap

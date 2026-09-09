@@ -435,6 +435,7 @@ When unspecified, choose:
 | 2026-09-09 | cleanup | Reset omitted DesktopSettings fields to defaults when reloading valid partial or legacy files; extended persistence coverage; CURRENT_CHUNK remains 7.1 |
 | 2026-09-09 | docs | Added a compact keyboard and prompt-focus reference to the Drawing guide; CURRENT_CHUNK remains 7.1 |
 | 2026-09-09 | cleanup | Prevented failed initial Editor and Drawing opens from reserving stale file singletons; added retry coverage; CURRENT_CHUNK remains 7.1 |
+| 2026-09-09 | cleanup | Made Filesystem initialization reject a host root that is not a directory; extended the filesystem regression; CURRENT_CHUNK remains 7.1 |
 
 ---
 
