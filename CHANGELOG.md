@@ -1,5 +1,9 @@
 # Changelog
 
+## 2026-09: Clamp restored windows before focus
+
+- Reopening a minimized Editor or Drawing window now re-applies desktop geometry clamping before showing it, keeping stale session rectangles above the taskbar and inside the desktop bounds.
+
 ## 2026-09: Drawing app reference guide
 
 - Expanded the Drawing documentation with an at-a-glance reference, status-bar prompt model, exact `.modr` save behavior, and the distinction between persisted pixels and transient editor state.

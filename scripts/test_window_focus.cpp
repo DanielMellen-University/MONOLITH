@@ -88,9 +88,16 @@ int main() {
     auto* thirdWindow = wm.createWindow("Third", 180, 180, 300, 240, std::move(third));
     wm.associateDrawingWithFile(thirdWindow, "/drawings/sketch.modr");
     check(minimizeWindow(wm, thirdWindow), "third window minimize is handled");
+    // Simulate a minimized session rectangle that no longer fits the desktop.
+    // Reopening the file must make the window visible without putting its
+    // title bar under the taskbar or beyond the left edge.
+    thirdWindow->rect.x = -500;
+    thirdWindow->rect.y = 700;
     check(wm.focusDrawingForFile("/drawings/sketch.modr"),
           "file bridge finds the existing drawing");
     check(!thirdWindow->minimized, "reopening a Drawing restores its minimized window");
+    check(thirdWindow->rect.x == 0 && thirdWindow->rect.y == 452,
+          "restored Drawing geometry is clamped before it becomes visible");
     wm.handleEvent(key);
     check(thirdPtr->keyDowns == 1, "restored Drawing receives keyboard focus");
 

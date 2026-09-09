@@ -98,6 +98,10 @@ void WindowManager::bringToFront(Window* window) {
     // Any operation that explicitly focuses a window, including the
     // file-singleton bridges, must restore it if it was minimized.
     window->minimized = false;
+    // A minimized window may have come from an old session or a changed
+    // desktop size. Re-apply the shell geometry invariant before it becomes
+    // visible so its title bar stays above the taskbar.
+    clampSingleWindow(*window);
 
     // Move the window to the end of the vector (drawn last = on top)
     auto it = std::find_if(m_windows.begin(), m_windows.end(),

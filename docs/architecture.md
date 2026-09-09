@@ -69,6 +69,7 @@ The Window Manager is the most foundational subsystem.
 - **Session restore**: on exit, open windows (kind, geometry, minimize/maximize, file paths for editors/drawings) are written to `~/.monolith/session.txt`. File paths are quoted so virtual names containing spaces, quotes, or backslashes survive a restart; older unquoted path tokens remain readable. On next launch that file is restored if present; otherwise the demo window set opens.
 - **Open-with routing**: `WindowManager::openPath` / `IWindowController::openPath` maps a case-insensitive `.modr` suffix → Drawing and all other files → Text Editor (used by Terminal `open` and the Filesystem Browser default Open).
 - Focusing an already-open file through the editor or Drawing singleton bridge also restores that window from minimized state before bringing it forward.
+- Bringing a minimized window forward re-applies desktop clamping first, so stale session geometry cannot put its title bar under the taskbar or off the desktop.
 - No snapping or automatic tiling.
 
 **Design Notes:**
