@@ -1,5 +1,9 @@
 # Changelog
 
+## 2026-09: Safe Terminal input reset
+
+- Clearing Terminal input with Esc now resets the cursor and saved history state, preventing the next typed character from targeting a stale buffer offset.
+
 ## 2026-09: Restore focused file windows
 
 - Reopening an already-open Editor or Drawing file now restores its minimized window before focusing it.

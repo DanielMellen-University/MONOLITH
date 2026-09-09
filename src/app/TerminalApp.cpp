@@ -413,6 +413,11 @@ void TerminalApp::processTextInput(const char* text) {
     }
 
     if (text && *text) {
+        m_inputCursorPos = std::clamp(
+            m_inputCursorPos,
+            0,
+            static_cast<int>(m_inputBuffer.size())
+        );
         m_inputBuffer.insert(m_inputCursorPos, text);
         m_inputCursorPos += strlen(text);
     }
@@ -473,9 +478,10 @@ void TerminalApp::handleKeyDown(const SDL_Keysym& keysym) {
             break;
 
         case SDLK_ESCAPE:
-            // Could clear input in future
             m_inputBuffer.clear();
+            m_inputCursorPos = 0;
             m_historyIndex = -1;
+            m_savedInputBuffer.clear();
             break;
 
         case SDLK_UP:

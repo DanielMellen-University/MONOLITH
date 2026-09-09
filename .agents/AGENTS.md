@@ -395,6 +395,7 @@ When unspecified, choose:
 | 2026-09-09 | cleanup | Clamped taskbar scrolling to the measured window-button strip; CURRENT_CHUNK remains 7.1 |
 | 2026-09-09 | cleanup | Handed keyboard focus away from minimized windows and added a focus regression probe; CURRENT_CHUNK remains 7.1 |
 | 2026-09-09 | cleanup | Restored minimized Editor and Drawing file singletons before focusing them; expanded the focus probe; CURRENT_CHUNK remains 7.1 |
+| 2026-09-09 | cleanup | Reset Terminal input cursor and saved history state when Esc clears the prompt; CURRENT_CHUNK remains 7.1 |
 | 2026-09-09 | docs | Expanded the Drawing guide with workflow, tool history, canvas behavior, file-state details, and raster-editor limitations; CURRENT_CHUNK remains 7.1 |
 
 ---
