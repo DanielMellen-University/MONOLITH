@@ -42,6 +42,12 @@ Headless Snake state test for tail movement and growth collisions:
 g++ -std=c++23 scripts/test_snake_state.cpp src/app/SnakeApp.cpp $(pkg-config --cflags --libs sdl2 SDL2_ttf) -o build/test_snake_state && ./build/test_snake_state
 ```
 
+Headless Minesweeper state test for precise focus pause/resume timing:
+
+```bash
+g++ -std=c++23 scripts/test_minesweeper_state.cpp src/app/MinesweeperApp.cpp $(pkg-config --cflags --libs sdl2 SDL2_ttf) -o build/test_minesweeper_state && ./build/test_minesweeper_state
+```
+
 ## Filesystem Roadmap Checks
 
 Headless test of shipped `Filesystem` multi-item copy/paste, `/`-rejecting rename, and listing filter:

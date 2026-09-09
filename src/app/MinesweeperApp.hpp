@@ -93,6 +93,7 @@ private:
     int m_revealedSafe = 0;
 
     Uint32 m_timerStartMs = 0;
+    Uint32 m_elapsedMs = 0;
     int m_elapsedSec = 0;
     bool m_newBest = false;
     bool m_focusPaused = false;  // timer frozen while window unfocused

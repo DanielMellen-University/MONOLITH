@@ -1,5 +1,10 @@
 # Changelog
 
+## 2026-09: Preserve Minesweeper timer precision across focus changes
+
+- Minesweeper now freezes and resumes elapsed milliseconds instead of rounding to whole seconds on every focus transition.
+- Added a headless timing regression test.
+
 ## 2026-09: Preserve Text Editor identity on failed Save As
 
 - Save As now refuses a path already bound to another editor and keeps the current path when a destination write fails.

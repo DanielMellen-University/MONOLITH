@@ -125,6 +125,7 @@ void MinesweeperApp::resetBoard() {
     m_focusPaused = false;
     m_revealedSafe = 0;
     m_timerStartMs = 0;
+    m_elapsedMs = 0;
     m_elapsedSec = 0;
     m_newBest = false;
     m_hitX = -1;
@@ -202,6 +203,7 @@ void MinesweeperApp::placeMines(int safeX, int safeY) {
     m_minesPlaced = true;
     m_state = State::Playing;
     m_timerStartMs = SDL_GetTicks();
+    m_elapsedMs = 0;
     m_elapsedSec = 0;
 }
 
@@ -328,9 +330,9 @@ void MinesweeperApp::checkWin() {
             if (c.mine) c.mark = Mark::Flag;
         }
         // Freeze displayed time at the win moment.
-        if (m_minesPlaced && m_timerStartMs != 0) {
-            m_elapsedSec = static_cast<int>((SDL_GetTicks() - m_timerStartMs) / 1000u);
-            if (m_elapsedSec > 999) m_elapsedSec = 999;
+        if (m_minesPlaced) {
+            m_elapsedMs = SDL_GetTicks() - m_timerStartMs;
+            m_elapsedSec = static_cast<int>(std::min<Uint32>(999u, m_elapsedMs / 1000u));
         }
         recordBestTimeIfNeeded();
     }
@@ -340,23 +342,24 @@ void MinesweeperApp::onFocusLost() {
     if (m_state == State::Playing && m_minesPlaced && !m_focusPaused) {
         m_focusPaused = true;
         const Uint32 now = SDL_GetTicks();
-        m_elapsedSec = static_cast<int>((now - m_timerStartMs) / 1000u);
+        m_elapsedMs = now - m_timerStartMs;
+        m_elapsedSec = static_cast<int>(std::min<Uint32>(999u, m_elapsedMs / 1000u));
     }
 }
 
 void MinesweeperApp::onFocusGained() {
     if (m_focusPaused && m_state == State::Playing && m_minesPlaced) {
         m_focusPaused = false;
-        // Resume timer so frozen elapsed continues from the same second count.
-        m_timerStartMs = SDL_GetTicks() - static_cast<Uint32>(m_elapsedSec) * 1000u;
+        // Resume from the exact frozen millisecond count, not the rounded HUD second.
+        m_timerStartMs = SDL_GetTicks() - m_elapsedMs;
     }
 }
 
 void MinesweeperApp::update() {
     if (m_state != State::Playing || !m_minesPlaced || m_focusPaused) return;
     const Uint32 now = SDL_GetTicks();
-    m_elapsedSec = static_cast<int>((now - m_timerStartMs) / 1000u);
-    if (m_elapsedSec > 999) m_elapsedSec = 999;
+    m_elapsedMs = now - m_timerStartMs;
+    m_elapsedSec = static_cast<int>(std::min<Uint32>(999u, m_elapsedMs / 1000u));
 }
 
 void MinesweeperApp::onResize(int clientWidth, int clientHeight) {
