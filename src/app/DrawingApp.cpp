@@ -1037,6 +1037,10 @@ void DrawingApp::onResize(int clientWidth, int clientHeight) {
     if (canvasSizeChanged && m_pendingInitialPath.empty()) {
         m_undoStack.clear();
         m_redoStack.clear();
+        if (!m_filePath.empty()) {
+            m_dirty = true;
+            clearDiscardArm();
+        }
     }
 
     if (!m_pendingInitialPath.empty()) {

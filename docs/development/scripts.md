@@ -76,6 +76,12 @@ Headless test of shipped line/rect raster, custom RGB parse, eyedropper pixel re
 g++ -std=c++23 scripts/test_drawing_roadmap.cpp src/app/DrawingRaster.cpp -o build/test_drawing_roadmap && ./build/test_drawing_roadmap
 ```
 
+Headless Drawing state test for clean loads, resize dirty tracking, and history reset:
+
+```bash
+g++ -std=c++23 scripts/test_drawing_state.cpp src/app/DrawingApp.cpp src/app/DrawingRaster.cpp src/fs/Filesystem.cpp $(pkg-config --cflags --libs sdl2 SDL2_ttf) -o build/test_drawing_state && ./build/test_drawing_state
+```
+
 ## Desktop Settings Persistence Check
 
 Headless test of desktop preference save/load, UI scale persistence, legacy files, and bounds handling:

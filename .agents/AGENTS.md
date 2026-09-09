@@ -438,6 +438,7 @@ When unspecified, choose:
 | 2026-09-09 | cleanup | Made Filesystem initialization reject a host root that is not a directory; extended the filesystem regression; CURRENT_CHUNK remains 7.1 |
 | 2026-09-09 | cleanup | Made Terminal `ls` distinguish files, empty directories, and missing paths; added command-state coverage; CURRENT_CHUNK remains 7.1 |
 | 2026-09-09 | cleanup | Fixed Terminal Tab completion for absolute paths rooted at `/`; extended command-state coverage; CURRENT_CHUNK remains 7.1 |
+| 2026-09-09 | cleanup | Marked loaded Drawing canvases dirty after resize and added state coverage for resize history reset; CURRENT_CHUNK remains 7.1 |
 
 ---
 

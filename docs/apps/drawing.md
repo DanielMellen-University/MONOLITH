@@ -159,6 +159,7 @@ When the window is resized:
 - A larger canvas is filled with the standard light background.
 - A smaller canvas crops pixels at the right and bottom edges.
 - Undo and redo history is cleared because the canvas dimensions changed.
+- Resizing a file-backed sketch marks it `[modified]`; save again to persist the new dimensions.
 
 The standard canvas background is RGB `245,245,248`. Eraser uses that same color, so it restores the background rather than revealing transparency.
 

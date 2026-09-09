@@ -1,5 +1,10 @@
 # Changelog
 
+## 2026-09: Track Drawing resizes as edits
+
+- Resizing a loaded Drawing canvas now marks the document modified so changed dimensions cannot be closed without a save decision.
+- Added a headless Drawing state regression for resize dirty tracking and history reset.
+
 ## 2026-09: Fix Terminal root path completion
 
 - Terminal `Tab` completion now searches the virtual root when completing an absolute path that starts with `/`.
