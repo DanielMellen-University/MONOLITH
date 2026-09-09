@@ -178,6 +178,16 @@ bool WindowManager::saveSession(const std::string& hostPath) const {
 }
 
 void WindowManager::requestQuit() {
+    if (m_quitRequested) return;
+
+    // Shut Down is still a close operation: every dirty app gets one warning
+    // before the shell permits the process to exit.
+    for (const auto& window : m_windows) {
+        if (window && window->app && !window->app->allowClose()) {
+            return;
+        }
+    }
+
     m_quitRequested = true;
     // Menu close is handled by the Start menu click handler (or caller).
 }
