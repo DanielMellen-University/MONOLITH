@@ -1,5 +1,9 @@
 # Changelog
 
+## 2026-09: Native-size Text Editor status prompts
+
+- Long Find, Replace, Open, Save, and Go-to-line prompts now clip at native text size and keep the active caret visible.
+
 ## 2026-09: Forward Delete in Terminal input
 
 - Terminal command input now removes the next complete UTF-8 character with Delete, matching the editor cursor model.

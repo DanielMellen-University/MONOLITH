@@ -396,6 +396,7 @@ void TextEditorApp::beginPathPrompt(PathPromptMode mode) {
         setStatus("Go to line (Enter jump, Esc cancel)");
     }
     m_pathPromptCursorPos = m_pathPromptBuffer.size();
+    m_statusHorizontalScrollPx = 0;
 }
 
 void TextEditorApp::goToLine(int lineNumber1Based) {
@@ -418,6 +419,7 @@ void TextEditorApp::finishPathPrompt(bool commit) {
     m_pathPromptMode = PathPromptMode::None;
     m_pathPromptBuffer.clear();
     m_pathPromptCursorPos = 0;
+    m_statusHorizontalScrollPx = 0;
 
     if (mode == PathPromptMode::GoToLine) {
         if (!commit) {
@@ -478,6 +480,7 @@ void TextEditorApp::finishPathPrompt(bool commit) {
             m_pathPromptMode = PathPromptMode::Open;
             m_pathPromptBuffer = buffer;
             m_pathPromptCursorPos = m_pathPromptBuffer.size();
+            m_statusHorizontalScrollPx = 0;
             return;
         }
 
@@ -1151,7 +1154,7 @@ void TextEditorApp::enterFindMode() {
     m_currentFindMatch = -1;
     m_findCursorPos = 0;
     m_replaceCursorPos = 0;
-    m_searchPromptScrollPx = 0;
+    m_statusHorizontalScrollPx = 0;
     clearSelection();
     m_statusMessage.clear();
 }
@@ -1167,7 +1170,7 @@ void TextEditorApp::enterReplaceMode() {
     m_searchField = SearchField::Query;
     m_findCursorPos = std::min(m_findCursorPos, m_findQuery.size());
     m_replaceCursorPos = m_replaceText.size();
-    m_searchPromptScrollPx = 0;
+    m_statusHorizontalScrollPx = 0;
     clearSelection();
     m_statusMessage.clear();
     if (!m_findQuery.empty()) {
@@ -1184,7 +1187,7 @@ void TextEditorApp::exitFindMode() {
     m_currentFindMatch = -1;
     m_findCursorPos = 0;
     m_replaceCursorPos = 0;
-    m_searchPromptScrollPx = 0;
+    m_statusHorizontalScrollPx = 0;
     clearSelection();
 }
 
@@ -1586,18 +1589,28 @@ void TextEditorApp::render(SDL_Renderer* renderer, const SDL_Rect& contentRect) 
             }
         } else if (m_pathPromptMode != PathPromptMode::None) {
             const std::size_t cursor = std::min(m_pathPromptCursorPos, m_pathPromptBuffer.size());
+            const std::string beforeCursor = m_pathPromptBuffer.substr(0, cursor);
             const std::string promptBuffer = m_pathPromptBuffer.substr(0, cursor)
                 + "_" + m_pathPromptBuffer.substr(cursor);
             if (m_pathPromptMode == PathPromptMode::GoToLine) {
                 status = "Go to line: " + promptBuffer;
+                const std::string cursorText = "Go to line: " + beforeCursor + "_";
+                int cursorHeight = 0;
+                TTF_SizeUTF8(m_font, cursorText.c_str(), &searchCursorPx, &cursorHeight);
                 status += "   |  Enter jump, Esc cancel";
             } else {
                 status = (m_pathPromptMode == PathPromptMode::Open) ? "Open: " : "Save as: ";
                 status += promptBuffer;
+                const std::string cursorText =
+                    ((m_pathPromptMode == PathPromptMode::Open) ? "Open: " : "Save as: ")
+                    + beforeCursor + "_";
+                int cursorHeight = 0;
+                TTF_SizeUTF8(m_font, cursorText.c_str(), &searchCursorPx, &cursorHeight);
                 status += "   |  Tab complete, Enter confirm, Esc cancel";
             }
+            searchPromptActive = true;
         } else {
-            m_searchPromptScrollPx = 0;
+            m_statusHorizontalScrollPx = 0;
             if (m_dirty) status += " *";
             if (!m_statusMessage.empty()) {
                 status += "   |  " + m_statusMessage;
@@ -1614,14 +1627,14 @@ void TextEditorApp::render(SDL_Renderer* renderer, const SDL_Rect& contentRect) 
             if (tex) {
                 const int visibleWidth = std::max(1, contentRect.w - padding * 2);
                 if (searchPromptActive) {
-                    if (searchCursorPx > m_searchPromptScrollPx + visibleWidth) {
-                        m_searchPromptScrollPx = searchCursorPx - visibleWidth;
-                    } else if (searchCursorPx < m_searchPromptScrollPx) {
-                        m_searchPromptScrollPx = searchCursorPx;
+                    if (searchCursorPx > m_statusHorizontalScrollPx + visibleWidth) {
+                        m_statusHorizontalScrollPx = searchCursorPx - visibleWidth;
+                    } else if (searchCursorPx < m_statusHorizontalScrollPx) {
+                        m_statusHorizontalScrollPx = searchCursorPx;
                     }
                     const int maxScroll = std::max(0, surf->w - visibleWidth);
-                    m_searchPromptScrollPx = std::clamp(
-                        m_searchPromptScrollPx, 0, maxScroll);
+                    m_statusHorizontalScrollPx = std::clamp(
+                        m_statusHorizontalScrollPx, 0, maxScroll);
                 }
                 SDL_Rect statusClip = {
                     contentRect.x + padding,
@@ -1632,7 +1645,7 @@ void TextEditorApp::render(SDL_Renderer* renderer, const SDL_Rect& contentRect) 
                 SDL_RenderSetClipRect(renderer, &statusClip);
                 SDL_Rect dst = {
                     contentRect.x + padding
-                        - (searchPromptActive ? m_searchPromptScrollPx : 0),
+                        - (searchPromptActive ? m_statusHorizontalScrollPx : 0),
                     statusBar.y + (kStatusBarHeight - surf->h) / 2,
                     surf->w,
                     surf->h

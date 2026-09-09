@@ -160,7 +160,7 @@ private:
     std::string m_replaceText;
     std::size_t m_findCursorPos = 0;
     std::size_t m_replaceCursorPos = 0;
-    int m_searchPromptScrollPx = 0;
+    int m_statusHorizontalScrollPx = 0;
     std::vector<std::pair<int, int>> m_findMatches;  // row, col starts
     int m_currentFindMatch = -1;
 
