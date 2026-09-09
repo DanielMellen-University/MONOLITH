@@ -64,7 +64,7 @@ Headless test of case-insensitive file suffix matching used by open-with routing
 g++ -std=c++23 scripts/test_file_path.cpp -o build/test_file_path && ./build/test_file_path
 ```
 
-Headless test of shared UTF-8 codepoint editing helpers:
+Headless test of shared UTF-8 codepoint editing helpers used by Text Editor, Terminal, and Filesystem Browser prompts:
 
 ```bash
 g++ -std=c++23 scripts/test_utf8.cpp -o build/test_utf8 && ./build/test_utf8

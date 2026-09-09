@@ -30,4 +30,19 @@ inline void popLastUtf8Codepoint(std::string& value) {
     value.erase(utf8PrevCodepointStart(value, value.size()));
 }
 
+inline std::size_t utf8NextCodepointStart(const std::string& value, std::size_t offset) {
+    if (offset >= value.size()) return value.size();
+    const std::size_t step = utf8CodepointByteLen(value, offset);
+    return offset + step > value.size() ? value.size() : offset + step;
+}
+
+inline void erasePreviousUtf8Codepoint(std::string& value, std::size_t& cursor) {
+    if (cursor > value.size()) cursor = value.size();
+    if (cursor == 0) return;
+
+    const std::size_t start = utf8PrevCodepointStart(value, cursor);
+    value.erase(start, cursor - start);
+    cursor = start;
+}
+
 } // namespace monolith::app

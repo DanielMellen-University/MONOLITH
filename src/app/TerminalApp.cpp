@@ -1,6 +1,7 @@
 #include "TerminalApp.hpp"
 #include "FilePath.hpp"
 #include "TerminalLexer.hpp"
+#include "Utf8.hpp"
 #include <algorithm>
 #include <cctype>
 #include <ctime>
@@ -436,7 +437,7 @@ void TerminalApp::handleKeyDown(const SDL_Keysym& keysym) {
         }
         if (keysym.sym == SDLK_BACKSPACE) {
             if (!m_searchBuffer.empty()) {
-                m_searchBuffer.pop_back();
+                popLastUtf8Codepoint(m_searchBuffer);
                 updateReverseSearchMatch();
             }
             return;
@@ -465,8 +466,9 @@ void TerminalApp::handleKeyDown(const SDL_Keysym& keysym) {
 
         case SDLK_BACKSPACE:
             if (m_inputCursorPos > 0) {
-                m_inputBuffer.erase(m_inputCursorPos - 1, 1);
-                m_inputCursorPos--;
+                std::size_t cursor = static_cast<std::size_t>(m_inputCursorPos);
+                erasePreviousUtf8Codepoint(m_inputBuffer, cursor);
+                m_inputCursorPos = static_cast<int>(cursor);
             }
             break;
 
@@ -504,11 +506,17 @@ void TerminalApp::handleKeyDown(const SDL_Keysym& keysym) {
             break;
 
         case SDLK_LEFT:
-            if (m_inputCursorPos > 0) m_inputCursorPos--;
+            if (m_inputCursorPos > 0) {
+                m_inputCursorPos = static_cast<int>(utf8PrevCodepointStart(
+                    m_inputBuffer, static_cast<std::size_t>(m_inputCursorPos)));
+            }
             break;
 
         case SDLK_RIGHT:
-            if (m_inputCursorPos < static_cast<int>(m_inputBuffer.size())) m_inputCursorPos++;
+            if (m_inputCursorPos < static_cast<int>(m_inputBuffer.size())) {
+                m_inputCursorPos = static_cast<int>(utf8NextCodepointStart(
+                    m_inputBuffer, static_cast<std::size_t>(m_inputCursorPos)));
+            }
             break;
 
         case SDLK_HOME:

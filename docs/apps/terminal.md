@@ -38,7 +38,7 @@ Type commands at the prompt and press **Enter** to run them. Output appears abov
 | Up / Down | Navigate command history |
 | Left / Right | Move cursor within the input line |
 | Home / End | Jump to start / end of input |
-| Backspace | Delete character before cursor |
+| Backspace | Delete the complete UTF-8 character before the cursor |
 | Tab | Complete command name or filesystem path |
 | Ctrl+R | Enter reverse history search |
 | Ctrl+R (in search) | Find older matching command |
@@ -73,7 +73,7 @@ Run `help` for the full list. Current commands:
 | `help` | Show command list |
 | `exit` / `quit` | Close this terminal window |
 
-Paths may be absolute or relative to the current working directory. Tab completion works for both command names and paths.
+Paths may be absolute or relative to the current working directory. Tab completion works for both command names and paths. The input cursor and Backspace move through complete UTF-8 characters, so accented characters and emoji are not split into invalid byte fragments.
 
 `cat` prints one scrollback line per file line (truncated after many lines so huge files cannot flood the terminal).
 
@@ -112,7 +112,7 @@ Unterminated quotes print `parse error: ...` and do not run the command.
 - No pipes, redirection, or job control.
 - No script execution or custom language integration yet.
 - `touch` creates an empty file if missing; existing files are left unchanged (no mtime update yet).
-- UTF-8 input in the prompt line is still limited compared to the Text Editor.
+- The prompt is a single line and does not provide Text Editor-style selection or clipboard editing.
 
 ## Developer Notes
 

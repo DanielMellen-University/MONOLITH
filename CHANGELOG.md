@@ -1,5 +1,10 @@
 # Changelog
 
+## 2026-09: Unicode-safe Terminal editing
+
+- Terminal Left/Right and Backspace now move and erase complete UTF-8 characters instead of raw bytes.
+- Reverse history search Backspace uses the same codepoint-safe behavior.
+
 ## 2026-09: Reliable client mouse release
 
 - Client apps now retain left-button motion and release routing for an active drag, even when the pointer leaves the window or focus changes.
