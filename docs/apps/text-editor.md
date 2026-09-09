@@ -26,6 +26,7 @@ If an initial path is missing or unreadable, the failed window remains an untitl
 - **Mouse wheel** scrolls the buffer.
 - **Shift + mouse wheel** scrolls horizontally through long lines; the cursor also auto-scrolls into view while you type or move with the keyboard.
 - Line numbers appear in the left margin.
+- Empty files open as one editable blank line. A file that ends with a newline keeps its final blank line.
 - Syntax highlighting colors comments, strings, numbers, and (for code files) keywords.
 - A `*` in the status bar indicates unsaved changes.
 - Open/save results and errors appear in the status bar (e.g. `Saved: note.txt`, `Open failed: …`).

@@ -1,5 +1,10 @@
 # Changelog
 
+## 2026-09: Preserve empty Text Editor files
+
+- Opening a zero-byte file now creates one editable blank line instead of an extra phantom line.
+- Added state coverage for empty-file loading.
+
 ## 2026-09: Document Drawing desktop lifecycle
 
 - Documented Drawing close and shutdown guards, session restore behavior, failed-path retry behavior, and one-window-per-file routing.

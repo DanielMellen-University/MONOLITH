@@ -289,7 +289,7 @@ bool TextEditorApp::loadInitialFile(const std::string& virtualPath) {
         // getline strips the newline; trailing newline yields a final empty line below
         m_lines.push_back(line);
     }
-    if (content.empty() || content.back() == '\n') {
+    if (!content.empty() && content.back() == '\n') {
         m_lines.emplace_back("");
     }
     if (m_lines.empty()) {

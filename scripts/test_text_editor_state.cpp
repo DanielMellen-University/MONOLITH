@@ -75,7 +75,12 @@ int main() {
     monolith::fs::Filesystem fs(hostRoot.string());
     check(fs.initialize(), "editor state filesystem initialize");
     check(fs.writeFile("/old.txt", "original"), "write original editor file");
+    check(fs.writeFile("/empty.txt", ""), "write empty editor file");
     check(fs.createDirectory("/folder"), "create unwritable save target directory");
+
+    TestEditor emptyEditor(nullptr, &fs, "/empty.txt");
+    check(emptyEditor.m_lines == std::vector<std::string>{""},
+          "empty files open as one editable blank line");
 
     TestEditor editor(nullptr, &fs, "/old.txt");
     TestController controller;
