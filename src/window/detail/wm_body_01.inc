@@ -108,7 +108,7 @@ void WindowManager::handleEvent(const SDL_Event& event) {
 
     // Forward keyboard events (text input, key down/up) to the focused window's app.
     // Suppress while Start menu is open so the menu (mouse-driven) owns the interaction.
-    if (m_focusedWindow && m_focusedWindow->app && !m_showStartMenu &&
+    if (m_focusedWindow && !m_focusedWindow->minimized && m_focusedWindow->app && !m_showStartMenu &&
         (event.type == SDL_KEYDOWN || event.type == SDL_KEYUP || event.type == SDL_TEXTINPUT)) {
         m_focusedWindow->app->handleEvent(event);
         // Do not return — WM doesn't consume keyboard yet, but apps get first crack
@@ -209,6 +209,7 @@ void WindowManager::handleEvent(const SDL_Event& event) {
                         } else if (entry.window == m_focusedWindow) {
                             // Clicking the active window's taskbar button → minimize it (XP-like toggle)
                             entry.window->minimized = true;
+                            focusTopmostVisibleWindow();
                         } else {
                             bringToFront(entry.window);
                         }

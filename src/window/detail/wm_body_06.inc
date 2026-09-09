@@ -221,17 +221,8 @@ void WindowManager::closeWindow(Window* window) {
         // Keep keyboard / client input working: promote the topmost non-minimized
         // survivor. Without this, m_focusedWindow stayed null until the next click.
         if (wasFocused && !m_windows.empty()) {
-            Window* successor = nullptr;
-            for (auto rit = m_windows.rbegin(); rit != m_windows.rend(); ++rit) {
-                if (*rit && !(*rit)->minimized) {
-                    successor = rit->get();
-                    break;
-                }
-            }
-            if (successor) {
-                // Raises z-order if needed and fires onFocusGained via bringToFront.
-                bringToFront(successor);
-            }
+            // Raises z-order if needed and fires onFocusGained via bringToFront.
+            focusTopmostVisibleWindow();
         }
     }
 

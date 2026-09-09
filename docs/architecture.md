@@ -59,6 +59,7 @@ The Window Manager is the most foundational subsystem.
 - Windows support resizing from edges and corners.
 - Windows can be minimized via the title-bar minimize button or by clicking the active window's taskbar button (XP-style toggle), and restored by clicking its taskbar entry.
 - When the focused window is closed, focus moves to the topmost non-minimized remaining window (z-order), with `onFocusLost` / `onFocusGained` fired so apps stay consistent. If every survivor is minimized, focus stays clear until the user activates a window.
+- Minimizing the focused window uses the same handoff rule: the topmost non-minimized survivor becomes focused, or focus is cleared when none remain. Minimized apps never receive keyboard events.
 - When many windows are open, the taskbar scrolls horizontally (arrow buttons and mouse wheel). Arrow hit targets are recorded during render (same pattern as taskbar window buttons) and handled in the taskbar click path.
 - Taskbar scrolling is clamped to the measured button strip after arrow controls reserve their space, so repeated input cannot scroll every window button out of view.
 - Taskbar window labels stay at native text size and clip inside their own button, so long titles do not get horizontally distorted or draw over neighboring buttons.

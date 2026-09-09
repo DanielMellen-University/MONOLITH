@@ -121,6 +121,26 @@ void WindowManager::bringToFront(Window* window) {
     }
 }
 
+void WindowManager::focusTopmostVisibleWindow() {
+    Window* successor = nullptr;
+    for (auto it = m_windows.rbegin(); it != m_windows.rend(); ++it) {
+        if (*it && !(*it)->minimized) {
+            successor = it->get();
+            break;
+        }
+    }
+
+    if (successor) {
+        bringToFront(successor);
+        return;
+    }
+
+    if (m_focusedWindow && m_focusedWindow->app) {
+        m_focusedWindow->app->onFocusLost();
+    }
+    m_focusedWindow = nullptr;
+}
+
 bool WindowManager::isInTitleBar(const Window& window, int x, int y) const {
     SDL_Rect titleBar = {
         window.rect.x,
@@ -278,6 +298,9 @@ bool WindowManager::handleTitleBarButtons(Window* window, int mouseX, int mouseY
 
     if (SDL_PointInRect(&mouse, &buttons.minimize)) {
         window->minimized = true;
+        if (m_focusedWindow == window) {
+            focusTopmostVisibleWindow();
+        }
         return true;
     }
 

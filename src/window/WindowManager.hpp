@@ -290,6 +290,10 @@ private:
     // Bring a window to the front of the z-order
     void bringToFront(Window* window);
 
+    // Move keyboard focus to the topmost non-minimized survivor, or clear it
+    // when every window is minimized.
+    void focusTopmostVisibleWindow();
+
     // Helper to check if a point is inside a window's title bar
     bool isInTitleBar(const Window& window, int x, int y) const;
 
