@@ -1,5 +1,10 @@
 # Changelog
 
+## 2026-09: Clarify Drawing file naming
+
+- Added a single Drawing reference for `.modr` save/open rules, `.mod` text-file routing, and extension behavior when renaming files in the Filesystem Browser.
+- Documented that Save appends `.modr` to names without that suffix instead of replacing an existing suffix.
+
 ## 2026-09: Add wallpaper path completion
 
 - Settings wallpaper editing now completes virtual directories and BMP filenames with Tab, including shared-prefix completion for multiple matches.

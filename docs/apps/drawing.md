@@ -14,6 +14,21 @@ Drawing is a pixel editor, not a layer or vector editor. The canvas is edited in
 - A saved file contains only the opaque RGB canvas and its dimensions. The active tool, colors, brush size, undo history, and window state are not part of the file.
 - The status bar is the file prompt, progress display, and recovery guide. Press **Enter** to confirm a prompt and **Esc** to cancel it.
 
+## File Naming Rules
+
+`.modr` is the Drawing file type. Keep the suffix visible when naming or renaming a sketch:
+
+| Operation | Result |
+|-----------|--------|
+| Save as `sketch` | Saves as `sketch.modr`. |
+| Save as `sketch.modr` | Saves with that exact `.modr` suffix. |
+| Save as `sketch.mod` | Saves as `sketch.mod.modr`; the existing suffix is not replaced. |
+| Open `sketch.modr` | Opens in Drawing when the file is valid. |
+| Open `sketch.mod` | Rejected by Drawing; `.mod` remains a Text Editor file. |
+| Rename in Filesystem Browser | Uses the name entered; add `.modr` yourself when renaming a Drawing file. |
+
+The suffix is matched case-insensitively when opening, so `SKETCH.MODR` is still a Drawing file. Save and Open operate on the internal Monolith filesystem, not the host filesystem.
+
 ## At A Glance
 
 | Item | Behavior |
@@ -61,6 +76,8 @@ The status bar is the active prompt whenever Drawing asks for a path or RGB valu
 4. Use **Line**, **Rect**, or **Fill** for shape and region work. Use **Pick** to sample a canvas pixel and continue with that color.
 5. Press **Ctrl+S**. For a new sketch, Drawing opens an inline path prompt with a suggested name.
 6. Press **Enter** to save, or press **Tab** while editing a path to complete a directory or `.modr` filename.
+
+When saving, type the complete `.modr` name if you want a specific filename. Drawing never changes `.mod` into `.modr` in place; it appends `.modr` to any name that does not already end in that suffix.
 
 ### Reopen A Sketch
 
