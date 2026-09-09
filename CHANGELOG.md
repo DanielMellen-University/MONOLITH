@@ -1,5 +1,9 @@
 # Changelog
 
+## 2026-09: Verified Terminal file copies
+
+- Terminal `cp` now routes regular files through `Filesystem::copyRecursive`, so a failed source read cannot silently create an empty destination.
+
 ## 2026-09: Drawing app documentation
 
 - Added a consolidated Drawing guide with the save contract, `.modr` versus `.mod` routing, persisted canvas state, prompt controls, and recovery behavior.

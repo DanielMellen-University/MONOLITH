@@ -420,6 +420,7 @@ When unspecified, choose:
 | 2026-09-09 | cleanup | Bounded Snake and Pong HUD text with native-size clipping inside their client strips; CURRENT_CHUNK remains 7.1 |
 | 2026-09-09 | cleanup | Routed Shut Down through every app's dirty-document close guard and added a headless quit regression test; CURRENT_CHUNK remains 7.1 |
 | 2026-09-09 | cleanup | Fixed Alt+Tab overlay sizing at non-1x content scales and clipped long labels inside the overlay; CURRENT_CHUNK remains 7.1 |
+| 2026-09-09 | cleanup | Routed Terminal regular-file copies through the verified Filesystem copy helper; CURRENT_CHUNK remains 7.1 |
 | 2026-09-09 | docs | Added a consolidated Drawing app guide covering persisted state, `.modr` routing, prompts, and dirty recovery; CURRENT_CHUNK remains 7.1 |
 
 ---

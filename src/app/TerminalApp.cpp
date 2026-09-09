@@ -210,9 +210,8 @@ void TerminalApp::executeCommand(const std::string& commandLine) {
                         if (recursive && m_fs->isDirectory(srcPath)) {
                             ok = m_fs->copyRecursive(srcPath, dstPath);
                         } else {
-                            // file (or non-recursive dir would have been caught above)
-                            std::string content = m_fs->readFile(srcPath);
-                            ok = m_fs->writeFile(dstPath, content);
+                            // Files use the same verified copy path as recursive trees.
+                            ok = m_fs->copyRecursive(srcPath, dstPath);
                         }
                         if (!ok) {
                             addOutput("cp: cannot create '" + dst + "'");

@@ -66,7 +66,7 @@ Run `help` for the full list. Current commands:
 | `cat <file>` | Show file contents |
 | `edit <file>` | Open a text file in the Text Editor |
 | `open <path>` | Open via shell routing (case-insensitive `.modr` → Drawing, else Text Editor) |
-| `cp [-r] <src> <dst>` | Copy file or directory tree (`Filesystem::copyRecursive`; refuses copy into self) |
+| `cp [-r] <src> <dst>` | Copy file or directory tree (`Filesystem::copyRecursive`; verifies file reads and refuses copy into self) |
 | `mv <src> <dst>` | Move or rename (destination directory supported) |
 | `rm [-r] <path>` | Remove file or directory tree (`Filesystem::removeRecursive` with `-r`; cannot remove `/`) |
 | `history` | Show command history |
