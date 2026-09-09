@@ -1,5 +1,9 @@
 # Changelog
 
+## 2026-09: Scaled Alt+Tab title overlay
+
+- Alt+Tab now sizes long-title overlays in logical coordinates and clips the native-size label inside the overlay at non-1x content scales.
+
 ## 2026-09: Guarded Shut Down
 
 - Start menu Shut Down now honors each open app's dirty-document close guard before exiting, so unsaved Editor and Drawing work requires the same second confirmation as closing a window.

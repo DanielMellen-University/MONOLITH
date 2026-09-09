@@ -48,7 +48,10 @@
         if (s) {
             SDL_Texture* t = SDL_CreateTextureFromSurface(renderer, s);
             if (t) {
-                const int boxW = std::min(m_logicalWidth - 80, std::max(220, s->w + 32));
+                const int logicalTextW = static_cast<int>(std::ceil(
+                    static_cast<float>(s->w) / m_contentScale));
+                const int maxBoxW = std::max(1, m_logicalWidth - 80);
+                const int boxW = std::min(maxBoxW, std::max(220, logicalTextW + 32));
                 const int boxH = 52;
                 SDL_Rect box = {
                     logicalToScreenX((m_logicalWidth - boxW) / 2),
@@ -66,7 +69,9 @@
                     s->w,
                     s->h
                 };
+                SDL_RenderSetClipRect(renderer, &box);
                 SDL_RenderCopy(renderer, t, nullptr, &dst);
+                SDL_RenderSetClipRect(renderer, nullptr);
                 SDL_DestroyTexture(t);
             }
             SDL_FreeSurface(s);

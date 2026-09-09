@@ -14,6 +14,7 @@
 #include <cctype>
 #include <cstdio>
 #include <ctime>
+#include <cmath>
 #include <fstream>
 #include <sstream>
 
