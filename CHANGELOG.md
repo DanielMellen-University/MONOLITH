@@ -1,5 +1,10 @@
 # Changelog
 
+## 2026-09: Normalize Text Editor file line endings
+
+- Text Editor now normalizes CRLF and lone-CR files on load, matching its existing clipboard behavior and preventing carriage returns from appearing as document content.
+- Added state coverage for Windows and classic Mac line endings.
+
 ## 2026-09: Keep UI scale persistence aligned with Settings
 
 - Settings now rejects UI scale values that are not one of the three choices exposed by the app, keeping persisted and live values consistent.

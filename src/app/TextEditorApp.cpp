@@ -25,6 +25,22 @@ std::string commonPrefix(const std::vector<std::string>& values) {
     return common;
 }
 
+std::string normalizeLineEndings(const std::string& text) {
+    std::string normalized;
+    normalized.reserve(text.size());
+    for (size_t i = 0; i < text.size(); ++i) {
+        if (text[i] == '\r') {
+            if (i + 1 < text.size() && text[i + 1] == '\n') {
+                ++i;
+            }
+            normalized.push_back('\n');
+        } else {
+            normalized.push_back(text[i]);
+        }
+    }
+    return normalized;
+}
+
 bool isCodeExtension(const std::string& ext) {
     static const std::unordered_set<std::string> kCodeExtensions = {
         "c", "cc", "cpp", "cxx", "h", "hh", "hpp", "hxx",
@@ -283,13 +299,14 @@ bool TextEditorApp::loadInitialFile(const std::string& virtualPath) {
         return false;
     }
     m_lines.clear();
-    std::istringstream iss(content);
+    const std::string normalizedContent = normalizeLineEndings(content);
+    std::istringstream iss(normalizedContent);
     std::string line;
     while (std::getline(iss, line)) {
         // getline strips the newline; trailing newline yields a final empty line below
         m_lines.push_back(line);
     }
-    if (!content.empty() && content.back() == '\n') {
+    if (!normalizedContent.empty() && normalizedContent.back() == '\n') {
         m_lines.emplace_back("");
     }
     if (m_lines.empty()) {

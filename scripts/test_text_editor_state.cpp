@@ -76,11 +76,23 @@ int main() {
     check(fs.initialize(), "editor state filesystem initialize");
     check(fs.writeFile("/old.txt", "original"), "write original editor file");
     check(fs.writeFile("/empty.txt", ""), "write empty editor file");
+    check(fs.writeFile("/windows.txt", "first\r\nsecond\r\n"),
+          "write CRLF editor file");
+    check(fs.writeFile("/classic-mac.txt", "first\rsecond\r"),
+          "write lone-CR editor file");
     check(fs.createDirectory("/folder"), "create unwritable save target directory");
 
     TestEditor emptyEditor(nullptr, &fs, "/empty.txt");
     check(emptyEditor.m_lines == std::vector<std::string>{""},
           "empty files open as one editable blank line");
+
+    TestEditor windowsEditor(nullptr, &fs, "/windows.txt");
+    check(windowsEditor.m_lines == std::vector<std::string>{"first", "second", ""},
+          "CRLF files open with normalized line endings");
+
+    TestEditor classicMacEditor(nullptr, &fs, "/classic-mac.txt");
+    check(classicMacEditor.m_lines == std::vector<std::string>{"first", "second", ""},
+          "lone-CR files open with normalized line endings");
 
     TestEditor editor(nullptr, &fs, "/old.txt");
     TestController controller;
