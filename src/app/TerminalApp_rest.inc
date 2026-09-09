@@ -192,17 +192,22 @@ std::vector<std::string> TerminalApp::getPathCompletions(const std::string& part
     std::string filePrefix = partial;
 
     size_t lastSlash = partial.find_last_of('/');
+    const bool absolutePath = !partial.empty() && partial.front() == '/';
     if (lastSlash != std::string::npos) {
         dirPart = partial.substr(0, lastSlash);
         filePrefix = partial.substr(lastSlash + 1);
     }
 
-    std::string searchDir = dirPart.empty() ? m_cwd : resolvePath(dirPart);
+    std::string searchDir = dirPart.empty()
+        ? (absolutePath ? "/" : m_cwd)
+        : resolvePath(dirPart);
 
     auto entries = m_fs->listEntries(searchDir);
     std::vector<std::string> matches;
 
-    std::string base = dirPart.empty() ? "" : dirPart + "/";
+    std::string base = dirPart.empty()
+        ? (absolutePath ? "/" : "")
+        : dirPart + "/";
 
     for (const auto& e : entries) {
         if (e.name.size() >= filePrefix.size() &&

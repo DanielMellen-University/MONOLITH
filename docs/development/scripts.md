@@ -30,7 +30,7 @@ Headless test of Terminal quoting, UTF-8-safe command inputs, and quoted or esca
 g++ -std=c++23 scripts/test_terminal_lexer.cpp src/app/TerminalLexer.cpp -o build/test_terminal_lexer && ./build/test_terminal_lexer
 ```
 
-Headless Terminal filesystem command test for empty directories, regular files, and missing paths:
+Headless Terminal filesystem command test for empty directories, regular files, missing paths, and root completion:
 
 ```bash
 g++ -std=c++23 scripts/test_terminal_filesystem_state.cpp src/app/TerminalApp.cpp src/app/TerminalLexer.cpp src/fs/Filesystem.cpp $(pkg-config --cflags --libs sdl2 SDL2_ttf) -o build/test_terminal_filesystem_state && ./build/test_terminal_filesystem_state

@@ -1,5 +1,10 @@
 # Changelog
 
+## 2026-09: Fix Terminal root path completion
+
+- Terminal `Tab` completion now searches the virtual root when completing an absolute path that starts with `/`.
+- Extended Terminal state coverage for root completion.
+
 ## 2026-09: Correct Terminal `ls` results
 
 - `ls` now distinguishes empty directories, regular files, and missing paths instead of reporting every non-directory target as `(empty)`.

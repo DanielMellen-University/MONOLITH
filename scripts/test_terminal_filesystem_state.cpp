@@ -49,6 +49,12 @@ int main() {
               && terminal.m_history.back() == "ls: /home/monolith/missing: No such file or directory",
           "ls reports a missing path");
 
+    terminal.m_inputBuffer = "ls /";
+    terminal.m_inputCursorPos = static_cast<int>(terminal.m_inputBuffer.size());
+    terminal.handleTabCompletion();
+    check(terminal.m_inputBuffer == "ls /home/",
+          "absolute-root completion searches the virtual root");
+
     std::filesystem::remove_all(hostRoot, ec);
     if (failures == 0) {
         std::cout << "ALL TERMINAL FILESYSTEM TESTS PASSED\n";
