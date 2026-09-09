@@ -10,6 +10,26 @@
 
 namespace monolith::app {
 
+namespace {
+
+std::string normalizeLineEndings(const std::string& text) {
+    std::string normalized;
+    normalized.reserve(text.size());
+    for (size_t i = 0; i < text.size(); ++i) {
+        if (text[i] == '\r') {
+            if (i + 1 < text.size() && text[i + 1] == '\n') {
+                ++i;
+            }
+            normalized.push_back('\n');
+        } else {
+            normalized.push_back(text[i]);
+        }
+    }
+    return normalized;
+}
+
+} // namespace
+
 TerminalApp::TerminalApp(TTF_Font* font, monolith::fs::Filesystem* fs)
     : m_font(font), m_fs(fs)
 {
@@ -255,6 +275,7 @@ void TerminalApp::executeCommand(const std::string& commandLine) {
                     addOutput("cat: " + rest + ": Could not read file");
                     return;
                 }
+                content = normalizeLineEndings(content);
                 // Split into scrollback lines so multi-line files render correctly.
                 size_t linesOut = 0;
                 size_t start = 0;

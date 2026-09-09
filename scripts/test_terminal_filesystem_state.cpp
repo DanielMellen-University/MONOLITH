@@ -37,6 +37,8 @@ int main() {
           "write CRLF terminal history");
     check(fs.createDirectory("/home/monolith/empty"), "create empty directory");
     check(fs.writeFile("/home/monolith/note.txt", "hello"), "create regular file");
+    check(fs.writeFile("/home/monolith/line-endings.txt", "first\r\nsecond\rthird\r"),
+          "create mixed line-ending file");
 
     monolith::app::TerminalApp terminal(nullptr, &fs);
     check(terminal.m_commandHistory == std::vector<std::string>{"echo first", "echo second"},
@@ -79,6 +81,11 @@ int main() {
     check(!terminal.m_history.empty()
               && terminal.m_history.back() == "ls: /home/monolith/missing: No such file or directory",
           "ls reports a missing path");
+
+    terminal.m_history.clear();
+    terminal.executeCommand("cat /home/monolith/line-endings.txt");
+    check(terminal.m_history == std::vector<std::string>{"first", "second", "third", ""},
+          "cat normalizes CRLF and lone-CR line endings");
 
     terminal.m_inputBuffer = "ls /";
     terminal.m_inputCursorPos = static_cast<int>(terminal.m_inputBuffer.size());

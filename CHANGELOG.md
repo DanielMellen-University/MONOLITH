@@ -1,5 +1,10 @@
 # Changelog
 
+## 2026-09: Normalize Terminal file output line endings
+
+- Terminal `cat` now normalizes CRLF and lone-CR separators before writing file contents to scrollback.
+- Added command-state coverage for mixed line-ending files.
+
 ## 2026-09: Normalize Text Editor file line endings
 
 - Text Editor now normalizes CRLF and lone-CR files on load, matching its existing clipboard behavior and preventing carriage returns from appearing as document content.
