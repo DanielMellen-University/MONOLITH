@@ -1,5 +1,9 @@
 # Changelog
 
+## 2026-09: Unicode-safe Settings paths
+
+- Settings wallpaper path editing now removes complete UTF-8 characters with Backspace.
+
 ## 2026-09: Unicode-safe Terminal editing
 
 - Terminal Left/Right and Backspace now move and erase complete UTF-8 characters instead of raw bytes.

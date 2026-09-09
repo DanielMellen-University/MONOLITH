@@ -383,6 +383,7 @@ When unspecified, choose:
 | 2026-09-09 | cleanup | Unified screen-to-logical WindowManager input conversion and added a scaled-coordinate probe; CURRENT_CHUNK remains 7.1 |
 | 2026-09-09 | cleanup | Added WindowManager mouse capture so client drag releases return to the original window; CURRENT_CHUNK remains 7.1 |
 | 2026-09-09 | cleanup | Unified Terminal cursor and Backspace editing around complete UTF-8 codepoints; CURRENT_CHUNK remains 7.1 |
+| 2026-09-09 | cleanup | Made Settings wallpaper path Backspace codepoint-safe; CURRENT_CHUNK remains 7.1 |
 | 2026-09-09 | docs | Expanded the Drawing guide with workflow, tool history, canvas behavior, file-state details, and raster-editor limitations; CURRENT_CHUNK remains 7.1 |
 
 ---

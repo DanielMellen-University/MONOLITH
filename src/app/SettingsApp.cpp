@@ -1,4 +1,5 @@
 #include "SettingsApp.hpp"
+#include "Utf8.hpp"
 
 #include <algorithm>
 #include <cctype>
@@ -687,7 +688,7 @@ void SettingsApp::handleEvent(const SDL_Event& event) {
                     return;
                 case SDLK_BACKSPACE:
                     if (!m_wallpaperEditBuffer.empty()) {
-                        m_wallpaperEditBuffer.pop_back();
+                        popLastUtf8Codepoint(m_wallpaperEditBuffer);
                     }
                     return;
                 default:
