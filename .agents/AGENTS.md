@@ -425,6 +425,7 @@ When unspecified, choose:
 | 2026-09-09 | cleanup | Added explicit Filesystem read results and kept empty files distinct from read failures across file-backed apps; CURRENT_CHUNK remains 7.1 |
 | 2026-09-09 | docs | Added a consolidated Drawing app guide covering persisted state, `.modr` routing, prompts, and dirty recovery; CURRENT_CHUNK remains 7.1 |
 | 2026-09-09 | docs | Added a first-session Drawing walkthrough, prompt troubleshooting table, and focused verification commands; CURRENT_CHUNK remains 7.1 |
+| 2026-09-09 | cleanup | Routed native SDL_QUIT through the WindowManager dirty-document guard and covered the two-step close path; CURRENT_CHUNK remains 7.1 |
 
 ---
 

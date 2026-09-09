@@ -77,6 +77,13 @@ Window* WindowManager::createWindow(const std::string& title, int x, int y, int 
 }
 
 void WindowManager::handleEvent(const SDL_Event& event) {
+    if (event.type == SDL_QUIT) {
+        // Route the host window close through the same dirty-document guard as
+        // the Start menu Shut Down action.
+        requestQuit();
+        return;
+    }
+
     if (tryHandleShellHotkeys(event)) {
         return;
     }

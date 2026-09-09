@@ -88,6 +88,25 @@ int main() {
               "second shutdown request confirms every dirty app");
     }
 
+    {
+        monolith::window::WindowManager wm;
+        auto dirty = std::make_unique<QuitProbe>(true);
+        QuitProbe* dirtyPtr = dirty.get();
+        wm.createWindow("Native close", 40, 40, 260, 180, std::move(dirty));
+
+        SDL_Event quit{};
+        quit.type = SDL_QUIT;
+        wm.handleEvent(quit);
+        check(!wm.shouldQuit(), "native window close is blocked by a dirty document");
+        check(dirtyPtr->allowCloseCalls == 1,
+              "native window close uses the app close contract");
+
+        wm.handleEvent(quit);
+        check(wm.shouldQuit(), "confirmed native window close is accepted");
+        check(dirtyPtr->allowCloseCalls == 2,
+              "confirmed native close checks the app a second time");
+    }
+
     if (failures == 0) {
         std::cout << "ALL WINDOW QUIT TESTS PASSED\n";
         return 0;

@@ -253,11 +253,8 @@ int main(int /*argc*/, char* /*argv*/[])
 
     while (running) {
         while (SDL_PollEvent(&event)) {
-            if (event.type == SDL_QUIT) {
-                running = false;
-            }
-
-            // Pass events to the Window Manager (internal windows only)
+            // Pass every event through the Window Manager. SDL_QUIT is routed
+            // through its dirty-document close guard before the loop exits.
             wm.handleEvent(event);
 
             if (wm.shouldQuit()) {

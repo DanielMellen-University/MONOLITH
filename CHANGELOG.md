@@ -1,5 +1,9 @@
 # Changelog
 
+## 2026-09: Guard native window shutdown
+
+- Routed the host window's close event through the same dirty-document confirmation used by Start menu Shut Down, preventing unsaved Editor or Drawing work from being skipped.
+
 ## 2026-09: Drawing app user guide
 
 - Added a first-session walkthrough, reopen workflow, prompt troubleshooting table, and focused contributor verification commands to the Drawing documentation.
