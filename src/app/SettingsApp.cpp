@@ -183,9 +183,13 @@ void SettingsApp::syncWallpaperBufferFromShell() {
     auto* ctrl = getController();
     if (!ctrl) {
         m_wallpaperEditBuffer.clear();
+        m_wallpaperCursorPos = 0;
+        m_wallpaperScrollPx = 0;
         return;
     }
     m_wallpaperEditBuffer = ctrl->getWallpaperPath();
+    m_wallpaperCursorPos = m_wallpaperEditBuffer.size();
+    m_wallpaperScrollPx = 0;
     m_wallpaperBufferSynced = true;
 }
 
@@ -203,15 +207,21 @@ void SettingsApp::applyWallpaperPath() {
         path = path.substr(start);
         ctrl->setWallpaperPath(path);
         m_wallpaperEditBuffer = ctrl->getWallpaperPath();
+        m_wallpaperCursorPos = m_wallpaperEditBuffer.size();
+        m_wallpaperScrollPx = 0;
+        m_wallpaperBufferSynced = true;
         m_wallpaperFieldFocused = false;
     }
 }
 
 void SettingsApp::clearWallpaperPath() {
     m_wallpaperEditBuffer.clear();
+    m_wallpaperCursorPos = 0;
+    m_wallpaperScrollPx = 0;
     if (auto* ctrl = getController()) {
         ctrl->setWallpaperPath("");
     }
+    m_wallpaperBufferSynced = true;
     m_wallpaperFieldFocused = false;
 }
 
@@ -323,7 +333,23 @@ int SettingsApp::renderAppearanceSection(SDL_Renderer* renderer, const SDL_Rect&
             display = "(none)";
         }
         if (m_wallpaperFieldFocused) {
-            display += "_";
+            m_wallpaperCursorPos = std::min(m_wallpaperCursorPos, m_wallpaperEditBuffer.size());
+            const std::string beforeCursor = m_wallpaperEditBuffer.substr(0, m_wallpaperCursorPos);
+            const std::string promptText = beforeCursor + "_"
+                + m_wallpaperEditBuffer.substr(m_wallpaperCursorPos);
+            const int visibleWidth = std::max(1, field.w - 8);
+            const int cursorPx = measureTextWidth(m_font, (beforeCursor + "_").c_str());
+            const int fullTextWidth = measureTextWidth(m_font, promptText.c_str());
+            if (cursorPx - m_wallpaperScrollPx > visibleWidth) {
+                m_wallpaperScrollPx = cursorPx - visibleWidth;
+            } else if (cursorPx - m_wallpaperScrollPx < 0) {
+                m_wallpaperScrollPx = cursorPx;
+            }
+            const int maxScroll = std::max(0, fullTextWidth - visibleWidth);
+            m_wallpaperScrollPx = std::clamp(m_wallpaperScrollPx, 0, maxScroll);
+            display = promptText;
+        } else {
+            m_wallpaperScrollPx = 0;
         }
 
         // Clip text into the field
@@ -335,7 +361,7 @@ int SettingsApp::renderAppearanceSection(SDL_Renderer* renderer, const SDL_Rect&
         SDL_RenderSetClipRect(renderer, &clip);
         drawLabel(renderer, m_font, display.c_str(),
                   display == "(none)" ? dimCol : valueCol,
-                  field.x + 6, field.y + (kFieldH - kLineH) / 2 + 2);
+                  field.x + 6 - m_wallpaperScrollPx, field.y + (kFieldH - kLineH) / 2 + 2);
         // Restore outer clip (appearance section lives inside Settings scroll clip)
         SDL_Rect outerClip = {
             contentRect.x,
@@ -668,11 +694,17 @@ void SettingsApp::handleEvent(const SDL_Event& event) {
     if (m_wallpaperFieldFocused) {
         if (event.type == SDL_TEXTINPUT) {
             const char* text = event.text.text;
+            m_wallpaperCursorPos = std::min(m_wallpaperCursorPos, m_wallpaperEditBuffer.size());
+            std::string inserted;
             for (const char* p = text; *p; ++p) {
                 const unsigned char c = static_cast<unsigned char>(*p);
                 if (c >= 32 && c != 127) {
-                    m_wallpaperEditBuffer.push_back(static_cast<char>(c));
+                    inserted.push_back(static_cast<char>(c));
                 }
+            }
+            if (!inserted.empty()) {
+                m_wallpaperEditBuffer.insert(m_wallpaperCursorPos, inserted);
+                m_wallpaperCursorPos += inserted.size();
             }
             return;
         }
@@ -687,9 +719,31 @@ void SettingsApp::handleEvent(const SDL_Event& event) {
                     syncWallpaperBufferFromShell();
                     return;
                 case SDLK_BACKSPACE:
-                    if (!m_wallpaperEditBuffer.empty()) {
-                        popLastUtf8Codepoint(m_wallpaperEditBuffer);
+                    erasePreviousUtf8Codepoint(m_wallpaperEditBuffer, m_wallpaperCursorPos);
+                    return;
+                case SDLK_DELETE: {
+                    m_wallpaperCursorPos = std::min(m_wallpaperCursorPos, m_wallpaperEditBuffer.size());
+                    const std::size_t next = utf8NextCodepointStart(
+                        m_wallpaperEditBuffer, m_wallpaperCursorPos);
+                    if (next > m_wallpaperCursorPos) {
+                        m_wallpaperEditBuffer.erase(
+                            m_wallpaperCursorPos, next - m_wallpaperCursorPos);
                     }
+                    return;
+                }
+                case SDLK_LEFT:
+                    m_wallpaperCursorPos = utf8PrevCodepointStart(
+                        m_wallpaperEditBuffer, m_wallpaperCursorPos);
+                    return;
+                case SDLK_RIGHT:
+                    m_wallpaperCursorPos = utf8NextCodepointStart(
+                        m_wallpaperEditBuffer, m_wallpaperCursorPos);
+                    return;
+                case SDLK_HOME:
+                    m_wallpaperCursorPos = 0;
+                    return;
+                case SDLK_END:
+                    m_wallpaperCursorPos = m_wallpaperEditBuffer.size();
                     return;
                 default:
                     break;
@@ -756,6 +810,8 @@ void SettingsApp::handleEvent(const SDL_Event& event) {
                 m_wallpaperEditBuffer = ctrl->getWallpaperPath();
             }
         }
+        m_wallpaperCursorPos = m_wallpaperEditBuffer.size();
+        m_wallpaperScrollPx = 0;
         return;
     }
 

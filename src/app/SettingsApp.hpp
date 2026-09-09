@@ -85,6 +85,8 @@ private:
     SDL_Rect m_wallpaperSetRect{0, 0, 0, 0};
     SDL_Rect m_wallpaperClearRect{0, 0, 0, 0};
     std::string m_wallpaperEditBuffer;
+    std::size_t m_wallpaperCursorPos = 0;
+    int m_wallpaperScrollPx = 0;
     bool m_wallpaperFieldFocused = false;
     bool m_wallpaperBufferSynced = false;
 

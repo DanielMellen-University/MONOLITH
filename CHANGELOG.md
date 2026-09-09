@@ -1,5 +1,10 @@
 # Changelog
 
+## 2026-09: Caret-aware Settings wallpaper paths
+
+- Settings wallpaper path editing now supports caret movement, insertion, Delete, and UTF-8-safe Backspace.
+- Long wallpaper paths keep the active caret visible inside the field.
+
 ## 2026-09: Caret-aware Text Editor prompts
 
 - Text Editor Save, Open, and Go-to-line prompts now support cursor movement, insertion, Delete, and UTF-8-safe Backspace.

@@ -23,7 +23,8 @@ The **APPEARANCE** section at the top lets you change live desktop preferences.
 ### Wallpaper image
 
 - Enter a virtual filesystem path to a **BMP** file (for example `/Wallpapers/sample.bmp`) and press **Set**.
-- While the path field is focused, Backspace removes one complete UTF-8 character from the end of the path.
+- While the path field is focused, Left/Right/Home/End move the caret, typed text is inserted at the caret, Delete removes the next complete UTF-8 character, and Backspace removes the previous one.
+- Long paths scroll horizontally to keep the caret visible while editing.
 - **Clear** removes the image and returns to solid color only.
 - Empty path means solid color only. Missing or unloadable files fail soft (solid color stays).
 - A sample BMP is seeded at `/Wallpapers/sample.bmp` on first launch (from `assets/wallpapers/sample.bmp`).
