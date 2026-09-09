@@ -1,5 +1,9 @@
 # Changelog
 
+## 2026-09: Native-size window titles
+
+- Long window titles now render at native text size and clip before the title-bar controls instead of being horizontally squeezed.
+
 ## 2026-09: Drawing status and recovery reference
 
 - Added a concise Drawing status-bar guide covering prompts, Tab completion, failed operations, invalid RGB input, and unsaved-change recovery.

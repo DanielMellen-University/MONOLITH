@@ -186,6 +186,9 @@ void WindowManager::render(SDL_Renderer* renderer) {
         SDL_Rect titleBar = {screenX, screenY, scaledW, scaledTitleH};
         SDL_RenderFillRect(renderer, &titleBar);
 
+        const TitleButtonRects logicalButtons = getTitleButtonRects(win);
+        const SDL_Rect minBtn = logicalRectToScreen(logicalButtons.minimize);
+
         // === Window title text (cached) ===
         if (m_font && !win.title.empty()) {
             auto& cache = m_titleCache[win.id];
@@ -214,29 +217,31 @@ void WindowManager::render(SDL_Renderer* renderer) {
                 int texW, texH;
                 SDL_QueryTexture(cache.texture, nullptr, nullptr, &texW, &texH);
 
-                int paddingLeft = 10;
-                int availableWidth = scaledW - 80;
+                const int paddingLeft = static_cast<int>(10 * m_contentScale);
+                const int paddingRight = static_cast<int>(6 * m_contentScale);
+                const int titleLeft = screenX + paddingLeft;
+                const int titleRight = std::min(minBtn.x - paddingRight, screenX + scaledW);
+                const int titleWidth = std::max(0, titleRight - titleLeft);
 
                 SDL_Rect dstRect = {
-                    screenX + paddingLeft,
+                    titleLeft,
                     screenY + (scaledTitleH - texH) / 2,
                     texW,
                     texH
                 };
 
-                if (texW > availableWidth) {
-                    dstRect.w = availableWidth;
+                if (titleWidth > 0) {
+                    SDL_Rect titleClip = {titleLeft, screenY, titleWidth, scaledTitleH};
+                    SDL_RenderSetClipRect(renderer, &titleClip);
+                    SDL_RenderCopy(renderer, cache.texture, nullptr, &dstRect);
+                    SDL_RenderSetClipRect(renderer, nullptr);
                 }
-
-                SDL_RenderCopy(renderer, cache.texture, nullptr, &dstRect);
             }
         }
 
         // === Window buttons (close, minimize, maximize) with simple symbols ===
-        const TitleButtonRects logicalButtons = getTitleButtonRects(win);
         SDL_Rect closeBtn = logicalRectToScreen(logicalButtons.close);
         SDL_Rect maxBtn = logicalRectToScreen(logicalButtons.maximize);
-        SDL_Rect minBtn = logicalRectToScreen(logicalButtons.minimize);
         const int buttonSize = closeBtn.w;
 
         // Close button (red) - draw white X

@@ -63,6 +63,7 @@ The Window Manager is the most foundational subsystem.
 - When many windows are open, the taskbar scrolls horizontally (arrow buttons and mouse wheel). Arrow hit targets are recorded during render (same pattern as taskbar window buttons) and handled in the taskbar click path.
 - Taskbar scrolling is clamped to the measured button strip after arrow controls reserve their space, so repeated input cannot scroll every window button out of view.
 - Taskbar window labels stay at native text size and clip inside their own button, so long titles do not get horizontally distorted or draw over neighboring buttons.
+- Window title labels stay at native text size and clip before the minimize button, so long file-backed titles do not get horizontally distorted or cover title-bar controls.
 - The taskbar shows a compact local-time clock on the right (12-hour by default; Settings can switch to 24-hour via `DesktopSettings`). The time texture is rebuilt when the minute or format changes; hovering the clock tray shows the full local date in a small tooltip above the bar.
 - Settings can change the shared interface font to 90%, 100%, or 115%. `WindowManager` applies the selected point size to the shared `TTF_Font`, then invalidates title and clock textures so the change appears immediately in existing windows.
 - Desktop wallpaper images (BMP via `SDL_LoadBMP`) are optional: Settings stores a virtual FS path; the Window Manager cover-scales the texture over the solid background color before drawing windows. Empty or unloadable paths fall back to solid color only.
