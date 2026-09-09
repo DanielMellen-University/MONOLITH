@@ -1,5 +1,10 @@
 # Changelog
 
+## 2026-09: Correct Terminal `ls` results
+
+- `ls` now distinguishes empty directories, regular files, and missing paths instead of reporting every non-directory target as `(empty)`.
+- Added a headless Terminal filesystem-command regression test.
+
 ## 2026-09: Reject unusable filesystem roots
 
 - Filesystem initialization now fails when the configured host root is a regular file instead of a directory.

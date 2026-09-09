@@ -119,13 +119,20 @@ void TerminalApp::executeCommand(const std::string& commandLine) {
     else if (cmd == "ls") {
         if (m_fs) {
             std::string target = rest.empty() ? m_cwd : resolvePath(rest);
-            auto entries = m_fs->listEntries(target);
-            if (entries.empty()) {
-                addOutput("(empty)");
+            if (m_fs->isFile(target)) {
+                addOutput("• " + m_fs->baseName(target));
+            } else if (!m_fs->isDirectory(target)) {
+                addOutput("ls: " + (rest.empty() ? target : rest)
+                          + ": No such file or directory");
             } else {
-                for (const auto& e : entries) {
-                    std::string prefix = e.isDirectory ? "▶ " : "• ";
-                    addOutput(prefix + e.name);
+                auto entries = m_fs->listEntries(target);
+                if (entries.empty()) {
+                    addOutput("(empty)");
+                } else {
+                    for (const auto& e : entries) {
+                        std::string prefix = e.isDirectory ? "▶ " : "• ";
+                        addOutput(prefix + e.name);
+                    }
                 }
             }
         } else {

@@ -58,7 +58,7 @@ Run `help` for the full list. Current commands:
 | `date` | Show current date and time |
 | `whoami` | Print current user (`monolith`) |
 | `version` / `ver` | Show Monolith version |
-| `ls [path]` | List directory contents (`▶` = directory, `•` = file) |
+| `ls [path]` | List directory contents (`▶` = directory, `•` = file); a file path prints that file and a missing path reports an error |
 | `pwd` | Print working directory |
 | `cd [dir]` | Change directory (no arg → `/home/monolith`) |
 | `mkdir <dir>` | Create directory |
