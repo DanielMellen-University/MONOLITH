@@ -319,6 +319,7 @@ bool TextEditorApp::loadInitialFile(const std::string& virtualPath) {
     m_cursorRow = 0;
     m_cursorCol = 0;
     m_scrollOffset = 0;
+    m_horizontalScrollOffset = 0;
     m_dirty = false;
     clearDiscardArm();
     clearSelection();
@@ -834,12 +835,13 @@ bool TextEditorApp::clientToDocument(int clientX, int clientY, int& outRow, int&
     }
 
     const std::string& line = m_lines[static_cast<size_t>(row)];
-    int textX = clientX - kPadding - kLineNumWidth;
-    if (textX <= 0) {
+    const int rawTextX = clientX - kPadding - kLineNumWidth;
+    if (rawTextX <= 0) {
         outRow = row;
         outCol = 0;
         return true;
     }
+    const int textX = rawTextX + m_horizontalScrollOffset;
 
     // Walk codepoints until measured width exceeds click x.
     int col = 0;
@@ -1106,6 +1108,23 @@ void TextEditorApp::ensureCursorVisible() {
         m_scrollOffset = m_cursorRow - visible + 1;
     }
     if (m_scrollOffset < 0) m_scrollOffset = 0;
+
+    const int textLeft = kPadding + kLineNumWidth;
+    const int textRight = std::max(textLeft + 1, m_clientWidth - kPadding);
+    const int viewportWidth = textRight - textLeft;
+    if (viewportWidth <= 0) return;
+
+    const int cursorWidth = measureTextPrefixWidth(
+        m_lines[static_cast<size_t>(m_cursorRow)],
+        m_cursorCol
+    );
+    const int cursorRight = cursorWidth + 2;
+    if (cursorWidth < m_horizontalScrollOffset) {
+        m_horizontalScrollOffset = cursorWidth;
+    } else if (cursorRight > m_horizontalScrollOffset + viewportWidth) {
+        m_horizontalScrollOffset = cursorRight - viewportWidth;
+    }
+    if (m_horizontalScrollOffset < 0) m_horizontalScrollOffset = 0;
 }
 
 void TextEditorApp::enterFindMode() {
@@ -1358,6 +1377,16 @@ void TextEditorApp::render(SDL_Renderer* renderer, const SDL_Rect& contentRect) 
     int visibleLines = getVisibleLineCount(contentRect);
     int y = textStartY;
     const int lineNumWidth = kLineNumWidth;
+    const int textStartX = contentRect.x + padding + lineNumWidth;
+    const int textRight = contentRect.x + contentRect.w - padding;
+    const int textWidth = std::max(0, textRight - textStartX);
+    const int textClipHeight = std::max(0, contentRect.h - kStatusBarHeight);
+    const SDL_Rect textClip = {
+        textStartX,
+        contentRect.y,
+        textWidth,
+        textClipHeight
+    };
 
     int selR0 = 0, selC0 = 0, selR1 = 0, selC1 = 0;
     const bool drawSel = hasSelection();
@@ -1389,6 +1418,8 @@ void TextEditorApp::render(SDL_Renderer* renderer, const SDL_Rect& contentRect) 
             SDL_FreeSurface(numSurf);
         }
 
+        SDL_RenderSetClipRect(renderer, &textClip);
+
         // Selection highlight (behind text)
         if (drawSel && lineIdx >= selR0 && lineIdx <= selR1) {
             int fromCol = 0;
@@ -1405,7 +1436,7 @@ void TextEditorApp::render(SDL_Renderer* renderer, const SDL_Rect& contentRect) 
                 if (fromCol == toCol) w = 2;
                 SDL_SetRenderDrawColor(renderer, 48, 82, 130, 220);
                 SDL_Rect selRect = {
-                    contentRect.x + padding + lineNumWidth + x0,
+                    textStartX + x0 - m_horizontalScrollOffset,
                     y + 1,
                     w,
                     lineHeight - 2
@@ -1440,7 +1471,7 @@ void TextEditorApp::render(SDL_Renderer* renderer, const SDL_Rect& contentRect) 
                 }
 
                 SDL_Rect highlightRect = {
-                    contentRect.x + padding + lineNumWidth + beforeW,
+                    textStartX + beforeW - m_horizontalScrollOffset,
                     y + 1,
                     std::max(2, matchW),
                     lineHeight - 2
@@ -1453,15 +1484,15 @@ void TextEditorApp::render(SDL_Renderer* renderer, const SDL_Rect& contentRect) 
         drawColoredLine(
             renderer,
             line,
-            contentRect.x + padding + lineNumWidth,
+            textStartX - m_horizontalScrollOffset,
             y,
-            contentRect.w - padding * 2 - lineNumWidth
+            textRight - (textStartX - m_horizontalScrollOffset)
         );
 
         // Draw cursor if on this line
         if (lineIdx == m_cursorRow) {
             int textW = measureTextPrefixWidth(line, m_cursorCol);
-            int cursorX = contentRect.x + padding + lineNumWidth + textW;
+            int cursorX = textStartX + textW - m_horizontalScrollOffset;
             int cursorY = y;
 
             // Simple vertical bar cursor
@@ -1469,6 +1500,8 @@ void TextEditorApp::render(SDL_Renderer* renderer, const SDL_Rect& contentRect) 
             SDL_Rect cursorRect = {cursorX, cursorY + 2, 2, lineHeight - 4};
             SDL_RenderFillRect(renderer, &cursorRect);
         }
+
+        SDL_RenderSetClipRect(renderer, nullptr);
 
         y += lineHeight;
     }
@@ -1527,6 +1560,7 @@ void TextEditorApp::render(SDL_Renderer* renderer, const SDL_Rect& contentRect) 
             } else {
                 status += "   |  Ctrl+S save   Ctrl+C/X/V clipboard   Ctrl+A select all";
                 status += "   |  Ctrl+F find   Ctrl+H replace   Ctrl+G line   Ctrl+Z undo";
+                status += "   |  Shift+wheel horizontal";
             }
         }
 
@@ -1559,6 +1593,15 @@ void TextEditorApp::handleEvent(const SDL_Event& event) {
     }
 
     if (event.type == SDL_MOUSEWHEEL) {
+        const bool horizontal = event.wheel.x != 0
+            || (SDL_GetModState() & KMOD_SHIFT) != 0;
+        if (horizontal) {
+            const int delta = event.wheel.x != 0 ? event.wheel.x : -event.wheel.y;
+            m_horizontalScrollOffset += delta * 48;
+            if (m_horizontalScrollOffset < 0) m_horizontalScrollOffset = 0;
+            return;
+        }
+
         // Positive wheel.y = scroll up (show earlier lines).
         const int visible = std::max(1, getVisibleLineCount({0, 0, m_clientWidth, m_clientHeight}));
         const int maxScroll = std::max(0, static_cast<int>(m_lines.size()) - visible);

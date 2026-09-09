@@ -1,5 +1,11 @@
 # Changelog
 
+## 2026-09: Text Editor horizontal scrolling
+
+- Long lines now remain fully editable instead of clipping at the right edge.
+- The cursor auto-scrolls horizontally while moving or typing; Shift + mouse wheel can pan the text viewport manually.
+- Selection, find highlights, syntax colors, and mouse hit testing follow the horizontal viewport.
+
 ## 2026-09: Drawing app guide
 
 - Documented `.modr` open routing, including the fact that `.mod` remains a text file.

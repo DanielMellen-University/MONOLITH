@@ -130,6 +130,7 @@ private:
     int m_cursorRow = 0;
     int m_cursorCol = 0;
     int m_scrollOffset = 0;   // index of the first visible line
+    int m_horizontalScrollOffset = 0; // text pixels hidden to the left
 
     // Selection: active end is always the cursor; anchor is the other end.
     bool m_hasSelection = false;

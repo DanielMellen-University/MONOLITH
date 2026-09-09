@@ -22,6 +22,7 @@ File-backed editors are singletons per path — opening the same file again focu
 - **Backspace** / **Delete** remove the selection when one exists, otherwise one codepoint.
 - Typing or paste replaces the current selection.
 - **Mouse wheel** scrolls the buffer.
+- **Shift + mouse wheel** scrolls horizontally through long lines; the cursor also auto-scrolls into view while you type or move with the keyboard.
 - Line numbers appear in the left margin.
 - Syntax highlighting colors comments, strings, numbers, and (for code files) keywords.
 - A `*` in the status bar indicates unsaved changes.
@@ -100,7 +101,7 @@ Ctrl+S saves to the bound path when one exists. If the buffer is untitled, Ctrl+
 - Undo/redo store full buffer snapshots (capped stack). Consecutive typing or in-line backspace within ~1s is one undo step; Enter, paste, and other edits start a new step.
 - Highlighting is per-line only (no multiline strings or block comments).
 - No multiple buffers/tabs.
-- No horizontal scroll; long lines clip (selection still works by column).
+- Long lines remain editable without wrapping; horizontal scrolling moves the text viewport in pixel increments while preserving document columns.
 - Combining characters / complex scripts are treated as separate codepoints for cursor motion.
 - Clipboard uses the host OS clipboard (SDL), not a Monolith-only buffer.
 - Find/replace is case-sensitive and single-line only (no regex).
@@ -112,6 +113,7 @@ Main implementation files:
 
 - `src/app/TextEditorApp.hpp`
 - `src/app/TextEditorApp.cpp`
-- `src/window/WindowManager.cpp` — `launchTextEditor()`, file singleton tracking, session restore
+- `src/window/detail/wm_body_07.inc` — `launchTextEditor()` and editor window creation
+- `src/window/detail/wm_body_08.inc` / `wm_body_09.inc` — open routing, session restore, and file singleton bindings
 
 Shell integration: open via `openInTextEditor` / `openPath` (default for non-`.modr` files). Dirty buffers use `allowClose` and status-bar double-confirm for close/open.
