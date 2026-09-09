@@ -54,6 +54,23 @@ void TerminalApp::onVirtualPathMoved(const std::string& oldPath,
     addOutput("Working directory moved to " + m_cwd);
 }
 
+void TerminalApp::onVirtualPathRemoved(const std::string& path) {
+    if (!m_fs) return;
+
+    const std::string removed = m_fs->normalize(path);
+    if (removed == "/" || !m_fs->isSameOrDescendant(removed, m_cwd)) return;
+
+    std::string fallback = removed;
+    const size_t slash = fallback.find_last_of('/');
+    fallback = slash == 0 ? "/" : fallback.substr(0, slash);
+    while (fallback != "/" && !m_fs->isDirectory(fallback)) {
+        const size_t parentSlash = fallback.find_last_of('/');
+        fallback = parentSlash == 0 ? "/" : fallback.substr(0, parentSlash);
+    }
+    m_cwd = fallback;
+    addOutput("Working directory removed; moved to " + m_cwd);
+}
+
 void TerminalApp::addOutput(const std::string& line) {
     m_history.push_back(line);
     while (m_history.size() > kMaxScrollbackLines) {
@@ -373,12 +390,16 @@ void TerminalApp::executeCommand(const std::string& commandLine) {
                     addOutput("rm: cannot remove '/'");
                 } else if (recursive) {
                     if (m_fs->removeRecursive(path)) {
-                        // success
+                        if (auto* ctrl = getController()) {
+                            ctrl->notifyVirtualPathRemoved(path);
+                        }
                     } else {
                         addOutput("rm: failed to remove '" + target + "'");
                     }
                 } else if (m_fs->remove(path)) {
-                    // success - silent
+                    if (auto* ctrl = getController()) {
+                        ctrl->notifyVirtualPathRemoved(path);
+                    }
                 } else {
                     addOutput("rm: cannot remove '" + target + "' (use -r for directories)");
                 }

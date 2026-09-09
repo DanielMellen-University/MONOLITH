@@ -138,6 +138,7 @@ Drawing participates in the same file workflow as the Terminal and Filesystem Br
 - A missing or invalid initial `.modr` falls back to the normal bare `Drawing` title, does not reserve a file binding, and remains eligible for session restore. Correcting the file and opening it again retries the load normally.
 - When Monolith restores a saved desktop session, an open Drawing window keeps its geometry and bound `.modr` path.
 - When a bound `.modr` is renamed in Filesystem Browser, moved with Filesystem Browser cut/paste, or moved with Terminal `mv`, the open Drawing window follows the normalized virtual path and updates its title, Save target, session record, and singleton focus binding. Moving a directory also remaps open drawings below that directory.
+- If the bound `.modr` or one of its parent directories is deleted, Drawing keeps the current canvas in memory, releases the deleted file singleton, and becomes a tracked untitled `Drawing` window. Use Save to choose a new `.modr` path; unsaved pixels are not discarded automatically.
 
 All other file types continue to open in Text Editor through the shell's default routing. In particular, `.mod` is a text file, not a Drawing file.
 

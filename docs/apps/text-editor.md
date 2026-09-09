@@ -132,3 +132,5 @@ Main implementation files:
 Shell integration: open via `openInTextEditor` / `openPath` (default for non-`.modr` files). Dirty buffers use `allowClose` and status-bar double-confirm for close/open.
 
 When the bound file is renamed in Filesystem Browser, moved with Filesystem Browser cut/paste, or moved with Terminal `mv`, the open editor follows the normalized virtual path. Its title, Save target, session record, and singleton focus binding update with it. Moving a directory also remaps open files below that directory.
+
+If the bound file or one of its parent directories is deleted, the editor stays open with its current in-memory buffer, releases the deleted file singleton, and becomes a tracked untitled `Editor` window. Use Save or Save As to choose a new path; dirty content is not discarded automatically.

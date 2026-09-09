@@ -183,6 +183,15 @@ int main() {
               && browser.m_entries.front().name == "inside.txt",
           "browser view follows a moved parent directory");
 
+    check(fs.createDirectory("/home/monolith/moved-sub/to-delete"),
+          "create browser deletion source");
+    browser.setCurrentPath("/home/monolith/moved-sub/to-delete");
+    check(fs.removeRecursive("/home/monolith/moved-sub/to-delete"),
+          "remove browser current folder");
+    browser.onVirtualPathRemoved("/home/monolith/moved-sub/to-delete");
+    check(browser.m_currentPath == "/home/monolith/moved-sub",
+          "browser view returns to a valid parent after deletion");
+
     std::filesystem::remove_all(hostRoot, ec);
     if (failures == 0) {
         std::cout << "ALL FILESYSTEM APP STATE TESTS PASSED\n";

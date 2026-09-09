@@ -25,6 +25,7 @@ public:
     void handleEvent(const SDL_Event& event) override;
     void onResize(int clientWidth, int clientHeight) override;
     void onBoundFileMoved(const std::string& newPath) override;
+    void onBoundFileRemoved() override;
     bool allowClose() override;
 
     // True only after a .modr file has loaded successfully.

@@ -526,6 +526,16 @@ void DrawingApp::onBoundFileMoved(const std::string& newPath) {
     setStatus("File moved: " + newPath);
 }
 
+void DrawingApp::onBoundFileRemoved() {
+    m_filePath.clear();
+    clearDiscardArm();
+    if (auto* ctrl = getController()) {
+        ctrl->clearDrawingFileBinding();
+        ctrl->restoreTrackedInstanceTitle();
+    }
+    setStatus("File removed: use Save to choose a new .modr path");
+}
+
 void DrawingApp::clearDiscardArm() {
     m_discardKind = DiscardKind::None;
     m_discardPath.clear();

@@ -413,6 +413,17 @@ void TextEditorApp::onBoundFileMoved(const std::string& newPath) {
     setStatus("File moved: " + newPath);
 }
 
+void TextEditorApp::onBoundFileRemoved() {
+    m_filePath.clear();
+    refreshSyntaxMode();
+    clearDiscardArm();
+    if (auto* ctrl = getController()) {
+        ctrl->clearEditorFileBinding();
+        ctrl->restoreTrackedInstanceTitle();
+    }
+    setStatus("File removed: use Save As to keep this document");
+}
+
 void TextEditorApp::beginPathPrompt(PathPromptMode mode) {
     // A new prompt is a new user action. Do not carry a discarded confirmation
     // from an earlier Open/New attempt into it.

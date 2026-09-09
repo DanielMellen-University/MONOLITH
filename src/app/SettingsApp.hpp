@@ -23,6 +23,7 @@ public:
     void onResize(int clientWidth, int clientHeight) override;
     void onVirtualPathMoved(const std::string& oldPath,
                             const std::string& newPath) override;
+    void onVirtualPathRemoved(const std::string& path) override;
 
 private:
     struct InfoLine {

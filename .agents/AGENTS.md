@@ -459,6 +459,7 @@ When unspecified, choose:
 | 2026-09-09 | cleanup | Hardened WindowManager clamping for narrow logical desktops and added an extreme-coordinate regression; CURRENT_CHUNK remains 7.1 |
 | 2026-09-09 | cleanup | Kept open Text Editor and Drawing bindings attached across Filesystem Browser renames, cut/paste moves, Terminal `mv`, and moved parent directories; added file-open regression coverage; CURRENT_CHUNK remains 7.1 |
 | 2026-09-09 | cleanup | Kept Terminal cwd, Filesystem Browser views, and wallpaper settings aligned across virtual moves; added cross-app path lifecycle coverage; CURRENT_CHUNK remains 7.1 |
+| 2026-09-09 | cleanup | Recovered Editor, Drawing, Terminal, Filesystem Browser, wallpaper, and clipboard state after virtual deletion; fixed file-backed Drawing New titles; added deletion lifecycle coverage; CURRENT_CHUNK remains 7.1 |
 | 2026-09-09 | docs | Added a focused Drawing file-lifecycle reference covering saves, failures, resizing, and dirty-state confirmation; CURRENT_CHUNK remains 7.1 |
 | 2026-09-09 | cleanup | Blocked Filesystem renames into a source subtree or the virtual root; extended the shared roadmap check; CURRENT_CHUNK remains 7.1 |
 | 2026-09-09 | cleanup | Added Tab completion for Settings wallpaper directories and BMP files; added focused state coverage; CURRENT_CHUNK remains 7.1 |

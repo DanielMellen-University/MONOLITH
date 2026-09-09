@@ -110,6 +110,9 @@ int main() {
     settings.onVirtualPathMoved("/Wallpapers", "/Archive");
     check(settings.m_wallpaperEditBuffer == "/Archive/alpha.bmp",
           "focused wallpaper prompt follows a moved parent directory");
+    settings.onVirtualPathRemoved("/Archive");
+    check(settings.m_wallpaperEditBuffer.empty() && settings.m_wallpaperCursorPos == 0,
+          "focused wallpaper prompt clears a deleted parent directory");
 
     std::filesystem::remove_all(hostRoot, ec);
     if (failures == 0) {

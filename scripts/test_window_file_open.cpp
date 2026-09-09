@@ -69,6 +69,9 @@ int main() {
             std::istreambuf_iterator<char>(settingsFile), {});
         check(settingsText.find("wallpaper_path=/archive/moved.bmp") != std::string::npos,
               "moved wallpaper path is persisted");
+        check(fs.removeRecursive("/archive/moved.bmp"), "remove configured wallpaper");
+        wm.notifyVirtualPathRemoved("/archive/moved.bmp");
+        check(wm.getWallpaperPath().empty(), "deleted wallpaper path is cleared");
 
         wm.openPath("/docs/retry.txt");
         check(!wm.focusEditorForFile("/docs/retry.txt"),
@@ -155,6 +158,39 @@ int main() {
         check(renamedDrawing != wm.m_windows.end()
                   && (*renamedDrawing)->title == "Drawing - retry.modr",
               "renamed drawing file updates its title and path");
+
+        check(fs.removeRecursive("/archive/retry.modr"), "remove bound drawing file");
+        wm.notifyVirtualPathRemoved("/archive/retry.modr");
+        check(!wm.focusDrawingForFile("/archive/retry.modr"),
+              "deleted drawing file releases its singleton binding");
+        auto detachedDrawing = std::find_if(
+            wm.m_windows.begin(), wm.m_windows.end(),
+            [](const auto& window) {
+                return window && window->drawingFilePath.empty()
+                    && window->appBaseTitle == "Drawing"
+                    && window->title == "Drawing 2";
+            });
+        check(detachedDrawing != wm.m_windows.end(),
+              "deleted drawing becomes a tracked untitled window");
+
+        check(fs.writeFile("/docs/deleted.txt", "delete me"),
+              "write bound editor deletion source");
+        wm.openPath("/docs/deleted.txt");
+        check(wm.focusEditorForFile("/docs/deleted.txt"),
+              "open bound editor deletion source");
+        check(fs.removeRecursive("/docs/deleted.txt"), "remove bound editor file");
+        wm.notifyVirtualPathRemoved("/docs/deleted.txt");
+        check(!wm.focusEditorForFile("/docs/deleted.txt"),
+              "deleted editor file releases its singleton binding");
+        auto detachedEditor = std::find_if(
+            wm.m_windows.begin(), wm.m_windows.end(),
+            [](const auto& window) {
+                return window && window->editedFilePath.empty()
+                    && window->appBaseTitle == "Editor"
+                    && window->title == "Editor 2";
+            });
+        check(detachedEditor != wm.m_windows.end(),
+              "deleted editor becomes a tracked untitled window");
     }
 
     TTF_CloseFont(font);

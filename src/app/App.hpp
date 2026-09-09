@@ -41,12 +41,18 @@ struct IWindowController {
     // Register this editor window as the singleton owner of a virtual file path.
     virtual void bindEditorFile(const std::string& /*virtualPath*/) {}
 
+    // Clear this editor window's file binding while keeping the app alive.
+    virtual void clearEditorFileBinding() {}
+
     // Register this Drawing window as the singleton owner of a .modr path.
     virtual void bindDrawingFile(const std::string& /*virtualPath*/) {}
 
     // Notify the shell that a bound virtual path was renamed or moved.
     virtual void notifyVirtualPathMoved(const std::string& /*oldPath*/,
                                         const std::string& /*newPath*/) {}
+
+    // Notify the shell that a virtual file or directory was deleted.
+    virtual void notifyVirtualPathRemoved(const std::string& /*virtualPath*/) {}
 
     // Clear a Drawing window's file binding (e.g. after New sketch).
     virtual void clearDrawingFileBinding() {}
@@ -145,9 +151,15 @@ public:
     // Called when the virtual path bound to this app is renamed or moved.
     virtual void onBoundFileMoved(const std::string& /*newPath*/) {}
 
+    // Called when the virtual path bound to this app is deleted.
+    virtual void onBoundFileRemoved() {}
+
     // Called when any virtual file or directory is renamed or moved.
     virtual void onVirtualPathMoved(const std::string& /*oldPath*/,
                                     const std::string& /*newPath*/) {}
+
+    // Called when a virtual file or directory is deleted.
+    virtual void onVirtualPathRemoved(const std::string& /*path*/) {}
 
     // === Controller access (provided by WindowManager) ===
     IWindowController* getController() const { return m_controller; }

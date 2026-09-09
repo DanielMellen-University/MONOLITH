@@ -12,6 +12,13 @@
 - Configured wallpaper paths are remapped and persisted when their file or parent directory moves, including an active Settings path prompt.
 - Added state coverage for Terminal, Filesystem Browser, Settings, and wallpaper persistence.
 
+## 2026-09: Recover cleanly from virtual path deletion
+
+- Deleting a bound Editor or Drawing file now detaches the live document without discarding its in-memory content, releases its singleton, and restores a tracked untitled window title.
+- Terminals and Filesystem Browsers inside a deleted directory return to the nearest existing parent; deleted wallpaper and cut-clipboard paths are cleared.
+- Fixed file-backed Drawing windows so **New** correctly claims a normal numbered Drawing title after clearing its binding.
+- Added deletion lifecycle coverage for documents, folders, wallpaper, Settings prompts, and working directories.
+
 ## 2026-09: Keep windows inside narrow logical desktops
 
 - Window clamping now handles desktops narrower than the normal minimum window width without producing a negative left coordinate.

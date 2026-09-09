@@ -97,6 +97,8 @@ Deleting always requires confirmation (files and non-empty folders):
 
 Deletion uses `Filesystem::removeRecursive` (whole directory trees). The virtual root `/` cannot be deleted.
 
+Deleting a file or folder that contains an open Editor or Drawing document does not close that app. The document keeps its in-memory content, releases the deleted path, and becomes an untitled tracked window so Save As or Save can choose a new destination. If a Terminal or Filesystem Browser is currently inside the deleted tree, it returns to the nearest existing parent directory. Deleted cut-clipboard entries are removed.
+
 ## Context Menus
 
 **Right-click empty space:**

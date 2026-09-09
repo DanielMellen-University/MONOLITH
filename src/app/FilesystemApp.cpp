@@ -53,6 +53,23 @@ void FilesystemApp::onVirtualPathMoved(const std::string& oldPath,
     setStatus("Folder moved: " + m_currentPath);
 }
 
+void FilesystemApp::onVirtualPathRemoved(const std::string& path) {
+    if (!m_fs) return;
+
+    const std::string removed = m_fs->normalize(path);
+    if (removed == "/" || !m_fs->isSameOrDescendant(removed, m_currentPath)) return;
+
+    std::string fallback = removed;
+    const size_t slash = fallback.find_last_of('/');
+    fallback = slash == 0 ? "/" : fallback.substr(0, slash);
+    while (fallback != "/" && !m_fs->isDirectory(fallback)) {
+        const size_t parentSlash = fallback.find_last_of('/');
+        fallback = parentSlash == 0 ? "/" : fallback.substr(0, parentSlash);
+    }
+    setCurrentPath(fallback);
+    setStatus("Folder removed; opened: " + m_currentPath);
+}
+
 void FilesystemApp::setCurrentPath(const std::string& virtualPath) {
     if (!m_fs) {
         setStatus("Filesystem not available");
@@ -570,8 +587,14 @@ void FilesystemApp::performDeleteSelected() {
             ++failCount;
             continue;
         }
-        if (m_fs->removeRecursive(target)) ++okCount;
-        else ++failCount;
+        if (m_fs->removeRecursive(target)) {
+            ++okCount;
+            if (auto* ctrl = getController()) {
+                ctrl->notifyVirtualPathRemoved(target);
+            }
+        } else {
+            ++failCount;
+        }
     }
 
     cancelPendingDelete();

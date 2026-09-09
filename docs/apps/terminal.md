@@ -83,6 +83,8 @@ Completion replaces only the token text before the cursor. Opening quotes remain
 
 After a successful `mv`, any open Text Editor or Drawing window bound to the source path follows the normalized destination path. Moving a directory also updates bindings for open files beneath it, and any Terminal or Filesystem Browser currently inside that directory follows the new location.
 
+After a successful `rm`, open Editor and Drawing windows keep their in-memory work but release deleted paths and become untitled tracked windows. A Terminal whose current directory was inside the removed tree moves to the nearest existing parent. Deleted paths are also removed from the shared cut clipboard.
+
 ## Command History
 
 Command history persists across sessions in:

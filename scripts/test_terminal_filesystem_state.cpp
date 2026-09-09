@@ -109,6 +109,15 @@ int main() {
     check(terminal.m_cwd == "/home/monolith/moved-work/nested",
           "terminal cwd follows a moved parent directory");
 
+    check(fs.createDirectory("/home/monolith/to-delete/nested"),
+          "create terminal cwd deletion source");
+    terminal.m_cwd = "/home/monolith/to-delete/nested";
+    check(fs.removeRecursive("/home/monolith/to-delete"),
+          "remove terminal cwd parent");
+    terminal.onVirtualPathRemoved("/home/monolith/to-delete");
+    check(terminal.m_cwd == "/home/monolith",
+          "terminal cwd returns to a valid parent after deletion");
+
     std::filesystem::remove_all(hostRoot, ec);
     if (failures == 0) {
         std::cout << "ALL TERMINAL FILESYSTEM TESTS PASSED\n";

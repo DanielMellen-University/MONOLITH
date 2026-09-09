@@ -112,6 +112,22 @@ void SettingsApp::onVirtualPathMoved(const std::string& oldPath,
     }
 }
 
+void SettingsApp::onVirtualPathRemoved(const std::string& path) {
+    if (!m_fs) return;
+
+    const std::string removed = m_fs->normalize(path);
+    if (removed == "/") return;
+    if (m_wallpaperFieldFocused) {
+        if (m_fs->isSameOrDescendant(removed, m_wallpaperEditBuffer)) {
+            m_wallpaperEditBuffer.clear();
+            m_wallpaperCursorPos = 0;
+            m_wallpaperScrollPx = 0;
+        }
+    } else {
+        syncWallpaperBufferFromShell();
+    }
+}
+
 void SettingsApp::buildInfoLines() {
     m_lines.clear();
 

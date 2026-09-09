@@ -142,11 +142,13 @@ public:
     // Associate an editor window with a file path so the WM can avoid creating duplicates.
     // The path should be a normalized virtual path.
     void associateEditorWithFile(Window* window, const std::string& virtualPath);
+    void clearEditorFileBinding(Window* window);
 
     // Associate a Drawing window with a .modr path (singleton-per-file, like editors).
     void associateDrawingWithFile(Window* window, const std::string& virtualPath);
     void clearDrawingFileBinding(Window* window);
     void notifyVirtualPathMoved(const std::string& oldPath, const std::string& newPath);
+    void notifyVirtualPathRemoved(const std::string& virtualPath);
 
     bool focusEditorForFile(const std::string& virtualPath);
     bool focusDrawingForFile(const std::string& virtualPath);

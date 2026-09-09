@@ -21,6 +21,25 @@ void WindowManager::associateEditorWithFile(Window* window, const std::string& v
     m_fileEditors[normalized] = window;
 }
 
+void WindowManager::clearEditorFileBinding(Window* window) {
+    if (!window) return;
+
+    if (!window->editedFilePath.empty()) {
+        auto it = m_fileEditors.find(window->editedFilePath);
+        if (it != m_fileEditors.end() && it->second == window) {
+            m_fileEditors.erase(it);
+        }
+        window->editedFilePath.clear();
+    }
+
+    if (window->appBaseTitle.empty()) {
+        auto [title, instance] = claimNextAppInstanceTitle("Editor");
+        window->appBaseTitle = "Editor";
+        window->appInstanceNumber = instance;
+        window->title = title;
+    }
+}
+
 void WindowManager::associateDrawingWithFile(Window* window, const std::string& virtualPath) {
     if (!window || virtualPath.empty() || !m_fs) return;
 
@@ -66,13 +85,23 @@ bool WindowManager::focusDrawingForFile(const std::string& virtualPath) {
 }
 
 void WindowManager::clearDrawingFileBinding(Window* window) {
-    if (!window || window->drawingFilePath.empty()) return;
+    if (!window) return;
 
-    auto it = m_fileDrawings.find(window->drawingFilePath);
-    if (it != m_fileDrawings.end() && it->second == window) {
-        m_fileDrawings.erase(it);
+    const bool wasBound = !window->drawingFilePath.empty();
+    if (wasBound) {
+        auto it = m_fileDrawings.find(window->drawingFilePath);
+        if (it != m_fileDrawings.end() && it->second == window) {
+            m_fileDrawings.erase(it);
+        }
+        window->drawingFilePath.clear();
     }
-    window->drawingFilePath.clear();
+
+    if (wasBound && window->appBaseTitle.empty()) {
+        auto [title, instance] = claimNextAppInstanceTitle("Drawing");
+        window->appBaseTitle = "Drawing";
+        window->appInstanceNumber = instance;
+        window->title = title;
+    }
 }
 
 void WindowManager::notifyVirtualPathMoved(const std::string& oldPath,
@@ -136,6 +165,66 @@ void WindowManager::notifyVirtualPathMoved(const std::string& oldPath,
     for (const auto& windowPtr : m_windows) {
         if (windowPtr && windowPtr->app) {
             windowPtr->app->onVirtualPathMoved(oldNormalized, newNormalized);
+        }
+    }
+}
+
+void WindowManager::notifyVirtualPathRemoved(const std::string& virtualPath) {
+    if (!m_fs) return;
+
+    const std::string removed = m_fs->normalize(virtualPath);
+    if (removed == "/") return;
+
+    if (m_fs->isSameOrDescendant(removed, m_desktopSettings.wallpaperPath())) {
+        m_desktopSettings.setWallpaperPath("");
+        destroyWallpaperTexture();
+        m_wallpaperLoadedPath.clear();
+        if (!m_desktopSettingsHostPath.empty()) {
+            m_desktopSettings.saveToHostPath(m_desktopSettingsHostPath);
+        }
+    }
+
+    std::vector<std::string> remainingClipboardPaths;
+    remainingClipboardPaths.reserve(m_filesystemClipboardPaths.size());
+    for (const auto& path : m_filesystemClipboardPaths) {
+        if (!m_fs->isSameOrDescendant(removed, path)) {
+            remainingClipboardPaths.push_back(path);
+        }
+    }
+    if (remainingClipboardPaths.size() != m_filesystemClipboardPaths.size()) {
+        m_filesystemClipboardPaths = std::move(remainingClipboardPaths);
+        if (m_filesystemClipboardPaths.empty()) {
+            m_filesystemClipboardIsCut = false;
+        }
+    }
+
+    std::vector<Window*> removedEditors;
+    std::vector<Window*> removedDrawings;
+    for (const auto& windowPtr : m_windows) {
+        Window* window = windowPtr.get();
+        if (!window) continue;
+        if (!window->editedFilePath.empty()
+            && m_fs->isSameOrDescendant(removed, window->editedFilePath)) {
+            removedEditors.push_back(window);
+        }
+        if (!window->drawingFilePath.empty()
+            && m_fs->isSameOrDescendant(removed, window->drawingFilePath)) {
+            removedDrawings.push_back(window);
+        }
+    }
+
+    for (Window* window : removedEditors) {
+        clearEditorFileBinding(window);
+        if (window->app) window->app->onBoundFileRemoved();
+    }
+    for (Window* window : removedDrawings) {
+        clearDrawingFileBinding(window);
+        if (window->app) window->app->onBoundFileRemoved();
+    }
+
+    for (const auto& windowPtr : m_windows) {
+        if (windowPtr && windowPtr->app) {
+            windowPtr->app->onVirtualPathRemoved(removed);
         }
     }
 }
@@ -223,6 +312,12 @@ struct WindowController : public monolith::app::IWindowController {
         }
     }
 
+    void clearEditorFileBinding() override {
+        if (wm && targetWindow) {
+            wm->clearEditorFileBinding(targetWindow);
+        }
+    }
+
     void bindDrawingFile(const std::string& virtualPath) override {
         if (wm && targetWindow) {
             wm->associateDrawingWithFile(targetWindow, virtualPath);
@@ -233,6 +328,12 @@ struct WindowController : public monolith::app::IWindowController {
                                 const std::string& newPath) override {
         if (wm) {
             wm->notifyVirtualPathMoved(oldPath, newPath);
+        }
+    }
+
+    void notifyVirtualPathRemoved(const std::string& virtualPath) override {
+        if (wm) {
+            wm->notifyVirtualPathRemoved(virtualPath);
         }
     }
 
