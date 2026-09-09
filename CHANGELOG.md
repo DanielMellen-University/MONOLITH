@@ -1,5 +1,10 @@
 # Changelog
 
+## 2026-09: Reject malformed desktop color settings
+
+- Desktop background values with trailing data are now rejected instead of being partially parsed.
+- Added a persistence regression test that confirms the default color survives malformed input.
+
 ## 2026-09: Preserve Minesweeper timer precision across focus changes
 
 - Minesweeper now freezes and resumes elapsed milliseconds instead of rounding to whole seconds on every focus transition.

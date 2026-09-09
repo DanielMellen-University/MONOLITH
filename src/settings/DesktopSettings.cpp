@@ -13,8 +13,10 @@ bool parseRgbTriplet(const std::string& value, RGB& out) {
     int b = 0;
     char comma1 = 0;
     char comma2 = 0;
+    char extra = 0;
     std::istringstream iss(value);
     if (!(iss >> r >> comma1 >> g >> comma2 >> b)) return false;
+    if (iss >> extra) return false;
     if (comma1 != ',' || comma2 != ',') return false;
     if (r < 0 || r > 255 || g < 0 || g > 255 || b < 0 || b > 255) return false;
     out.r = static_cast<uint8_t>(r);

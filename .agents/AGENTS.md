@@ -431,6 +431,7 @@ When unspecified, choose:
 | 2026-09-09 | cleanup | Corrected Snake tail-vacate collision handling and added a headless state regression test; CURRENT_CHUNK remains 7.1 |
 | 2026-09-09 | cleanup | Preserved Text Editor file identity across Save As collisions and failed writes; added a headless state regression test; CURRENT_CHUNK remains 7.1 |
 | 2026-09-09 | cleanup | Preserved Minesweeper timer precision across focus changes and added a headless timing regression test; CURRENT_CHUNK remains 7.1 |
+| 2026-09-09 | cleanup | Rejected malformed desktop RGB settings and added a persistence parser regression test; CURRENT_CHUNK remains 7.1 |
 
 ---
 

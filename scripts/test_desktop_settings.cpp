@@ -59,6 +59,16 @@ int main() {
     check(!bounded.loadFromHostPath(path.string()), "ignore invalid-only scale file");
     check(bounded.uiScalePercent() == 100, "out-of-range UI scale is ignored");
 
+    {
+        std::ofstream malformed(path, std::ios::trunc);
+        malformed << "desktop_background=18,24,42oops\n";
+    }
+    DesktopSettings strict;
+    check(!strict.loadFromHostPath(path.string()), "ignore malformed RGB suffix");
+    const auto strictBackground = strict.desktopBackground();
+    check(strictBackground.r == 25 && strictBackground.g == 25 && strictBackground.b == 30,
+          "malformed RGB leaves the default background intact");
+
     std::filesystem::remove(path, ec);
     if (failures == 0) {
         std::cout << "ALL DESKTOP SETTINGS TESTS PASSED\n";

@@ -42,7 +42,7 @@ The **APPEARANCE** section at the top lets you change live desktop preferences.
 - The active option is highlighted with a white border.
 - Changing the size updates the shared app and window text immediately.
 
-Scroll with the mouse wheel or Page Up/Down if the window is resized smaller. Background, wallpaper path, clock, and interface text choices are saved to `~/.monolith/desktop_settings.txt` and restored on the next launch.
+Scroll with the mouse wheel or Page Up/Down if the window is resized smaller. Background, wallpaper path, clock, and interface text choices are saved to `~/.monolith/desktop_settings.txt` and restored on the next launch. Malformed persisted values are ignored so defaults remain intact.
 
 ## Information Panel
 
