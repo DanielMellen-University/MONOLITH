@@ -380,6 +380,7 @@ When unspecified, choose:
 | 2026-09-09 | cleanup | Centralized case-insensitive `.modr` matching across Drawing and shell routing; CURRENT_CHUNK remains 7.1 |
 | 2026-09-09 | cleanup | Fixed multi-item cut/paste so destination conflicts never delete original sources; CURRENT_CHUNK remains 7.1 |
 | 2026-09-09 | cleanup | Shared UTF-8 codepoint editing for Text Editor and Filesystem Browser prompts; CURRENT_CHUNK remains 7.1 |
+| 2026-09-09 | cleanup | Unified screen-to-logical WindowManager input conversion and added a scaled-coordinate probe; CURRENT_CHUNK remains 7.1 |
 | 2026-09-09 | docs | Expanded the Drawing guide with workflow, tool history, canvas behavior, file-state details, and raster-editor limitations; CURRENT_CHUNK remains 7.1 |
 
 ---

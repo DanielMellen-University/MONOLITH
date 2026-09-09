@@ -75,6 +75,7 @@
 }
 
 Window* WindowManager::getWindowAt(int mouseX, int mouseY) {
+    const int logicalMouseX = screenToLogicalX(mouseX);
     const int logicalMouseY = screenToLogicalY(mouseY);
 
     // Check from front to back (focused window first)
@@ -82,7 +83,7 @@ Window* WindowManager::getWindowAt(int mouseX, int mouseY) {
         Window& win = **it;
         if (!win.minimized) {
             SDL_Rect logicalRect = win.rect;
-            SDL_Point p = {mouseX, logicalMouseY};
+            SDL_Point p = {logicalMouseX, logicalMouseY};
             if (SDL_PointInRect(&p, &logicalRect)) {
                 return &win;
             }
@@ -159,7 +160,7 @@ void WindowManager::setHeaderOffset(int offsetY) {
 }
 
 void WindowManager::setContentScale(float scale) {
-    m_contentScale = scale;
+    m_contentScale = scale > 0.0f ? scale : 1.0f;
 }
 
 void WindowManager::applyUiScaleFont() {
@@ -226,14 +227,16 @@ WindowManager::TitleButtonRects WindowManager::getTitleButtonRects(const Window&
 }
 
 ResizeDirection WindowManager::getResizeDirectionAt(int mouseX, int mouseY) const {
+    const int logicalMouseX = screenToLogicalX(mouseX);
+    const int logicalMouseY = screenToLogicalY(mouseY);
     // Check from front to back
     for (auto it = m_windows.rbegin(); it != m_windows.rend(); ++it) {
         Window& win = **it;
         if (win.minimized || win.maximized) continue;
 
-        SDL_Point p = {mouseX, mouseY};
+        SDL_Point p = {logicalMouseX, logicalMouseY};
         if (SDL_PointInRect(&p, &win.rect)) {
-            return getResizeDirection(win, mouseX, mouseY);
+            return getResizeDirection(win, logicalMouseX, logicalMouseY);
         }
     }
     return ResizeDirection::None;

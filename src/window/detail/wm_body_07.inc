@@ -40,11 +40,11 @@ void WindowManager::translateMouseEventToClient(const Window& window, SDL_Event&
     const int clientOriginY = window.rect.y + titleH;
 
     if (event.type == SDL_MOUSEMOTION) {
-        event.motion.x -= clientOriginX;
-        event.motion.y -= clientOriginY;
+        event.motion.x = screenToLogicalX(event.motion.x) - clientOriginX;
+        event.motion.y = screenToLogicalY(event.motion.y) - clientOriginY;
     } else if (event.type == SDL_MOUSEBUTTONDOWN || event.type == SDL_MOUSEBUTTONUP) {
-        event.button.x -= clientOriginX;
-        event.button.y -= clientOriginY;
+        event.button.x = screenToLogicalX(event.button.x) - clientOriginX;
+        event.button.y = screenToLogicalY(event.button.y) - clientOriginY;
     } else if (event.type == SDL_MOUSEWHEEL) {
         // Wheel events don't have x/y in the same way; apps can use mouse position separately if needed
     }
@@ -243,4 +243,3 @@ void WindowManager::launchSettings() {
     if (!m_appFont) return;
 
     auto app = std::make_unique<monolith::app::SettingsApp>(m_appFont, m_fs);
-

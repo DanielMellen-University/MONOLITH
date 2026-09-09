@@ -89,8 +89,9 @@ void WindowManager::handleEvent(const SDL_Event& event) {
         // Do NOT forward while the Start menu is open (the popup owns input in its area
         // and we don't want buried apps to see hovers/motion under the menu).
         if (m_focusedWindow && m_focusedWindow->app && !m_focusedWindow->minimized && !m_showStartMenu) {
+            const int logicalX = screenToLogicalX(m_mouseX);
             const int logicalY = screenToLogicalY(m_mouseY);
-            if (isInContentArea(*m_focusedWindow, m_mouseX, logicalY)) {
+            if (isInContentArea(*m_focusedWindow, logicalX, logicalY)) {
                 SDL_Event clientEvent = event;
                 translateMouseEventToClient(*m_focusedWindow, clientEvent);
                 m_focusedWindow->app->handleEvent(clientEvent);
@@ -98,6 +99,7 @@ void WindowManager::handleEvent(const SDL_Event& event) {
         }
     }
 
+    const int logicalMouseX = screenToLogicalX(m_mouseX);
     const int logicalMouseY = screenToLogicalY(m_mouseY);
 
     // Forward keyboard events (text input, key down/up) to the focused window's app.

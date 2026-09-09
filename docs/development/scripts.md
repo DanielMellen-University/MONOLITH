@@ -70,6 +70,12 @@ Headless test of shared UTF-8 codepoint editing helpers:
 g++ -std=c++23 scripts/test_utf8.cpp -o build/test_utf8 && ./build/test_utf8
 ```
 
+Headless test of scaled WindowManager hit testing, drag math, resize edges, and client coordinates:
+
+```bash
+g++ -std=c++23 scripts/test_window_coordinates.cpp src/window/WindowManager.cpp src/app/*.cpp src/fs/Filesystem.cpp src/settings/DesktopSettings.cpp $(pkg-config --cflags --libs sdl2 SDL2_ttf) -o build/test_window_coordinates && ./build/test_window_coordinates
+```
+
 ## `.modr` Format Roundtrip
 
 Compiles and runs a standalone test of the Drawing raster file format:

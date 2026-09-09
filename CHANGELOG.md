@@ -1,5 +1,10 @@
 # Changelog
 
+## 2026-09: Scale-aware window input
+
+- Window hit testing, title-bar interaction, dragging, resizing, and client mouse coordinates now convert screen pixels to logical desktop pixels consistently.
+- Direct clicks no longer depend on a previous mouse-motion event to establish the correct Y coordinate.
+
 ## 2026-09: Drawing app documentation
 
 - Added a complete Drawing workflow guide covering tool behavior, canvas resizing, undo history, `.modr` state, path prompts, and current raster-editor limitations.

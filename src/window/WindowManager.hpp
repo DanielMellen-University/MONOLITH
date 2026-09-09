@@ -60,7 +60,7 @@ public:
     // Render all windows (title bars + content areas)
     void render(SDL_Renderer* renderer);
 
-    // Get the window currently under the mouse (if any)
+    // Get the window currently under a screen-space mouse point (if any).
     Window* getWindowAt(int mouseX, int mouseY);
 
     // Set the font used for rendering window titles
@@ -75,7 +75,7 @@ public:
     // Scale factor to map logical desktop pixels into the SDL window (1.0 = 1:1)
     void setContentScale(float scale);
 
-    // Returns the resize direction at the given screen point (for cursor feedback)
+    // Returns the resize direction at the given screen-space point (for cursor feedback).
     ResizeDirection getResizeDirectionAt(int mouseX, int mouseY) const;
 
     // Close a specific window

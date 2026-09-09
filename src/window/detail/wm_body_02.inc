@@ -1,6 +1,6 @@
         // Forward wheel events to the focused app's client area (Settings scroll, etc.).
         if (m_focusedWindow && m_focusedWindow->app && !m_focusedWindow->minimized && !m_showStartMenu) {
-            if (isInContentArea(*m_focusedWindow, m_mouseX, logicalMouseY)) {
+            if (isInContentArea(*m_focusedWindow, logicalMouseX, logicalMouseY)) {
                 m_focusedWindow->app->handleEvent(event);
                 return;
             }
@@ -12,6 +12,8 @@
         m_mouseDown = true;
         m_mouseX = event.button.x;
         m_mouseY = event.button.y;
+        const int eventLogicalX = screenToLogicalX(m_mouseX);
+        const int eventLogicalY = screenToLogicalY(m_mouseY);
 
         Window* clicked = getWindowAt(m_mouseX, m_mouseY);
         if (!clicked) return;
@@ -19,14 +21,14 @@
         bringToFront(clicked);
 
         // === Priority 1: Title bar buttons ===
-        if (isInTitleBar(*clicked, m_mouseX, logicalMouseY)) {
-            if (handleTitleBarButtons(clicked, m_mouseX, logicalMouseY)) {
+        if (isInTitleBar(*clicked, eventLogicalX, eventLogicalY)) {
+            if (handleTitleBarButtons(clicked, eventLogicalX, eventLogicalY)) {
                 return;
             }
         }
 
         // === Priority 2: Resize borders ===
-        ResizeDirection dir = getResizeDirection(*clicked, m_mouseX, logicalMouseY);
+        ResizeDirection dir = getResizeDirection(*clicked, eventLogicalX, eventLogicalY);
         if (dir != ResizeDirection::None && !clicked->maximized) {
             m_resizingWindow = clicked;
             m_resizeDirection = dir;
@@ -34,17 +36,17 @@
         }
 
         // === Priority 3: Title bar drag ===
-        if (isInTitleBar(*clicked, m_mouseX, logicalMouseY)) {
+        if (isInTitleBar(*clicked, eventLogicalX, eventLogicalY)) {
             m_draggedWindow = clicked;
             clicked->beingDragged = true;
-            clicked->dragOffsetX = m_mouseX - clicked->rect.x;
-            clicked->dragOffsetY = logicalMouseY - clicked->rect.y;
+            clicked->dragOffsetX = eventLogicalX - clicked->rect.x;
+            clicked->dragOffsetY = eventLogicalY - clicked->rect.y;
             return;
         }
 
         // === Priority 4: Client area of the window ===
         // Forward to the app (if any), with coordinates translated to the app's local space.
-        if (isInContentArea(*clicked, m_mouseX, logicalMouseY)) {
+        if (isInContentArea(*clicked, eventLogicalX, eventLogicalY)) {
             if (clicked->app) {
                 SDL_Event clientEvent = event;
                 translateMouseEventToClient(*clicked, clientEvent);
@@ -59,12 +61,14 @@
     if (event.type == SDL_MOUSEBUTTONDOWN && event.button.button != SDL_BUTTON_LEFT) {
         m_mouseX = event.button.x;
         m_mouseY = event.button.y;
+        const int eventLogicalX = screenToLogicalX(m_mouseX);
+        const int eventLogicalY = screenToLogicalY(m_mouseY);
 
         Window* clicked = getWindowAt(m_mouseX, m_mouseY);
         if (clicked) {
             bringToFront(clicked);
 
-            if (isInContentArea(*clicked, m_mouseX, logicalMouseY)) {
+            if (isInContentArea(*clicked, eventLogicalX, eventLogicalY)) {
                 if (clicked->app) {
                     SDL_Event clientEvent = event;
                     translateMouseEventToClient(*clicked, clientEvent);
@@ -99,10 +103,11 @@
 }
 
 void WindowManager::update() {
+    const int logicalMouseX = screenToLogicalX(m_mouseX);
     const int logicalMouseY = screenToLogicalY(m_mouseY);
 
     if (m_draggedWindow && m_mouseDown) {
-        m_draggedWindow->rect.x = m_mouseX - m_draggedWindow->dragOffsetX;
+        m_draggedWindow->rect.x = logicalMouseX - m_draggedWindow->dragOffsetX;
         m_draggedWindow->rect.y = logicalMouseY - m_draggedWindow->dragOffsetY;
 
         // Prevent user from dragging the window so far that buttons become inaccessible
@@ -110,7 +115,7 @@ void WindowManager::update() {
     }
 
     if (m_resizingWindow && m_mouseDown) {
-        applyResize(m_resizingWindow, m_mouseX, logicalMouseY);
+        applyResize(m_resizingWindow, logicalMouseX, logicalMouseY);
         clampSingleWindow(*m_resizingWindow);
     }
 
@@ -229,4 +234,3 @@ void WindowManager::render(SDL_Renderer* renderer) {
         SDL_SetRenderDrawColor(renderer, 255, 255, 255, 255);
         SDL_RenderDrawLine(renderer, closeBtn.x + 3, closeBtn.y + 3, closeBtn.x + buttonSize - 4, closeBtn.y + buttonSize - 4);
         SDL_RenderDrawLine(renderer, closeBtn.x + buttonSize - 4, closeBtn.y + 3, closeBtn.x + 3, closeBtn.y + buttonSize - 4);
-
