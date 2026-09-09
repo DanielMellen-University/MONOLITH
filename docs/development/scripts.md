@@ -36,6 +36,12 @@ Headless Pong state test:
 g++ -std=c++23 scripts/test_pong_state.cpp src/app/PongLogic.cpp -o build/test_pong_state && ./build/test_pong_state
 ```
 
+Headless Snake state test for tail movement and growth collisions:
+
+```bash
+g++ -std=c++23 scripts/test_snake_state.cpp src/app/SnakeApp.cpp $(pkg-config --cflags --libs sdl2 SDL2_ttf) -o build/test_snake_state && ./build/test_snake_state
+```
+
 ## Filesystem Roadmap Checks
 
 Headless test of shipped `Filesystem` multi-item copy/paste, `/`-rejecting rename, and listing filter:

@@ -174,7 +174,14 @@ void SnakeApp::step() {
         maybeUpdateHighScore();
         return;
     }
-    for (const auto& seg : m_body) {
+    // The tail vacates its square on a non-food move, so entering that square
+    // is legal. When food is there, the snake grows and the tail stays put.
+    const bool willEat = nx == m_foodX && ny == m_foodY;
+    const size_t collisionCount = willEat || m_body.empty()
+        ? m_body.size()
+        : m_body.size() - 1;
+    for (size_t i = 0; i < collisionCount; ++i) {
+        const auto& seg = m_body[i];
         if (seg.first == nx && seg.second == ny) {
             m_state = State::GameOver;
             maybeUpdateHighScore();
@@ -183,7 +190,7 @@ void SnakeApp::step() {
     }
 
     m_body.push_front({nx, ny});
-    if (nx == m_foodX && ny == m_foodY) {
+    if (willEat) {
         ++m_score;
         applySpeedForScore();
         m_eatFlashUntilMs = SDL_GetTicks() + kEatFlashMs;

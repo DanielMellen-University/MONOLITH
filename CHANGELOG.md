@@ -1,5 +1,10 @@
 # Changelog
 
+## 2026-09: Correct Snake tail collision rules
+
+- Moving into the square the tail vacates is now legal on non-food moves, while moving into that square when food is present still ends the game.
+- Added a headless Snake state regression test.
+
 ## 2026-09: Drawing app reference completion
 
 - Documented the Drawing startup defaults and exact built-in swatch RGB values so sketches can be reproduced consistently.

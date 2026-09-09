@@ -30,6 +30,7 @@ Focusing another window auto-pauses the game. Resume with Space, P, Enter, or cl
 - Eat food to grow and score +1
 - Mild speed-up as score rises (floor at a still-playable rate)
 - Hit a wall or your body → game over
+- Moving into the current tail square is legal when no food is being eaten, because the tail vacates that square; food on that square makes it a collision
 - Filling the entire board (rare) → win
 
 ## High score
@@ -53,5 +54,6 @@ The board letterboxes inside the window when resized or maximized.
 ## Developer Notes
 
 - `src/app/SnakeApp.{hpp,cpp}`
+- `scripts/test_snake_state.cpp` covers tail movement and growth collision rules without rendering
 - `WindowManager::launchSnake()` and Start menu action `5` (listed under the **Games** category)
 - Game steps run from `App::update()`, dispatched by `WindowManager::update()` for non-minimized windows
