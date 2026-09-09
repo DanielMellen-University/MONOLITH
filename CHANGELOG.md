@@ -1,5 +1,9 @@
 # Changelog
 
+## 2026-09: Complete Drawing app documentation
+
+- Clarified prompt focus, RGB confirmation, path completion scope, and the full Drawing verification command set.
+
 ## 2026-09: Prune completed Filesystem Browser cuts
 
 - Partial cut/paste now removes successfully moved sources from the shared clipboard while retaining destination-conflicted sources for retry.

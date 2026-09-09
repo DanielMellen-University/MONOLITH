@@ -46,8 +46,8 @@ The canvas is a raster surface. It fills the space between the toolbar and the s
 | New | **Ctrl+N** | Starts a blank sketch after the dirty-sketch confirmation, if needed. |
 | Undo | **Ctrl+Z** | Restores the previous canvas snapshot. |
 | Redo | **Ctrl+Y** or **Ctrl+Shift+Z** | Restores the next canvas snapshot. |
-| Complete a path | **Tab** | Completes a directory or `.modr` filename while Save, Open, or RGB input is active. |
-| Confirm or cancel | **Enter** / **Esc** | Accepts or abandons the active status-bar prompt. |
+| Complete a path | **Tab** | Completes a directory or `.modr` filename while Save or Open is active. |
+| Confirm or cancel | **Enter** / **Esc** | Accepts or abandons the active Save, Open, or RGB status-bar prompt. |
 
 The status bar is the active prompt whenever Drawing asks for a path or RGB value. Keep the pointer in the canvas for painting; keyboard shortcuts are handled by the Drawing window while no prompt is active.
 
@@ -205,13 +205,13 @@ Pick samples the RGB value at the clicked canvas pixel, stores it as the custom 
 | Ctrl+Z | Undo the last stroke or clear |
 | Ctrl+Y / Ctrl+Shift+Z | Redo |
 | Tab | Complete paths in save/open prompt |
-| Enter | Confirm save/open prompt |
-| Esc | Cancel save/open prompt |
+| Enter | Confirm the active Save, Open, or RGB prompt |
+| Esc | Cancel the active Save, Open, or RGB prompt |
 | Left / Right | Move the save/open/RGB prompt caret by one UTF-8 character |
 | Home / End | Move to the beginning or end of the active prompt |
 | Backspace / Delete | Remove the previous or next complete UTF-8 character |
 
-While a prompt is active, typed printable UTF-8 characters are inserted at the caret. Tab completes a matching directory or `.modr` file; with several matches it completes the shared prefix or shows a short match preview in the status bar. Long prompts stay at native text size and scroll horizontally to keep the caret visible.
+While a prompt is active, Drawing routes keyboard input to that prompt and ignores canvas actions and normal shortcuts until the prompt is finished. Printable UTF-8 characters are inserted at the caret. Tab completes a matching directory or `.modr` file during Save and Open; with several matches it completes the shared prefix or shows a short match preview in the status bar. Long prompts stay at native text size and scroll horizontally to keep the caret visible.
 
 ### Prompt Behavior
 
@@ -376,4 +376,5 @@ Verification scripts: see [Development Scripts](../development/scripts.md). The 
 ```bash
 ./scripts/verify_drawing_integration.sh
 g++ -std=c++23 scripts/test_drawing_roadmap.cpp src/app/DrawingRaster.cpp -o build/test_drawing_roadmap && ./build/test_drawing_roadmap
+g++ -std=c++23 scripts/test_drawing_state.cpp src/app/DrawingApp.cpp src/app/DrawingRaster.cpp src/fs/Filesystem.cpp $(pkg-config --cflags --libs sdl2 SDL2_ttf) -o build/test_drawing_state && ./build/test_drawing_state
 ```
