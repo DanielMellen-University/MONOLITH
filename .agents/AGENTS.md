@@ -413,6 +413,7 @@ When unspecified, choose:
 | 2026-09-09 | docs | Finalized the Drawing app reference with prompt, `.modr` save, persisted-state, and validation details; CURRENT_CHUNK remains 7.1 |
 | 2026-09-09 | cleanup | Reclamped minimized windows before file-singleton focus restores them; added a stale-geometry regression probe; CURRENT_CHUNK remains 7.1 |
 | 2026-09-09 | cleanup | Kept Filesystem Browser path and status labels at native size with regional clipping; CURRENT_CHUNK remains 7.1 |
+| 2026-09-09 | docs | Added a Drawing status-bar and recovery reference for prompts, completion misses, invalid input, and failed file operations; CURRENT_CHUNK remains 7.1 |
 
 ---
 

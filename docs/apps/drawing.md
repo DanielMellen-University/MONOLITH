@@ -259,6 +259,25 @@ A dirty sketch (status bar `[modified]`) guards destructive actions:
 
 Clear (toolbar) remains undoable and does not use this guard.
 
+## Status Bar Messages
+
+The status bar is both the command hint area and the app's lightweight feedback channel. Common messages mean:
+
+| Message pattern | Meaning / next action |
+|-----------------|-----------------------|
+| `Pen ready...` or `Tool: ...` | The selected tool is ready for the next canvas action. |
+| `Save as (...)` | A Save path prompt is active. Edit the path, then press Enter or Escape. |
+| `Open path (...)` | An Open path prompt is active. Tab-complete a directory or `.modr` file, then press Enter. |
+| `Custom RGB ...` | The RGB prompt is active. Enter three channels from 0 through 255. |
+| `Path completed...` | Tab found a completion. Review the path before confirming it. |
+| `No path matches.` | Tab found no matching directory or `.modr` file at the caret. Keep editing the path. |
+| `Saved: ...` / `Opened: ...` | The operation completed and includes the normalized internal path. |
+| `Save failed: ...` / `Open failed: ...` | The operation was rejected. The current canvas remains open so it can be corrected or saved elsewhere. |
+| `RGB failed: ...` | The color was not changed. Enter exactly three integer channels in the accepted range. |
+| `New sketch.` or `Cancelled.` | The requested reset or prompt cancellation completed. |
+
+When the canvas has unsaved edits, `[modified]` is appended to the status bar. Save before closing, creating a new sketch, or opening another file. A failed save or open does not discard the current canvas.
+
 ## Current Limitations
 
 - Custom RGB can be entered through the status-bar `r,g,b` prompt or sampled with Pick; there is no palette editor yet.

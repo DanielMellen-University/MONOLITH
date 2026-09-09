@@ -1,5 +1,9 @@
 # Changelog
 
+## 2026-09: Drawing status and recovery reference
+
+- Added a concise Drawing status-bar guide covering prompts, Tab completion, failed operations, invalid RGB input, and unsaved-change recovery.
+
 ## 2026-09: Native-size Filesystem chrome
 
 - Filesystem Browser paths and status messages now stay at native text size and clip within their own regions instead of being horizontally squeezed.
