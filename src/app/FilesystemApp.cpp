@@ -389,7 +389,7 @@ void FilesystemApp::pasteFromClipboard() {
         ? m_fs->moveItemsInto(sources, m_currentPath)
         : m_fs->copyItemsInto(sources, m_currentPath);
 
-    if (wasCut && copied > 0) {
+    if (wasCut && copied == static_cast<int>(sources.size())) {
         clearClipboard();
     }
 

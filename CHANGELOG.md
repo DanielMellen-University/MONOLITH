@@ -1,5 +1,9 @@
 # Changelog
 
+## 2026-09: Retryable partial cut paste
+
+- Filesystem Browser keeps a shared cut clipboard when only part of a multi-item paste succeeds, so conflicting sources can be retried after the destination is fixed.
+
 ## 2026-09: Fresh mouse position after release
 
 - WindowManager mouse-up events now update the stored pointer position before later wheel routing.
