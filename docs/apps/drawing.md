@@ -4,6 +4,15 @@ The Drawing app is Monolith's native sketching tool. It provides a pixel canvas,
 
 Drawing files use the `.modr` extension (Monolith Drawing Raster).
 
+## Quick Start
+
+1. Open **Drawing** from Start.
+2. Choose a color and brush size, then drag on the canvas with **Pen** selected.
+3. Use **Fill**, **Line**, **Rect**, or **Pick** when the task calls for a different tool.
+4. Press **Ctrl+S**, choose a path if this is a new sketch, and press Enter.
+
+The canvas is a raster surface. It fills the space between the toolbar and the status bar, and its pixel dimensions follow the Drawing window's client area. Resizing the window preserves the existing pixels from the top-left corner and clears undo/redo history for the new canvas size.
+
 ## Launching
 
 Open **Drawing** from the Start menu. Multiple Drawing windows can be open at once:
@@ -42,6 +51,16 @@ Third row:
 - **RGB**: type a custom `r,g,b` color (0–255) in the status bar.
 - Color swatches: selects the active pen color and switches back to Pen (clears custom RGB).
 
+The **S**, **M**, and **L** buttons select brush radii of 2, 5, and 10 pixels. The brush stamps a filled circle at each point in a drag. Line and Rect are always 1 pixel wide and do not use the brush size.
+
+## Colors
+
+The eight swatches select the active pen color. Choosing a swatch also switches to Pen and disables the custom RGB color.
+
+Select **RGB** to edit the current custom color in the status bar. Enter exactly three channel values, either as `r,g,b` or `r g b`, with every value between 0 and 255. Enter applies the color and switches back to Pen when needed. Escape cancels the prompt.
+
+Pick samples the RGB value at the clicked canvas pixel, stores it as the custom color, and switches back to Pen. Sampling does not change the canvas or add an undo state.
+
 ## Mouse Controls
 
 - Drag on the canvas to draw.
@@ -66,6 +85,8 @@ Third row:
 | Enter | Confirm save/open prompt |
 | Esc | Cancel save/open prompt |
 | Backspace | Edit save/open prompt path |
+
+While a path prompt is active, typed printable characters are added to the prompt. Tab completes a matching directory or `.modr` file; with several matches it completes the shared prefix or shows a short match preview in the status bar.
 
 ## Saving
 
@@ -115,6 +136,8 @@ Pressing `Tab` can complete that to:
 
 If multiple files match, Drawing completes the shared prefix when possible. If no shared prefix can be extended, the status bar shows a compact preview of matching names.
 
+Opening a missing file, a non-`.modr` path, or corrupt data leaves the current sketch open and reports the failure in the status bar.
+
 ## Undo And Redo
 
 Drawing stores a capped history of canvas snapshots.
@@ -137,11 +160,13 @@ The current cap is 32 history states.
 - Height: 32-bit little-endian integer
 - Pixel payload: RGB bytes, top-to-bottom and left-to-right
 
+Width and height must be between 1 and 4096 pixels. The decoder requires the file to contain exactly the header plus `width * height * 3` payload bytes.
+
 Internally, the live canvas stores pixels as `R,G,B,A`. The saved file stores only RGB because the canvas is fully opaque.
 
 ## Unsaved Changes
 
-A dirty sketch (status bar `*`) guards destructive actions:
+A dirty sketch (status bar `[modified]`) guards destructive actions:
 
 | Action | First time (dirty) | Confirm |
 |--------|--------------------|---------|
@@ -164,11 +189,11 @@ Main implementation files:
 
 - `src/app/DrawingApp.hpp`
 - `src/app/DrawingApp.cpp`
-- `src/app/DrawingRaster.hpp` / `DrawingRaster.cpp` — line/rect raster, pixel reads, custom RGB parse, `.modr` encode/decode (shared with headless tests)
+- `src/app/DrawingRaster.hpp` / `DrawingRaster.cpp` - line/rect raster, pixel reads, custom RGB parse, `.modr` encode/decode (shared with headless tests)
 - `src/window/detail/wm_body_07.inc` — `launchDrawing()` and Drawing window creation
 - `src/window/detail/wm_body_01.inc` / `wm_body_08.inc` — mouse-up forwarding, open routing, and session restore
 - `src/app/App.hpp` — `IWindowController::restoreTrackedInstanceTitle()`, `allowClose` for dirty guards
 
-Canvas GPU path (`syncTexture`): recreate the streaming texture only when missing or size-changed; upload CPU pixels only while `m_textureDirty` is set by paint/undo/load/resize.
+Canvas GPU path (`syncTexture`): recreate the streaming texture only when missing or size-changed; upload CPU pixels only while `m_textureDirty` is set by paint, undo, load, or resize.
 
 Verification scripts: see [Development Scripts](../development/scripts.md).

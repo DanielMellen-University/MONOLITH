@@ -1,5 +1,10 @@
 # Changelog
 
+## 2026-09: Drawing app documentation
+
+- Expanded the Drawing guide with a quick-start workflow, canvas resizing behavior, brush sizes, custom RGB input, path prompt editing, failure handling, and `.modr` validation limits.
+- Corrected the unsaved-state indicator to match the `[modified]` status shown by the app.
+
 ## 2026-09: Shared Filesystem clipboard
 
 - Copy and cut state is now owned by the desktop shell and shared across Filesystem Browser windows.

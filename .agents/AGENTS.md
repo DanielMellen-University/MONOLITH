@@ -372,6 +372,7 @@ When unspecified, choose:
 | 2026-09-09 | 4.3 | Text Editor horizontal scrolling; CURRENT_CHUNK -> 4.4 |
 | 2026-09-09 | 4.4 | Drawing eyedropper; CURRENT_CHUNK -> 7.1 pending dependency decision |
 | 2026-09-09 | cleanup | Shared virtual Filesystem clipboard across browser windows; CURRENT_CHUNK remains 7.1 |
+| 2026-09-09 | docs | Expanded the Drawing app guide and corrected the `[modified]` status indicator; CURRENT_CHUNK remains 7.1 |
 
 ---
 
