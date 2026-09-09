@@ -84,7 +84,7 @@ Remote: SSH `git@github.com:DanielMellen-University/MONOLITH.git`
 ## Current state snapshot
 
 **Phase:** 4 living-inside-it
-**CURRENT_CHUNK:** `4.4` (Drawing eyedropper)
+**CURRENT_CHUNK:** `7.1` (PNG/JPEG wallpaper, dependency decision)
 **Language / IDE:** parked
 
 ### Done (high level)
@@ -93,7 +93,7 @@ Remote: SSH `git@github.com:DanielMellen-University/MONOLITH.git`
 - Taskbar + Start (Games category) + local-time clock (12/24) + session restore
 - Multi-instance titles with live compaction
 - Virtual FS `~/.monolith/fs/`; recursive copy/remove; browser multi-select, filter, multi copy/cut/paste; rename rejects `/`
-- Terminal (quoted args), Editor (UTF-8, find/replace, Ctrl+G, coalesced undo, horizontal scroll), Drawing (pen/eraser/fill/line/rect, custom RGB, `.modr`), Settings (live interface text scale)
+- Terminal (quoted args), Editor (UTF-8, find/replace, Ctrl+G, coalesced undo, horizontal scroll), Drawing (pen/eraser/fill/eyedropper/line/rect, custom RGB, `.modr`), Settings (live interface text scale)
 - BMP wallpaper path + desktop color presets
 - Snake, Minesweeper, Pong under Start -> Games
 - Open-with: `.modr` -> Drawing, else Editor
@@ -190,7 +190,7 @@ Track status: `pending` | `in_progress` | `done` | `blocked` | `parked` | `cut`
 | 4.1 | Terminal quoted arguments | done | `cat "/home/monolith/my file.txt"` and similar work; doc the quoting rules in `docs/apps/terminal.md` |
 | 4.2 | Settings font / UI scale | done | Settings persists 90%, 100%, or 115% shared interface text size and applies it live; README stays one-line |
 | 4.3 | Editor wrap or horizontal scroll | done | Long lines remain editable with cursor-following horizontal scroll and Shift + wheel panning; `docs/apps/text-editor.md` updated |
-| 4.4 | Drawing eyedropper | pending | Click canvas to set custom RGB from a pixel; still saves `.modr` |
+| 4.4 | Drawing eyedropper | done | Pick samples a canvas pixel into custom RGB without changing pixels or undo history; still saves `.modr` |
 
 ### Phase 5 - Language (parked)
 
@@ -371,6 +371,7 @@ When unspecified, choose:
 | 2026-09-09 | 4.1 | Terminal quoted arguments (`TerminalLexer`); CURRENT_CHUNK -> 4.2 |
 | 2026-09-09 | 4.2 | Settings interface text scale; CURRENT_CHUNK -> 4.3 |
 | 2026-09-09 | 4.3 | Text Editor horizontal scrolling; CURRENT_CHUNK -> 4.4 |
+| 2026-09-09 | 4.4 | Drawing eyedropper; CURRENT_CHUNK -> 7.1 pending dependency decision |
 
 ---
 

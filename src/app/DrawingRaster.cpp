@@ -40,6 +40,20 @@ void setPixel(std::vector<uint8_t>& rgba, int width, int height,
     rgba[idx + 3] = 255;
 }
 
+bool getPixel(const std::vector<uint8_t>& rgba, int width, int height,
+              int x, int y, uint8_t& r, uint8_t& g, uint8_t& b) {
+    if (width <= 0 || height <= 0) return false;
+    if (x < 0 || y < 0 || x >= width || y >= height) return false;
+    const size_t expected = static_cast<size_t>(width) * static_cast<size_t>(height) * 4;
+    if (rgba.size() < expected) return false;
+    const size_t idx = (static_cast<size_t>(y) * static_cast<size_t>(width)
+                        + static_cast<size_t>(x)) * 4;
+    r = rgba[idx + 0];
+    g = rgba[idx + 1];
+    b = rgba[idx + 2];
+    return true;
+}
+
 void drawLine(std::vector<uint8_t>& rgba, int width, int height,
               int x0, int y0, int x1, int y1, uint8_t r, uint8_t g, uint8_t b) {
     const int dx = std::abs(x1 - x0);

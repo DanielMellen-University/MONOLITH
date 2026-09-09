@@ -31,6 +31,7 @@ Second row:
 - **Pen**: paints with the selected color.
 - **Eraser**: paints with the canvas background color.
 - **Fill**: flood-fills a connected region with the selected color.
+- **Pick**: samples the clicked canvas pixel as custom RGB, then returns to Pen.
 - **Line**: drag to paint a straight 1px stroke between two points.
 - **Rect**: drag to paint a 1px rectangle boundary.
 - **Clear**: clears the whole canvas.
@@ -49,6 +50,7 @@ Third row:
 - Drag with Line selected to stroke a straight line from press to release.
 - Drag with Rect selected to stroke a rectangle from press to release.
 - Click with Fill selected to flood-fill the connected region under the cursor.
+- Click with Pick selected to sample the pixel under the cursor without changing the canvas or undo history.
 - Click a toolbar button to change tools, open prompts, or run file/history actions.
 
 ## Keyboard Shortcuts
@@ -151,7 +153,7 @@ Clear (toolbar) remains undoable and does not use this guard.
 
 ## Current Limitations
 
-- Custom RGB is a status-bar `r,g,b` prompt, not a visual picker.
+- Custom RGB can be entered through the status-bar `r,g,b` prompt or sampled with Pick; there is no palette editor yet.
 - No clipboard import/export yet.
 - Dirty guards use status-bar double-confirm, not a modal dialog.
 - Undo history is in memory only and resets when a drawing file is opened, the canvas is resized, or the app exits.
@@ -162,7 +164,7 @@ Main implementation files:
 
 - `src/app/DrawingApp.hpp`
 - `src/app/DrawingApp.cpp`
-- `src/app/DrawingRaster.hpp` / `DrawingRaster.cpp` — line/rect raster, custom RGB parse, `.modr` encode/decode (shared with headless tests)
+- `src/app/DrawingRaster.hpp` / `DrawingRaster.cpp` — line/rect raster, pixel reads, custom RGB parse, `.modr` encode/decode (shared with headless tests)
 - `src/window/detail/wm_body_07.inc` — `launchDrawing()` and Drawing window creation
 - `src/window/detail/wm_body_01.inc` / `wm_body_08.inc` — mouse-up forwarding, open routing, and session restore
 - `src/app/App.hpp` — `IWindowController::restoreTrackedInstanceTitle()`, `allowClose` for dirty guards

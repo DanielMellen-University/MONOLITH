@@ -10,6 +10,10 @@ namespace monolith::drawing {
 void setPixel(std::vector<uint8_t>& rgba, int width, int height,
               int x, int y, uint8_t r, uint8_t g, uint8_t b);
 
+/** Read one RGB pixel. Returns false if (x,y) or the RGBA buffer is invalid. */
+bool getPixel(const std::vector<uint8_t>& rgba, int width, int height,
+              int x, int y, uint8_t& r, uint8_t& g, uint8_t& b);
+
 /** Bresenham line, 1px wide, including both endpoints. */
 void drawLine(std::vector<uint8_t>& rgba, int width, int height,
               int x0, int y0, int x1, int y1, uint8_t r, uint8_t g, uint8_t b);

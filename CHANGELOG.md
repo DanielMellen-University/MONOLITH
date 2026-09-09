@@ -1,5 +1,10 @@
 # Changelog
 
+## 2026-09: Drawing eyedropper
+
+- The Drawing toolbar now includes Pick, which samples a canvas pixel into the existing custom RGB color and returns to Pen.
+- Sampling does not modify pixels or add an undo state, and sampled colors continue to save normally in `.modr` files.
+
 ## 2026-09: Text Editor horizontal scrolling
 
 - Long lines now remain fully editable instead of clipping at the right edge.

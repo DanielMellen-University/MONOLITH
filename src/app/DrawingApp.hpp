@@ -27,7 +27,7 @@ public:
     bool allowClose() override;
 
 private:
-    enum class Tool { Pen, Eraser, Fill, Line, Rect };
+    enum class Tool { Pen, Eraser, Fill, Eyedropper, Line, Rect };
     enum class BrushSize { Small, Medium, Large };
     enum class PathPromptMode { None, Save, Open, Rgb };
     enum class DiscardKind { None, Close, New, Open };
@@ -61,6 +61,7 @@ private:
     void drawStroke(int x0, int y0, int x1, int y1);
     void commitShape(int x0, int y0, int x1, int y1);
     void floodFill(int x, int y);
+    void pickColorAt(int x, int y);
     int brushRadius() const;
     uint8_t activeRed() const;
     uint8_t activeGreen() const;
@@ -144,6 +145,7 @@ private:
     SDL_Rect m_btnPen{0, 0, 0, 0};
     SDL_Rect m_btnEraser{0, 0, 0, 0};
     SDL_Rect m_btnFill{0, 0, 0, 0};
+    SDL_Rect m_btnEyedropper{0, 0, 0, 0};
     SDL_Rect m_btnLine{0, 0, 0, 0};
     SDL_Rect m_btnRect{0, 0, 0, 0};
     SDL_Rect m_btnRgb{0, 0, 0, 0};

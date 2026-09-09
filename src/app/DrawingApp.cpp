@@ -333,6 +333,22 @@ void DrawingApp::floodFill(int x, int y) {
     setStatus("Filled region.");
 }
 
+void DrawingApp::pickColorAt(int x, int y) {
+    if (!monolith::drawing::getPixel(
+            m_pixels, m_canvasWidth, m_canvasHeight, x, y,
+            m_customR, m_customG, m_customB)) {
+        return;
+    }
+    m_usingCustomColor = true;
+    m_tool = Tool::Pen;
+
+    std::ostringstream oss;
+    oss << "Picked RGB " << static_cast<int>(m_customR) << ","
+        << static_cast<int>(m_customG) << "," << static_cast<int>(m_customB)
+        << ". Tool: Pen";
+    setStatus(oss.str());
+}
+
 void DrawingApp::drawStroke(int x0, int y0, int x1, int y1) {
     const int dx = std::abs(x1 - x0);
     const int dy = std::abs(y1 - y0);
@@ -578,7 +594,7 @@ void DrawingApp::finishPathPrompt(bool commit) {
         m_customG = g;
         m_customB = b;
         m_usingCustomColor = true;
-        if (m_tool == Tool::Eraser || m_tool == Tool::Fill) {
+        if (m_tool == Tool::Eraser || m_tool == Tool::Fill || m_tool == Tool::Eyedropper) {
             m_tool = Tool::Pen;
         }
         std::ostringstream oss;
@@ -737,6 +753,11 @@ void DrawingApp::handleToolbarClick(int x, int y) {
         setStatus("Tool: Fill (click a region)");
         return;
     }
+    if (pointInRect(x, y, m_btnEyedropper)) {
+        m_tool = Tool::Eyedropper;
+        setStatus("Tool: Pick (click a canvas pixel)");
+        return;
+    }
     if (pointInRect(x, y, m_btnLine)) {
         m_tool = Tool::Line;
         setStatus("Tool: Line (drag to draw a straight stroke)");
@@ -845,6 +866,7 @@ void DrawingApp::drawToolbar(SDL_Renderer* renderer, const SDL_Rect& contentRect
     drawButton(m_btnPen, "Pen", 44, m_tool == Tool::Pen, relX, toolRowY);
     drawButton(m_btnEraser, "Eraser", 54, m_tool == Tool::Eraser, relX, toolRowY);
     drawButton(m_btnFill, "Fill", 40, m_tool == Tool::Fill, relX, toolRowY);
+    drawButton(m_btnEyedropper, "Pick", 42, m_tool == Tool::Eyedropper, relX, toolRowY);
     drawButton(m_btnLine, "Line", 42, m_tool == Tool::Line, relX, toolRowY);
     drawButton(m_btnRect, "Rect", 42, m_tool == Tool::Rect, relX, toolRowY);
     drawButton(m_btnClear, "Clear", 48, false, relX, toolRowY);
@@ -1036,6 +1058,10 @@ void DrawingApp::handleEvent(const SDL_Event& event) {
             int cx = 0;
             int cy = 0;
             canvasPointFromClient(x, y, cx, cy);
+            if (m_tool == Tool::Eyedropper) {
+                pickColorAt(cx, cy);
+                return;
+            }
             if (m_tool == Tool::Fill) {
                 floodFill(cx, cy);
                 return;

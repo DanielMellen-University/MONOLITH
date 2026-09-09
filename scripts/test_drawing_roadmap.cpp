@@ -11,6 +11,7 @@ using monolith::drawing::decodeModr;
 using monolith::drawing::drawLine;
 using monolith::drawing::drawRect;
 using monolith::drawing::encodeModr;
+using monolith::drawing::getPixel;
 using monolith::drawing::parseRgb;
 using monolith::drawing::setPixel;
 
@@ -77,6 +78,13 @@ int main() {
               && pixelIs(canvas, kW, 2, 4, rr, rg, rb) && pixelIs(canvas, kW, 8, 4, rr, rg, rb),
           "rect paints boundary");
     check(pixelIs(canvas, kW, 4, 4, 0, 0, 0), "rect does not fill interior");
+
+    uint8_t pickedR = 0, pickedG = 0, pickedB = 0;
+    check(getPixel(canvas, kW, kH, 2, 2, pickedR, pickedG, pickedB)
+              && pickedR == rr && pickedG == rg && pickedB == rb,
+          "eyedropper reads a canvas pixel");
+    check(!getPixel(canvas, kW, kH, -1, 0, pickedR, pickedG, pickedB),
+          "eyedropper rejects an out-of-bounds pixel");
 
     const std::string blob = encodeModr(kW, kH, canvas);
     check(!blob.empty(), "encodeModr produced a blob");
