@@ -44,6 +44,12 @@ Headless test of shipped `Filesystem` multi-item copy/paste, `/`-rejecting renam
 g++ -std=c++23 scripts/test_fs_roadmap.cpp src/fs/Filesystem.cpp -o build/test_fs_roadmap && ./build/test_fs_roadmap
 ```
 
+Headless Filesystem Browser state test for selection restoration and scroll clamping after filtering:
+
+```bash
+g++ -std=c++23 scripts/test_filesystem_app_state.cpp src/app/FilesystemApp.cpp src/fs/Filesystem.cpp $(pkg-config --cflags --libs sdl2 SDL2_ttf) -o build/test_filesystem_app_state && ./build/test_filesystem_app_state
+```
+
 ## Drawing Raster / `.modr` Roadmap Checks
 
 Headless test of shipped line/rect raster, custom RGB parse, eyedropper pixel reads, and `.modr` round-trip:

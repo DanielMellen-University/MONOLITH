@@ -97,8 +97,13 @@ void FilesystemApp::refreshEntries() {
     m_entries = monolith::fs::Filesystem::filterEntries(raw, m_filterQuery);
 
     clearMultiSelection();
-    if (hadSelection && selectEntryNamed(selectedName, selectedIsDirectory)) {
-        return;
+    const bool restoredSelection = hadSelection
+        && selectEntryNamed(selectedName, selectedIsDirectory);
+    if (!restoredSelection) {
+        // The previous row may have disappeared because of filtering, deletion,
+        // or an external filesystem change. Never reinterpret its old index as
+        // a different entry in the refreshed list.
+        m_selectedIndex = -1;
     }
     clampSelection();
 }
@@ -640,6 +645,10 @@ void FilesystemApp::clampSelection() {
     if (m_selectedIndex >= 0) {
         m_selectedSet.insert(m_selectedIndex);
     }
+
+    const int visible = std::max(1, getVisibleRowCount({0, 0, m_clientWidth, m_clientHeight}));
+    const int maxScroll = std::max(0, static_cast<int>(m_entries.size()) - visible);
+    m_scrollOffset = std::clamp(m_scrollOffset, 0, maxScroll);
     ensureSelectionVisible();
 }
 

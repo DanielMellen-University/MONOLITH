@@ -1,5 +1,9 @@
 # Changelog
 
+## 2026-09: Stabilize Filesystem Browser filtering
+
+- Refreshing or filtering now restores selection by entry name, clears selections that disappeared, and clamps scrolling to the current result count.
+
 ## 2026-09: Guard native window shutdown
 
 - Routed the host window's close event through the same dirty-document confirmation used by Start menu Shut Down, preventing unsaved Editor or Drawing work from being skipped.
