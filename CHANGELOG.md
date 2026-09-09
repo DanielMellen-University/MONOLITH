@@ -1,5 +1,9 @@
 # Changelog
 
+## 2026-09: Native-size taskbar labels
+
+- Taskbar window titles now stay at native size and clip within their own buttons instead of being horizontally squeezed or bleeding into neighbors.
+
 ## 2026-09: Native-size text clipping
 
 - Terminal scrollback and Text Editor syntax spans now render at native size and clip at the viewport edge instead of being horizontally squeezed.

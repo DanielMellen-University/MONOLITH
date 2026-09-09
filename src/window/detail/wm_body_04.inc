@@ -143,13 +143,16 @@
             if (s) {
                 SDL_Texture* t = SDL_CreateTextureFromSurface(renderer, s);
                 if (t) {
-                    int textW = std::min(s->w, btnRect.w - 10);
+                    // Keep the label at native size. The button owns the clip
+                    // so long titles cannot bleed into neighboring buttons.
+                    SDL_RenderSetClipRect(renderer, &btnRect);
                     SDL_Rect textDst = {
                         btnRect.x + 5,
                         btnY + (btnHeight - s->h) / 2,
-                        textW, s->h
+                        s->w, s->h
                     };
                     SDL_RenderCopy(renderer, t, nullptr, &textDst);
+                    SDL_RenderSetClipRect(renderer, nullptr);
                     SDL_DestroyTexture(t);
                 }
                 SDL_FreeSurface(s);
@@ -230,4 +233,3 @@
             SDL_RenderFillRect(renderer, &tray);
             SDL_SetRenderDrawColor(renderer, 100, 100, 108, 255);
             SDL_RenderDrawRect(renderer, &tray);
-
