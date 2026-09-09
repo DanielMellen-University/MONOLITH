@@ -49,6 +49,13 @@ int main() {
     check(cursor == 3 && cursorEdited == "A\xC3\xA9" "B",
           "cursor erase removes one complete codepoint");
 
+    std::string forwardEdited = mixed;
+    const std::size_t forwardCursor = 1;
+    const std::size_t forwardNext = utf8NextCodepointStart(forwardEdited, forwardCursor);
+    forwardEdited.erase(forwardCursor, forwardNext - forwardCursor);
+    check(forwardEdited == "A\xF0\x9F\x98\x80" "B",
+          "forward delete removes one complete codepoint");
+
     if (failures == 0) {
         std::cout << "ALL UTF8 TESTS PASSED\n";
         return 0;

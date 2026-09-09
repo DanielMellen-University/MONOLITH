@@ -116,6 +116,7 @@ private:
     bool m_renaming = false;
     int m_renameIndex = -1;
     std::string m_renameBuffer;
+    std::size_t m_renameCursorPos = 0;
 
     // Delete confirmation state (toolbar, Delete key, or context menu)
     bool m_confirmingDelete = false;

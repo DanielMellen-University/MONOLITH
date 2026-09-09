@@ -399,6 +399,7 @@ When unspecified, choose:
 | 2026-09-09 | docs | Expanded the Drawing guide with workflow, tool history, canvas behavior, file-state details, and raster-editor limitations; CURRENT_CHUNK remains 7.1 |
 | 2026-09-09 | docs | Added Drawing shell/session integration and Save/Open/RGB prompt reference; CURRENT_CHUNK remains 7.1 |
 | 2026-09-09 | cleanup | Made Terminal Tab completion honor quoted paths and escaped spaces; added lexer regression coverage; CURRENT_CHUNK remains 7.1 |
+| 2026-09-09 | cleanup | Made Filesystem Browser rename a caret-aware UTF-8 editor with horizontal caret tracking; CURRENT_CHUNK remains 7.1 |
 
 ---
 

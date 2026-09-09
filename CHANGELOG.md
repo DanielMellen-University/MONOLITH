@@ -1,5 +1,10 @@
 # Changelog
 
+## 2026-09: Better Filesystem Browser rename editing
+
+- Rename mode now supports caret navigation, insertion, Delete, and UTF-8-safe Backspace instead of editing only at the end of the name.
+- Long names scroll to keep the active caret visible while renaming.
+
 ## 2026-09: Quoted Terminal path completion
 
 - Terminal Tab completion now follows the command lexer for quoted paths and backslash-escaped spaces.

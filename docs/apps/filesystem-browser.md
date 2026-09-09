@@ -15,7 +15,7 @@ Open **Filesystem** from the Start menu. Multiple instances are supported:
 The window has four regions:
 
 1. **Path bar** — shows the current virtual directory
-2. **Toolbar** — Up, New Folder, New File, Delete, Rename
+2. **Toolbar** — Up, New Folder, New File, Delete, Rename, Filter
 3. **List view** — directories (`▶`) and files (`•`), sorted with directories first
 4. **Status bar** — feedback messages for actions
 
@@ -23,7 +23,7 @@ The window has four regions:
 
 - **Double-click** a directory to enter it.
 - **Double-click** a file to open it with the shell default (case-insensitive **`.modr` → Drawing**, everything else → Text Editor).
-- Click **Up** in the toolbar (or use context menu) to go to the parent directory.
+- Click **Up** in the toolbar or press **Backspace** to go to the parent directory.
 - **Arrow Up / Down** moves the primary selection; **Enter** activates it (same as double-click).
 
 ### Multi-select
@@ -70,7 +70,7 @@ The browser starts at `/home/monolith` when that path exists.
 
 ### Rename Mode
 
-Press **F2** or choose Rename from the context menu. Type the new name, then **Enter** to commit or **Esc** to cancel. Names that contain `/` (or that are empty, `.`, or `..`) are rejected so rename cannot create a nested path.
+Press **F2** or choose Rename from the context menu. The caret starts at the end of the existing name. Use Left/Right/Home/End to move it, type to insert, Backspace/Delete to remove complete UTF-8 characters, then press **Enter** to commit or **Esc** to cancel. Names that contain `/` (or that are empty, `.`, or `..`) are rejected so rename cannot create a nested path.
 
 ### Filter / search
 
@@ -130,7 +130,7 @@ Right-clicking an already selected row keeps the current multi-selection, so con
 - Cut + Paste moves items via `Filesystem::moveItemsInto`; Copy + Paste duplicates them, including directory trees via `copyItemsInto` → `copyRecursive`.
 - Paste skips items whose names already exist in the destination, same-folder sources, and folders pasted into themselves (`isSameOrDescendant`).
 - Backspace in rename and filter prompts removes one UTF-8 codepoint at a time.
-- Long names stay at their normal text size and are clipped within the list; while renaming, the visible text follows the end of the name so the caret remains visible.
+- Long names stay at their normal text size and are clipped within the list; while renaming, the visible text follows the caret so edits remain visible at either end of the name.
 
 ## Current Limitations
 

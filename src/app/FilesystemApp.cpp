@@ -505,6 +505,7 @@ void FilesystemApp::startRenameSelected() {
     m_renaming = true;
     m_renameIndex = idx;
     m_renameBuffer = m_entries[static_cast<size_t>(idx)].name;
+    m_renameCursorPos = m_renameBuffer.size();
     setStatus("Renaming: " + m_renameBuffer);
 }
 
@@ -513,6 +514,7 @@ void FilesystemApp::finishRename(bool commit) {
         m_renaming = false;
         m_renameIndex = -1;
         m_renameBuffer.clear();
+        m_renameCursorPos = 0;
         return;
     }
 
@@ -543,6 +545,7 @@ void FilesystemApp::finishRename(bool commit) {
     m_renaming = false;
     m_renameIndex = -1;
     m_renameBuffer.clear();
+    m_renameCursorPos = 0;
 }
 
 void FilesystemApp::beginFilter() {
@@ -803,9 +806,30 @@ void FilesystemApp::handleKeyDown(const SDL_Keysym& keysym) {
             return;
         }
         if (keysym.sym == SDLK_BACKSPACE) {
-            if (!m_renameBuffer.empty()) {
-                popLastUtf8Codepoint(m_renameBuffer);
+            erasePreviousUtf8Codepoint(m_renameBuffer, m_renameCursorPos);
+            return;
+        }
+        if (keysym.sym == SDLK_DELETE) {
+            const std::size_t next = utf8NextCodepointStart(m_renameBuffer, m_renameCursorPos);
+            if (next > m_renameCursorPos) {
+                m_renameBuffer.erase(m_renameCursorPos, next - m_renameCursorPos);
             }
+            return;
+        }
+        if (keysym.sym == SDLK_LEFT) {
+            m_renameCursorPos = utf8PrevCodepointStart(m_renameBuffer, m_renameCursorPos);
+            return;
+        }
+        if (keysym.sym == SDLK_RIGHT) {
+            m_renameCursorPos = utf8NextCodepointStart(m_renameBuffer, m_renameCursorPos);
+            return;
+        }
+        if (keysym.sym == SDLK_HOME) {
+            m_renameCursorPos = 0;
+            return;
+        }
+        if (keysym.sym == SDLK_END) {
+            m_renameCursorPos = m_renameBuffer.size();
             return;
         }
         return; // Ignore other keys while renaming
@@ -958,7 +982,10 @@ void FilesystemApp::handleKeyDown(const SDL_Keysym& keysym) {
 void FilesystemApp::handleEvent(const SDL_Event& event) {
     if (m_renaming && event.type == SDL_TEXTINPUT) {
         if (event.text.text) {
-            m_renameBuffer += event.text.text;
+            m_renameCursorPos = std::min(m_renameCursorPos, m_renameBuffer.size());
+            const std::string inserted = event.text.text;
+            m_renameBuffer.insert(m_renameCursorPos, inserted);
+            m_renameCursorPos += inserted.size();
         }
         return;
     }
@@ -1217,15 +1244,28 @@ void FilesystemApp::drawList(SDL_Renderer* r, const SDL_Rect& contentRect, int l
             std::string displayText = isRenamingThis ? m_renameBuffer : entry.name;
             SDL_Color nameCol = isRenamingThis ? selText : (isSelected ? selText : (entry.isDirectory ? textDir : textNormal));
 
+            const int nameX = rowRect.x + 28;
+            const int nameWidth = std::max(1, rowRect.w - 36);
+            int textW = 0;
+            int textH = 0;
+            TTF_SizeUTF8(m_font, displayText.c_str(), &textW, &textH);
+            const std::size_t cursorPos = std::min(m_renameCursorPos, displayText.size());
+            const std::string beforeCursor = displayText.substr(0, cursorPos);
+            int prefixW = 0;
+            int prefixH = 0;
+            if (isRenamingThis) {
+                TTF_SizeUTF8(m_font, beforeCursor.c_str(), &prefixW, &prefixH);
+            }
+            const int maxTextOffset = std::max(0, textW - nameWidth);
+            const int cursorMargin = std::max(0, nameWidth - 2);
+            const int textOffset = isRenamingThis
+                ? std::clamp(prefixW - cursorMargin, 0, maxTextOffset)
+                : 0;
+
             SDL_Surface* s = TTF_RenderUTF8_Blended(m_font, displayText.c_str(), nameCol);
             if (s) {
                 SDL_Texture* t = SDL_CreateTextureFromSurface(r, s);
                 if (t) {
-                    const int nameX = rowRect.x + 28;
-                    const int nameWidth = std::max(1, rowRect.w - 36);
-                    const int textOffset = isRenamingThis
-                        ? std::max(0, s->w - nameWidth)
-                        : 0;
                     SDL_Rect nameClip = {nameX, rowRect.y, nameWidth, rowRect.h};
                     SDL_RenderSetClipRect(r, &nameClip);
                     SDL_Rect d = {nameX - textOffset, rowRect.y + 2, s->w, s->h};
@@ -1238,17 +1278,13 @@ void FilesystemApp::drawList(SDL_Renderer* r, const SDL_Rect& contentRect, int l
 
             // Draw a simple cursor when renaming
             if (isRenamingThis) {
-                int textW = 0, textH = 0;
-                if (!displayText.empty()) {
-                    TTF_SizeUTF8(m_font, displayText.c_str(), &textW, &textH);
-                }
-                const int nameX = rowRect.x + 28;
-                const int nameWidth = std::max(1, rowRect.w - 36);
-                const int textOffset = std::max(0, textW - nameWidth);
-                int cursorX = nameX + textW - textOffset + 1;
+                const int cursorX = nameX + prefixW - textOffset + 1;
                 int cursorY = rowRect.y + 2;
                 SDL_SetRenderDrawColor(r, 255, 255, 255, 220);
+                SDL_Rect nameClip = {nameX, rowRect.y, nameWidth, rowH};
+                SDL_RenderSetClipRect(r, &nameClip);
                 SDL_RenderDrawLine(r, cursorX, cursorY, cursorX, cursorY + rowH - 6);
+                SDL_RenderSetClipRect(r, nullptr);
             }
         }
 
