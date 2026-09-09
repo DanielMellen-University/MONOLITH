@@ -1,5 +1,10 @@
 # Changelog
 
+## 2026-09: Document Drawing desktop lifecycle
+
+- Documented Drawing close and shutdown guards, session restore behavior, failed-path retry behavior, and one-window-per-file routing.
+- Added a contributor reference for the boundaries between raster format code, app state, and WindowManager integration.
+
 ## 2026-09: Reset canceled dirty-open confirmations
 
 - Text Editor and Drawing now clear the pending discard arm when a dirty Open prompt is canceled or replaced by a new prompt.

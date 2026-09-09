@@ -140,6 +140,20 @@ Drawing participates in the same file workflow as the Terminal and Filesystem Br
 
 All other file types continue to open in Text Editor through the shell's default routing. In particular, `.mod` is a text file, not a Drawing file.
 
+## Closing And Session Restore
+
+Drawing uses the same desktop lifecycle as Text Editor, including the dirty-document guard:
+
+- Closing a clean Drawing window closes it immediately.
+- Closing a modified Drawing window once shows a status-bar warning. Close it again to discard, or save first with **Ctrl+S**.
+- Start menu **Shut Down** and the host window close request use the same guard. Unsaved sketches are not silently discarded by either exit path.
+- A failed save, failed open, or canceled prompt leaves the current canvas available and clears any stale discard confirmation.
+- Starting **New** clears the file binding and restores the shell-managed instance title, such as `Drawing 2`.
+
+Session restore records a Drawing window's geometry, minimized or maximized state, and bound virtual path. A successfully restored `.modr` file reopens in Drawing with its saved pixels and dimensions. A missing, invalid, or rejected initial path does not reserve that path, so the file can be corrected and opened again normally.
+
+Monolith keeps one active Drawing window per normalized `.modr` path. Opening a path that is already open focuses that window; it does not create a second editor for the same file. Multiple unsaved sketches can still be open together and keep their normal instance titles.
+
 ## Toolbar
 
 The toolbar has three rows.
@@ -409,6 +423,14 @@ Main implementation files:
 - `src/app/App.hpp` — `IWindowController::restoreTrackedInstanceTitle()`, `allowClose` for dirty guards
 
 Canvas GPU path (`syncTexture`): recreate the streaming texture only when missing or size-changed; upload CPU pixels only while `m_textureDirty` is set by paint, undo, load, or resize.
+
+The Drawing implementation has three boundaries worth preserving when changing it:
+
+1. `DrawingRaster` owns format and pixel rules that can be tested without SDL.
+2. `DrawingApp` owns the live canvas, prompts, dirty state, and editor-session settings.
+3. `WindowManager` owns file singleton routing, instance titles, session restore, and desktop close guards.
+
+Changes that move behavior across those boundaries should update this guide and the matching focused state or raster check. The `.modr` format should remain strict: invalid magic, dimensions outside the supported range, truncated payloads, and trailing bytes must fail without replacing the current canvas.
 
 Verification scripts: see [Development Scripts](../development/scripts.md). The focused Drawing checks are:
 
