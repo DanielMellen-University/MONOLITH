@@ -421,6 +421,7 @@ void TerminalApp::render(SDL_Renderer* renderer, const SDL_Rect& contentRect) {
     SDL_RenderSetClipRect(renderer, nullptr);
 
     // Draw history, respecting scroll offset (0 = bottom/newest)
+    SDL_RenderSetClipRect(renderer, &historyRect);
     if (!m_history.empty()) {
         int total = static_cast<int>(m_history.size());
         int startIdx = total - 1 - m_scrollOffset;
@@ -438,7 +439,7 @@ void TerminalApp::render(SDL_Renderer* renderer, const SDL_Rect& contentRect) {
                     SDL_Rect dst = {
                         historyRect.x,
                         y,
-                        std::min(surf->w, historyRect.w),
+                        surf->w,
                         surf->h
                     };
                     SDL_RenderCopy(renderer, tex, nullptr, &dst);
@@ -450,6 +451,7 @@ void TerminalApp::render(SDL_Renderer* renderer, const SDL_Rect& contentRect) {
             y -= lineHeight;
         }
     }
+    SDL_RenderSetClipRect(renderer, nullptr);
 
     // Note: Cursor for input is drawn earlier in the input strip section above.
     // The old duplicate cursor block that used full-buffer calculation was removed.

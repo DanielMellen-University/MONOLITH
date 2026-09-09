@@ -102,6 +102,7 @@ Ctrl+S saves to the bound path when one exists. If the buffer is untitled, Ctrl+
 - Highlighting is per-line only (no multiline strings or block comments).
 - No multiple buffers/tabs.
 - Long lines remain editable without wrapping; horizontal scrolling moves the text viewport in pixel increments while preserving document columns.
+- Syntax-highlighted spans at the viewport edge are clipped without scaling, so text measurements and cursor geometry stay consistent.
 - Combining characters / complex scripts are treated as separate codepoints for cursor motion.
 - Clipboard uses the host OS clipboard (SDL), not a Monolith-only buffer.
 - Find/replace is case-sensitive and single-line only (no regex).

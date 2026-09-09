@@ -1,5 +1,9 @@
 # Changelog
 
+## 2026-09: Native-size text clipping
+
+- Terminal scrollback and Text Editor syntax spans now render at native size and clip at the viewport edge instead of being horizontally squeezed.
+
 ## 2026-09: Filesystem long-name rendering
 
 - Filesystem list names now clip at native text size instead of being horizontally squeezed, and long rename buffers keep the caret visible.

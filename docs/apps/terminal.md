@@ -113,6 +113,7 @@ Unterminated quotes print `parse error: ...` and do not run the command.
 - No script execution or custom language integration yet.
 - `touch` creates an empty file if missing; existing files are left unchanged (no mtime update yet).
 - The prompt is a single line and does not provide Text Editor-style selection or clipboard editing.
+- Scrollback lines stay at native text size and clip at the viewport edge instead of being horizontally scaled.
 
 ## Developer Notes
 

@@ -390,6 +390,7 @@ When unspecified, choose:
 | 2026-09-09 | cleanup | Added cursor-following horizontal scrolling and clipping for long Terminal input lines; CURRENT_CHUNK remains 7.1 |
 | 2026-09-09 | cleanup | Preserved Filesystem Browser multi-selection through context menus and cleared stale selection on background menus; CURRENT_CHUNK remains 7.1 |
 | 2026-09-09 | cleanup | Kept Filesystem Browser long names at native size and followed the visible rename caret; CURRENT_CHUNK remains 7.1 |
+| 2026-09-09 | cleanup | Kept Terminal scrollback and Text Editor syntax spans at native size while clipping viewport edges; CURRENT_CHUNK remains 7.1 |
 | 2026-09-09 | docs | Expanded the Drawing guide with workflow, tool history, canvas behavior, file-state details, and raster-editor limitations; CURRENT_CHUNK remains 7.1 |
 
 ---

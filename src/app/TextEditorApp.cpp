@@ -253,8 +253,10 @@ void TextEditorApp::drawColoredLine(SDL_Renderer* renderer, const std::string& l
 
         SDL_Texture* tex = SDL_CreateTextureFromSurface(renderer, surf);
         if (tex) {
-            const int drawW = std::min(surf->w, rightEdge - curX);
-            SDL_Rect dst = {curX, y, drawW, surf->h};
+            // The caller owns the viewport clip. Keep the texture at native
+            // size so syntax spans do not become horizontally distorted at
+            // the right edge of a long line.
+            SDL_Rect dst = {curX, y, surf->w, surf->h};
             SDL_RenderCopy(renderer, tex, nullptr, &dst);
             SDL_DestroyTexture(tex);
             curX += surf->w;
