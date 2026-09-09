@@ -375,6 +375,8 @@ When the canvas has unsaved edits, `[modified]` is appended to the status bar. S
 
 A failed save also clears any pending discard confirmation. Closing, choosing **New**, or opening another sketch afterward requires a fresh confirmation before the still-modified canvas can be discarded.
 
+Canceling a dirty Open prompt also clears its pending confirmation, so a later Open requires a fresh confirmation before discarding the canvas.
+
 ## Troubleshooting
 
 | Symptom | Cause and fix |

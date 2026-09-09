@@ -387,6 +387,9 @@ void TextEditorApp::updateTitleForPath() {
 }
 
 void TextEditorApp::beginPathPrompt(PathPromptMode mode) {
+    // A new prompt is a new user action. Do not carry a discarded confirmation
+    // from an earlier Open/New attempt into it.
+    clearDiscardArm();
     m_pathPromptMode = mode;
     if (mode == PathPromptMode::SaveAs) {
         m_pathPromptBuffer = m_filePath.empty() ? "/home/monolith/documents/note.txt" : m_filePath;
@@ -450,6 +453,7 @@ void TextEditorApp::finishPathPrompt(bool commit) {
     }
 
     if (!commit) {
+        clearDiscardArm();
         setStatus("Cancelled.");
         return;
     }

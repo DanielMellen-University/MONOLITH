@@ -48,6 +48,12 @@ void prepareSaveAs(TestEditor& editor, const std::string& path) {
     editor.m_pathPromptCursorPos = path.size();
 }
 
+void prepareOpen(TestEditor& editor, const std::string& path) {
+    editor.m_pathPromptMode = TestEditor::PathPromptMode::Open;
+    editor.m_pathPromptBuffer = path;
+    editor.m_pathPromptCursorPos = path.size();
+}
+
 } // namespace
 
 int main() {
@@ -103,6 +109,25 @@ int main() {
     check(!editor.allowClose(), "first close arms the dirty editor guard");
     check(!editor.saveCurrentFile(), "direct save failure is reported");
     check(!editor.allowClose(), "failed save clears the stale dirty guard arm");
+
+    check(fs.writeFile("/other.txt", "other"), "write alternate open target");
+    editor.m_dirty = true;
+    prepareOpen(editor, "/other.txt");
+    editor.finishPathPrompt(true);
+    check(editor.m_discardKind == TestEditor::DiscardKind::Open
+              && editor.m_pathPromptMode == TestEditor::PathPromptMode::Open,
+          "dirty open arms a discard confirmation and keeps the prompt active");
+    editor.finishPathPrompt(false);
+    check(editor.m_discardKind == TestEditor::DiscardKind::None
+              && editor.m_pathPromptMode == TestEditor::PathPromptMode::None,
+          "canceling a dirty open clears its discard arm");
+    editor.m_dirty = true;
+    prepareOpen(editor, "/other.txt");
+    editor.finishPathPrompt(true);
+    check(editor.m_discardKind == TestEditor::DiscardKind::Open
+              && editor.m_pathPromptMode == TestEditor::PathPromptMode::Open
+              && editor.m_filePath == "/blocked.txt",
+          "a later dirty open requires a fresh confirmation after cancellation");
 
     editor.m_lines = {"aa"};
     editor.m_cursorRow = 0;

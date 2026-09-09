@@ -556,6 +556,9 @@ void DrawingApp::startNewSketch() {
 }
 
 void DrawingApp::beginPathPrompt(PathPromptMode mode) {
+    // A new prompt is a new user action. Do not carry a discarded confirmation
+    // from an earlier Open/New attempt into it.
+    clearDiscardArm();
     m_pathPromptMode = mode;
     if (mode == PathPromptMode::Save) {
         m_pathPromptBuffer = m_filePath.empty() ? defaultSavePath() : m_filePath;
@@ -584,6 +587,7 @@ void DrawingApp::finishPathPrompt(bool commit) {
     m_pathPromptScrollPx = 0;
 
     if (!commit) {
+        clearDiscardArm();
         setStatus("Cancelled.");
         return;
     }

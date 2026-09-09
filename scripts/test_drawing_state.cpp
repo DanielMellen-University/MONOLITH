@@ -58,6 +58,28 @@ int main() {
     check(!drawing.saveToPath("/blocked.modr"), "drawing save failure is reported");
     check(!drawing.allowClose(), "failed drawing save clears the stale dirty guard arm");
 
+    drawing.m_dirty = true;
+    drawing.beginPathPrompt(monolith::app::DrawingApp::PathPromptMode::Open);
+    drawing.m_pathPromptBuffer = "/drawings/resize.modr";
+    drawing.m_pathPromptCursorPos = drawing.m_pathPromptBuffer.size();
+    drawing.finishPathPrompt(true);
+    check(drawing.m_discardKind == monolith::app::DrawingApp::DiscardKind::Open
+              && drawing.m_pathPromptMode == monolith::app::DrawingApp::PathPromptMode::Open,
+          "dirty drawing open arms a discard confirmation and keeps the prompt active");
+    drawing.finishPathPrompt(false);
+    check(drawing.m_discardKind == monolith::app::DrawingApp::DiscardKind::None
+              && drawing.m_pathPromptMode == monolith::app::DrawingApp::PathPromptMode::None,
+          "canceling a dirty drawing open clears its discard arm");
+    drawing.m_dirty = true;
+    drawing.beginPathPrompt(monolith::app::DrawingApp::PathPromptMode::Open);
+    drawing.m_pathPromptBuffer = "/drawings/resize.modr";
+    drawing.m_pathPromptCursorPos = drawing.m_pathPromptBuffer.size();
+    drawing.finishPathPrompt(true);
+    check(drawing.m_discardKind == monolith::app::DrawingApp::DiscardKind::Open
+              && drawing.m_pathPromptMode == monolith::app::DrawingApp::PathPromptMode::Open
+              && drawing.m_filePath == "/blocked.modr",
+          "a later dirty drawing open requires a fresh confirmation after cancellation");
+
     std::filesystem::remove_all(hostRoot, ec);
     if (failures == 0) {
         std::cout << "ALL DRAWING STATE TESTS PASSED\n";

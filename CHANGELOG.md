@@ -1,5 +1,10 @@
 # Changelog
 
+## 2026-09: Reset canceled dirty-open confirmations
+
+- Text Editor and Drawing now clear the pending discard arm when a dirty Open prompt is canceled or replaced by a new prompt.
+- Added paired state regressions so a later Open cannot discard unsaved work without a fresh confirmation.
+
 ## 2026-09: Preserve Filesystem multi-selection through refresh
 
 - Filesystem Browser refreshes now restore all selected entries that remain visible instead of retaining only the primary row.
