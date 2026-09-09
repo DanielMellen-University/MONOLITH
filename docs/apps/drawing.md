@@ -4,6 +4,19 @@ The Drawing app is Monolith's native sketching tool. It provides a pixel canvas,
 
 Drawing files use the `.modr` extension (Monolith Drawing Raster).
 
+## At A Glance
+
+| Item | Behavior |
+|------|----------|
+| Canvas | Opaque raster pixels sized to the Drawing client area |
+| Default folder | `/home/monolith/drawings/` in the internal filesystem |
+| File type | `.modr`, matched case-insensitively when opening |
+| Editing model | Direct pixel edits with up to 32 in-memory undo states |
+| Prompts | Inline in the status bar, with caret editing and Tab completion for paths |
+| Persistence | Pixels and canvas dimensions are saved; tools, colors, and history are not |
+
+Drawing has no separate file-picker or modal prompt. Save, Open, and custom RGB input temporarily turn the status bar into an editor. The active prompt shows a caret and scrolls horizontally when its text is longer than the window.
+
 ## Quick Start
 
 1. Open **Drawing** from Start.
@@ -170,7 +183,7 @@ If that file already exists, Drawing picks the next free name, such as:
 /home/monolith/drawings/sketch_2.modr
 ```
 
-If you save without typing `.modr`, Drawing adds it automatically.
+Drawing always writes a `.modr` document. If you save without typing `.modr`, Drawing appends the suffix automatically. It does not replace another suffix: entering `picture.mod` creates `picture.mod.modr`.
 
 ## Opening
 
@@ -199,6 +212,8 @@ Pressing `Tab` can complete that to:
 If multiple files match, Drawing completes the shared prefix when possible. If no shared prefix can be extended, the status bar shows a compact preview of matching names.
 
 Opening a missing file, a non-`.modr` path, or corrupt data leaves the current sketch open and reports the failure in the status bar.
+
+Opening a valid file replaces the current canvas dimensions and pixels. The file's pixels are loaded as opaque RGB data, and the undo/redo stacks are cleared. The active tool, brush size, and color selection remain editor state and are not read from the file.
 
 ## Undo And Redo
 
@@ -229,6 +244,8 @@ Width and height must be between 1 and 4096 pixels. The decoder requires the fil
 Internally, the live canvas stores pixels as `R,G,B,A`. The saved file stores only RGB because the canvas is fully opaque.
 
 The format has no metadata for tools, brush size, custom color, undo history, or layers. Those are editor state and are not restored when the file is reopened.
+
+The format is intentionally small and strict. A file with a wrong magic header, dimensions outside the supported range, truncated payload, or trailing bytes is rejected instead of partially opening.
 
 ## Unsaved Changes
 

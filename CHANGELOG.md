@@ -1,5 +1,9 @@
 # Changelog
 
+## 2026-09: Drawing app reference guide
+
+- Expanded the Drawing documentation with an at-a-glance reference, status-bar prompt model, exact `.modr` save behavior, and the distinction between persisted pixels and transient editor state.
+
 ## 2026-09: Predictable Filesystem listing order
 
 - Filesystem Browser listings now sort names case-insensitively, with directories still grouped before files and raw names used as a deterministic tie-break.

@@ -410,6 +410,7 @@ When unspecified, choose:
 | 2026-09-09 | cleanup | Kept Text Editor status prompts at native size with caret-following horizontal clipping; CURRENT_CHUNK remains 7.1 |
 | 2026-09-09 | cleanup | Verified Filesystem source reads before recursive file copies and corrected shared path documentation; CURRENT_CHUNK remains 7.1 |
 | 2026-09-09 | cleanup | Made Filesystem listings case-insensitive and deterministic while preserving directory-first grouping; CURRENT_CHUNK remains 7.1 |
+| 2026-09-09 | docs | Finalized the Drawing app reference with prompt, `.modr` save, persisted-state, and validation details; CURRENT_CHUNK remains 7.1 |
 
 ---
 
