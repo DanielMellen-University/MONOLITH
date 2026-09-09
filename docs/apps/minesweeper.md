@@ -52,6 +52,7 @@ Per-difficulty best times are stored on the host at `~/.monolith/minesweeper_bes
 
 - Face button reflects play / press / win / lose
 - Pressed unopened cell darkens briefly
+- The HUD status line clips before the face button, and the footer clips at the window edge, so narrow windows do not cover controls with text
 - Win / lose messages are a **centered vertical stack** on the board (title, time/best or restart hint, optional **NEW BEST!**)
 
 The board letterboxes inside the window. Expert on a small window uses small cells; maximize for comfort.

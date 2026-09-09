@@ -69,7 +69,7 @@ private:
     void clientBoardMetrics(int& boardX, int& boardY, int& cellPx, int& boardPxW, int& boardPxH) const;
     bool cellAtClient(int mx, int my, int& outX, int& outY) const;
     void drawText(SDL_Renderer* renderer, const char* text, int x, int y,
-                  SDL_Color color) const;
+                  SDL_Color color, const SDL_Rect* clip = nullptr) const;
     void drawCenteredText(SDL_Renderer* renderer, const char* text,
                           const SDL_Rect& area, SDL_Color color) const;
     void drawCenteredLine(SDL_Renderer* renderer, const char* text,

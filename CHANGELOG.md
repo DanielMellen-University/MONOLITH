@@ -1,5 +1,9 @@
 # Changelog
 
+## 2026-09: Bounded Minesweeper HUD text
+
+- Minesweeper status, difficulty labels, and footer text now stay at native size and clip within their controls instead of covering the face button or extending past the window.
+
 ## 2026-09: Native-size Settings text
 
 - Settings information and footer text now render at native size and clip at their panel boundaries instead of being horizontally squeezed.

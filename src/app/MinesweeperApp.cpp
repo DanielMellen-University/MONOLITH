@@ -415,14 +415,32 @@ void MinesweeperApp::layoutBoard(const SDL_Rect& contentRect) {
 }
 
 void MinesweeperApp::drawText(SDL_Renderer* renderer, const char* text, int x, int y,
-                              SDL_Color color) const {
+                              SDL_Color color, const SDL_Rect* clip) const {
     if (!m_font || !text || !*text) return;
     SDL_Surface* surf = TTF_RenderUTF8_Blended(m_font, text, color);
     if (!surf) return;
     SDL_Texture* tex = SDL_CreateTextureFromSurface(renderer, surf);
     if (tex) {
         SDL_Rect dst{x, y, surf->w, surf->h};
-        SDL_RenderCopy(renderer, tex, nullptr, &dst);
+        if (clip) {
+            SDL_Rect previousClip{};
+            SDL_RenderGetClipRect(renderer, &previousClip);
+            const bool hadPreviousClip = previousClip.w > 0 && previousClip.h > 0;
+            SDL_Rect effectiveClip = *clip;
+            const bool hasEffectiveClip = !hadPreviousClip
+                || SDL_IntersectRect(&previousClip, clip, &effectiveClip);
+            if (hasEffectiveClip && effectiveClip.w > 0 && effectiveClip.h > 0) {
+                SDL_RenderSetClipRect(renderer, &effectiveClip);
+                SDL_RenderCopy(renderer, tex, nullptr, &dst);
+            }
+            if (hadPreviousClip) {
+                SDL_RenderSetClipRect(renderer, &previousClip);
+            } else {
+                SDL_RenderSetClipRect(renderer, nullptr);
+            }
+        } else {
+            SDL_RenderCopy(renderer, tex, nullptr, &dst);
+        }
         SDL_DestroyTexture(tex);
     }
     SDL_FreeSurface(surf);
@@ -602,7 +620,14 @@ void MinesweeperApp::render(SDL_Renderer* renderer, const SDL_Rect& contentRect)
     if (m_focusPaused && m_state == State::Playing) {
         status += "   PAUSED";
     }
-    drawText(renderer, status.c_str(), contentRect.x + 10, contentRect.y + 6, kHudText);
+    const SDL_Rect statusClip = {
+        contentRect.x + 10,
+        contentRect.y,
+        std::max(0, m_faceBtnRect.x - 8 - (contentRect.x + 10)),
+        kHudHeight
+    };
+    drawText(renderer, status.c_str(), contentRect.x + 10, contentRect.y + 6,
+             kHudText, &statusClip);
 
     const char* labels[3] = {"1 Begin", "2 Inter", "3 Expert"};
     for (int i = 0; i < 3; ++i) {
@@ -613,7 +638,14 @@ void MinesweeperApp::render(SDL_Renderer* renderer, const SDL_Rect& contentRect)
         const SDL_Color bg = active ? kBtnActive : kBtnBg;
         SDL_SetRenderDrawColor(renderer, bg.r, bg.g, bg.b, 255);
         SDL_RenderFillRect(renderer, &m_diffBtnRects[i]);
-        drawText(renderer, labels[i], m_diffBtnRects[i].x + 6, m_diffBtnRects[i].y + 1, kHudText);
+        const SDL_Rect labelClip = {
+            m_diffBtnRects[i].x + 6,
+            m_diffBtnRects[i].y,
+            std::max(0, m_diffBtnRects[i].w - 12),
+            m_diffBtnRects[i].h
+        };
+        drawText(renderer, labels[i], m_diffBtnRects[i].x + 6, m_diffBtnRects[i].y + 1,
+                 kHudText, &labelClip);
     }
 
     // Face button
@@ -706,8 +738,14 @@ void MinesweeperApp::render(SDL_Renderer* renderer, const SDL_Rect& contentRect)
         kFooterHeight
     };
     SDL_RenderFillRect(renderer, &footer);
+    const SDL_Rect footerTextClip = {
+        contentRect.x + 10,
+        footer.y,
+        std::max(0, contentRect.w - 20),
+        footer.h
+    };
     drawText(renderer, "L open  R flag/?  M/chord  face=new", contentRect.x + 10,
-             footer.y + 4, kDimText);
+             footer.y + 4, kDimText, &footerTextClip);
 
     // End overlays — centered vertical stack
     if (m_state == State::Won || m_state == State::Lost) {
