@@ -34,6 +34,18 @@ Open **Drawing** from the Start menu. Multiple Drawing windows can be open at on
 
 After saving or opening a file, the window title changes to the file name, for example `Drawing - sketch.modr`.
 
+## Shell And Session Integration
+
+Drawing participates in the same file workflow as the Terminal and Filesystem Browser:
+
+- Terminal `open <path>` sends a case-insensitive `.modr` path to Drawing.
+- Double-clicking a `.modr` file in the Filesystem Browser opens it in Drawing.
+- The Filesystem Browser can also use **Open with Drawing**; Drawing still rejects paths that are not `.modr` files.
+- Opening a `.modr` file that is already open focuses its existing Drawing window instead of creating a duplicate. A minimized matching window is restored first.
+- When Monolith restores a saved desktop session, an open Drawing window keeps its geometry and bound `.modr` path.
+
+All other file types continue to open in Text Editor through the shell's default routing. In particular, `.mod` is a text file, not a Drawing file.
+
 ## Toolbar
 
 The toolbar has three rows.
@@ -125,6 +137,14 @@ Pick samples the RGB value at the clicked canvas pixel, stores it as the custom 
 | Backspace | Remove one complete UTF-8 character from the save/open prompt path |
 
 While a path prompt is active, typed printable UTF-8 characters are added to the prompt. Tab completes a matching directory or `.modr` file; with several matches it completes the shared prefix or shows a short match preview in the status bar.
+
+### Prompt Behavior
+
+- **Save** starts with the current file path when one exists. A new sketch starts with the next free name under `/home/monolith/drawings/`.
+- **Open** starts at `/home/monolith/drawings/` and filters file completion to `.modr` entries.
+- **RGB** starts with the current active color and accepts exactly three integer channels. Tab completion does not apply to RGB input.
+- Enter accepts the active prompt. Escape cancels it. Backspace removes one complete UTF-8 character.
+- If a dirty sketch blocks Open, the first confirmation keeps the path prompt active. Confirming the same open action again discards the unsaved canvas and loads the file.
 
 ## Saving
 

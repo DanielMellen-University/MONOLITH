@@ -1,5 +1,9 @@
 # Changelog
 
+## 2026-09: Drawing documentation reference
+
+- Documented Drawing shell routing, minimized-window reuse, session restore, and the distinct behaviors of Save, Open, and RGB prompts.
+
 ## 2026-09: Safe Terminal input reset
 
 - Clearing Terminal input with Esc now resets the cursor and saved history state, preventing the next typed character from targeting a stale buffer offset.

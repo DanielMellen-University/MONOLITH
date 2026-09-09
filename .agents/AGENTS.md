@@ -397,6 +397,7 @@ When unspecified, choose:
 | 2026-09-09 | cleanup | Restored minimized Editor and Drawing file singletons before focusing them; expanded the focus probe; CURRENT_CHUNK remains 7.1 |
 | 2026-09-09 | cleanup | Reset Terminal input cursor and saved history state when Esc clears the prompt; CURRENT_CHUNK remains 7.1 |
 | 2026-09-09 | docs | Expanded the Drawing guide with workflow, tool history, canvas behavior, file-state details, and raster-editor limitations; CURRENT_CHUNK remains 7.1 |
+| 2026-09-09 | docs | Added Drawing shell/session integration and Save/Open/RGB prompt reference; CURRENT_CHUNK remains 7.1 |
 
 ---
 
