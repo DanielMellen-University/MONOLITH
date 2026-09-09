@@ -62,7 +62,7 @@ Headless test of shipped `Filesystem` initialization, multi-item copy/paste, `/`
 g++ -std=c++23 scripts/test_fs_roadmap.cpp src/fs/Filesystem.cpp -o build/test_fs_roadmap && ./build/test_fs_roadmap
 ```
 
-Headless Filesystem Browser state test for filtering, selection restoration, scroll clamping, and partial cut/paste:
+Headless Filesystem Browser state test for filtering, multi-selection restoration, scroll clamping, delete confirmation, and partial cut/paste:
 
 ```bash
 g++ -std=c++23 scripts/test_filesystem_app_state.cpp src/app/FilesystemApp.cpp src/fs/Filesystem.cpp $(pkg-config --cflags --libs sdl2 SDL2_ttf) -o build/test_filesystem_app_state && ./build/test_filesystem_app_state

@@ -1,5 +1,11 @@
 # Changelog
 
+## 2026-09: Preserve Filesystem multi-selection through refresh
+
+- Filesystem Browser refreshes now restore all selected entries that remain visible instead of retaining only the primary row.
+- Filtering or navigation that changes the active selection now clears stale delete confirmation state.
+- Extended the headless Filesystem Browser state check for multi-selection preservation and filtered delete cancellation.
+
 ## 2026-09: Clarify Drawing file naming
 
 - Added a single Drawing reference for `.modr` save/open rules, `.mod` text-file routing, and extension behavior when renaming files in the Filesystem Browser.

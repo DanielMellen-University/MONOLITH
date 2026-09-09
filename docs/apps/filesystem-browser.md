@@ -35,7 +35,7 @@ Long paths and status messages stay at the font's native size and clip at their 
 - **Ctrl+A** selects all entries in the current folder.
 - Primary selection is drawn slightly brighter than other selected rows.
 - Delete, Copy, and Cut apply to the whole multi-selection. Rename still requires a single item.
-- Refreshing or filtering keeps the selected entry when it is still visible by name; if it is no longer present, selection clears and the list scrolls back inside the available results.
+- Refreshing or filtering keeps every selected entry that is still visible by name and type; if the primary entry disappears, a surviving selected entry becomes primary. If no selected entries remain, selection clears and the list scrolls back inside the available results.
 
 ### Properties
 
@@ -90,7 +90,7 @@ Press **F2** or choose Rename from the context menu. The caret starts at the end
 
 Deleting always requires confirmation (files and non-empty folders):
 
-1. **Toolbar Delete** or **Delete** key: status bar asks to confirm; press **Delete** / **Enter** again to remove, or **Esc** to cancel. Any selection change, including Ctrl-click or Shift-range selection, cancels the pending delete.
+1. **Toolbar Delete** or **Delete** key: status bar asks to confirm; press **Delete** / **Enter** again to remove, or **Esc** to cancel. Any selection change, including Ctrl-click, Shift-range selection, or filtering away the target, cancels the pending delete.
 2. **Context menu Delete**: submenu with **Confirm Delete** / **Cancel**.
 
 Deletion uses `Filesystem::removeRecursive` (whole directory trees). The virtual root `/` cannot be deleted.

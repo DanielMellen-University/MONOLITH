@@ -449,6 +449,7 @@ When unspecified, choose:
 | 2026-09-09 | cleanup | Blocked Filesystem renames into a source subtree or the virtual root; extended the shared roadmap check; CURRENT_CHUNK remains 7.1 |
 | 2026-09-09 | cleanup | Added Tab completion for Settings wallpaper directories and BMP files; added focused state coverage; CURRENT_CHUNK remains 7.1 |
 | 2026-09-09 | docs | Clarified Drawing `.modr` naming, `.mod` routing, and Filesystem Browser rename behavior; CURRENT_CHUNK remains 7.1 |
+| 2026-09-09 | cleanup | Preserved visible Filesystem Browser multi-selections across refreshes and canceled stale delete confirmations after filtered selection changes; added state coverage; CURRENT_CHUNK remains 7.1 |
 
 ---
 

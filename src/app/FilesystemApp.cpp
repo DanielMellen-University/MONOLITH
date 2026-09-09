@@ -4,6 +4,7 @@
 #include <algorithm>
 #include <cctype>
 #include <sstream>
+#include <utility>
 
 namespace monolith::app {
 
@@ -45,6 +46,7 @@ void FilesystemApp::setCurrentPath(const std::string& virtualPath) {
 
     std::string normalized = m_fs->normalize(virtualPath);
     if (m_fs->isDirectory(normalized)) {
+        cancelPendingDelete();
         m_currentPath = normalized;
         m_filtering = false;
         m_filterQuery.clear();
@@ -78,12 +80,21 @@ void FilesystemApp::goUp() {
 }
 
 void FilesystemApp::refreshEntries() {
-    std::string selectedName;
-    bool selectedIsDirectory = false;
-    bool hadSelection = m_selectedIndex >= 0 && m_selectedIndex < static_cast<int>(m_entries.size());
-    if (hadSelection) {
-        selectedName = m_entries[m_selectedIndex].name;
-        selectedIsDirectory = m_entries[m_selectedIndex].isDirectory;
+    using SelectionIdentity = std::pair<std::string, bool>;
+    std::set<SelectionIdentity> selectedIdentities;
+    for (const int index : selectedIndicesSorted()) {
+        if (index >= 0 && index < static_cast<int>(m_entries.size())) {
+            const auto& entry = m_entries[static_cast<size_t>(index)];
+            selectedIdentities.emplace(entry.name, entry.isDirectory);
+        }
+    }
+
+    bool hadPrimarySelection = m_selectedIndex >= 0
+        && m_selectedIndex < static_cast<int>(m_entries.size());
+    SelectionIdentity primaryIdentity;
+    if (hadPrimarySelection) {
+        const auto& entry = m_entries[static_cast<size_t>(m_selectedIndex)];
+        primaryIdentity = {entry.name, entry.isDirectory};
     }
 
     m_entries.clear();
@@ -97,15 +108,52 @@ void FilesystemApp::refreshEntries() {
     m_entries = monolith::fs::Filesystem::filterEntries(raw, m_filterQuery);
 
     clearMultiSelection();
-    const bool restoredSelection = hadSelection
-        && selectEntryNamed(selectedName, selectedIsDirectory);
-    if (!restoredSelection) {
-        // The previous row may have disappeared because of filtering, deletion,
-        // or an external filesystem change. Never reinterpret its old index as
-        // a different entry in the refreshed list.
+    int restoredPrimary = -1;
+    for (size_t i = 0; i < m_entries.size(); ++i) {
+        const auto& entry = m_entries[i];
+        const SelectionIdentity identity{entry.name, entry.isDirectory};
+        if (!selectedIdentities.count(identity)) continue;
+
+        const int index = static_cast<int>(i);
+        m_selectedSet.insert(index);
+        if (hadPrimarySelection && identity == primaryIdentity) {
+            restoredPrimary = index;
+        }
+    }
+
+    if (restoredPrimary >= 0) {
+        m_selectedIndex = restoredPrimary;
+    } else if (!m_selectedSet.empty()) {
+        // If the old primary disappeared, keep the remaining selection usable
+        // by promoting the first surviving entry.
+        m_selectedIndex = *m_selectedSet.begin();
+    } else {
         m_selectedIndex = -1;
     }
+
     clampSelection();
+
+    std::set<SelectionIdentity> restoredIdentities;
+    for (const int index : selectedIndicesSorted()) {
+        if (index >= 0 && index < static_cast<int>(m_entries.size())) {
+            const auto& entry = m_entries[static_cast<size_t>(index)];
+            restoredIdentities.emplace(entry.name, entry.isDirectory);
+        }
+    }
+    bool restoredPrimarySelection = m_selectedIndex >= 0
+        && m_selectedIndex < static_cast<int>(m_entries.size());
+    SelectionIdentity restoredPrimaryIdentity;
+    if (restoredPrimarySelection) {
+        const auto& entry = m_entries[static_cast<size_t>(m_selectedIndex)];
+        restoredPrimaryIdentity = {entry.name, entry.isDirectory};
+    }
+    if (m_confirmingDelete
+        && (selectedIdentities != restoredIdentities
+            || hadPrimarySelection != restoredPrimarySelection
+            || (hadPrimarySelection && restoredPrimarySelection
+                && primaryIdentity != restoredPrimaryIdentity))) {
+        cancelPendingDelete();
+    }
 }
 
 std::string FilesystemApp::fullPathFor(const std::string& name) const {

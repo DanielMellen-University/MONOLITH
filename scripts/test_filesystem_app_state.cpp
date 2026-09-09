@@ -82,6 +82,38 @@ int main() {
     key(browser, SDLK_ESCAPE);
     check(browser.m_entries.size() == 15, "clear the filter before delete selection coverage");
 
+    check(browser.selectEntryNamed("a.txt", false), "select first item for multi-selection refresh");
+    int cIndex = -1;
+    for (size_t i = 0; i < browser.m_entries.size(); ++i) {
+        if (browser.m_entries[i].name == "c.txt") {
+            cIndex = static_cast<int>(i);
+            break;
+        }
+    }
+    check(cIndex >= 0, "find second multi-selection item");
+    if (cIndex >= 0) {
+        browser.setSelection(cIndex, true);
+    }
+    check(browser.selectedIndicesSorted().size() == 2,
+          "multi-selection contains both selected items before refresh");
+    key(browser, SDLK_f, KMOD_CTRL);
+    text(browser, "txt");
+    check(browser.selectedIndicesSorted().size() == 2
+              && browser.m_selectedIndex >= 0
+              && browser.m_entries[static_cast<size_t>(browser.m_selectedIndex)].name == "c.txt",
+          "filter refresh preserves the visible multi-selection and primary item");
+    key(browser, SDLK_ESCAPE);
+    check(browser.selectedIndicesSorted().size() == 2,
+          "clearing a filter preserves the visible multi-selection");
+
+    check(browser.selectEntryNamed("a.txt", false), "select an item before filtered delete");
+    browser.requestDeleteSelected();
+    key(browser, SDLK_f, KMOD_CTRL);
+    text(browser, "does-not-exist");
+    check(!browser.m_confirmingDelete && browser.m_selectedIndex == -1,
+          "filtering away a delete target cancels its confirmation");
+    key(browser, SDLK_ESCAPE);
+
     check(browser.selectEntryNamed("a.txt", false), "select an item before delete confirmation");
     browser.requestDeleteSelected();
     check(browser.m_confirmingDelete, "delete confirmation arms for the selected item");
