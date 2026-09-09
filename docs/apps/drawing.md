@@ -134,16 +134,19 @@ Pick samples the RGB value at the clicked canvas pixel, stores it as the custom 
 | Tab | Complete paths in save/open prompt |
 | Enter | Confirm save/open prompt |
 | Esc | Cancel save/open prompt |
-| Backspace | Remove one complete UTF-8 character from the save/open prompt path |
+| Left / Right | Move the save/open/RGB prompt caret by one UTF-8 character |
+| Home / End | Move to the beginning or end of the active prompt |
+| Backspace / Delete | Remove the previous or next complete UTF-8 character |
 
-While a path prompt is active, typed printable UTF-8 characters are added to the prompt. Tab completes a matching directory or `.modr` file; with several matches it completes the shared prefix or shows a short match preview in the status bar.
+While a prompt is active, typed printable UTF-8 characters are inserted at the caret. Tab completes a matching directory or `.modr` file; with several matches it completes the shared prefix or shows a short match preview in the status bar. Long prompts stay at native text size and scroll horizontally to keep the caret visible.
 
 ### Prompt Behavior
 
 - **Save** starts with the current file path when one exists. A new sketch starts with the next free name under `/home/monolith/drawings/`.
 - **Open** starts at `/home/monolith/drawings/` and filters file completion to `.modr` entries.
 - **RGB** starts with the current active color and accepts exactly three integer channels. Tab completion does not apply to RGB input.
-- These prompts are inline status-bar inputs. Typed text is appended at the end; there is no caret navigation or in-place editing. Backspace removes one complete UTF-8 character.
+- These prompts are inline status-bar inputs. Left/Right/Home/End move the caret, typed text is inserted at that position, and Backspace/Delete remove complete UTF-8 characters.
+- Tab replaces only the final path component before the caret. If the caret is inside a directory component, completion waits until the caret is in the final component so text after it is not rewritten.
 - Enter accepts the active prompt and Escape cancels it. Save adds `.modr` when the entered path does not already end in `.modr`; entering `picture.mod` therefore saves as `picture.mod.modr`.
 - If a dirty sketch blocks Open, the first confirmation keeps the path prompt active. Confirming the same open action again discards the unsaved canvas and loads the file.
 

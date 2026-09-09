@@ -1,5 +1,10 @@
 # Changelog
 
+## 2026-09: Caret-aware Drawing prompts
+
+- Drawing Save, Open, and RGB prompts now support caret movement, insertion, Delete, and UTF-8-safe Backspace.
+- Long prompts keep the active caret visible without compressing the status-bar text.
+
 ## 2026-09: Caret-aware Settings wallpaper paths
 
 - Settings wallpaper path editing now supports caret movement, insertion, Delete, and UTF-8-safe Backspace.

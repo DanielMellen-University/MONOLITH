@@ -134,6 +134,8 @@ private:
 
     PathPromptMode m_pathPromptMode = PathPromptMode::None;
     std::string m_pathPromptBuffer;
+    std::size_t m_pathPromptCursorPos = 0;
+    int m_pathPromptScrollPx = 0;
     std::string m_pendingInitialPath;
 
     // Toolbar hit areas (client-relative coordinates)

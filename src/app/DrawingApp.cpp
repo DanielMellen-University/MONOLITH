@@ -563,6 +563,8 @@ void DrawingApp::beginPathPrompt(PathPromptMode mode) {
         m_pathPromptBuffer = oss.str();
         setStatus("Custom RGB 0-255 as r,g,b (Enter confirm, Esc cancel):");
     }
+    m_pathPromptCursorPos = m_pathPromptBuffer.size();
+    m_pathPromptScrollPx = 0;
 }
 
 void DrawingApp::finishPathPrompt(bool commit) {
@@ -570,6 +572,8 @@ void DrawingApp::finishPathPrompt(bool commit) {
     const std::string buffer = m_pathPromptBuffer;
     m_pathPromptMode = PathPromptMode::None;
     m_pathPromptBuffer.clear();
+    m_pathPromptCursorPos = 0;
+    m_pathPromptScrollPx = 0;
 
     if (!commit) {
         setStatus("Cancelled.");
@@ -609,6 +613,8 @@ void DrawingApp::finishPathPrompt(bool commit) {
                 "Unsaved changes — open again to discard, or save first")) {
             m_pathPromptMode = PathPromptMode::Open;
             m_pathPromptBuffer = buffer;
+            m_pathPromptCursorPos = m_pathPromptBuffer.size();
+            m_pathPromptScrollPx = 0;
             return;
         }
         if (loadFromPath(buffer)) {
@@ -621,9 +627,14 @@ void DrawingApp::completePathPrompt() {
     if (m_pathPromptMode == PathPromptMode::Rgb) return;
     if (!m_fs || m_pathPromptBuffer.empty()) return;
 
-    const size_t slash = m_pathPromptBuffer.find_last_of('/');
-    const std::string dirPart = (slash == std::string::npos) ? "" : m_pathPromptBuffer.substr(0, slash);
-    const std::string namePrefix = (slash == std::string::npos) ? m_pathPromptBuffer : m_pathPromptBuffer.substr(slash + 1);
+    m_pathPromptCursorPos = std::min(m_pathPromptCursorPos, m_pathPromptBuffer.size());
+    if (m_pathPromptBuffer.find('/', m_pathPromptCursorPos) != std::string::npos) return;
+
+    const std::string prefixBuffer = m_pathPromptBuffer.substr(0, m_pathPromptCursorPos);
+    const size_t slash = prefixBuffer.find_last_of('/');
+    const size_t nameStart = (slash == std::string::npos) ? 0 : slash + 1;
+    const std::string dirPart = (slash == std::string::npos) ? "" : prefixBuffer.substr(0, slash);
+    const std::string namePrefix = prefixBuffer.substr(nameStart);
     const std::string searchDir = m_fs->normalize(dirPart.empty() ? "/" : dirPart);
     const std::string completionBase = (slash == std::string::npos)
         ? ""
@@ -656,14 +667,20 @@ void DrawingApp::completePathPrompt() {
     }
 
     if (matches.size() == 1) {
-        m_pathPromptBuffer = matches.front();
+        const std::string replacement = matches.front().substr(nameStart);
+        m_pathPromptBuffer.replace(
+            nameStart, m_pathPromptCursorPos - nameStart, replacement);
+        m_pathPromptCursorPos = nameStart + replacement.size();
         setStatus("Path completed. Enter confirm, Esc cancel:");
         return;
     }
 
     const std::string common = commonPrefix(matches);
-    if (common.size() > m_pathPromptBuffer.size()) {
-        m_pathPromptBuffer = common;
+    if (common.size() > prefixBuffer.size()) {
+        const std::string replacement = common.substr(nameStart);
+        m_pathPromptBuffer.replace(
+            nameStart, m_pathPromptCursorPos - nameStart, replacement);
+        m_pathPromptCursorPos = nameStart + replacement.size();
         setStatus("Path completed to common prefix.");
     } else {
         std::ostringstream oss;
@@ -689,9 +706,30 @@ void DrawingApp::handlePathPromptKey(const SDL_Keysym& keysym) {
             finishPathPrompt(false);
             break;
         case SDLK_BACKSPACE:
-            if (!m_pathPromptBuffer.empty()) {
-                popLastUtf8Codepoint(m_pathPromptBuffer);
+            erasePreviousUtf8Codepoint(m_pathPromptBuffer, m_pathPromptCursorPos);
+            break;
+        case SDLK_DELETE: {
+            m_pathPromptCursorPos = std::min(m_pathPromptCursorPos, m_pathPromptBuffer.size());
+            const std::size_t next = utf8NextCodepointStart(
+                m_pathPromptBuffer, m_pathPromptCursorPos);
+            if (next > m_pathPromptCursorPos) {
+                m_pathPromptBuffer.erase(m_pathPromptCursorPos, next - m_pathPromptCursorPos);
             }
+            break;
+        }
+        case SDLK_LEFT:
+            m_pathPromptCursorPos = utf8PrevCodepointStart(
+                m_pathPromptBuffer, m_pathPromptCursorPos);
+            break;
+        case SDLK_RIGHT:
+            m_pathPromptCursorPos = utf8NextCodepointStart(
+                m_pathPromptBuffer, m_pathPromptCursorPos);
+            break;
+        case SDLK_HOME:
+            m_pathPromptCursorPos = 0;
+            break;
+        case SDLK_END:
+            m_pathPromptCursorPos = m_pathPromptBuffer.size();
             break;
         case SDLK_TAB:
             completePathPrompt();
@@ -703,11 +741,17 @@ void DrawingApp::handlePathPromptKey(const SDL_Keysym& keysym) {
 
 void DrawingApp::handlePathPromptText(const char* text) {
     if (!text) return;
+    m_pathPromptCursorPos = std::min(m_pathPromptCursorPos, m_pathPromptBuffer.size());
+    std::string inserted;
     for (const char* p = text; *p; ++p) {
         const unsigned char c = static_cast<unsigned char>(*p);
         if (c >= 32 && c != 127) {
-            m_pathPromptBuffer.push_back(static_cast<char>(c));
+            inserted.push_back(static_cast<char>(c));
         }
+    }
+    if (!inserted.empty()) {
+        m_pathPromptBuffer.insert(m_pathPromptCursorPos, inserted);
+        m_pathPromptCursorPos += inserted.size();
     }
 }
 
@@ -927,10 +971,19 @@ void DrawingApp::drawStatusBar(SDL_Renderer* renderer, const SDL_Rect& contentRe
     if (!m_font) return;
 
     std::string text = m_statusMessage;
+    bool promptActive = false;
+    int promptCursorPx = 0;
     if (m_pathPromptMode != PathPromptMode::None) {
-        text += " " + m_pathPromptBuffer + "_";
+        m_pathPromptCursorPos = std::min(m_pathPromptCursorPos, m_pathPromptBuffer.size());
+        const std::string beforeCursor = m_pathPromptBuffer.substr(0, m_pathPromptCursorPos);
+        text += " " + beforeCursor + "_" + m_pathPromptBuffer.substr(m_pathPromptCursorPos);
+        const std::string cursorText = m_statusMessage + " " + beforeCursor + "_";
+        int cursorTextHeight = 0;
+        TTF_SizeUTF8(m_font, cursorText.c_str(), &promptCursorPx, &cursorTextHeight);
+        promptActive = true;
     } else if (m_dirty) {
         text += "  [modified]";
+        m_pathPromptScrollPx = 0;
     }
 
     SDL_Color col = {170, 175, 185, 255};
@@ -938,13 +991,31 @@ void DrawingApp::drawStatusBar(SDL_Renderer* renderer, const SDL_Rect& contentRe
     if (surf) {
         SDL_Texture* tex = SDL_CreateTextureFromSurface(renderer, surf);
         if (tex) {
-            SDL_Rect dst = {
+            const int visibleWidth = std::max(1, bar.w - 16);
+            if (promptActive) {
+                if (promptCursorPx - m_pathPromptScrollPx > visibleWidth) {
+                    m_pathPromptScrollPx = promptCursorPx - visibleWidth;
+                } else if (promptCursorPx - m_pathPromptScrollPx < 0) {
+                    m_pathPromptScrollPx = promptCursorPx;
+                }
+                const int maxScroll = std::max(0, surf->w - visibleWidth);
+                m_pathPromptScrollPx = std::clamp(m_pathPromptScrollPx, 0, maxScroll);
+            }
+            SDL_Rect clip = {
                 contentRect.x + 8,
+                bar.y,
+                visibleWidth,
+                bar.h
+            };
+            SDL_RenderSetClipRect(renderer, &clip);
+            SDL_Rect dst = {
+                contentRect.x + 8 - (promptActive ? m_pathPromptScrollPx : 0),
                 bar.y + (bar.h - surf->h) / 2,
-                std::min(surf->w, bar.w - 16),
+                surf->w,
                 surf->h
             };
             SDL_RenderCopy(renderer, tex, nullptr, &dst);
+            SDL_RenderSetClipRect(renderer, nullptr);
             SDL_DestroyTexture(tex);
         }
         SDL_FreeSurface(surf);

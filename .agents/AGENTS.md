@@ -402,6 +402,7 @@ When unspecified, choose:
 | 2026-09-09 | cleanup | Made Filesystem Browser rename a caret-aware UTF-8 editor with horizontal caret tracking; CURRENT_CHUNK remains 7.1 |
 | 2026-09-09 | cleanup | Made Text Editor Save/Open/Go-to-line prompts caret-aware with UTF-8-safe edits; CURRENT_CHUNK remains 7.1 |
 | 2026-09-09 | cleanup | Made Settings wallpaper path editing caret-aware with UTF-8-safe edits and horizontal caret tracking; CURRENT_CHUNK remains 7.1 |
+| 2026-09-09 | cleanup | Made Drawing Save/Open/RGB prompts caret-aware with UTF-8-safe edits and status-bar caret tracking; CURRENT_CHUNK remains 7.1 |
 
 ---
 
