@@ -1,5 +1,9 @@
 # Changelog
 
+## 2026-09: Filesystem long-name rendering
+
+- Filesystem list names now clip at native text size instead of being horizontally squeezed, and long rename buffers keep the caret visible.
+
 ## 2026-09: Filesystem context-menu selection
 
 - Filesystem context menus now preserve an existing multi-selection when opened on a selected row and clear stale selection when opened on empty space.

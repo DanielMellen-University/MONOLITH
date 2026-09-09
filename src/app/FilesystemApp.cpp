@@ -1221,9 +1221,16 @@ void FilesystemApp::drawList(SDL_Renderer* r, const SDL_Rect& contentRect, int l
             if (s) {
                 SDL_Texture* t = SDL_CreateTextureFromSurface(r, s);
                 if (t) {
-                    int maxW = rowRect.w - 40;
-                    SDL_Rect d = {rowRect.x + 28, rowRect.y + 2, std::min(s->w, maxW), s->h};
+                    const int nameX = rowRect.x + 28;
+                    const int nameWidth = std::max(1, rowRect.w - 36);
+                    const int textOffset = isRenamingThis
+                        ? std::max(0, s->w - nameWidth)
+                        : 0;
+                    SDL_Rect nameClip = {nameX, rowRect.y, nameWidth, rowRect.h};
+                    SDL_RenderSetClipRect(r, &nameClip);
+                    SDL_Rect d = {nameX - textOffset, rowRect.y + 2, s->w, s->h};
                     SDL_RenderCopy(r, t, nullptr, &d);
+                    SDL_RenderSetClipRect(r, nullptr);
                     SDL_DestroyTexture(t);
                 }
                 SDL_FreeSurface(s);
@@ -1235,7 +1242,10 @@ void FilesystemApp::drawList(SDL_Renderer* r, const SDL_Rect& contentRect, int l
                 if (!displayText.empty()) {
                     TTF_SizeUTF8(m_font, displayText.c_str(), &textW, &textH);
                 }
-                int cursorX = rowRect.x + 28 + textW + 1;
+                const int nameX = rowRect.x + 28;
+                const int nameWidth = std::max(1, rowRect.w - 36);
+                const int textOffset = std::max(0, textW - nameWidth);
+                int cursorX = nameX + textW - textOffset + 1;
                 int cursorY = rowRect.y + 2;
                 SDL_SetRenderDrawColor(r, 255, 255, 255, 220);
                 SDL_RenderDrawLine(r, cursorX, cursorY, cursorX, cursorY + rowH - 6);

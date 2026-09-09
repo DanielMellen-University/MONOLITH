@@ -130,6 +130,7 @@ Right-clicking an already selected row keeps the current multi-selection, so con
 - Cut + Paste moves items via `Filesystem::moveItemsInto`; Copy + Paste duplicates them, including directory trees via `copyItemsInto` → `copyRecursive`.
 - Paste skips items whose names already exist in the destination, same-folder sources, and folders pasted into themselves (`isSameOrDescendant`).
 - Backspace in rename and filter prompts removes one UTF-8 codepoint at a time.
+- Long names stay at their normal text size and are clipped within the list; while renaming, the visible text follows the end of the name so the caret remains visible.
 
 ## Current Limitations
 
