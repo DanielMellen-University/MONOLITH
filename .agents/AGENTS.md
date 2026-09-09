@@ -387,6 +387,7 @@ When unspecified, choose:
 | 2026-09-09 | cleanup | Made Settings wallpaper path Backspace codepoint-safe; CURRENT_CHUNK remains 7.1 |
 | 2026-09-09 | cleanup | Made Drawing save/open path prompts accept UTF-8 and delete by codepoint; CURRENT_CHUNK remains 7.1 |
 | 2026-09-09 | cleanup | Kept partial Filesystem Browser cut clipboards available for retry after destination conflicts; CURRENT_CHUNK remains 7.1 |
+| 2026-09-09 | cleanup | Added cursor-following horizontal scrolling and clipping for long Terminal input lines; CURRENT_CHUNK remains 7.1 |
 | 2026-09-09 | docs | Expanded the Drawing guide with workflow, tool history, canvas behavior, file-state details, and raster-editor limitations; CURRENT_CHUNK remains 7.1 |
 
 ---

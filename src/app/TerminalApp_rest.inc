@@ -327,7 +327,9 @@ void TerminalApp::render(SDL_Renderer* renderer, const SDL_Rect& contentRect) {
     SDL_Color textColor = {200, 205, 210, 255};
 
     // Draw input line (normal or reverse-search mode)
+    SDL_RenderSetClipRect(renderer, &inputBar);
     if (m_searchMode) {
+        m_inputHorizontalScrollPx = 0;
         // Reverse-i-search UI
         std::string searchPrompt = "(reverse-i-search)`" + m_searchBuffer + "': ";
         std::string matchText;
@@ -369,10 +371,23 @@ void TerminalApp::render(SDL_Renderer* renderer, const SDL_Rect& contentRect) {
         std::string prompt = getInputPrompt();
         std::string beforeCursor = prompt + m_inputBuffer.substr(0, m_inputCursorPos);
         std::string afterCursor  = m_inputBuffer.substr(m_inputCursorPos);
+        int prefixWidth = 0;
+        int prefixHeight = 0;
+        TTF_SizeUTF8(m_font, beforeCursor.c_str(), &prefixWidth, &prefixHeight);
+        const int cursorWidth = 8;
+        const int inputViewportWidth = std::max(1, inputBar.w - padding * 2);
+        if (prefixWidth + cursorWidth > m_inputHorizontalScrollPx + inputViewportWidth) {
+            m_inputHorizontalScrollPx = prefixWidth + cursorWidth - inputViewportWidth;
+        } else if (prefixWidth < m_inputHorizontalScrollPx) {
+            m_inputHorizontalScrollPx = prefixWidth;
+        }
+        if (m_inputHorizontalScrollPx < 0) m_inputHorizontalScrollPx = 0;
+
+        const int textOriginX = contentRect.x + padding - m_inputHorizontalScrollPx;
 
         // Draw text before cursor
         SDL_Surface* surf = TTF_RenderUTF8_Blended(m_font, beforeCursor.c_str(), textColor);
-        int cursorX = contentRect.x + padding;
+        int cursorX = textOriginX;
         if (surf) {
             SDL_Texture* tex = SDL_CreateTextureFromSurface(renderer, surf);
             if (tex) {
@@ -385,9 +400,8 @@ void TerminalApp::render(SDL_Renderer* renderer, const SDL_Rect& contentRect) {
         }
 
         // Draw cursor block
-        int cursorW = 8;
         SDL_SetRenderDrawColor(renderer, 180, 200, 180, 230);
-        SDL_Rect cursorRect = {cursorX, inputLineY + 2, cursorW, lineHeight - 4};
+        SDL_Rect cursorRect = {cursorX, inputLineY + 2, cursorWidth, lineHeight - 4};
         SDL_RenderFillRect(renderer, &cursorRect);
 
         // Draw text after cursor
@@ -396,7 +410,7 @@ void TerminalApp::render(SDL_Renderer* renderer, const SDL_Rect& contentRect) {
             if (surf2) {
                 SDL_Texture* tex2 = SDL_CreateTextureFromSurface(renderer, surf2);
                 if (tex2) {
-                    SDL_Rect dst2 = {cursorX + cursorW, inputLineY, surf2->w, surf2->h};
+                    SDL_Rect dst2 = {cursorX + cursorWidth, inputLineY, surf2->w, surf2->h};
                     SDL_RenderCopy(renderer, tex2, nullptr, &dst2);
                     SDL_DestroyTexture(tex2);
                 }
@@ -404,6 +418,7 @@ void TerminalApp::render(SDL_Renderer* renderer, const SDL_Rect& contentRect) {
             }
         }
     }
+    SDL_RenderSetClipRect(renderer, nullptr);
 
     // Draw history, respecting scroll offset (0 = bottom/newest)
     if (!m_history.empty()) {

@@ -1,5 +1,9 @@
 # Changelog
 
+## 2026-09: Terminal long-line editing
+
+- Terminal input now clips to its input bar and follows the cursor horizontally through long commands.
+
 ## 2026-09: Retryable partial cut paste
 
 - Filesystem Browser keeps a shared cut clipboard when only part of a multi-item paste succeeds, so conflicting sources can be retried after the destination is fixed.

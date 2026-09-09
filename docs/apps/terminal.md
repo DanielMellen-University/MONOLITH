@@ -73,7 +73,7 @@ Run `help` for the full list. Current commands:
 | `help` | Show command list |
 | `exit` / `quit` | Close this terminal window |
 
-Paths may be absolute or relative to the current working directory. Tab completion works for both command names and paths. The input cursor and Backspace move through complete UTF-8 characters, so accented characters and emoji are not split into invalid byte fragments.
+Paths may be absolute or relative to the current working directory. Tab completion works for both command names and paths. The input cursor and Backspace move through complete UTF-8 characters, so accented characters and emoji are not split into invalid byte fragments. Long commands scroll horizontally to keep the cursor visible.
 
 `cat` prints one scrollback line per file line (truncated after many lines so huge files cannot flood the terminal).
 

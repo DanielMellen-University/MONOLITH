@@ -79,6 +79,7 @@ private:
 
     // Input line cursor
     int m_inputCursorPos = 0;
+    int m_inputHorizontalScrollPx = 0;
 
     // Scrollback support
     int m_scrollOffset = 0;   // 0 = showing newest (bottom). Higher values = scrolled upward.
