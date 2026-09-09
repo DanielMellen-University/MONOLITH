@@ -1,4 +1,5 @@
 #include "TextEditorApp.hpp"
+#include "Utf8.hpp"
 #include <algorithm>
 #include <cctype>
 #include <sstream>
@@ -8,32 +9,6 @@
 namespace monolith::app {
 
 namespace {
-
-// Cursor columns are byte offsets. These helpers step by UTF-8 codepoint.
-size_t utf8CodepointByteLen(const std::string& s, size_t index) {
-    if (index >= s.size()) return 0;
-    const unsigned char c = static_cast<unsigned char>(s[index]);
-    if ((c & 0x80) == 0x00) return 1;
-    if ((c & 0xE0) == 0xC0) return 2;
-    if ((c & 0xF0) == 0xE0) return 3;
-    if ((c & 0xF8) == 0xF0) return 4;
-    return 1; // invalid lead — advance one byte to avoid getting stuck
-}
-
-size_t utf8PrevCodepointStart(const std::string& s, size_t col) {
-    if (col == 0 || col > s.size()) return 0;
-    size_t i = col - 1;
-    while (i > 0 && (static_cast<unsigned char>(s[i]) & 0xC0) == 0x80) {
-        --i;
-    }
-    return i;
-}
-
-void popLastUtf8Codepoint(std::string& s) {
-    if (s.empty()) return;
-    const size_t start = utf8PrevCodepointStart(s, s.size());
-    s.erase(start);
-}
 
 std::string commonPrefix(const std::vector<std::string>& values) {
     if (values.empty()) return "";

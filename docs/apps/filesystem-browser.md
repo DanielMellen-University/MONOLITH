@@ -125,8 +125,9 @@ Deletion uses `Filesystem::removeRecursive` (whole directory trees). The virtual
 
 - **Copy** or **Cut** the current selection (one item or multi-select) from the right-click menu (or Ctrl+C / Ctrl+X).
 - **Paste** into the current directory from the right-click menu (or Ctrl+V).
-- Cut + Paste moves items; Copy + Paste duplicates them (including directory trees via `Filesystem::copyItemsInto` → `copyRecursive` / `removeRecursive`).
+- Cut + Paste moves items via `Filesystem::moveItemsInto`; Copy + Paste duplicates them, including directory trees via `copyItemsInto` → `copyRecursive`.
 - Paste skips items whose names already exist in the destination, same-folder sources, and folders pasted into themselves (`isSameOrDescendant`).
+- Backspace in rename and filter prompts removes one UTF-8 codepoint at a time.
 
 ## Current Limitations
 

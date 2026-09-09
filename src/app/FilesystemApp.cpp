@@ -1,4 +1,5 @@
 #include "FilesystemApp.hpp"
+#include "Utf8.hpp"
 
 #include <algorithm>
 #include <cctype>
@@ -793,7 +794,7 @@ void FilesystemApp::handleKeyDown(const SDL_Keysym& keysym) {
         }
         if (keysym.sym == SDLK_BACKSPACE) {
             if (!m_renameBuffer.empty()) {
-                m_renameBuffer.pop_back();
+                popLastUtf8Codepoint(m_renameBuffer);
             }
             return;
         }
@@ -812,7 +813,7 @@ void FilesystemApp::handleKeyDown(const SDL_Keysym& keysym) {
         }
         if (keysym.sym == SDLK_BACKSPACE) {
             if (!m_filterQuery.empty()) {
-                m_filterQuery.pop_back();
+                popLastUtf8Codepoint(m_filterQuery);
                 applyFilterQuery();
             }
             return;

@@ -1,5 +1,10 @@
 # Changelog
 
+## 2026-09: Unicode-safe browser prompts
+
+- Filesystem Browser rename and filter Backspace now removes a complete UTF-8 codepoint instead of one raw byte.
+- UTF-8 stepping logic is shared with the Text Editor and covered by a headless regression check.
+
 ## 2026-09: Safe multi-item cut/paste
 
 - Filesystem Browser cut/paste now moves sources through a shared non-overwriting rename operation.
