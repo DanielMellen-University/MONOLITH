@@ -429,6 +429,7 @@ When unspecified, choose:
 | 2026-09-09 | cleanup | Stabilized Filesystem Browser selection and scroll state after filtering or refresh; added a headless app-state regression check; CURRENT_CHUNK remains 7.1 |
 | 2026-09-09 | docs | Completed the Drawing app reference with startup defaults and exact built-in swatch RGB values; CURRENT_CHUNK remains 7.1 |
 | 2026-09-09 | cleanup | Corrected Snake tail-vacate collision handling and added a headless state regression test; CURRENT_CHUNK remains 7.1 |
+| 2026-09-09 | cleanup | Preserved Text Editor file identity across Save As collisions and failed writes; added a headless state regression test; CURRENT_CHUNK remains 7.1 |
 
 ---
 

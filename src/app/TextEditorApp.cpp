@@ -496,6 +496,14 @@ void TextEditorApp::finishPathPrompt(bool commit) {
         }
         updateTitleForPath();
     } else if (mode == PathPromptMode::SaveAs) {
+        const std::string previousPath = m_filePath;
+        if (path != previousPath) {
+            if (auto* ctrl = getController(); ctrl && ctrl->focusEditorForFile(path)) {
+                setStatus("Save as failed: file already open");
+                return;
+            }
+        }
+
         const size_t slash = path.find_last_of('/');
         if (slash != std::string::npos && slash > 0) {
             m_fs->createDirectory(path.substr(0, slash));
@@ -508,6 +516,11 @@ void TextEditorApp::finishPathPrompt(bool commit) {
                 ctrl->bindEditorFile(path);
             }
             updateTitleForPath();
+        } else {
+            // Keep the current document identity when the destination could not
+            // be written. The attempted path remains in the status message.
+            m_filePath = previousPath;
+            refreshSyntaxMode();
         }
     }
 }

@@ -96,7 +96,7 @@ Both search fields insert text at the caret, and long prompts scroll horizontall
 
 ## Saving
 
-Ctrl+S saves to the bound path when one exists. If the buffer is untitled, Ctrl+S opens a save-as path prompt (Tab completion, Enter to confirm). Ctrl+Shift+S always opens save-as. Ctrl+O opens a path prompt starting in `/home/monolith/` (or the current file's directory).
+Ctrl+S saves to the bound path when one exists. If the buffer is untitled, Ctrl+S opens a save-as path prompt (Tab completion, Enter to confirm). Ctrl+Shift+S always opens save-as. Ctrl+O opens a path prompt starting in `/home/monolith/` (or the current file's directory). Save As refuses a path already open in another editor and keeps the current file binding when the destination cannot be written.
 
 Path prompts support Left/Right/Home/End, UTF-8-safe Backspace/Delete, and insertion at the caret. Long prompts scroll horizontally to keep the caret visible at native text size. Tab completes the final path component before the caret; when the caret is inside a directory component, Tab waits until the caret is in the final component so the untouched suffix is not rewritten.
 

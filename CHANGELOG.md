@@ -1,5 +1,10 @@
 # Changelog
 
+## 2026-09: Preserve Text Editor identity on failed Save As
+
+- Save As now refuses a path already bound to another editor and keeps the current path when a destination write fails.
+- Added a headless Text Editor state regression test for both failure paths.
+
 ## 2026-09: Correct Snake tail collision rules
 
 - Moving into the square the tail vacates is now legal on non-food moves, while moving into that square when food is present still ends the game.
