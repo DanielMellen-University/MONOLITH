@@ -4,6 +4,16 @@ The Drawing app is Monolith's native sketching tool. It provides a pixel canvas,
 
 Drawing files use the `.modr` extension (Monolith Drawing Raster).
 
+## Read This First
+
+Drawing is a pixel editor, not a layer or vector editor. The canvas is edited in memory and is not written to the internal filesystem until **Save** succeeds.
+
+- Save the sketch before closing, choosing **New**, or opening another file when the status bar shows `[modified]`.
+- Drawing files must end in `.modr`. The suffix is matched case-insensitively when opening.
+- `.mod` is intentionally treated as a normal text file. Saving a path such as `picture.mod` produces `picture.mod.modr` rather than changing the requested name.
+- A saved file contains only the opaque RGB canvas and its dimensions. The active tool, colors, brush size, undo history, and window state are not part of the file.
+- The status bar is the file prompt, progress display, and recovery guide. Press **Enter** to confirm a prompt and **Esc** to cancel it.
+
 ## At A Glance
 
 | Item | Behavior |

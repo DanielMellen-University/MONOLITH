@@ -1,5 +1,9 @@
 # Changelog
 
+## 2026-09: Drawing app documentation
+
+- Added a consolidated Drawing guide with the save contract, `.modr` versus `.mod` routing, persisted canvas state, prompt controls, and recovery behavior.
+
 ## 2026-09: Scaled Alt+Tab title overlay
 
 - Alt+Tab now sizes long-title overlays in logical coordinates and clips the native-size label inside the overlay at non-1x content scales.
