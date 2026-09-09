@@ -84,7 +84,7 @@ Remote: SSH `git@github.com:DanielMellen-University/MONOLITH.git`
 ## Current state snapshot
 
 **Phase:** 4 living-inside-it
-**CURRENT_CHUNK:** `4.1` (Terminal quoted arguments)
+**CURRENT_CHUNK:** `4.2` (Settings font / UI scale)
 **Language / IDE:** parked
 
 ### Done (high level)
@@ -93,7 +93,7 @@ Remote: SSH `git@github.com:DanielMellen-University/MONOLITH.git`
 - Taskbar + Start (Games category) + local-time clock (12/24) + session restore
 - Multi-instance titles with live compaction
 - Virtual FS `~/.monolith/fs/`; recursive copy/remove; browser multi-select, filter, multi copy/cut/paste; rename rejects `/`
-- Terminal, Editor (UTF-8, find/replace, Ctrl+G, coalesced undo), Drawing (pen/eraser/fill/line/rect, custom RGB, `.modr`), Settings
+- Terminal (quoted args), Editor (UTF-8, find/replace, Ctrl+G, coalesced undo), Drawing (pen/eraser/fill/line/rect, custom RGB, `.modr`), Settings
 - BMP wallpaper path + desktop color presets
 - Snake, Minesweeper, Pong under Start -> Games
 - Open-with: `.modr` -> Drawing, else Editor
@@ -101,7 +101,6 @@ Remote: SSH `git@github.com:DanielMellen-University/MONOLITH.git`
 
 ### Known debts
 
-- Terminal has no quoting (spaces in paths are awkward)
 - Editor long lines clip (no wrap / horizontal scroll)
 - Drawing custom RGB is a status-bar prompt, not a picker; no PNG export
 - Wallpaper is BMP-only (no SDL_image)
@@ -189,7 +188,7 @@ Track status: `pending` | `in_progress` | `done` | `blocked` | `parked` | `cut`
 
 | ID | Chunk | Status | Deliverable / exit criteria |
 |----|--------|--------|-----------------------------|
-| 4.1 | Terminal quoted arguments | pending | `cat "/home/monolith/my file.txt"` and similar work; doc the quoting rules in `docs/apps/terminal.md` |
+| 4.1 | Terminal quoted arguments | done | `cat "/home/monolith/my file.txt"` and similar work; doc the quoting rules in `docs/apps/terminal.md` |
 | 4.2 | Settings font / UI scale | pending | One persisted appearance control beyond color/wallpaper/clock; README stays one-line |
 | 4.3 | Editor wrap or horizontal scroll | pending | Long lines remain editable; `docs/apps/text-editor.md` updated |
 | 4.4 | Drawing eyedropper | pending | Click canvas to set custom RGB from a pixel; still saves `.modr` |
@@ -277,6 +276,7 @@ mkdir -p build && cd build && cmake .. && make -j$(nproc)
 g++ -std=c++23 scripts/test_fs_roadmap.cpp src/fs/Filesystem.cpp -o build/test_fs_roadmap && ./build/test_fs_roadmap
 g++ -std=c++23 scripts/test_drawing_roadmap.cpp src/app/DrawingRaster.cpp -o build/test_drawing_roadmap && ./build/test_drawing_roadmap
 g++ -std=c++23 scripts/test_pong_state.cpp src/app/PongLogic.cpp -o build/test_pong_state && ./build/test_pong_state
+g++ -std=c++23 scripts/test_terminal_lexer.cpp src/app/TerminalLexer.cpp -o build/test_terminal_lexer && ./build/test_terminal_lexer
 ```
 
 ---
@@ -334,6 +334,7 @@ main.cpp
 | `src/app/` | Native apps + `App.hpp` / `IWindowController` |
 | `src/app/DrawingRaster.*` | Line/rect/RGB/`.modr` (no SDL) |
 | `src/app/PongLogic.*` | Pong rules (no SDL) |
+| `src/app/TerminalLexer.*` | Command-line quoting / argv split (no SDL) |
 | `src/fs/` | Virtual filesystem |
 | `src/settings/` | Desktop color, clock, wallpaper path |
 | `docs/apps/` | Per-app user guides |
@@ -368,6 +369,7 @@ When unspecified, choose:
 | 2026-09-08 | 3.6 | Drawing line/rect + custom RGB |
 | 2026-09-08 | 3.7 | Pong |
 | 2026-09-08 | playbook | Expanded this existing file with Blackout-style chunks and protocol |
+| 2026-09-09 | 4.1 | Terminal quoted arguments (`TerminalLexer`); CURRENT_CHUNK -> 4.2 |
 
 ---
 
