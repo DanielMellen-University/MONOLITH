@@ -1360,12 +1360,15 @@ void TextEditorApp::replaceAllMatches() {
     // Right-to-left per line so indices stay valid.
     for (int row = static_cast<int>(m_lines.size()) - 1; row >= 0; --row) {
         std::string& line = m_lines[static_cast<size_t>(row)];
-        size_t pos = line.rfind(m_findQuery);
-        while (pos != std::string::npos) {
+        size_t searchEnd = line.size();
+        while (searchEnd > 0) {
+            const size_t pos = line.rfind(m_findQuery, searchEnd - 1);
+            if (pos == std::string::npos) break;
             line.replace(pos, m_findQuery.size(), m_replaceText);
             ++count;
-            if (pos == 0) break;
-            pos = line.rfind(m_findQuery, pos - 1);
+            // Search only before the match just replaced. This keeps text
+            // introduced by the replacement from being processed again.
+            searchEnd = pos;
         }
     }
 

@@ -104,6 +104,16 @@ int main() {
     check(!editor.saveCurrentFile(), "direct save failure is reported");
     check(!editor.allowClose(), "failed save clears the stale dirty guard arm");
 
+    editor.m_lines = {"aa"};
+    editor.m_cursorRow = 0;
+    editor.m_cursorCol = 0;
+    editor.m_searchMode = TestEditor::SearchMode::Replace;
+    editor.m_findQuery = "a";
+    editor.m_replaceText = "aa";
+    editor.replaceAllMatches();
+    check(editor.m_lines == std::vector<std::string>{"aaaa"},
+          "replace all does not reprocess replacement text");
+
     std::filesystem::remove_all(hostRoot, ec);
     if (failures == 0) {
         std::cout << "ALL TEXT EDITOR STATE TESTS PASSED\n";

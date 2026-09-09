@@ -94,7 +94,7 @@ The status bar shows match count (e.g. `2/5`). The current match is selected in 
 | Ctrl+Shift+R | Replace all matches (one undo step) |
 | Esc | Exit |
 
-Replacement is case-sensitive substring match (same as find). Multi-line find is not supported.
+Replacement is case-sensitive substring match (same as find). Each original match is replaced once, even when the replacement text contains the search text. Multi-line find is not supported.
 Both search fields insert text at the caret, and long prompts scroll horizontally to keep the active caret visible.
 
 ## Saving

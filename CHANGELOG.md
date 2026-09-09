@@ -1,5 +1,10 @@
 # Changelog
 
+## 2026-09: Stabilize Text Editor Replace All
+
+- Replace All now processes each original match once, even when replacement text contains the search text.
+- Added regression coverage for replacement expansion such as `a` to `aa`.
+
 ## 2026-09: Re-arm dirty documents after failed saves
 
 - Failed Text Editor and Drawing saves now clear stale discard confirmations, preventing the next close or open from silently discarding unsaved work.

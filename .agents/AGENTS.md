@@ -442,6 +442,7 @@ When unspecified, choose:
 | 2026-09-09 | cleanup | Pruned successfully moved sources from partial Filesystem Browser cut clipboards while retaining conflicts for retry; extended state coverage; CURRENT_CHUNK remains 7.1 |
 | 2026-09-09 | docs | Completed the Drawing prompt reference and listed the focused state check; CURRENT_CHUNK remains 7.1 |
 | 2026-09-09 | cleanup | Cleared stale dirty-document discard arms after failed Text Editor and Drawing saves; extended both state checks; CURRENT_CHUNK remains 7.1 |
+| 2026-09-09 | cleanup | Bounded Text Editor Replace All so replacement text is not processed again; added expansion coverage; CURRENT_CHUNK remains 7.1 |
 
 ---
 
