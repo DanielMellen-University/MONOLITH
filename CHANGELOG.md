@@ -1,5 +1,10 @@
 # Changelog
 
+## 2026-09: Caret-aware Filesystem filtering
+
+- Filesystem Browser Ctrl+F filtering now supports caret movement, insertion, Delete, and UTF-8-safe Backspace.
+- Long filter queries stay at native size and keep the active caret visible.
+
 ## 2026-09: Caret-aware Drawing prompts
 
 - Drawing Save, Open, and RGB prompts now support caret movement, insertion, Delete, and UTF-8-safe Backspace.

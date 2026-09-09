@@ -139,6 +139,8 @@ private:
     // Folder listing filter/search (Ctrl+F)
     bool m_filtering = false;
     std::string m_filterQuery;
+    std::size_t m_filterCursorPos = 0;
+    int m_filterScrollPx = 0;
 
     // For double-click detection we use SDL's built-in clicks count
 };

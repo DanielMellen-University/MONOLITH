@@ -48,6 +48,8 @@ void FilesystemApp::setCurrentPath(const std::string& virtualPath) {
         m_currentPath = normalized;
         m_filtering = false;
         m_filterQuery.clear();
+        m_filterCursorPos = 0;
+        m_filterScrollPx = 0;
         refreshEntries();
         clearMultiSelection();
         m_selectedIndex = -1;
@@ -554,6 +556,8 @@ void FilesystemApp::beginFilter() {
         finishRename(false);
     }
     closeContextMenu();
+    m_filterCursorPos = m_filterQuery.size();
+    m_filterScrollPx = 0;
     setStatus(m_filterQuery.empty()
         ? "Filter: type to search this folder (Enter keep, Esc clear)"
         : ("Filter: " + m_filterQuery));
@@ -563,6 +567,8 @@ void FilesystemApp::clearFilter() {
     const bool hadFilter = m_filtering || !m_filterQuery.empty();
     m_filtering = false;
     m_filterQuery.clear();
+    m_filterCursorPos = 0;
+    m_filterScrollPx = 0;
     if (hadFilter) {
         refreshEntries();
         setStatus("Filter cleared");
@@ -846,10 +852,33 @@ void FilesystemApp::handleKeyDown(const SDL_Keysym& keysym) {
             return;
         }
         if (keysym.sym == SDLK_BACKSPACE) {
-            if (!m_filterQuery.empty()) {
-                popLastUtf8Codepoint(m_filterQuery);
+            erasePreviousUtf8Codepoint(m_filterQuery, m_filterCursorPos);
+            applyFilterQuery();
+            return;
+        }
+        if (keysym.sym == SDLK_DELETE) {
+            m_filterCursorPos = std::min(m_filterCursorPos, m_filterQuery.size());
+            const std::size_t next = utf8NextCodepointStart(m_filterQuery, m_filterCursorPos);
+            if (next > m_filterCursorPos) {
+                m_filterQuery.erase(m_filterCursorPos, next - m_filterCursorPos);
                 applyFilterQuery();
             }
+            return;
+        }
+        if (keysym.sym == SDLK_LEFT) {
+            m_filterCursorPos = utf8PrevCodepointStart(m_filterQuery, m_filterCursorPos);
+            return;
+        }
+        if (keysym.sym == SDLK_RIGHT) {
+            m_filterCursorPos = utf8NextCodepointStart(m_filterQuery, m_filterCursorPos);
+            return;
+        }
+        if (keysym.sym == SDLK_HOME) {
+            m_filterCursorPos = 0;
+            return;
+        }
+        if (keysym.sym == SDLK_END) {
+            m_filterCursorPos = m_filterQuery.size();
             return;
         }
         if (keysym.sym == SDLK_UP || keysym.sym == SDLK_DOWN) {
@@ -992,7 +1021,10 @@ void FilesystemApp::handleEvent(const SDL_Event& event) {
 
     if (m_filtering && event.type == SDL_TEXTINPUT) {
         if (event.text.text) {
-            m_filterQuery += event.text.text;
+            m_filterCursorPos = std::min(m_filterCursorPos, m_filterQuery.size());
+            const std::string inserted = event.text.text;
+            m_filterQuery.insert(m_filterCursorPos, inserted);
+            m_filterCursorPos += inserted.size();
             applyFilterQuery();
         }
         return;
@@ -1065,8 +1097,18 @@ void FilesystemApp::drawPathBar(SDL_Renderer* r, const SDL_Rect& contentRect, in
         SDL_SetRenderDrawColor(r, 70, 75, 85, 255);
         SDL_RenderDrawRect(r, &filterDraw);
 
-        std::string filterLabel = m_filterQuery.empty() ? "Filter..." : m_filterQuery;
-        if (m_filtering) filterLabel += "_";
+        std::string filterLabel;
+        int filterCursorPx = 0;
+        if (m_filtering) {
+            m_filterCursorPos = std::min(m_filterCursorPos, m_filterQuery.size());
+            const std::string beforeCursor = m_filterQuery.substr(0, m_filterCursorPos);
+            filterLabel = beforeCursor + "_" + m_filterQuery.substr(m_filterCursorPos);
+            int cursorHeight = 0;
+            TTF_SizeUTF8(m_font, (beforeCursor + "_").c_str(), &filterCursorPx, &cursorHeight);
+        } else {
+            filterLabel = m_filterQuery.empty() ? "Filter..." : m_filterQuery;
+            m_filterScrollPx = 0;
+        }
         SDL_Color filterCol = m_filterQuery.empty() && !m_filtering
             ? SDL_Color{120, 125, 130, 255}
             : SDL_Color{210, 215, 220, 255};
@@ -1074,13 +1116,31 @@ void FilesystemApp::drawPathBar(SDL_Renderer* r, const SDL_Rect& contentRect, in
         if (fs) {
             SDL_Texture* ft = SDL_CreateTextureFromSurface(r, fs);
             if (ft) {
-                SDL_Rect dst = {
+                const int visibleWidth = std::max(1, filterDraw.w - 12);
+                if (m_filtering) {
+                    if (filterCursorPx - m_filterScrollPx > visibleWidth) {
+                        m_filterScrollPx = filterCursorPx - visibleWidth;
+                    } else if (filterCursorPx - m_filterScrollPx < 0) {
+                        m_filterScrollPx = filterCursorPx;
+                    }
+                    const int maxScroll = std::max(0, fs->w - visibleWidth);
+                    m_filterScrollPx = std::clamp(m_filterScrollPx, 0, maxScroll);
+                }
+                SDL_Rect filterClip = {
                     filterDraw.x + 6,
+                    filterDraw.y,
+                    visibleWidth,
+                    filterDraw.h
+                };
+                SDL_RenderSetClipRect(r, &filterClip);
+                SDL_Rect dst = {
+                    filterDraw.x + 6 - (m_filtering ? m_filterScrollPx : 0),
                     filterDraw.y + (filterDraw.h - fs->h) / 2,
-                    std::min(fs->w, filterDraw.w - 12),
+                    fs->w,
                     fs->h
                 };
                 SDL_RenderCopy(r, ft, nullptr, &dst);
+                SDL_RenderSetClipRect(r, nullptr);
                 SDL_DestroyTexture(ft);
             }
             SDL_FreeSurface(fs);

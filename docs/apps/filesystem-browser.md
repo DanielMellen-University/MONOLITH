@@ -77,6 +77,8 @@ Press **F2** or choose Rename from the context menu. The caret starts at the end
 **Ctrl+F**, the toolbar **Filter** button, or the filter box on the right of the path bar focuses name search in the current folder.
 
 - Type to filter the listing (case-insensitive substring).
+- While filtering, Left/Right/Home/End move the caret, typed text is inserted at the caret, Delete removes the next complete UTF-8 character, and Backspace removes the previous one.
+- Long filter queries stay at native text size and scroll horizontally to keep the caret visible.
 - **Enter** keeps the filter and leaves typing mode.
 - **Esc** clears the filter.
 - Changing directory clears the filter.
