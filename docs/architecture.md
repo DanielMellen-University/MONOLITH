@@ -129,6 +129,7 @@ Apps can request shell actions through `IWindowController`: `close()`, `setTitle
 - The Window Manager performs hit testing to determine which window (and which part of the window) should receive the event.
 - Screen-space mouse events are converted to logical desktop pixels once at the shell boundary before window hit testing, drag/resize math, or client-area forwarding.
 - A client that receives a left-button press keeps receiving matching motion and release events until that button is released, even if the pointer leaves the window or focus changes. This keeps drag interactions such as Drawing strokes from getting stuck.
+- The shell records the latest pointer position from motion and button events, so wheel routing does not reuse a stale position after a release outside a client.
 - Window frame interactions (dragging, resizing, buttons) are handled by the Window Manager.
 - Client area events are forwarded to the active application.
 

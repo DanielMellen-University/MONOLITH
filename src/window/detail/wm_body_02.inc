@@ -83,6 +83,8 @@
     }
 
     if (event.type == SDL_MOUSEBUTTONUP && event.button.button == SDL_BUTTON_LEFT) {
+        m_mouseX = event.button.x;
+        m_mouseY = event.button.y;
         m_mouseDown = false;
 
         if (m_draggedWindow) {

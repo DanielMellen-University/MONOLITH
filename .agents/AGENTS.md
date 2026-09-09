@@ -382,6 +382,7 @@ When unspecified, choose:
 | 2026-09-09 | cleanup | Shared UTF-8 codepoint editing for Text Editor and Filesystem Browser prompts; CURRENT_CHUNK remains 7.1 |
 | 2026-09-09 | cleanup | Unified screen-to-logical WindowManager input conversion and added a scaled-coordinate probe; CURRENT_CHUNK remains 7.1 |
 | 2026-09-09 | cleanup | Added WindowManager mouse capture so client drag releases return to the original window; CURRENT_CHUNK remains 7.1 |
+| 2026-09-09 | cleanup | Updated stored pointer coordinates on mouse-up and covered stale wheel routing; CURRENT_CHUNK remains 7.1 |
 | 2026-09-09 | cleanup | Unified Terminal cursor and Backspace editing around complete UTF-8 codepoints; CURRENT_CHUNK remains 7.1 |
 | 2026-09-09 | cleanup | Made Settings wallpaper path Backspace codepoint-safe; CURRENT_CHUNK remains 7.1 |
 | 2026-09-09 | cleanup | Made Drawing save/open path prompts accept UTF-8 and delete by codepoint; CURRENT_CHUNK remains 7.1 |

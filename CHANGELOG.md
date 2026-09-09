@@ -1,5 +1,9 @@
 # Changelog
 
+## 2026-09: Fresh mouse position after release
+
+- WindowManager mouse-up events now update the stored pointer position before later wheel routing.
+
 ## 2026-09: Unicode-safe Drawing paths
 
 - Drawing save/open prompts now accept UTF-8 path text and remove complete characters with Backspace.

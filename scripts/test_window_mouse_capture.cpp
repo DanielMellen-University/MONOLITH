@@ -22,12 +22,15 @@ public:
             ++motions;
             motionX = event.motion.x;
             motionY = event.motion.y;
+        } else if (event.type == SDL_MOUSEWHEEL) {
+            ++wheelEvents;
         }
     }
 
     int downs = 0;
     int ups = 0;
     int motions = 0;
+    int wheelEvents = 0;
     int downX = -1;
     int downY = -1;
     int upX = -1;
@@ -88,11 +91,18 @@ int main() {
     check(secondPtr->downs == 1, "focus can change while the button is held");
 
     SDL_Event up{};
-    leftButton(up, SDL_MOUSEBUTTONUP, 520, 150);
+    leftButton(up, SDL_MOUSEBUTTONUP, 900, 650);
     wm.handleEvent(up);
-    check(firstPtr->ups == 1 && firstPtr->upX == 420 && firstPtr->upY == 18,
+    check(firstPtr->ups == 1 && firstPtr->upX == 800 && firstPtr->upY == 518,
           "release returns to the original client after focus changes");
     check(secondPtr->ups == 0, "focused replacement does not steal the release");
+
+    SDL_Event wheel{};
+    wheel.type = SDL_MOUSEWHEEL;
+    wheel.wheel.y = 1;
+    wm.handleEvent(wheel);
+    check(firstPtr->wheelEvents == 0 && secondPtr->wheelEvents == 0,
+          "wheel routing uses the latest button-up pointer position");
 
     if (failures == 0) {
         std::cout << "ALL WINDOW MOUSE CAPTURE TESTS PASSED\n";
