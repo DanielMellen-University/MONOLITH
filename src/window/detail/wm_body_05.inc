@@ -95,6 +95,10 @@ Window* WindowManager::getWindowAt(int mouseX, int mouseY) {
 void WindowManager::bringToFront(Window* window) {
     if (!window) return;
 
+    // Any operation that explicitly focuses a window, including the
+    // file-singleton bridges, must restore it if it was minimized.
+    window->minimized = false;
+
     // Move the window to the end of the vector (drawn last = on top)
     auto it = std::find_if(m_windows.begin(), m_windows.end(),
         [window](const auto& w) { return w.get() == window; });

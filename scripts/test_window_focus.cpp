@@ -1,8 +1,11 @@
 // Headless regression test for focus handoff when the active window is minimized.
+#include "../src/fs/Filesystem.hpp"
 #include "../src/window/WindowManager.hpp"
 
+#include <filesystem>
 #include <iostream>
 #include <memory>
+#include <unistd.h>
 
 namespace {
 
@@ -22,6 +25,14 @@ public:
     int focusLost = 0;
 };
 
+bool minimizeWindow(monolith::window::WindowManager& wm, monolith::window::Window* window) {
+    if (!window) return false;
+    const int buttonX = window->rect.x + window->rect.w - 10 - 16 * 3 - 6 * 2 + 4;
+    const int buttonY = window->rect.y
+        + (monolith::window::Window::TITLE_BAR_HEIGHT - 16) / 2 + 4;
+    return wm.handleTitleBarButtons(window, buttonX, buttonY);
+}
+
 } // namespace
 
 int main() {
@@ -35,7 +46,13 @@ int main() {
         }
     };
 
+    const std::filesystem::path hostRoot = std::filesystem::temp_directory_path()
+        / ("monolith-window-focus-" + std::to_string(getpid()));
+    monolith::fs::Filesystem fs(hostRoot.string());
+    check(fs.initialize(), "focus probe filesystem initialize");
+
     monolith::window::WindowManager wm;
+    wm.setAppResources(nullptr, &fs);
     auto first = std::make_unique<FocusProbe>();
     FocusProbe* firstPtr = first.get();
     wm.createWindow("First", 100, 100, 300, 240, std::move(first));
@@ -43,13 +60,11 @@ int main() {
     auto second = std::make_unique<FocusProbe>();
     FocusProbe* secondPtr = second.get();
     auto* secondWindow = wm.createWindow("Second", 500, 100, 300, 240, std::move(second));
+    wm.associateEditorWithFile(secondWindow, "/docs/note.txt");
 
     check(secondPtr->focusGained == 1, "newest window receives focus");
 
-    // WindowManager title-button geometry is fixed: size 16, spacing 6, right padding 10.
-    const int buttonX = secondWindow->rect.x + secondWindow->rect.w - 10 - 16 * 3 - 6 * 2 + 4;
-    const int buttonY = secondWindow->rect.y + (monolith::window::Window::TITLE_BAR_HEIGHT - 16) / 2 + 4;
-    check(wm.handleTitleBarButtons(secondWindow, buttonX, buttonY),
+    check(minimizeWindow(wm, secondWindow),
           "minimize title button is handled");
     check(secondWindow->minimized, "active window becomes minimized");
 
@@ -61,6 +76,26 @@ int main() {
     check(secondPtr->keyDowns == 0, "minimized window receives no hidden key input");
     check(secondPtr->focusLost == 1, "minimized window receives focus-lost notification");
     check(firstPtr->focusGained == 2, "visible survivor receives focus-gained notification");
+
+    check(wm.focusEditorForFile("/docs/note.txt"),
+          "file bridge finds the existing editor");
+    check(!secondWindow->minimized, "reopening an editor restores its minimized window");
+    wm.handleEvent(key);
+    check(secondPtr->keyDowns == 1, "restored editor receives keyboard focus");
+
+    auto third = std::make_unique<FocusProbe>();
+    FocusProbe* thirdPtr = third.get();
+    auto* thirdWindow = wm.createWindow("Third", 180, 180, 300, 240, std::move(third));
+    wm.associateDrawingWithFile(thirdWindow, "/drawings/sketch.modr");
+    check(minimizeWindow(wm, thirdWindow), "third window minimize is handled");
+    check(wm.focusDrawingForFile("/drawings/sketch.modr"),
+          "file bridge finds the existing drawing");
+    check(!thirdWindow->minimized, "reopening a Drawing restores its minimized window");
+    wm.handleEvent(key);
+    check(thirdPtr->keyDowns == 1, "restored Drawing receives keyboard focus");
+
+    std::error_code ec;
+    std::filesystem::remove_all(hostRoot, ec);
 
     if (failures == 0) {
         std::cout << "ALL WINDOW FOCUS TESTS PASSED\n";

@@ -1,5 +1,9 @@
 # Changelog
 
+## 2026-09: Restore focused file windows
+
+- Reopening an already-open Editor or Drawing file now restores its minimized window before focusing it.
+
 ## 2026-09: Reliable minimize focus
 
 - Minimizing the active window now hands keyboard focus to the topmost visible survivor and prevents hidden apps from receiving key events.
