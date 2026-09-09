@@ -1,5 +1,10 @@
 # Changelog
 
+## 2026-09: Consistent Drawing extension routing
+
+- `.modr` matching is now case-insensitive across shell open-with routing, Drawing save/open, tab completion, Terminal status text, and Filesystem Browser default open.
+- `.mod` remains a Text Editor file and is not treated as a Drawing document.
+
 ## 2026-09: Session restore paths
 
 - Session files now quote editor and Drawing paths, preserving virtual filenames with spaces, quotes, or backslashes across restarts.

@@ -112,7 +112,7 @@ If you save without typing `.modr`, Drawing adds it automatically.
 
 ## Opening
 
-Drawing opens `.modr` files only. The shell routes `.modr` paths from Terminal `open` and the Filesystem Browser to Drawing; `.mod` remains a text file and does not open in Drawing. This keeps drawing files distinct from future module-style files that may use similar names.
+Drawing opens `.modr` files only, with case-insensitive suffix matching. The shell routes `.modr` paths from Terminal `open` and the Filesystem Browser to Drawing; `.mod` remains a text file and does not open in Drawing. This keeps drawing files distinct from future module-style files that may use similar names.
 
 The Open prompt starts in:
 

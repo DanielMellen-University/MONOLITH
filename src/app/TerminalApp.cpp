@@ -1,4 +1,5 @@
 #include "TerminalApp.hpp"
+#include "FilePath.hpp"
 #include "TerminalLexer.hpp"
 #include <algorithm>
 #include <cctype>
@@ -362,8 +363,7 @@ void TerminalApp::executeCommand(const std::string& commandLine) {
             } else if (auto* ctrl = getController()) {
                 // Shell routes by extension (.modr → Drawing, else Editor).
                 ctrl->openPath(path);
-                const bool isModr = (path.size() >= 5 &&
-                                     path.compare(path.size() - 5, 5, ".modr") == 0);
+                const bool isModr = hasCaseInsensitiveSuffix(path, ".modr");
                 addOutput(std::string("Opened with ") +
                           (isModr ? "Drawing: " : "Text Editor: ") + path);
             } else {

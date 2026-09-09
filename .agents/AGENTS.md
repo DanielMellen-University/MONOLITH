@@ -331,6 +331,7 @@ main.cpp
 | `src/window/` | WM, frames, Start, session (`detail/wm_body_*.inc`) |
 | `src/app/` | Native apps + `App.hpp` / `IWindowController` |
 | `src/app/DrawingRaster.*` | Line/rect/RGB/`.modr` (no SDL) |
+| `src/app/FilePath.hpp` | Shared case-insensitive file suffix matching |
 | `src/app/PongLogic.*` | Pong rules (no SDL) |
 | `src/app/TerminalLexer.*` | Command-line quoting / argv split (no SDL) |
 | `src/fs/` | Virtual filesystem |
@@ -375,6 +376,7 @@ When unspecified, choose:
 | 2026-09-09 | docs | Expanded the Drawing app guide and corrected the `[modified]` status indicator; CURRENT_CHUNK remains 7.1 |
 | 2026-09-09 | cleanup | Hardened zero-byte Filesystem reads and added regression coverage; CURRENT_CHUNK remains 7.1 |
 | 2026-09-09 | cleanup | Quoted session file paths and added a headless legacy/round-trip check; CURRENT_CHUNK remains 7.1 |
+| 2026-09-09 | cleanup | Centralized case-insensitive `.modr` matching across Drawing and shell routing; CURRENT_CHUNK remains 7.1 |
 
 ---
 

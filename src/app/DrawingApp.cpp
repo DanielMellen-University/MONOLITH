@@ -1,4 +1,5 @@
 #include "DrawingApp.hpp"
+#include "FilePath.hpp"
 #include "DrawingRaster.hpp"
 
 #include <algorithm>
@@ -22,11 +23,6 @@ constexpr uint8_t kCanvasBackgroundB = 248;
 
 bool pointInRect(int x, int y, const SDL_Rect& rect) {
     return x >= rect.x && x < rect.x + rect.w && y >= rect.y && y < rect.y + rect.h;
-}
-
-bool hasSuffix(const std::string& value, const std::string& suffix) {
-    return value.size() >= suffix.size()
-        && value.compare(value.size() - suffix.size(), suffix.size(), suffix) == 0;
 }
 
 std::string commonPrefix(const std::vector<std::string>& values) {
@@ -422,7 +418,7 @@ bool DrawingApp::saveToPath(const std::string& virtualPath) {
     }
 
     std::string path = m_fs->normalize(virtualPath);
-    if (!path.ends_with(".modr")) {
+    if (!hasCaseInsensitiveSuffix(path, ".modr")) {
         path += ".modr";
     }
 
@@ -468,7 +464,7 @@ bool DrawingApp::loadFromPath(const std::string& virtualPath) {
     }
 
     const std::string path = m_fs->normalize(virtualPath);
-    if (!path.ends_with(".modr")) {
+    if (!hasCaseInsensitiveSuffix(path, ".modr")) {
         setStatus("Open failed: Drawing files must use .modr.");
         return false;
     }
@@ -642,7 +638,8 @@ void DrawingApp::completePathPrompt() {
             searchDir == "/" ? "/" + entry.name : searchDir + "/" + entry.name
         );
 
-        if (m_pathPromptMode == PathPromptMode::Open && !entry.isDirectory && !hasSuffix(candidatePath, ".modr")) {
+        if (m_pathPromptMode == PathPromptMode::Open && !entry.isDirectory
+            && !hasCaseInsensitiveSuffix(candidatePath, ".modr")) {
             continue;
         }
 

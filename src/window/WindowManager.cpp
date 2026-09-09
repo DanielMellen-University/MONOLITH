@@ -1,6 +1,7 @@
 #include "WindowManager.hpp"
 #include "SessionFormat.hpp"
 #include "../app/App.hpp"
+#include "../app/FilePath.hpp"
 #include "../app/TerminalApp.hpp"
 #include "../app/TextEditorApp.hpp"
 #include "../app/FilesystemApp.hpp"

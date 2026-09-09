@@ -22,7 +22,7 @@ The window has four regions:
 ## Navigation
 
 - **Double-click** a directory to enter it.
-- **Double-click** a file to open it with the shell default (**`.modr` → Drawing**, everything else → Text Editor).
+- **Double-click** a file to open it with the shell default (case-insensitive **`.modr` → Drawing**, everything else → Text Editor).
 - Click **Up** in the toolbar (or use context menu) to go to the parent directory.
 - **Arrow Up / Down** moves the primary selection; **Enter** activates it (same as double-click).
 
@@ -130,7 +130,7 @@ Deletion uses `Filesystem::removeRecursive` (whole directory trees). The virtual
 
 ## Current Limitations
 
-- Default open supports text + `.modr` only; force open-with can open any file in Editor or Drawing (Drawing rejects non-`.modr` loads).
+- Default open supports text + case-insensitive `.modr` only; force open-with can open any file in Editor or Drawing (Drawing rejects non-`.modr` loads).
 - No drag-and-drop.
 - The virtual clipboard is shared across Filesystem instances, but it is not connected to the host OS clipboard.
 

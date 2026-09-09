@@ -58,6 +58,12 @@ Headless test of quoted session paths, including spaces and legacy unquoted path
 g++ -std=c++23 scripts/test_session_format.cpp -o build/test_session_format && ./build/test_session_format
 ```
 
+Headless test of case-insensitive file suffix matching used by open-with routing:
+
+```bash
+g++ -std=c++23 scripts/test_file_path.cpp -o build/test_file_path && ./build/test_file_path
+```
+
 ## `.modr` Format Roundtrip
 
 Compiles and runs a standalone test of the Drawing raster file format:

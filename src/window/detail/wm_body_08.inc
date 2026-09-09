@@ -41,19 +41,7 @@ void WindowManager::openPath(const std::string& virtualPath) {
     if (virtualPath.empty()) return;
 
     std::string path = m_fs ? m_fs->normalize(virtualPath) : virtualPath;
-    // Extension routing table (case-insensitive suffix).
-    auto lowerEndsWith = [](const std::string& s, const char* suffix) {
-        const size_t n = std::char_traits<char>::length(suffix);
-        if (s.size() < n) return false;
-        for (size_t i = 0; i < n; ++i) {
-            const unsigned char a = static_cast<unsigned char>(s[s.size() - n + i]);
-            const unsigned char b = static_cast<unsigned char>(suffix[i]);
-            if (std::tolower(a) != std::tolower(b)) return false;
-        }
-        return true;
-    };
-
-    if (lowerEndsWith(path, ".modr")) {
+    if (monolith::app::hasCaseInsensitiveSuffix(path, ".modr")) {
         launchDrawing(path);
     } else {
         launchTextEditor(path);
