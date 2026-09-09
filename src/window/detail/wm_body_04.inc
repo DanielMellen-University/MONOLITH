@@ -97,6 +97,13 @@
         m_taskbarButtonAreaWidth -= (arrowWidth + 4) * 2;
     }
 
+    // Keep scrolling bounded by the actual button viewport. Without this
+    // clamp, repeated wheel/arrow input can move every window button away from
+    // the visible strip and leave the taskbar looking empty until manually
+    // scrolled back.
+    const int maxTaskbarScroll = std::max(0, totalButtonsWidth - m_taskbarButtonAreaWidth);
+    m_taskbarScrollOffset = std::clamp(m_taskbarScrollOffset, 0, maxTaskbarScroll);
+
     // --- Middle: Window buttons (ALL windows, XP style) ---
     // Active window is always drawn leftmost (per user request)
     int currentX = logicalToScreenX(buttonsStartX) - static_cast<int>(m_taskbarScrollOffset * m_contentScale);

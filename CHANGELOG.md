@@ -1,5 +1,9 @@
 # Changelog
 
+## 2026-09: Bounded taskbar scrolling
+
+- Taskbar wheel and arrow scrolling now clamps to the actual window-button strip, preventing all buttons from disappearing after excessive scrolling.
+
 ## 2026-09: Native-size taskbar labels
 
 - Taskbar window titles now stay at native size and clip within their own buttons instead of being horizontally squeezed or bleeding into neighbors.
