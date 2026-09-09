@@ -94,6 +94,7 @@ Terminal (`cp -r` / `rm -r`) and the Filesystem Browser (delete, cut/paste) both
 - Symlinks under the host root are not specially jailed beyond virtual-path normalization.
 - No quotas or versioning; `readFile` has no size cap (apps should refuse huge files if needed).
 - No cross-app file locking (two editors can theoretically race on the same file).
+- Empty files are valid and read as an empty string; callers that need to distinguish an empty file from an I/O failure should check `exists` or `fileSize` first.
 - Filenames with spaces are awkward in the Terminal (no quoting).
 - `readFile` returns an empty string for both empty files and some I/O failures.
 

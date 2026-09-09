@@ -270,11 +270,12 @@ std::string Filesystem::readFile(const std::string& virtualPath) const {
         std::ifstream file(hostPath, std::ios::binary | std::ios::ate);
         if (!file) return "";
 
-        std::streamsize size = file.tellg();
+        const std::streamsize size = file.tellg();
+        if (size < 0) return "";
         file.seekg(0, std::ios::beg);
 
         std::string buffer(size, '\0');
-        if (!file.read(&buffer[0], size)) return "";
+        if (size > 0 && !file.read(buffer.data(), size)) return "";
 
         return buffer;
     } catch (...) {

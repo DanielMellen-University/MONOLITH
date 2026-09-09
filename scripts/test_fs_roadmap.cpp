@@ -45,6 +45,12 @@ int main() {
     check(fs.writeFile("/src/notes.txt", "memo"), "write /src/notes.txt");
     check(fs.writeFile("/src/folder/c.txt", "charlie"), "write nested file");
     check(fs.writeFile("/src/other.dat", "zzz"), "write /src/other.dat");
+    check(fs.writeFile("/src/empty.txt", ""), "write empty file");
+    check(fs.isFile("/src/empty.txt") && fs.readFile("/src/empty.txt").empty(),
+          "read empty file without failure");
+    std::uint64_t emptySize = 99;
+    check(fs.fileSize("/src/empty.txt", emptySize) && emptySize == 0,
+          "empty file reports zero bytes");
 
     // Multi-item copy into a destination folder (paste).
     const int copied = fs.copyItemsInto(
@@ -58,6 +64,11 @@ int main() {
     check(fs.isDirectory("/dst/folder"), "pasted folder");
     check(fs.isFile("/dst/folder/c.txt") && fs.readFile("/dst/folder/c.txt") == "charlie",
           "pasted nested file via copyRecursive");
+    check(fs.copyRecursive("/src/empty.txt", "/dst/empty.txt"),
+          "copy empty file");
+    std::uint64_t copiedEmptySize = 99;
+    check(fs.fileSize("/dst/empty.txt", copiedEmptySize) && copiedEmptySize == 0,
+          "copied empty file remains zero bytes");
 
     // Same-folder / existing dest should not overwrite.
     const int copiedAgain = fs.copyItemsInto({"/src/a.txt"}, "/dst");

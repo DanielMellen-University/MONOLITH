@@ -1,5 +1,10 @@
 # Changelog
 
+## 2026-09: Filesystem empty-file handling
+
+- Reading zero-byte virtual files is now handled without indexing an empty buffer.
+- The filesystem roadmap check covers reading, sizing, and copying empty files.
+
 ## 2026-09: Drawing app documentation
 
 - Expanded the Drawing guide with a quick-start workflow, canvas resizing behavior, brush sizes, custom RGB input, path prompt editing, failure handling, and `.modr` validation limits.
