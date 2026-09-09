@@ -86,8 +86,8 @@ void TerminalApp::searchPreviousMatch() {
 void TerminalApp::loadCommandHistory() {
     if (!m_fs) return;
 
-    std::string content = m_fs->readFile(HISTORY_FILE);
-    if (content.empty()) return;
+    std::string content;
+    if (!m_fs->readFile(HISTORY_FILE, content) || content.empty()) return;
 
     std::istringstream iss(content);
     std::string line;

@@ -48,7 +48,7 @@ The `monolith::fs::Filesystem` class provides:
 
 - `exists`, `isFile`, `isDirectory`
 - `createDirectory`, `remove`, `removeRecursive`, `rename`, `renameEntry`
-- `readFile`, `writeFile`, `fileSize`
+- `readFile`, `writeFile`, `fileSize` (`readFile(path, out)` reports read success separately from empty content)
 - `copyRecursive` (file or directory tree; blocks copy into self/descendant)
 - `copyItemsInto` (multi-source paste into a directory, via `copyRecursive`)
 - `moveItemsInto` (multi-source cut/paste into a directory, via non-overwriting rename)
@@ -96,9 +96,9 @@ Terminal (`cp -r` / `rm -r`) and the Filesystem Browser (delete, cut/paste) both
 - Symlinks under the host root are not specially jailed beyond virtual-path normalization.
 - No quotas or versioning; `readFile` has no size cap (apps should refuse huge files if needed).
 - No cross-app file locking (two editors can theoretically race on the same file).
-- Empty files are valid and read as an empty string; callers that need to distinguish an empty file from an I/O failure should check `exists` or `fileSize` first.
+- Empty files are valid and read as an empty string; callers that need to distinguish an empty file from an I/O failure should use the boolean-output `readFile(path, out)` overload.
 - Terminal supports filenames with spaces through quoted or backslash-escaped arguments.
-- `readFile` returns an empty string for both empty files and some I/O failures.
+- The one-argument `readFile` overload returns an empty string for both empty files and some I/O failures; use the boolean-output overload when the distinction matters.
 
 ## Developer Notes
 

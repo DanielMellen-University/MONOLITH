@@ -51,6 +51,13 @@ int main() {
     check(fs.writeFile("/src/empty.txt", ""), "write empty file");
     check(fs.isFile("/src/empty.txt") && fs.readFile("/src/empty.txt").empty(),
           "read empty file without failure");
+    std::string explicitRead;
+    check(fs.readFile("/src/empty.txt", explicitRead) && explicitRead.empty(),
+          "explicit read accepts empty file");
+    check(fs.readFile("/src/a.txt", explicitRead) && explicitRead == "alpha",
+          "explicit read returns file content");
+    check(!fs.readFile("/src/missing.txt", explicitRead),
+          "explicit read reports missing file");
     std::uint64_t emptySize = 99;
     check(fs.fileSize("/src/empty.txt", emptySize) && emptySize == 0,
           "empty file reports zero bytes");

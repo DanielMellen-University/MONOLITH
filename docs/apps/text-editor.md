@@ -27,6 +27,7 @@ File-backed editors are singletons per path — opening the same file again focu
 - Syntax highlighting colors comments, strings, numbers, and (for code files) keywords.
 - A `*` in the status bar indicates unsaved changes.
 - Open/save results and errors appear in the status bar (e.g. `Saved: note.txt`, `Open failed: …`).
+- Failed reads are reported as open errors instead of being treated as empty documents.
 - Closing the window or opening another file while dirty asks once via the status bar; confirm the same action again to discard, or save first (Ctrl+S).
 
 ## Syntax Highlighting

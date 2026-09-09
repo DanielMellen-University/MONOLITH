@@ -1,5 +1,10 @@
 # Changelog
 
+## 2026-09: Explicit filesystem read results
+
+- Added a boolean-output `Filesystem::readFile` overload so empty files and read failures are distinguishable.
+- Text Editor, Drawing, Terminal `cat`, and Terminal history loading now use the explicit read result where it matters.
+
 ## 2026-09: Verified Terminal file copies
 
 - Terminal `cp` now routes regular files through `Filesystem::copyRecursive`, so a failed source read cannot silently create an empty destination.

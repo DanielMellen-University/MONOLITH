@@ -72,6 +72,9 @@ public:
     /** Reads the entire content of a file. Returns empty string on failure. */
     std::string readFile(const std::string& virtualPath) const;
 
+    /** Reads a file while preserving the distinction between empty content and failure. */
+    bool readFile(const std::string& virtualPath, std::string& outContent) const;
+
     /**
      * Byte size of a regular file. Returns false if missing or not a regular file.
      */

@@ -277,8 +277,11 @@ bool TextEditorApp::loadInitialFile(const std::string& virtualPath) {
         return false;
     }
 
-    // readFile returns "" for empty files and for some errors; isFile already verified existence.
-    std::string content = m_fs->readFile(normalized);
+    std::string content;
+    if (!m_fs->readFile(normalized, content)) {
+        setStatus("Open failed: could not read " + normalized);
+        return false;
+    }
     m_lines.clear();
     std::istringstream iss(content);
     std::string line;

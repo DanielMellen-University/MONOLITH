@@ -79,7 +79,7 @@ Reverse history search has its own editable query. Left/Right/Home/End move thro
 
 Completion replaces only the token text before the cursor. Opening quotes remain in place, and unquoted completions escape spaces, backslashes, and quote characters so the completed command keeps the same meaning when it runs.
 
-`cat` prints one scrollback line per file line (truncated after many lines so huge files cannot flood the terminal).
+`cat` prints one scrollback line per file line (truncated after many lines so huge files cannot flood the terminal). It reports a read failure separately from a valid empty file.
 
 ## Command History
 

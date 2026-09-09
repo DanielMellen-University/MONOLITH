@@ -470,7 +470,11 @@ bool DrawingApp::loadFromPath(const std::string& virtualPath) {
         return false;
     }
 
-    const std::string blob = m_fs->readFile(path);
+    std::string blob;
+    if (!m_fs->readFile(path, blob)) {
+        setStatus("Open failed: could not read file.");
+        return false;
+    }
     int width = 0;
     int height = 0;
     std::vector<uint8_t> rgba;

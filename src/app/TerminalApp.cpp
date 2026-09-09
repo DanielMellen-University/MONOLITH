@@ -243,7 +243,11 @@ void TerminalApp::executeCommand(const std::string& commandLine) {
             if (!m_fs->isFile(path)) {
                 addOutput("cat: " + rest + ": No such file");
             } else {
-                std::string content = m_fs->readFile(path);
+                std::string content;
+                if (!m_fs->readFile(path, content)) {
+                    addOutput("cat: " + rest + ": Could not read file");
+                    return;
+                }
                 // Split into scrollback lines so multi-line files render correctly.
                 size_t linesOut = 0;
                 size_t start = 0;

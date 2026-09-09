@@ -156,7 +156,8 @@ bool Filesystem::copyRecursive(const std::string& srcVirtualPath, const std::str
     if (isFile(src)) {
         std::uint64_t expectedBytes = 0;
         if (!fileSize(src, expectedBytes)) return false;
-        const std::string content = readFile(src);
+        std::string content;
+        if (!readFile(src, content)) return false;
         if (content.size() != expectedBytes) return false;
         return writeFile(dst, content);
     }
@@ -307,23 +308,32 @@ bool Filesystem::writeFile(const std::string& virtualPath, const std::string& co
 }
 
 std::string Filesystem::readFile(const std::string& virtualPath) const {
+    std::string content;
+    if (!readFile(virtualPath, content)) return "";
+    return content;
+}
+
+bool Filesystem::readFile(const std::string& virtualPath, std::string& outContent) const {
+    outContent.clear();
     try {
         stdfs::path hostPath = toHostPath(virtualPath);
-        if (!stdfs::is_regular_file(hostPath)) return "";
+        if (!stdfs::is_regular_file(hostPath)) return false;
 
         std::ifstream file(hostPath, std::ios::binary | std::ios::ate);
-        if (!file) return "";
+        if (!file) return false;
 
         const std::streamsize size = file.tellg();
-        if (size < 0) return "";
+        if (size < 0) return false;
         file.seekg(0, std::ios::beg);
+        if (!file) return false;
 
-        std::string buffer(size, '\0');
-        if (size > 0 && !file.read(buffer.data(), size)) return "";
+        std::string buffer(static_cast<size_t>(size), '\0');
+        if (size > 0 && !file.read(buffer.data(), size)) return false;
 
-        return buffer;
+        outContent = std::move(buffer);
+        return true;
     } catch (...) {
-        return "";
+        return false;
     }
 }
 
