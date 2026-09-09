@@ -80,6 +80,37 @@ int main() {
     check(browser.m_selectedIndex == 0 && browser.m_entries.front().name == "b.txt",
           "filter restores the selected entry by name");
 
+    check(fs.writeFile("/home/monolith/move_a.txt", "a"), "create first cut source");
+    check(fs.writeFile("/home/monolith/move_b.txt", "b"), "create second cut source");
+    check(fs.createDirectory("/home/monolith/dest"), "create cut destination");
+    check(fs.writeFile("/home/monolith/dest/move_a.txt", "existing"),
+          "create cut destination conflict");
+    browser.setCurrentPath("/home/monolith");
+    check(browser.selectEntryNamed("move_a.txt", false), "select first cut source");
+    int moveBIndex = -1;
+    for (size_t i = 0; i < browser.m_entries.size(); ++i) {
+        if (browser.m_entries[i].name == "move_b.txt") {
+            moveBIndex = static_cast<int>(i);
+            break;
+        }
+    }
+    check(moveBIndex >= 0, "find second cut source");
+    if (moveBIndex >= 0) {
+        browser.setSelection(moveBIndex, true);
+    }
+    browser.copySelectedToClipboard(true);
+    browser.setCurrentPath("/home/monolith/dest");
+    browser.pasteFromClipboard();
+    check(!fs.exists("/home/monolith/move_b.txt")
+              && fs.readFile("/home/monolith/dest/move_b.txt") == "b",
+          "partial cut moves the non-conflicting source");
+    check(fs.exists("/home/monolith/move_a.txt"),
+          "partial cut leaves the conflicting source in place");
+    check(browser.m_clipboardPaths.size() == 1
+              && browser.m_clipboardPaths.front() == "/home/monolith/move_a.txt"
+              && browser.m_clipboardIsCut,
+          "partial cut clipboard keeps only the retryable source");
+
     std::filesystem::remove_all(hostRoot, ec);
     if (failures == 0) {
         std::cout << "ALL FILESYSTEM APP STATE TESTS PASSED\n";

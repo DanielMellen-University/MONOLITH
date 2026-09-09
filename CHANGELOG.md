@@ -1,5 +1,10 @@
 # Changelog
 
+## 2026-09: Prune completed Filesystem Browser cuts
+
+- Partial cut/paste now removes successfully moved sources from the shared clipboard while retaining destination-conflicted sources for retry.
+- Extended Filesystem Browser state coverage for partial moves.
+
 ## 2026-09: Track Drawing resizes as edits
 
 - Resizing a loaded Drawing canvas now marks the document modified so changed dimensions cannot be closed without a save decision.

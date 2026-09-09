@@ -141,7 +141,7 @@ Right-clicking an already selected row keeps the current multi-selection, so con
 
 - Default open supports text + case-insensitive `.modr` only; force open-with can open any file in Editor or Drawing (Drawing rejects non-`.modr` loads).
 - No drag-and-drop.
-- The virtual clipboard is shared across Filesystem instances, but it is not connected to the host OS clipboard. Cut/paste uses non-overwriting moves; if a destination name already exists, that source is left in place and remains available in the cut clipboard for a later retry.
+- The virtual clipboard is shared across Filesystem instances, but it is not connected to the host OS clipboard. Cut/paste uses non-overwriting moves; successful sources leave the cut clipboard, while a destination conflict leaves that source available for a later retry.
 
 ## Developer Notes
 

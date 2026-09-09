@@ -396,8 +396,22 @@ void FilesystemApp::pasteFromClipboard() {
         ? m_fs->moveItemsInto(sources, m_currentPath)
         : m_fs->copyItemsInto(sources, m_currentPath);
 
-    if (wasCut && copied == static_cast<int>(sources.size())) {
-        clearClipboard();
+    if (wasCut) {
+        // Keep only sources that still exist. A partial move should leave
+        // destination-conflicted items available for retry, not already-moved
+        // paths that can never be pasted again.
+        std::vector<std::string> remainingPaths;
+        remainingPaths.reserve(clipboardPaths.size());
+        for (const auto& source : clipboardPaths) {
+            if (m_fs->exists(source)) {
+                remainingPaths.push_back(source);
+            }
+        }
+        if (remainingPaths.empty()) {
+            clearClipboard();
+        } else if (remainingPaths.size() != clipboardPaths.size()) {
+            writeClipboard(remainingPaths, true);
+        }
     }
 
     refreshEntries();
