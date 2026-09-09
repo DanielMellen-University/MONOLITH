@@ -1,6 +1,7 @@
 #include "DrawingApp.hpp"
 #include "FilePath.hpp"
 #include "DrawingRaster.hpp"
+#include "Utf8.hpp"
 
 #include <algorithm>
 #include <cmath>
@@ -689,7 +690,7 @@ void DrawingApp::handlePathPromptKey(const SDL_Keysym& keysym) {
             break;
         case SDLK_BACKSPACE:
             if (!m_pathPromptBuffer.empty()) {
-                m_pathPromptBuffer.pop_back();
+                popLastUtf8Codepoint(m_pathPromptBuffer);
             }
             break;
         case SDLK_TAB:
@@ -704,7 +705,7 @@ void DrawingApp::handlePathPromptText(const char* text) {
     if (!text) return;
     for (const char* p = text; *p; ++p) {
         const unsigned char c = static_cast<unsigned char>(*p);
-        if (c >= 32 && c < 127) {
+        if (c >= 32 && c != 127) {
             m_pathPromptBuffer.push_back(static_cast<char>(c));
         }
     }

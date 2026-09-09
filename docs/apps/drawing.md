@@ -122,9 +122,9 @@ Pick samples the RGB value at the clicked canvas pixel, stores it as the custom 
 | Tab | Complete paths in save/open prompt |
 | Enter | Confirm save/open prompt |
 | Esc | Cancel save/open prompt |
-| Backspace | Edit save/open prompt path |
+| Backspace | Remove one complete UTF-8 character from the save/open prompt path |
 
-While a path prompt is active, typed printable characters are added to the prompt. Tab completes a matching directory or `.modr` file; with several matches it completes the shared prefix or shows a short match preview in the status bar.
+While a path prompt is active, typed printable UTF-8 characters are added to the prompt. Tab completes a matching directory or `.modr` file; with several matches it completes the shared prefix or shows a short match preview in the status bar.
 
 ## Saving
 

@@ -1,5 +1,9 @@
 # Changelog
 
+## 2026-09: Unicode-safe Drawing paths
+
+- Drawing save/open prompts now accept UTF-8 path text and remove complete characters with Backspace.
+
 ## 2026-09: Unicode-safe Settings paths
 
 - Settings wallpaper path editing now removes complete UTF-8 characters with Backspace.
