@@ -182,6 +182,16 @@ bool Filesystem::copyRecursive(const std::string& srcVirtualPath, const std::str
 
 bool Filesystem::rename(const std::string& oldVirtualPath, const std::string& newVirtualPath) {
     try {
+        const std::string oldPath = normalize(oldVirtualPath);
+        const std::string newPath = normalize(newVirtualPath);
+
+        // A directory cannot be moved into itself or one of its children.
+        // Reject the virtual root too, so a host-root move can never reparent
+        // the entire Monolith filesystem.
+        if (oldPath == "/" || isSameOrDescendant(oldPath, newPath)) {
+            return false;
+        }
+
         stdfs::path oldHost = toHostPath(oldVirtualPath);
         stdfs::path newHost = toHostPath(newVirtualPath);
 

@@ -49,7 +49,10 @@ public:
      */
     bool removeRecursive(const std::string& virtualPath);
 
-    /** Renames or moves a file/directory to a new virtual path. Returns false on failure. */
+    /**
+     * Renames or moves a file/directory to a new virtual path. Returns false on failure,
+     * including attempts to move the virtual root or an entry into itself/its descendants.
+     */
     bool rename(const std::string& oldVirtualPath, const std::string& newVirtualPath);
 
     /**

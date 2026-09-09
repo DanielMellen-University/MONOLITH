@@ -1,5 +1,10 @@
 # Changelog
 
+## 2026-09: Guard filesystem renames against self-descendants
+
+- Renaming now rejects moving the virtual root or a directory into itself or one of its descendants, preserving the source tree instead of relying on host filesystem behavior.
+- Extended the shared filesystem roadmap check for descendant and root rename attempts.
+
 ## 2026-09: Document Drawing file lifecycle
 
 - Added a focused Drawing reference for new sketches, existing-file saves, failed-operation recovery, resize behavior, and dirty-state confirmation.

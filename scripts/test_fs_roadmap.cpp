@@ -119,6 +119,14 @@ int main() {
     check(!fs.exists("/src/foo"), "slash rename did not create nested path");
     check(!fs.exists("/src/foo/bar"), "slash rename did not write nested file");
 
+    // A directory cannot be moved into its own subtree or replace the virtual root.
+    check(!fs.rename("/src", "/src/folder/moved"),
+          "rename rejects moving a directory into its descendant");
+    check(fs.isDirectory("/src") && fs.isFile("/src/folder/c.txt")
+              && !fs.exists("/src/folder/moved"),
+          "descendant rename leaves the source tree intact");
+    check(!fs.rename("/", "/reparented"), "rename rejects moving the virtual root");
+
     // Listing filter/search by name.
     auto listed = fs.listEntries("/src");
     auto folderIt = std::find_if(listed.begin(), listed.end(), [](const auto& entry) {
