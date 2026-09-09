@@ -150,6 +150,7 @@ private:
     std::vector<EditorState> m_redoStack;
     UndoCoalesce m_undoCoalesce = UndoCoalesce::None;
     std::uint32_t m_lastCoalesceMs = 0;
+    static constexpr size_t kMaxUndoStates = 50;
     static constexpr std::uint32_t kUndoCoalesceMs = 1000;
 
     PathPromptMode m_pathPromptMode = PathPromptMode::None;

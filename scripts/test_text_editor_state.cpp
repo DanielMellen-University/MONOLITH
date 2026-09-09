@@ -144,6 +144,14 @@ int main() {
     check(editor.m_lines == std::vector<std::string>{"aaaa"},
           "replace all does not reprocess replacement text");
 
+    editor.m_undoStack.clear();
+    for (int i = 0; i < 60; ++i) {
+        editor.m_cursorCol = i;
+        editor.pushUndoState();
+    }
+    check(editor.m_undoStack.size() == TestEditor::kMaxUndoStates,
+          "undo history stays within its 50-state cap");
+
     std::filesystem::remove_all(hostRoot, ec);
     if (failures == 0) {
         std::cout << "ALL TEXT EDITOR STATE TESTS PASSED\n";

@@ -87,6 +87,10 @@ Remote: SSH `git@github.com:DanielMellen-University/MONOLITH.git`
 **CURRENT_CHUNK:** `7.1` (PNG/JPEG wallpaper, dependency decision)
 **Language / IDE:** parked
 
+### Session log
+
+| 2026-09-09 | cleanup | Bounded Text Editor undo history at 50 snapshots and added state coverage; CURRENT_CHUNK remains 7.1 |
+
 ### Done (high level)
 
 - Overlapping WM: drag, 8-way resize, min/max, z-order, focus-after-close, Alt+Tab, Ctrl+Esc Start

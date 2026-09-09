@@ -2044,7 +2044,7 @@ void TextEditorApp::pushUndoState(UndoCoalesce kind) {
     m_lastCoalesceMs = now;
     m_redoStack.clear();
 
-    if (m_undoStack.size() > 50) {
+    if (m_undoStack.size() >= kMaxUndoStates) {
         m_undoStack.erase(m_undoStack.begin());
     }
 

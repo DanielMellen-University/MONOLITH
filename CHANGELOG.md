@@ -1,5 +1,10 @@
 # Changelog
 
+## 2026-09: Bound Text Editor undo history
+
+- Text Editor undo history now retains at most 50 snapshots, avoiding an extra entry beyond the documented cap.
+- Added state coverage for history growth past the limit.
+
 ## 2026-09: Normalize Terminal history line endings
 
 - Terminal history loading now strips carriage returns from CRLF files before commands are recalled.
