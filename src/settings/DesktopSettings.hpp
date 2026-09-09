@@ -22,6 +22,10 @@ public:
     bool clock24Hour() const { return m_clock24Hour; }
     void setClock24Hour(bool enabled) { m_clock24Hour = enabled; }
 
+    // Stored as a percentage. The Settings app exposes 90, 100, and 115.
+    int uiScalePercent() const { return m_uiScalePercent; }
+    void setUiScalePercent(int percent) { m_uiScalePercent = percent; }
+
     // Empty clears wallpaper (solid color only).
     const std::string& wallpaperPath() const { return m_wallpaperPath; }
     void setWallpaperPath(std::string path) { m_wallpaperPath = std::move(path); }
@@ -32,6 +36,7 @@ public:
 private:
     RGB m_desktopBackground = kDefaultDesktopBackground;
     bool m_clock24Hour = false;
+    int m_uiScalePercent = 100;
     std::string m_wallpaperPath;
 };
 

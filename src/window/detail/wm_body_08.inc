@@ -263,6 +263,7 @@ bool WindowManager::shouldQuit() const {
 void WindowManager::loadDesktopSettings(const std::string& hostPath) {
     m_desktopSettingsHostPath = hostPath;
     m_desktopSettings.loadFromHostPath(hostPath);
+    applyUiScaleFont();
     // Force wallpaper reload on next render (path may have changed).
     destroyWallpaperTexture();
     m_wallpaperLoadedPath.clear();
@@ -390,6 +391,21 @@ void WindowManager::setClock24Hour(bool enabled) {
         m_clockTexture = nullptr;
     }
     m_clockText.clear();
+    if (!m_desktopSettingsHostPath.empty()) {
+        m_desktopSettings.saveToHostPath(m_desktopSettingsHostPath);
+    }
+}
+
+int WindowManager::getUiScalePercent() const {
+    return m_desktopSettings.uiScalePercent();
+}
+
+void WindowManager::setUiScalePercent(int percent) {
+    if (percent < 80 || percent > 140) return;
+    if (m_desktopSettings.uiScalePercent() == percent) return;
+
+    m_desktopSettings.setUiScalePercent(percent);
+    applyUiScaleFont();
     if (!m_desktopSettingsHostPath.empty()) {
         m_desktopSettings.saveToHostPath(m_desktopSettingsHostPath);
     }

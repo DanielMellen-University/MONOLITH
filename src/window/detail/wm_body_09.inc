@@ -183,6 +183,16 @@ struct WindowController : public monolith::app::IWindowController {
         }
     }
 
+    int getUiScalePercent() const override {
+        return wm ? wm->getUiScalePercent() : 100;
+    }
+
+    void setUiScalePercent(int percent) override {
+        if (wm) {
+            wm->setUiScalePercent(percent);
+        }
+    }
+
     std::string getWallpaperPath() const override {
         return wm ? wm->getWallpaperPath() : std::string{};
     }

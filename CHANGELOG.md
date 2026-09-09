@@ -1,5 +1,11 @@
 # Changelog
 
+## 2026-09: Settings interface text scale
+
+- Settings now offers Small (90%), Default (100%), and Large (115%) interface text sizes.
+- The shared font updates existing windows immediately, including title bars and the taskbar clock.
+- The selected size persists in `~/.monolith/desktop_settings.txt` (`ui_scale_percent=`); older settings files keep the 100% default.
+
 ## 2026-09: Terminal quoted arguments
 
 - Command lines accept double and single quotes so paths with spaces work (`cat "/home/monolith/my file.txt"`).

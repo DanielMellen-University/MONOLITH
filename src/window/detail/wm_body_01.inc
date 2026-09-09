@@ -3,6 +3,7 @@ constexpr int kWindowButtonSize = 16;
 constexpr int kWindowButtonSpacing = 6;
 constexpr int kWindowButtonRightPadding = 10;
 constexpr int kMinimumVisibleButtonSpace = 80;
+constexpr int kBaseFontPointSize = 14;
 }
 
 WindowManager::WindowManager() = default;
@@ -14,6 +15,7 @@ WindowManager::~WindowManager() {
             SDL_DestroyTexture(entry.texture);
             entry.texture = nullptr;
         }
+
     }
     m_titleCache.clear();
     destroyClockTextures();
@@ -223,4 +225,3 @@ void WindowManager::handleEvent(const SDL_Event& event) {
             // Upper bound will be soft-limited by drawing (buttons just stop appearing)
             return;
         }
-

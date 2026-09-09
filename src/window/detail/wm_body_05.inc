@@ -143,6 +143,7 @@ void WindowManager::setFont(TTF_Font* font) {
         destroyClockTextures();
     }
     m_font = font;
+    applyUiScaleFont();
 }
 
 void WindowManager::setLogicalDesktopSize(int width, int height) {
@@ -159,6 +160,24 @@ void WindowManager::setHeaderOffset(int offsetY) {
 
 void WindowManager::setContentScale(float scale) {
     m_contentScale = scale;
+}
+
+void WindowManager::applyUiScaleFont() {
+    if (!m_font) return;
+
+    const int percent = m_desktopSettings.uiScalePercent();
+    const int pointSize = std::clamp((kBaseFontPointSize * percent + 50) / 100, 10, 22);
+    if (TTF_SetFontSize(m_font, pointSize) != 0) return;
+
+    for (auto& [id, entry] : m_titleCache) {
+        (void)id;
+        if (entry.texture) {
+            SDL_DestroyTexture(entry.texture);
+            entry.texture = nullptr;
+        }
+    }
+    m_titleCache.clear();
+    destroyClockTextures();
 }
 
 SDL_Rect WindowManager::getTaskbarRect() const {
@@ -264,4 +283,3 @@ bool WindowManager::handleTitleBarButtons(Window* window, int mouseX, int mouseY
 
 ResizeDirection WindowManager::getResizeDirection(const Window& window, int mouseX, int mouseY) const {
     const int border = 8; // Resize border thickness (slightly generous for usability)
-

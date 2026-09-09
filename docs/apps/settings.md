@@ -34,7 +34,13 @@ The **APPEARANCE** section at the top lets you change live desktop preferences.
 - The active option is highlighted with a white border, matching the swatch pattern.
 - Changing the format updates the taskbar clock immediately.
 
-Scroll with the mouse wheel or Page Up/Down if the window is resized smaller. Background, wallpaper path, and clock choices are saved to `~/.monolith/desktop_settings.txt` and restored on the next launch.
+### Interface text size
+
+- Three options: **Small (90%)**, **Default (100%)**, and **Large (115%)**.
+- The active option is highlighted with a white border.
+- Changing the size updates the shared app and window text immediately.
+
+Scroll with the mouse wheel or Page Up/Down if the window is resized smaller. Background, wallpaper path, clock, and interface text choices are saved to `~/.monolith/desktop_settings.txt` and restored on the next launch.
 
 ## Information Panel
 
@@ -68,10 +74,9 @@ Main implementation files:
 
 - `src/app/SettingsApp.hpp`
 - `src/app/SettingsApp.cpp`
-- `src/settings/DesktopSettings.hpp` / `.cpp` — load/save host settings file (`wallpaper_path=`)
-- `src/window/WindowManager.cpp` — owns live settings, wallpaper texture load/paint, `loadDesktopSettings()`, `setDesktopBackground()`, `setWallpaperPath()`, `setClock24Hour()`
-- `src/app/App.hpp` — `IWindowController` desktop color / wallpaper path / clock helpers
+- `src/settings/DesktopSettings.hpp` / `.cpp` — load/save host settings file (`wallpaper_path=`, `ui_scale_percent=`)
+- `src/window/WindowManager.cpp` — owns live settings, wallpaper texture load/paint, shared font sizing, `loadDesktopSettings()`, `setDesktopBackground()`, `setWallpaperPath()`, `setClock24Hour()`, `setUiScalePercent()`
+- `src/app/App.hpp` — `IWindowController` desktop color / wallpaper path / clock / UI scale helpers
 - `src/main.cpp` — loads settings at startup, clears solid background, seeds sample wallpaper
 
 Settings changes go through `IWindowController` so the app does not reach into WindowManager internals directly.
-

@@ -35,6 +35,16 @@ bool parseBool01(const std::string& value, bool& out) {
     return false;
 }
 
+bool parseUiScalePercent(const std::string& value, int& out) {
+    int percent = 0;
+    char extra = 0;
+    std::istringstream iss(value);
+    if (!(iss >> percent) || (iss >> extra)) return false;
+    if (percent < 80 || percent > 140) return false;
+    out = percent;
+    return true;
+}
+
 } // namespace
 
 bool DesktopSettings::loadFromHostPath(const std::string& hostPath) {
@@ -70,6 +80,16 @@ bool DesktopSettings::loadFromHostPath(const std::string& hostPath) {
             }
             continue;
         }
+
+        const std::string uiScaleKey = "ui_scale_percent=";
+        if (line.rfind(uiScaleKey, 0) == 0) {
+            int parsed = 0;
+            if (parseUiScalePercent(line.substr(uiScaleKey.size()), parsed)) {
+                m_uiScalePercent = parsed;
+                loadedAny = true;
+            }
+            continue;
+        }
     }
 
     return loadedAny;
@@ -85,6 +105,7 @@ bool DesktopSettings::saveToHostPath(const std::string& hostPath) const {
         << static_cast<int>(m_desktopBackground.b) << '\n';
     out << "wallpaper_path=" << m_wallpaperPath << '\n';
     out << "clock_24_hour=" << (m_clock24Hour ? "1" : "0") << '\n';
+    out << "ui_scale_percent=" << m_uiScalePercent << '\n';
     return static_cast<bool>(out);
 }
 

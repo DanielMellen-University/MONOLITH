@@ -61,6 +61,7 @@ The Window Manager is the most foundational subsystem.
 - When the focused window is closed, focus moves to the topmost non-minimized remaining window (z-order), with `onFocusLost` / `onFocusGained` fired so apps stay consistent. If every survivor is minimized, focus stays clear until the user activates a window.
 - When many windows are open, the taskbar scrolls horizontally (arrow buttons and mouse wheel). Arrow hit targets are recorded during render (same pattern as taskbar window buttons) and handled in the taskbar click path.
 - The taskbar shows a compact local-time clock on the right (12-hour by default; Settings can switch to 24-hour via `DesktopSettings`). The time texture is rebuilt when the minute or format changes; hovering the clock tray shows the full local date in a small tooltip above the bar.
+- Settings can change the shared interface font to 90%, 100%, or 115%. `WindowManager` applies the selected point size to the shared `TTF_Font`, then invalidates title and clock textures so the change appears immediately in existing windows.
 - Desktop wallpaper images (BMP via `SDL_LoadBMP`) are optional: Settings stores a virtual FS path; the Window Manager cover-scales the texture over the solid background color before drawing windows. Empty or unloadable paths fall back to solid color only.
 - **Session restore**: on exit, open windows (kind, geometry, minimize/maximize, file paths for editors/drawings) are written to `~/.monolith/session.txt`. On next launch that file is restored if present; otherwise the demo window set opens.
 - **Open-with routing**: `WindowManager::openPath` / `IWindowController::openPath` maps `.modr` → Drawing and all other files → Text Editor (used by Terminal `open` and the Filesystem Browser default Open).
@@ -113,7 +114,7 @@ The Start menu keeps most apps as top-level entries. Games that clearly form a g
 
 Each frame, `WindowManager::update()` calls `App::update()` on every non-minimized window's app. Most apps leave this as a no-op; games use it for fixed-rate ticks and timers.
 
-Apps can request shell actions through `IWindowController`: `close()`, `setTitle()`, `restoreTrackedInstanceTitle()`, `openInTextEditor` / `openInDrawing` / **`openPath`** (extension-based default), editor/drawing file binding helpers, desktop background get/set, wallpaper path get/set, and taskbar clock 12/24-hour get/set. Apps do not depend on each other directly. Temporary title overrides (e.g. Drawing after save) restore via `restoreTrackedInstanceTitle()`.
+Apps can request shell actions through `IWindowController`: `close()`, `setTitle()`, `restoreTrackedInstanceTitle()`, `openInTextEditor` / `openInDrawing` / **`openPath`** (extension-based default), editor/drawing file binding helpers, desktop background get/set, wallpaper path get/set, taskbar clock 12/24-hour get/set, and interface text scale get/set. Apps do not depend on each other directly. Temporary title overrides (e.g. Drawing after save) restore via `restoreTrackedInstanceTitle()`.
 
 ### 3. Rendering
 
@@ -149,7 +150,7 @@ Native C++ apps render into window client areas and are launched via shell metho
 | Snake | [apps/snake.md](apps/snake.md) | `SnakeApp` |
 | Minesweeper | [apps/minesweeper.md](apps/minesweeper.md) | `MinesweeperApp` |
 
-**Shell coordination:** Apps use `IWindowController` for close, titles, open/openPath, file bindings, desktop color, and wallpaper path. Settings persists background color and `wallpaper_path` to `~/.monolith/desktop_settings.txt`. Session layout persists to `~/.monolith/session.txt` via `WindowManager::saveSession` / `loadSession` (wired from `main`).
+**Shell coordination:** Apps use `IWindowController` for close, titles, open/openPath, file bindings, desktop color, wallpaper path, clock format, and interface text scale. Settings persists these preferences to `~/.monolith/desktop_settings.txt`. Session layout persists to `~/.monolith/session.txt` via `WindowManager::saveSession` / `loadSession` (wired from `main`).
 
 **Input note:** The Window Manager forwards `SDL_MOUSEBUTTONUP` to the focused app's client area so drag interactions (e.g. Drawing strokes) end cleanly when the mouse is released outside the window.
 
@@ -184,7 +185,7 @@ The language is not expected to create or manage its own windows in the early ph
 | Path | Purpose |
 |------|---------|
 | `~/.monolith/fs/` | Virtual filesystem host root |
-| `~/.monolith/desktop_settings.txt` | Desktop background color + wallpaper path |
+| `~/.monolith/desktop_settings.txt` | Desktop background color, wallpaper path, clock format, and interface text scale |
 | `~/.monolith/session.txt` | Window session for restore |
 | `~/.monolith/snake_highscore.txt` | Snake high score |
 | `~/.monolith/minesweeper_best.txt` | Minesweeper best times |

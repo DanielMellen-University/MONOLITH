@@ -130,6 +130,8 @@ public:
     void setWallpaperPath(const std::string& virtualPath);
     bool getClock24Hour() const;
     void setClock24Hour(bool enabled);
+    int getUiScalePercent() const;
+    void setUiScalePercent(int percent);
 
     // Session: restore open windows from a host-side file; save current layout on exit.
     // Format is line-based (see saveSession). Returns true if at least one window was restored.
@@ -225,6 +227,8 @@ private:
 
     monolith::settings::DesktopSettings m_desktopSettings;
     std::string m_desktopSettingsHostPath;
+
+    void applyUiScaleFont();
 
     // Wallpaper image (BMP via SDL_LoadBMP). Cover-scaled over the solid background.
     SDL_Texture* m_wallpaperTexture = nullptr;

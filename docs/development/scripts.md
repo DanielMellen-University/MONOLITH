@@ -44,6 +44,14 @@ Headless test of shipped line/rect raster, custom RGB parse, and `.modr` round-t
 g++ -std=c++23 scripts/test_drawing_roadmap.cpp src/app/DrawingRaster.cpp -o build/test_drawing_roadmap && ./build/test_drawing_roadmap
 ```
 
+## Desktop Settings Persistence Check
+
+Headless test of desktop preference save/load, UI scale persistence, legacy files, and bounds handling:
+
+```bash
+g++ -std=c++23 scripts/test_desktop_settings.cpp src/settings/DesktopSettings.cpp -o build/test_desktop_settings && ./build/test_desktop_settings
+```
+
 ## `.modr` Format Roundtrip
 
 Compiles and runs a standalone test of the Drawing raster file format:

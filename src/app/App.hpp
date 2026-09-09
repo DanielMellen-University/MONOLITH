@@ -63,6 +63,10 @@ struct IWindowController {
     virtual bool getClock24Hour() const { return false; }
     virtual void setClock24Hour(bool enabled) { (void)enabled; }
 
+    // Shared interface text scale, stored as a percentage.
+    virtual int getUiScalePercent() const { return 100; }
+    virtual void setUiScalePercent(int percent) { (void)percent; }
+
     // Desktop wallpaper image (virtual FS path; empty = solid color only).
     virtual std::string getWallpaperPath() const { return {}; }
     virtual void setWallpaperPath(const std::string& virtualPath) { (void)virtualPath; }

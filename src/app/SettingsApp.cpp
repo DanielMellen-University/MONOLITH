@@ -86,7 +86,7 @@ void SettingsApp::clampScrollOffset() {
 int SettingsApp::computeContentHeight() const {
     int y = kPadY;
 
-    // Appearance section (background swatches + wallpaper + clock format)
+    // Appearance section (background swatches + wallpaper + clock + text size)
     y += kLineH + 2 + 8;
     y += kLineH + 6;
     y += kSwatchSize + 8;
@@ -98,6 +98,9 @@ int SettingsApp::computeContentHeight() const {
     y += kLineH + 8;
 
     // Clock block
+    y += kLineH + 6;
+    y += kSwatchSize + 8;
+    y += kLineH + 8;
     y += kLineH + 6;
     y += kSwatchSize + 8;
     y += kLineH + 8;
@@ -155,6 +158,23 @@ void SettingsApp::applyClock24Hour(bool enabled) {
     if (auto* ctrl = getController()) {
         ctrl->setClock24Hour(enabled);
     }
+}
+
+void SettingsApp::applyUiScale(int percent) {
+    if (auto* ctrl = getController()) {
+        ctrl->setUiScalePercent(percent);
+    }
+}
+
+int SettingsApp::activeUiScaleIndex() const {
+    const auto* ctrl = getController();
+    const int current = ctrl ? ctrl->getUiScalePercent() : 100;
+    for (int i = 0; i < kUiScaleCount; ++i) {
+        if (kUiScaleOptions[static_cast<size_t>(i)].percent == current) {
+            return i;
+        }
+    }
+    return 1;
 }
 
 void SettingsApp::syncWallpaperBufferFromShell() {
@@ -414,6 +434,72 @@ int SettingsApp::renderAppearanceSection(SDL_Renderer* renderer, const SDL_Rect&
     y += optionH + 8;
 
     drawLabel(renderer, m_font, "12-hour (default) or 24-hour time on the taskbar.", dimCol,
+              contentRect.x + kPadX, contentRect.y + y);
+
+    y += kLineH + 8;
+
+    drawLabel(renderer, m_font, "Interface text size:", labelCol,
+              contentRect.x + kPadX, contentRect.y + y);
+    y += kLineH + 6;
+
+    int scaleX = kPadX;
+    const int activeScale = activeUiScaleIndex();
+    const int scaleOptionH = kSwatchSize;
+    const int scaleOptionPadX = 10;
+    for (int i = 0; i < kUiScaleCount; ++i) {
+        const auto& option = kUiScaleOptions[static_cast<size_t>(i)];
+        SDL_Surface* optSurf = TTF_RenderUTF8_Blended(m_font, option.label, labelCol);
+        const int textW = optSurf ? optSurf->w : 80;
+        const int textH = optSurf ? optSurf->h : kLineH;
+        const int optionW = textW + scaleOptionPadX * 2;
+
+        SDL_Rect opt = {
+            contentRect.x + scaleX,
+            contentRect.y + y,
+            optionW,
+            scaleOptionH
+        };
+        m_uiScaleHitRects[static_cast<size_t>(i)] = {
+            scaleX,
+            y,
+            optionW,
+            scaleOptionH
+        };
+
+        const bool isActive = i == activeScale;
+        SDL_SetRenderDrawColor(renderer, 40, 40, 48, 255);
+        SDL_RenderFillRect(renderer, &opt);
+        if (isActive) {
+            SDL_SetRenderDrawColor(renderer, 255, 255, 255, 255);
+            SDL_RenderDrawRect(renderer, &opt);
+            SDL_Rect inner = {opt.x + 1, opt.y + 1, opt.w - 2, opt.h - 2};
+            SDL_RenderDrawRect(renderer, &inner);
+        } else {
+            SDL_SetRenderDrawColor(renderer, 90, 90, 100, 255);
+            SDL_RenderDrawRect(renderer, &opt);
+        }
+
+        if (optSurf) {
+            SDL_Texture* tex = SDL_CreateTextureFromSurface(renderer, optSurf);
+            if (tex) {
+                SDL_Rect dst = {
+                    opt.x + scaleOptionPadX,
+                    opt.y + (scaleOptionH - textH) / 2,
+                    textW,
+                    textH
+                };
+                SDL_RenderCopy(renderer, tex, nullptr, &dst);
+                SDL_DestroyTexture(tex);
+            }
+            SDL_FreeSurface(optSurf);
+        }
+
+        scaleX += optionW + kSwatchGap;
+    }
+
+    y += scaleOptionH + 8;
+
+    drawLabel(renderer, m_font, "Applies immediately and persists for the next launch.", dimCol,
               contentRect.x + kPadX, contentRect.y + y);
 
     return y + kLineH + 8;
@@ -681,6 +767,13 @@ void SettingsApp::handleEvent(const SDL_Event& event) {
     for (int i = 0; i < 2; ++i) {
         if (pointInRect(x, y, m_clockFormatHitRects[static_cast<size_t>(i)])) {
             applyClock24Hour(i == 1);
+            return;
+        }
+    }
+
+    for (int i = 0; i < kUiScaleCount; ++i) {
+        if (pointInRect(x, y, m_uiScaleHitRects[static_cast<size_t>(i)])) {
+            applyUiScale(kUiScaleOptions[static_cast<size_t>(i)].percent);
             return;
         }
     }

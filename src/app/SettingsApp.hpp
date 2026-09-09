@@ -35,6 +35,11 @@ private:
         uint8_t b;
     };
 
+    struct UiScaleOption {
+        const char* label;
+        int percent;
+    };
+
     void buildInfoLines();
     int renderAppearanceSection(SDL_Renderer* renderer, const SDL_Rect& contentRect, int clientY);
     int renderInfoLines(SDL_Renderer* renderer, const SDL_Rect& contentRect, int clientY);
@@ -42,6 +47,8 @@ private:
     void applyBackgroundPreset(const BackgroundPreset& preset);
     int activePresetIndex() const;
     void applyClock24Hour(bool enabled);
+    void applyUiScale(int percent);
+    int activeUiScaleIndex() const;
     void applyWallpaperPath();
     void clearWallpaperPath();
     int scrollAreaHeight() const;
@@ -59,12 +66,20 @@ private:
         {"Teal", 16, 28, 32},
     }};
 
+    static constexpr int kUiScaleCount = 3;
+    static constexpr std::array<UiScaleOption, kUiScaleCount> kUiScaleOptions{{
+        {"Small (90%)", 90},
+        {"Default (100%)", 100},
+        {"Large (115%)", 115},
+    }};
+
     TTF_Font* m_font = nullptr;
     monolith::fs::Filesystem* m_fs = nullptr;
 
     std::vector<InfoLine> m_lines;
     std::array<SDL_Rect, kPresetCount> m_backgroundSwatches{};
     std::array<SDL_Rect, 2> m_clockFormatHitRects{}; // 0 = 12-hour, 1 = 24-hour
+    std::array<SDL_Rect, kUiScaleCount> m_uiScaleHitRects{};
 
     SDL_Rect m_wallpaperFieldRect{0, 0, 0, 0}; // client-local hit rect
     SDL_Rect m_wallpaperSetRect{0, 0, 0, 0};
