@@ -347,6 +347,7 @@ void TextEditorApp::setStatus(const std::string& message) {
 
 void TextEditorApp::clearDiscardArm() {
     m_discardKind = DiscardKind::None;
+    m_discardPath.clear();
 }
 
 bool TextEditorApp::requestDiscard(DiscardKind kind, const char* statusMessage) {
@@ -483,9 +484,14 @@ void TextEditorApp::finishPathPrompt(bool commit) {
             }
         }
 
+        if (m_discardKind == DiscardKind::Open && m_discardPath != path) {
+            clearDiscardArm();
+        }
+
         if (!requestDiscard(
                 DiscardKind::Open,
                 "Unsaved changes — open again to discard, or save first")) {
+            m_discardPath = path;
             // Re-open the prompt so the user can confirm or save first.
             m_pathPromptMode = PathPromptMode::Open;
             m_pathPromptBuffer = buffer;

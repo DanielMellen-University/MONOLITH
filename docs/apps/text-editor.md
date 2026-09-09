@@ -108,7 +108,7 @@ Path prompts support Left/Right/Home/End, UTF-8-safe Backspace/Delete, and inser
 ## Current Limitations
 
 - Open/save-as use inline path prompts, not graphical file-picker dialogs (not a multi-button dialog).
-- Dirty close/open uses a second press of the same action to discard — there is no separate “Save / Discard / Cancel” modal.
+- Dirty close/open uses a second press of the same action to discard; there is no separate "Save / Discard / Cancel" modal. Changing the Open path after the warning requires a fresh confirmation.
 - Undo/redo store up to 50 full buffer snapshots. Consecutive typing or in-line backspace within ~1s is one undo step; Enter, paste, and other edits start a new step.
 - Highlighting is per-line only (no multiline strings or block comments).
 - No multiple buffers/tabs.

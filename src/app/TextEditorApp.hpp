@@ -145,6 +145,7 @@ private:
     bool m_dirty = false;
     std::string m_statusMessage;  // transient status-bar feedback (save/open errors, etc.)
     DiscardKind m_discardKind = DiscardKind::None;
+    std::string m_discardPath;
 
     std::vector<EditorState> m_undoStack;
     std::vector<EditorState> m_redoStack;

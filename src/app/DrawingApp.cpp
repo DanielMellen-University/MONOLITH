@@ -513,6 +513,7 @@ void DrawingApp::setStatus(const std::string& message) {
 
 void DrawingApp::clearDiscardArm() {
     m_discardKind = DiscardKind::None;
+    m_discardPath.clear();
 }
 
 bool DrawingApp::requestDiscard(DiscardKind kind, const char* statusMessage) {
@@ -620,9 +621,13 @@ void DrawingApp::finishPathPrompt(bool commit) {
     if (mode == PathPromptMode::Save) {
         saveToPath(buffer);
     } else if (mode == PathPromptMode::Open) {
+        if (m_discardKind == DiscardKind::Open && m_discardPath != buffer) {
+            clearDiscardArm();
+        }
         if (!requestDiscard(
                 DiscardKind::Open,
                 "Unsaved changes — open again to discard, or save first")) {
+            m_discardPath = buffer;
             m_pathPromptMode = PathPromptMode::Open;
             m_pathPromptBuffer = buffer;
             m_pathPromptCursorPos = m_pathPromptBuffer.size();

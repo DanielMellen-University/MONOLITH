@@ -271,6 +271,7 @@ While a prompt is active, Drawing routes keyboard input to that prompt and ignor
 - Tab replaces only the final path component before the caret. If the caret is inside a directory component, completion waits until the caret is in the final component so text after it is not rewritten.
 - Enter accepts the active prompt and Escape cancels it. Save adds `.modr` when the entered path does not already end in `.modr`; entering `picture.mod` therefore saves as `picture.mod.modr`.
 - If a dirty sketch blocks Open, the first confirmation keeps the path prompt active. Confirming the same open action again discards the unsaved canvas and loads the file.
+- Editing the Open path after that warning resets the confirmation, so the new target requires its own second confirmation.
 
 ## Saving
 

@@ -134,6 +134,25 @@ int main() {
               && editor.m_filePath == "/blocked.txt",
           "a later dirty open requires a fresh confirmation after cancellation");
 
+    check(fs.writeFile("/third.txt", "third"), "write alternate dirty-open target");
+    editor.m_dirty = true;
+    editor.beginPathPrompt(TestEditor::PathPromptMode::Open);
+    editor.m_pathPromptBuffer = "/other.txt";
+    editor.m_pathPromptCursorPos = editor.m_pathPromptBuffer.size();
+    editor.finishPathPrompt(true);
+    editor.m_pathPromptBuffer = "/third.txt";
+    editor.m_pathPromptCursorPos = editor.m_pathPromptBuffer.size();
+    editor.finishPathPrompt(true);
+    check(editor.m_discardKind == TestEditor::DiscardKind::Open
+              && editor.m_pathPromptMode == TestEditor::PathPromptMode::Open
+              && editor.m_filePath == "/blocked.txt"
+              && editor.m_lines == std::vector<std::string>{"original"},
+          "changing a dirty open target requires a fresh confirmation");
+    editor.finishPathPrompt(true);
+    check(editor.m_filePath == "/third.txt" && !editor.m_dirty
+              && editor.m_lines == std::vector<std::string>{"third"},
+          "confirming the changed dirty open target loads it");
+
     editor.m_lines = {"aa"};
     editor.m_cursorRow = 0;
     editor.m_cursorCol = 0;

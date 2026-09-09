@@ -1,5 +1,10 @@
 # Changelog
 
+## 2026-09: Bind dirty-open confirmation to its path
+
+- Text Editor and Drawing now reset a pending dirty-open confirmation when the requested path changes, preventing an accidental discard for a different file.
+- Added paired state coverage for changing the target after the first warning.
+
 ## 2026-09: Bound Text Editor undo history
 
 - Text Editor undo history now retains at most 50 snapshots, avoiding an extra entry beyond the documented cap.

@@ -127,6 +127,7 @@ private:
     std::string m_filePath;
     bool m_dirty = false;
     DiscardKind m_discardKind = DiscardKind::None;
+    std::string m_discardPath;
 
     int m_clientWidth = 0;
     int m_clientHeight = 0;

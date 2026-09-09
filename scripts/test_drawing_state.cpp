@@ -80,6 +80,26 @@ int main() {
               && drawing.m_filePath == "/blocked.modr",
           "a later dirty drawing open requires a fresh confirmation after cancellation");
 
+    std::vector<uint8_t> alternatePixels(1 * 1 * 4, 255);
+    check(fs.writeFile("/drawings/alternate.modr",
+                       monolith::drawing::encodeModr(1, 1, alternatePixels)),
+          "write alternate dirty drawing target");
+    drawing.m_dirty = true;
+    drawing.beginPathPrompt(monolith::app::DrawingApp::PathPromptMode::Open);
+    drawing.m_pathPromptBuffer = "/drawings/resize.modr";
+    drawing.m_pathPromptCursorPos = drawing.m_pathPromptBuffer.size();
+    drawing.finishPathPrompt(true);
+    drawing.m_pathPromptBuffer = "/drawings/alternate.modr";
+    drawing.m_pathPromptCursorPos = drawing.m_pathPromptBuffer.size();
+    drawing.finishPathPrompt(true);
+    check(drawing.m_discardKind == monolith::app::DrawingApp::DiscardKind::Open
+              && drawing.m_pathPromptMode == monolith::app::DrawingApp::PathPromptMode::Open
+              && drawing.m_filePath == "/blocked.modr",
+          "changing a dirty drawing target requires a fresh confirmation");
+    drawing.finishPathPrompt(true);
+    check(drawing.m_filePath == "/drawings/alternate.modr" && !drawing.m_dirty,
+          "confirming the changed dirty drawing target loads it");
+
     std::filesystem::remove_all(hostRoot, ec);
     if (failures == 0) {
         std::cout << "ALL DRAWING STATE TESTS PASSED\n";
