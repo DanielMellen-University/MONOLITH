@@ -1251,7 +1251,9 @@ void TextEditorApp::updateFindMatches() {
         size_t pos = line.find(m_findQuery);
         while (pos != std::string::npos) {
             m_findMatches.push_back({row, static_cast<int>(pos)});
-            pos = line.find(m_findQuery, pos + 1);
+            // Match the non-overlapping behavior used by Replace All. This
+            // keeps navigation and replacement counts consistent.
+            pos = line.find(m_findQuery, pos + m_findQuery.size());
         }
     }
 

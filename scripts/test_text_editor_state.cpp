@@ -175,6 +175,15 @@ int main() {
     check(editor.m_lines == std::vector<std::string>{"aaaa"},
           "replace all does not reprocess replacement text");
 
+    editor.m_lines = {"aaaa"};
+    editor.m_cursorRow = 0;
+    editor.m_cursorCol = 0;
+    editor.m_searchMode = TestEditor::SearchMode::Find;
+    editor.m_findQuery = "aa";
+    editor.updateFindMatches();
+    check(editor.m_findMatches == std::vector<std::pair<int, int>>{{0, 0}, {0, 2}},
+          "find uses non-overlapping matches like replace all");
+
     editor.m_undoStack.clear();
     for (int i = 0; i < 60; ++i) {
         editor.m_cursorCol = i;

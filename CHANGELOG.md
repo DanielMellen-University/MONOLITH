@@ -1,5 +1,10 @@
 # Changelog
 
+## 2026-09: Keep Text Editor find and replace counts aligned
+
+- Text Editor Find now uses non-overlapping matches, matching Replace All and preventing navigation from reporting entries that replacement would skip.
+- Added state coverage for adjacent repeated matches.
+
 ## 2026-09: Keep failed file launches untitled
 
 - Failed initial Editor and Drawing opens now use the normal tracked untitled title instead of a misleading file-backed title.
