@@ -36,6 +36,26 @@ Drawing has no separate file-picker or modal prompt. Save, Open, and custom RGB 
 
 The canvas is a raster surface. It fills the space between the toolbar and the status bar, and its pixel dimensions follow the Drawing window's client area. Resizing the window preserves the existing pixels from the top-left corner and clears undo/redo history for the new canvas size.
 
+## First Session Walkthrough
+
+### Create And Save A Sketch
+
+1. Open **Drawing** from Start.
+2. Choose a swatch, or choose **RGB** and enter three channel values.
+3. Select **Pen**, choose **S**, **M**, or **L**, and drag on the canvas.
+4. Use **Line**, **Rect**, or **Fill** for shape and region work. Use **Pick** to sample a canvas pixel and continue with that color.
+5. Press **Ctrl+S**. For a new sketch, Drawing opens an inline path prompt with a suggested name.
+6. Press **Enter** to save, or press **Tab** while editing a path to complete a directory or `.modr` filename.
+
+### Reopen A Sketch
+
+1. Press **Ctrl+O** or click **Open**.
+2. The prompt starts in `/home/monolith/drawings/`.
+3. Type the beginning of a directory or filename, then press **Tab**. Repeated Tab presses extend the shared prefix or show a short match list in the status bar.
+4. Press **Enter** to open the completed path.
+
+Opening a file replaces the current canvas and clears its undo/redo history. The current tool, brush size, and active color stay selected because they belong to the editor session, not the `.modr` file.
+
 ## Basic Workflow
 
 1. Start with **New** if you want a blank sketch.
@@ -288,6 +308,18 @@ The status bar is both the command hint area and the app's lightweight feedback 
 
 When the canvas has unsaved edits, `[modified]` is appended to the status bar. Save before closing, creating a new sketch, or opening another file. A failed save or open does not discard the current canvas.
 
+## Troubleshooting
+
+| Symptom | Cause and fix |
+|---------|---------------|
+| `Open failed: Drawing files must use .modr.` | Open accepts only `.modr` files, with case-insensitive suffix matching. A `.mod` file is text and belongs in Text Editor. |
+| Saving `picture.mod` creates `picture.mod.modr` | Save appends `.modr` when the entered path does not already end in that suffix. Enter the intended `.modr` name explicitly. |
+| `No path matches.` after pressing Tab | Completion compares the typed filename prefix exactly. Move the caret to the final path component, correct the prefix, and press Tab again. |
+| `Open failed: could not read file.` | The virtual path is missing or could not be read. The current canvas remains open; correct the path or save the current sketch elsewhere. |
+| `Open failed: not a valid .modr drawing file.` | The file header, dimensions, or pixel payload is invalid. Drawing does not partially load corrupt data. |
+| The status bar shows `[modified]` | The canvas has edits that are not saved. Press **Ctrl+S** before closing, choosing **New**, or opening another sketch. |
+| Undo is no longer available after resizing | Resizing changes the canvas dimensions, so Drawing clears history rather than applying snapshots to a different-sized canvas. |
+
 ## Current Limitations
 
 - Custom RGB can be entered through the status-bar `r,g,b` prompt or sampled with Pick; there is no palette editor yet.
@@ -309,4 +341,9 @@ Main implementation files:
 
 Canvas GPU path (`syncTexture`): recreate the streaming texture only when missing or size-changed; upload CPU pixels only while `m_textureDirty` is set by paint, undo, load, or resize.
 
-Verification scripts: see [Development Scripts](../development/scripts.md).
+Verification scripts: see [Development Scripts](../development/scripts.md). The focused Drawing checks are:
+
+```bash
+./scripts/verify_drawing_integration.sh
+g++ -std=c++23 scripts/test_drawing_roadmap.cpp src/app/DrawingRaster.cpp -o build/test_drawing_roadmap && ./build/test_drawing_roadmap
+```

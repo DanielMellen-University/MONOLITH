@@ -1,5 +1,9 @@
 # Changelog
 
+## 2026-09: Drawing app user guide
+
+- Added a first-session walkthrough, reopen workflow, prompt troubleshooting table, and focused contributor verification commands to the Drawing documentation.
+
 ## 2026-09: Complete multi-document shutdown confirmation
 
 - Shut Down now arms every dirty open document in the first request, so confirming once handles multiple Editor or Drawing windows together.
