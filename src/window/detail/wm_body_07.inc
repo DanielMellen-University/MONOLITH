@@ -6,14 +6,16 @@
         r.x = m_logicalWidth - minButtonSpace;
     }
 
-    // Shrink if bigger than current desktop
-    if (r.w > m_logicalWidth)  r.w = std::max(Window::MIN_WIDTH, m_logicalWidth);
+    // Shrink if bigger than current desktop. A very small logical desktop is
+    // allowed to override the normal minimum so the window can still be
+    // clamped fully inside the available coordinate space.
+    if (r.w > m_logicalWidth)  r.w = m_logicalWidth;
     if (r.h > usableHeight) r.h = std::max(Window::MIN_HEIGHT + titleH, usableHeight);
 
     // Final bounds correction
     if (r.x < 0) r.x = 0;
     if (r.y < 0) r.y = 0;
-    if (r.x + r.w > m_logicalWidth)  r.x = m_logicalWidth - r.w;
+    if (r.x + r.w > m_logicalWidth)  r.x = std::max(0, m_logicalWidth - r.w);
     if (r.h <= usableHeight && r.y + r.h > desktopBottom) r.y = desktopBottom - r.h;
     if (r.y + titleH > desktopBottom) r.y = desktopBottom - titleH;
 }

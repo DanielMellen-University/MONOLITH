@@ -181,8 +181,8 @@ void WindowManager::setFont(TTF_Font* font) {
 }
 
 void WindowManager::setLogicalDesktopSize(int width, int height) {
-    m_logicalWidth = width;
-    m_logicalHeight = height;
+    m_logicalWidth = std::max(1, width);
+    m_logicalHeight = std::max(1, height);
 
     // Re-clamp when logical size changes
     clampWindowsToDesktop();

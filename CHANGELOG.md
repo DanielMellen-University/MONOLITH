@@ -1,5 +1,10 @@
 # Changelog
 
+## 2026-09: Keep windows inside narrow logical desktops
+
+- Window clamping now handles desktops narrower than the normal minimum window width without producing a negative left coordinate.
+- Logical desktop dimensions are clamped to positive values and the coordinate regression covers the narrow-layout edge case.
+
 ## 2026-09: Keep Text Editor find and replace counts aligned
 
 - Text Editor Find now uses non-overlapping matches, matching Replace All and preventing navigation from reporting entries that replacement would skip.

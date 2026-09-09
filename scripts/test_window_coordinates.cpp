@@ -77,6 +77,10 @@ int main() {
     check(window->rect.x == 190 && window->rect.y == 190,
           "scaled dragging uses logical pointer coordinates");
 
+    wm.setLogicalDesktopSize(120, 120);
+    check(window->rect.x == 0 && window->rect.w == 120,
+          "narrow logical desktops keep clamped windows inside the left edge");
+
     if (failures == 0) {
         std::cout << "ALL WINDOW COORDINATE TESTS PASSED\n";
         return 0;

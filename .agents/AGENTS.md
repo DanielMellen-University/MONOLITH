@@ -456,6 +456,7 @@ When unspecified, choose:
 | 2026-09-09 | cleanup | Cleared stale Terminal history navigation after reverse search; added recalled-command coverage; CURRENT_CHUNK remains 7.1 |
 | 2026-09-09 | cleanup | Kept failed initial Editor and Drawing launches untitled, tracked, and session-restorable without reserving file singletons; extended file-open coverage; CURRENT_CHUNK remains 7.1 |
 | 2026-09-09 | cleanup | Aligned Text Editor Find with non-overlapping Replace All matches and added adjacent-match coverage; CURRENT_CHUNK remains 7.1 |
+| 2026-09-09 | cleanup | Hardened WindowManager clamping for narrow logical desktops and added an extreme-coordinate regression; CURRENT_CHUNK remains 7.1 |
 | 2026-09-09 | docs | Added a focused Drawing file-lifecycle reference covering saves, failures, resizing, and dirty-state confirmation; CURRENT_CHUNK remains 7.1 |
 | 2026-09-09 | cleanup | Blocked Filesystem renames into a source subtree or the virtual root; extended the shared roadmap check; CURRENT_CHUNK remains 7.1 |
 | 2026-09-09 | cleanup | Added Tab completion for Settings wallpaper directories and BMP files; added focused state coverage; CURRENT_CHUNK remains 7.1 |
