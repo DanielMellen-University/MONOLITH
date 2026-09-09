@@ -1,5 +1,12 @@
 # Changelog
 
+## 2026-09: Terminal quoted arguments
+
+- Command lines accept double and single quotes so paths with spaces work (`cat "/home/monolith/my file.txt"`).
+- Backslash escapes work outside quotes and for `\` / `"` inside double quotes.
+- Unterminated quotes report a parse error instead of running a half-split command.
+- Quoting rules live in `docs/apps/terminal.md`; lexer is `TerminalLexer` with a headless test.
+
 ## 2026-09: Pong under Start → Games
 
 - Third native game: **Pong** (player vs AI, first to 5).

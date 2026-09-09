@@ -87,9 +87,28 @@ Command history persists across sessions in:
 
 History is saved after each submitted command. Command history is capped (oldest entries drop); on-screen scrollback is also capped so long sessions stay responsive.
 
+## Argument Quoting
+
+Whitespace splits arguments unless you quote them:
+
+| Form | Behavior |
+|------|----------|
+| `"path with spaces"` | Keeps spaces. Inside, `\\` and `\"` are escapes. |
+| `'path with spaces'` | Keeps spaces. Contents are literal (no escapes). |
+| `one\ two` | Outside quotes, a backslash escapes the next character. |
+
+Examples:
+
+```text
+cat "/home/monolith/my file.txt"
+cp -r "src dir" "dst dir"
+echo 'hello world'
+```
+
+Unterminated quotes print `parse error: ...` and do not run the command.
+
 ## Current Limitations
 
-- No quoting support — filenames with spaces cannot be passed as single arguments.
 - No pipes, redirection, or job control.
 - No script execution or custom language integration yet.
 - `touch` creates an empty file if missing; existing files are left unchanged (no mtime update yet).
@@ -101,7 +120,8 @@ Main implementation files:
 
 - `src/app/TerminalApp.hpp`
 - `src/app/TerminalApp.cpp`
-- `src/fs/Filesystem.*` — shared path + recursive copy/remove used by `cp` / `rm`
+- `src/app/TerminalLexer.*` - command-line quoting / argv split (headless-testable)
+- `src/fs/Filesystem.*` - shared path + recursive copy/remove used by `cp` / `rm`
 - Shell `open` / `edit` go through `IWindowController::openPath` / `openInTextEditor`
 
 Launched via `WindowManager::launchTerminal()`.
