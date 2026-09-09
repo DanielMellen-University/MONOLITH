@@ -1,5 +1,10 @@
 # Changelog
 
+## 2026-09: Caret-aware Text Editor prompts
+
+- Text Editor Save, Open, and Go-to-line prompts now support cursor movement, insertion, Delete, and UTF-8-safe Backspace.
+- Path completion edits the final component at the caret without rewriting text after it.
+
 ## 2026-09: Better Filesystem Browser rename editing
 
 - Rename mode now supports caret navigation, insertion, Delete, and UTF-8-safe Backspace instead of editing only at the end of the name.

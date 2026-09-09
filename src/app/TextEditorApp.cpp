@@ -395,6 +395,7 @@ void TextEditorApp::beginPathPrompt(PathPromptMode mode) {
         m_pathPromptBuffer.clear();
         setStatus("Go to line (Enter jump, Esc cancel)");
     }
+    m_pathPromptCursorPos = m_pathPromptBuffer.size();
 }
 
 void TextEditorApp::goToLine(int lineNumber1Based) {
@@ -416,6 +417,7 @@ void TextEditorApp::finishPathPrompt(bool commit) {
     const std::string buffer = m_pathPromptBuffer;
     m_pathPromptMode = PathPromptMode::None;
     m_pathPromptBuffer.clear();
+    m_pathPromptCursorPos = 0;
 
     if (mode == PathPromptMode::GoToLine) {
         if (!commit) {
@@ -475,6 +477,7 @@ void TextEditorApp::finishPathPrompt(bool commit) {
             // Re-open the prompt so the user can confirm or save first.
             m_pathPromptMode = PathPromptMode::Open;
             m_pathPromptBuffer = buffer;
+            m_pathPromptCursorPos = m_pathPromptBuffer.size();
             return;
         }
 
@@ -506,9 +509,14 @@ void TextEditorApp::finishPathPrompt(bool commit) {
 void TextEditorApp::completePathPrompt() {
     if (!m_fs || m_pathPromptBuffer.empty()) return;
 
-    const size_t slash = m_pathPromptBuffer.find_last_of('/');
-    const std::string dirPart = (slash == std::string::npos) ? "" : m_pathPromptBuffer.substr(0, slash);
-    const std::string namePrefix = (slash == std::string::npos) ? m_pathPromptBuffer : m_pathPromptBuffer.substr(slash + 1);
+    m_pathPromptCursorPos = std::min(m_pathPromptCursorPos, m_pathPromptBuffer.size());
+    if (m_pathPromptBuffer.find('/', m_pathPromptCursorPos) != std::string::npos) return;
+
+    const std::string prefixBuffer = m_pathPromptBuffer.substr(0, m_pathPromptCursorPos);
+    const size_t slash = prefixBuffer.find_last_of('/');
+    const size_t nameStart = (slash == std::string::npos) ? 0 : slash + 1;
+    const std::string dirPart = (slash == std::string::npos) ? "" : prefixBuffer.substr(0, slash);
+    const std::string namePrefix = prefixBuffer.substr(nameStart);
     const std::string searchDir = m_fs->normalize(dirPart.empty() ? "/" : dirPart);
     const std::string completionBase = (slash == std::string::npos)
         ? ""
@@ -528,14 +536,20 @@ void TextEditorApp::completePathPrompt() {
 
     if (matches.empty()) return;
 
+    auto applyCompletion = [&](const std::string& completion) {
+        const std::string replacement = completion.substr(nameStart);
+        m_pathPromptBuffer.replace(nameStart, m_pathPromptCursorPos - nameStart, replacement);
+        m_pathPromptCursorPos = nameStart + replacement.size();
+    };
+
     if (matches.size() == 1) {
-        m_pathPromptBuffer = matches.front();
+        applyCompletion(matches.front());
         return;
     }
 
     const std::string common = commonPrefix(matches);
-    if (common.size() > m_pathPromptBuffer.size()) {
-        m_pathPromptBuffer = common;
+    if (common.size() > prefixBuffer.size()) {
+        applyCompletion(common);
     }
 }
 
@@ -549,9 +563,26 @@ void TextEditorApp::handlePathPromptKey(const SDL_Keysym& keysym) {
             finishPathPrompt(false);
             break;
         case SDLK_BACKSPACE:
-            if (!m_pathPromptBuffer.empty()) {
-                popLastUtf8Codepoint(m_pathPromptBuffer);
+            erasePreviousUtf8Codepoint(m_pathPromptBuffer, m_pathPromptCursorPos);
+            break;
+        case SDLK_DELETE: {
+            const std::size_t next = utf8NextCodepointStart(m_pathPromptBuffer, m_pathPromptCursorPos);
+            if (next > m_pathPromptCursorPos) {
+                m_pathPromptBuffer.erase(m_pathPromptCursorPos, next - m_pathPromptCursorPos);
             }
+            break;
+        }
+        case SDLK_LEFT:
+            m_pathPromptCursorPos = utf8PrevCodepointStart(m_pathPromptBuffer, m_pathPromptCursorPos);
+            break;
+        case SDLK_RIGHT:
+            m_pathPromptCursorPos = utf8NextCodepointStart(m_pathPromptBuffer, m_pathPromptCursorPos);
+            break;
+        case SDLK_HOME:
+            m_pathPromptCursorPos = 0;
+            break;
+        case SDLK_END:
+            m_pathPromptCursorPos = m_pathPromptBuffer.size();
             break;
         case SDLK_TAB:
             if (m_pathPromptMode != PathPromptMode::GoToLine) {
@@ -565,16 +596,23 @@ void TextEditorApp::handlePathPromptKey(const SDL_Keysym& keysym) {
 
 void TextEditorApp::handlePathPromptText(const char* text) {
     if (!text) return;
+
+    m_pathPromptCursorPos = std::min(m_pathPromptCursorPos, m_pathPromptBuffer.size());
+    std::string inserted;
     for (const char* p = text; *p; ++p) {
         const unsigned char c = static_cast<unsigned char>(*p);
         if (m_pathPromptMode == PathPromptMode::GoToLine) {
             if (c >= '0' && c <= '9') {
-                m_pathPromptBuffer.push_back(static_cast<char>(c));
+                inserted.push_back(static_cast<char>(c));
             }
             continue;
         }
         if (c < 32 || c == 127) continue;
-        m_pathPromptBuffer.push_back(static_cast<char>(c));
+        inserted.push_back(static_cast<char>(c));
+    }
+    if (!inserted.empty()) {
+        m_pathPromptBuffer.insert(m_pathPromptCursorPos, inserted);
+        m_pathPromptCursorPos += inserted.size();
     }
 }
 
@@ -1522,12 +1560,15 @@ void TextEditorApp::render(SDL_Renderer* renderer, const SDL_Rect& contentRect) 
                 status += "   |  Enter next  Shift+Enter prev  Ctrl+H replace  Esc";
             }
         } else if (m_pathPromptMode != PathPromptMode::None) {
+            const std::size_t cursor = std::min(m_pathPromptCursorPos, m_pathPromptBuffer.size());
+            const std::string promptBuffer = m_pathPromptBuffer.substr(0, cursor)
+                + "_" + m_pathPromptBuffer.substr(cursor);
             if (m_pathPromptMode == PathPromptMode::GoToLine) {
-                status = "Go to line: " + m_pathPromptBuffer + "_";
+                status = "Go to line: " + promptBuffer;
                 status += "   |  Enter jump, Esc cancel";
             } else {
                 status = (m_pathPromptMode == PathPromptMode::Open) ? "Open: " : "Save as: ";
-                status += m_pathPromptBuffer + "_";
+                status += promptBuffer;
                 status += "   |  Tab complete, Enter confirm, Esc cancel";
             }
         } else {

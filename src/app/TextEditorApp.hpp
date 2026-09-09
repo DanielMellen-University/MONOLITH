@@ -151,6 +151,7 @@ private:
 
     PathPromptMode m_pathPromptMode = PathPromptMode::None;
     std::string m_pathPromptBuffer;
+    std::size_t m_pathPromptCursorPos = 0;
 
     // Find / replace state
     SearchMode m_searchMode = SearchMode::None;
