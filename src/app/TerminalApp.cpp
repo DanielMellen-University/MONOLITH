@@ -406,7 +406,10 @@ void TerminalApp::executeCommand(const std::string& commandLine) {
 void TerminalApp::processTextInput(const char* text) {
     if (m_searchMode) {
         if (text && *text) {
-            m_searchBuffer += text;
+            m_searchCursorPos = std::min(m_searchCursorPos, m_searchBuffer.size());
+            const std::string inserted = text;
+            m_searchBuffer.insert(m_searchCursorPos, inserted);
+            m_searchCursorPos += inserted.size();
             updateReverseSearchMatch();
         }
         return;
@@ -441,10 +444,33 @@ void TerminalApp::handleKeyDown(const SDL_Keysym& keysym) {
             return;
         }
         if (keysym.sym == SDLK_BACKSPACE) {
-            if (!m_searchBuffer.empty()) {
-                popLastUtf8Codepoint(m_searchBuffer);
+            erasePreviousUtf8Codepoint(m_searchBuffer, m_searchCursorPos);
+            updateReverseSearchMatch();
+            return;
+        }
+        if (keysym.sym == SDLK_DELETE) {
+            m_searchCursorPos = std::min(m_searchCursorPos, m_searchBuffer.size());
+            const std::size_t next = utf8NextCodepointStart(m_searchBuffer, m_searchCursorPos);
+            if (next > m_searchCursorPos) {
+                m_searchBuffer.erase(m_searchCursorPos, next - m_searchCursorPos);
                 updateReverseSearchMatch();
             }
+            return;
+        }
+        if (keysym.sym == SDLK_LEFT) {
+            m_searchCursorPos = utf8PrevCodepointStart(m_searchBuffer, m_searchCursorPos);
+            return;
+        }
+        if (keysym.sym == SDLK_RIGHT) {
+            m_searchCursorPos = utf8NextCodepointStart(m_searchBuffer, m_searchCursorPos);
+            return;
+        }
+        if (keysym.sym == SDLK_HOME) {
+            m_searchCursorPos = 0;
+            return;
+        }
+        if (keysym.sym == SDLK_END) {
+            m_searchCursorPos = m_searchBuffer.size();
             return;
         }
         // Ctrl+R while searching → find older match
@@ -452,10 +478,8 @@ void TerminalApp::handleKeyDown(const SDL_Keysym& keysym) {
             searchPreviousMatch();
             return;
         }
-        // Any other key (arrows, etc.) cancels search for now
-        if (keysym.sym == SDLK_LEFT || keysym.sym == SDLK_RIGHT ||
-            keysym.sym == SDLK_UP   || keysym.sym == SDLK_DOWN ||
-            keysym.sym == SDLK_HOME || keysym.sym == SDLK_END) {
+        // Up/down cancel search so the restored input can use history navigation.
+        if (keysym.sym == SDLK_UP || keysym.sym == SDLK_DOWN) {
             exitReverseSearch(false);
             // Fall through to normal handling of that key on the restored input
         } else {

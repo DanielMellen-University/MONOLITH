@@ -22,6 +22,8 @@ void TerminalApp::enterReverseSearch() {
 
     m_searchMode = true;
     m_searchBuffer.clear();
+    m_searchCursorPos = 0;
+    m_searchHorizontalScrollPx = 0;
     m_searchSavedInput = m_inputBuffer;
     m_searchMatchIndex = -1;
     updateReverseSearchMatch();
@@ -41,6 +43,8 @@ void TerminalApp::exitReverseSearch(bool accept) {
 
     m_searchMode = false;
     m_searchBuffer.clear();
+    m_searchCursorPos = 0;
+    m_searchHorizontalScrollPx = 0;
     m_searchMatchIndex = -1;
     m_searchSavedInput.clear();
     m_scrollOffset = 0;
@@ -314,9 +318,11 @@ void TerminalApp::render(SDL_Renderer* renderer, const SDL_Rect& contentRect) {
     // Draw input line (normal or reverse-search mode)
     SDL_RenderSetClipRect(renderer, &inputBar);
     if (m_searchMode) {
-        m_inputHorizontalScrollPx = 0;
+        m_searchCursorPos = std::min(m_searchCursorPos, m_searchBuffer.size());
         // Reverse-i-search UI
-        std::string searchPrompt = "(reverse-i-search)`" + m_searchBuffer + "': ";
+        const std::string beforeCursor = m_searchBuffer.substr(0, m_searchCursorPos);
+        const std::string afterCursor = m_searchBuffer.substr(m_searchCursorPos);
+        std::string searchPrompt = "(reverse-i-search)`" + beforeCursor + afterCursor + "': ";
         std::string matchText;
 
         if (m_searchMatchIndex >= 0 && m_searchMatchIndex < static_cast<int>(m_commandHistory.size())) {
@@ -326,27 +332,41 @@ void TerminalApp::render(SDL_Renderer* renderer, const SDL_Rect& contentRect) {
         }
 
         std::string full = searchPrompt + matchText;
+        const std::string cursorPrefix = "(reverse-i-search)`" + beforeCursor;
+        int cursorPrefixWidth = 0;
+        int cursorPrefixHeight = 0;
+        TTF_SizeUTF8(m_font, cursorPrefix.c_str(), &cursorPrefixWidth, &cursorPrefixHeight);
+        const int inputViewportWidth = std::max(1, inputBar.w - padding * 2);
+        const int cursorWidth = 8;
 
         SDL_Surface* surf = TTF_RenderUTF8_Blended(m_font, full.c_str(), textColor);
         if (surf) {
             SDL_Texture* tex = SDL_CreateTextureFromSurface(renderer, surf);
             if (tex) {
-                SDL_Rect dst = {contentRect.x + padding, inputLineY, surf->w, surf->h};
+                if (cursorPrefixWidth + cursorWidth
+                    > m_searchHorizontalScrollPx + inputViewportWidth) {
+                    m_searchHorizontalScrollPx = cursorPrefixWidth + cursorWidth - inputViewportWidth;
+                } else if (cursorPrefixWidth < m_searchHorizontalScrollPx) {
+                    m_searchHorizontalScrollPx = cursorPrefixWidth;
+                }
+                const int maxScroll = std::max(0, surf->w - inputViewportWidth);
+                m_searchHorizontalScrollPx = std::clamp(
+                    m_searchHorizontalScrollPx, 0, maxScroll);
+                SDL_Rect dst = {
+                    contentRect.x + padding - m_searchHorizontalScrollPx,
+                    inputLineY,
+                    surf->w,
+                    surf->h
+                };
                 SDL_RenderCopy(renderer, tex, nullptr, &dst);
                 SDL_DestroyTexture(tex);
             }
             SDL_FreeSurface(surf);
         }
 
-        // Cursor on the search buffer part
-        int cursorX = contentRect.x + padding + (int)(searchPrompt.size() - 1) * 8; // rough monospace estimate
-        // Better: measure the actual text width up to the end of searchBuffer
-        {
-            std::string prefix = "(reverse-i-search)`" + m_searchBuffer;
-            int w = 0, h = 0;
-            TTF_SizeUTF8(m_font, prefix.c_str(), &w, &h);
-            cursorX = contentRect.x + padding + w;
-        }
+        // Cursor on the search buffer part.
+        const int cursorX = contentRect.x + padding
+            + cursorPrefixWidth - m_searchHorizontalScrollPx;
 
         SDL_SetRenderDrawColor(renderer, 180, 200, 180, 230);
         SDL_Rect cur = {cursorX, inputLineY + 2, 8, lineHeight - 4};

@@ -1,5 +1,10 @@
 # Changelog
 
+## 2026-09: Caret-aware Terminal history search
+
+- Reverse Ctrl+R search now supports caret movement, insertion, Delete, and UTF-8-safe Backspace.
+- Long search queries keep the active caret visible in the input strip.
+
 ## 2026-09: Caret-aware Filesystem filtering
 
 - Filesystem Browser Ctrl+F filtering now supports caret movement, insertion, Delete, and UTF-8-safe Backspace.

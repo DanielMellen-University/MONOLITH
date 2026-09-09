@@ -91,6 +91,8 @@ private:
     // Ctrl+R reverse history search
     bool m_searchMode = false;
     std::string m_searchBuffer;
+    std::size_t m_searchCursorPos = 0;
+    int m_searchHorizontalScrollPx = 0;
     int m_searchMatchIndex = -1;          // index in m_commandHistory, or -1
     std::string m_searchSavedInput;       // input buffer saved when entering search
 
