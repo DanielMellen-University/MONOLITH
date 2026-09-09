@@ -1,5 +1,10 @@
 # Changelog
 
+## 2026-09: Reset omitted desktop settings on reload
+
+- Loading a valid partial or legacy desktop settings file now starts from defaults instead of retaining fields from a previous snapshot.
+- Extended persistence coverage for reloading into an already-configured settings object.
+
 ## 2026-09: Reject malformed desktop color settings
 
 - Desktop background values with trailing data are now rejected instead of being partially parsed.

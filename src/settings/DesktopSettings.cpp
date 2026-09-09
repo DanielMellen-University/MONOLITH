@@ -2,6 +2,7 @@
 
 #include <fstream>
 #include <sstream>
+#include <utility>
 
 namespace monolith::settings {
 
@@ -53,6 +54,10 @@ bool DesktopSettings::loadFromHostPath(const std::string& hostPath) {
     std::ifstream in(hostPath);
     if (!in) return false;
 
+    RGB nextBackground = kDefaultDesktopBackground;
+    std::string nextWallpaperPath;
+    bool nextClock24Hour = false;
+    int nextUiScalePercent = 100;
     bool loadedAny = false;
     std::string line;
     while (std::getline(in, line)) {
@@ -60,7 +65,7 @@ bool DesktopSettings::loadFromHostPath(const std::string& hostPath) {
         if (line.rfind(bgKey, 0) == 0) {
             RGB parsed;
             if (parseRgbTriplet(line.substr(bgKey.size()), parsed)) {
-                m_desktopBackground = parsed;
+                nextBackground = parsed;
                 loadedAny = true;
             }
             continue;
@@ -68,7 +73,7 @@ bool DesktopSettings::loadFromHostPath(const std::string& hostPath) {
 
         const std::string wallpaperKey = "wallpaper_path=";
         if (line.rfind(wallpaperKey, 0) == 0) {
-            m_wallpaperPath = line.substr(wallpaperKey.size());
+            nextWallpaperPath = line.substr(wallpaperKey.size());
             loadedAny = true;
             continue;
         }
@@ -77,7 +82,7 @@ bool DesktopSettings::loadFromHostPath(const std::string& hostPath) {
         if (line.rfind(clockKey, 0) == 0) {
             bool parsed = false;
             if (parseBool01(line.substr(clockKey.size()), parsed)) {
-                m_clock24Hour = parsed;
+                nextClock24Hour = parsed;
                 loadedAny = true;
             }
             continue;
@@ -87,13 +92,19 @@ bool DesktopSettings::loadFromHostPath(const std::string& hostPath) {
         if (line.rfind(uiScaleKey, 0) == 0) {
             int parsed = 0;
             if (parseUiScalePercent(line.substr(uiScaleKey.size()), parsed)) {
-                m_uiScalePercent = parsed;
+                nextUiScalePercent = parsed;
                 loadedAny = true;
             }
             continue;
         }
     }
 
+    if (loadedAny) {
+        m_desktopBackground = nextBackground;
+        m_wallpaperPath = std::move(nextWallpaperPath);
+        m_clock24Hour = nextClock24Hour;
+        m_uiScalePercent = nextUiScalePercent;
+    }
     return loadedAny;
 }
 

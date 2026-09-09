@@ -432,6 +432,7 @@ When unspecified, choose:
 | 2026-09-09 | cleanup | Preserved Text Editor file identity across Save As collisions and failed writes; added a headless state regression test; CURRENT_CHUNK remains 7.1 |
 | 2026-09-09 | cleanup | Preserved Minesweeper timer precision across focus changes and added a headless timing regression test; CURRENT_CHUNK remains 7.1 |
 | 2026-09-09 | cleanup | Rejected malformed desktop RGB settings and added a persistence parser regression test; CURRENT_CHUNK remains 7.1 |
+| 2026-09-09 | cleanup | Reset omitted DesktopSettings fields to defaults when reloading valid partial or legacy files; extended persistence coverage; CURRENT_CHUNK remains 7.1 |
 
 ---
 

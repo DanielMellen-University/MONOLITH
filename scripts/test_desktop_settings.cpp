@@ -51,6 +51,17 @@ int main() {
     check(older.loadFromHostPath(path.string()), "load legacy settings file");
     check(older.uiScalePercent() == 100, "legacy settings default to 100 percent");
 
+    DesktopSettings reused;
+    reused.setDesktopBackground({1, 2, 3});
+    reused.setWallpaperPath("/old/wallpaper.bmp");
+    reused.setClock24Hour(true);
+    reused.setUiScalePercent(115);
+    check(reused.loadFromHostPath(path.string()),
+          "reload legacy settings into an existing object");
+    check(reused.wallpaperPath().empty() && !reused.clock24Hour()
+              && reused.uiScalePercent() == 100,
+          "omitted legacy fields reset to defaults");
+
     {
         std::ofstream invalid(path, std::ios::trunc);
         invalid << "ui_scale_percent=200\n";
