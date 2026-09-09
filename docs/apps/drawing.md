@@ -24,6 +24,7 @@ Drawing is a pixel editor, not a layer or vector editor. The canvas is edited in
 | Editing model | Direct pixel edits with up to 32 in-memory undo states |
 | Prompts | Inline in the status bar, with caret editing and Tab completion for paths |
 | Persistence | Pixels and canvas dimensions are saved; tools, colors, and history are not |
+| Startup defaults | Pen tool, medium brush, black swatch, and a new blank sketch |
 
 Drawing has no separate file-picker or modal prompt. Save, Open, and custom RGB input temporarily turn the status bar into an editor. The active prompt shows a caret and scrolls horizontally when its text is longer than the window.
 
@@ -149,6 +150,19 @@ The standard canvas background is RGB `245,245,248`. Eraser uses that same color
 ## Colors
 
 The eight swatches select the active pen color. Choosing a swatch also switches to Pen and disables the custom RGB color.
+
+The built-in swatches use these exact RGB values:
+
+| Swatch | RGB |
+|--------|-----|
+| Black | `20,20,24` |
+| White | `245,245,248` |
+| Red | `220,70,70` |
+| Green | `70,180,90` |
+| Blue | `70,120,220` |
+| Yellow | `230,200,60` |
+| Orange | `230,140,50` |
+| Purple | `150,80,200` |
 
 Select **RGB** to edit the current custom color in the status bar. Enter exactly three channel values, either as `r,g,b` or `r g b`, with every value between 0 and 255. Enter applies the color and switches back to Pen when needed. Escape cancels the prompt.
 

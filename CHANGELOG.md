@@ -1,5 +1,9 @@
 # Changelog
 
+## 2026-09: Drawing app reference completion
+
+- Documented the Drawing startup defaults and exact built-in swatch RGB values so sketches can be reproduced consistently.
+
 ## 2026-09: Stabilize Filesystem Browser filtering
 
 - Refreshing or filtering now restores selection by entry name, clears selections that disappeared, and clamps scrolling to the current result count.
