@@ -149,10 +149,11 @@ public:
     virtual void onResize(int /*clientWidth*/, int /*clientHeight*/) {}
 
     // Called when the virtual path bound to this app is renamed or moved.
-    virtual void onBoundFileMoved(const std::string& /*newPath*/) {}
+    virtual void onBoundFileMoved(const std::string& /*oldPath*/,
+                                  const std::string& /*newPath*/) {}
 
     // Called when the virtual path bound to this app is deleted.
-    virtual void onBoundFileRemoved() {}
+    virtual void onBoundFileRemoved(const std::string& /*removedPath*/) {}
 
     // Called when any virtual file or directory is renamed or moved.
     virtual void onVirtualPathMoved(const std::string& /*oldPath*/,

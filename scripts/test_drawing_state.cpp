@@ -100,6 +100,19 @@ int main() {
     check(drawing.m_filePath == "/drawings/alternate.modr" && !drawing.m_dirty,
           "confirming the changed dirty drawing target loads it");
 
+    drawing.beginPathPrompt(monolith::app::DrawingApp::PathPromptMode::Save);
+    drawing.m_pathPromptBuffer = "/drawings/alternate.modr";
+    drawing.m_pathPromptCursorPos = drawing.m_pathPromptBuffer.size();
+    drawing.onBoundFileMoved("/drawings/alternate.modr", "/archive/alternate.modr");
+    check(drawing.m_pathPromptBuffer == "/archive/alternate.modr",
+          "Save prompt follows a moved bound drawing file");
+    drawing.beginPathPrompt(monolith::app::DrawingApp::PathPromptMode::Save);
+    drawing.m_pathPromptBuffer = "/archive/alternate.modr";
+    drawing.m_pathPromptCursorPos = drawing.m_pathPromptBuffer.size();
+    drawing.onBoundFileRemoved("/archive/alternate.modr");
+    check(drawing.m_pathPromptBuffer == "/archive/",
+          "Save prompt returns to a valid parent after deletion");
+
     std::filesystem::remove_all(hostRoot, ec);
     if (failures == 0) {
         std::cout << "ALL DRAWING STATE TESTS PASSED\n";

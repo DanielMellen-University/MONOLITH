@@ -19,6 +19,12 @@
 - Fixed file-backed Drawing windows so **New** correctly claims a normal numbered Drawing title after clearing its binding.
 - Added deletion lifecycle coverage for documents, folders, wallpaper, Settings prompts, and working directories.
 
+## 2026-09: Keep file prompts aligned with virtual moves
+
+- Active Text Editor and Drawing Save/Open prompts now follow a moved bound file or directory instead of submitting the old path.
+- When a prompted bound path is deleted, the prompt returns to the nearest valid parent while preserving the document buffer or canvas.
+- Added focused prompt-state coverage for both apps.
+
 ## 2026-09: Keep windows inside narrow logical desktops
 
 - Window clamping now handles desktops narrower than the normal minimum window width without producing a negative left coordinate.

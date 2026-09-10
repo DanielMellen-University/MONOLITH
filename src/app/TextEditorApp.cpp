@@ -404,8 +404,27 @@ void TextEditorApp::updateTitleForPath() {
     }
 }
 
-void TextEditorApp::onBoundFileMoved(const std::string& newPath) {
+void TextEditorApp::onBoundFileMoved(const std::string& oldPath,
+                                     const std::string& newPath) {
     if (newPath.empty()) return;
+
+    if (m_fs && (m_pathPromptMode == PathPromptMode::Open
+                 || m_pathPromptMode == PathPromptMode::SaveAs)) {
+        const bool trailingSlash = !m_pathPromptBuffer.empty()
+            && m_pathPromptBuffer.back() == '/';
+        const std::string oldNormalized = m_fs->normalize(oldPath);
+        const std::string promptPath = m_fs->normalize(m_pathPromptBuffer);
+        if (m_fs->isSameOrDescendant(oldNormalized, promptPath)) {
+            m_pathPromptBuffer = m_fs->normalize(newPath)
+                + promptPath.substr(oldNormalized.size());
+            if (trailingSlash && m_pathPromptBuffer.back() != '/') {
+                m_pathPromptBuffer.push_back('/');
+            }
+            m_pathPromptCursorPos = m_pathPromptBuffer.size();
+            m_statusHorizontalScrollPx = 0;
+        }
+    }
+
     m_filePath = newPath;
     refreshSyntaxMode();
     clearDiscardArm();
@@ -413,7 +432,20 @@ void TextEditorApp::onBoundFileMoved(const std::string& newPath) {
     setStatus("File moved: " + newPath);
 }
 
-void TextEditorApp::onBoundFileRemoved() {
+void TextEditorApp::onBoundFileRemoved(const std::string& removedPath) {
+    if (m_fs && (m_pathPromptMode == PathPromptMode::Open
+                 || m_pathPromptMode == PathPromptMode::SaveAs)) {
+        const std::string removed = m_fs->normalize(removedPath);
+        const std::string promptPath = m_fs->normalize(m_pathPromptBuffer);
+        if (m_fs->isSameOrDescendant(removed, promptPath)) {
+            const size_t slash = removed.find_last_of('/');
+            const std::string parent = slash == 0 ? "/" : removed.substr(0, slash);
+            m_pathPromptBuffer = parent == "/" ? "/" : parent + "/";
+            m_pathPromptCursorPos = m_pathPromptBuffer.size();
+            m_statusHorizontalScrollPx = 0;
+        }
+    }
+
     m_filePath.clear();
     refreshSyntaxMode();
     clearDiscardArm();

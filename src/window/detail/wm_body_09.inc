@@ -143,23 +143,25 @@ void WindowManager::notifyVirtualPathMoved(const std::string& oldPath,
     }
 
     for (const auto& [window, next] : editorUpdates) {
+        const std::string previous = window->editedFilePath;
         auto current = m_fileEditors.find(window->editedFilePath);
         if (current != m_fileEditors.end() && current->second == window) {
             m_fileEditors.erase(current);
         }
         window->editedFilePath = next;
         m_fileEditors[next] = window;
-        if (window->app) window->app->onBoundFileMoved(next);
+        if (window->app) window->app->onBoundFileMoved(previous, next);
     }
 
     for (const auto& [window, next] : drawingUpdates) {
+        const std::string previous = window->drawingFilePath;
         auto current = m_fileDrawings.find(window->drawingFilePath);
         if (current != m_fileDrawings.end() && current->second == window) {
             m_fileDrawings.erase(current);
         }
         window->drawingFilePath = next;
         m_fileDrawings[next] = window;
-        if (window->app) window->app->onBoundFileMoved(next);
+        if (window->app) window->app->onBoundFileMoved(previous, next);
     }
 
     for (const auto& windowPtr : m_windows) {
@@ -198,28 +200,28 @@ void WindowManager::notifyVirtualPathRemoved(const std::string& virtualPath) {
         }
     }
 
-    std::vector<Window*> removedEditors;
-    std::vector<Window*> removedDrawings;
+    std::vector<std::pair<Window*, std::string>> removedEditors;
+    std::vector<std::pair<Window*, std::string>> removedDrawings;
     for (const auto& windowPtr : m_windows) {
         Window* window = windowPtr.get();
         if (!window) continue;
         if (!window->editedFilePath.empty()
             && m_fs->isSameOrDescendant(removed, window->editedFilePath)) {
-            removedEditors.push_back(window);
+            removedEditors.emplace_back(window, window->editedFilePath);
         }
         if (!window->drawingFilePath.empty()
             && m_fs->isSameOrDescendant(removed, window->drawingFilePath)) {
-            removedDrawings.push_back(window);
+            removedDrawings.emplace_back(window, window->drawingFilePath);
         }
     }
 
-    for (Window* window : removedEditors) {
+    for (const auto& [window, removedPath] : removedEditors) {
         clearEditorFileBinding(window);
-        if (window->app) window->app->onBoundFileRemoved();
+        if (window->app) window->app->onBoundFileRemoved(removedPath);
     }
-    for (Window* window : removedDrawings) {
+    for (const auto& [window, removedPath] : removedDrawings) {
         clearDrawingFileBinding(window);
-        if (window->app) window->app->onBoundFileRemoved();
+        if (window->app) window->app->onBoundFileRemoved(removedPath);
     }
 
     for (const auto& windowPtr : m_windows) {

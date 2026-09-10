@@ -192,6 +192,16 @@ int main() {
     check(editor.m_undoStack.size() == TestEditor::kMaxUndoStates,
           "undo history stays within its 50-state cap");
 
+    TestEditor promptEditor(nullptr, &fs, "/new.txt");
+    prepareSaveAs(promptEditor, "/new.txt");
+    promptEditor.onBoundFileMoved("/new.txt", "/renamed.txt");
+    check(promptEditor.m_pathPromptBuffer == "/renamed.txt",
+          "Save As prompt follows a moved bound editor file");
+    prepareSaveAs(promptEditor, "/renamed.txt");
+    promptEditor.onBoundFileRemoved("/renamed.txt");
+    check(promptEditor.m_pathPromptBuffer == "/",
+          "Save As prompt returns to a valid parent after deletion");
+
     std::filesystem::remove_all(hostRoot, ec);
     if (failures == 0) {
         std::cout << "ALL TEXT EDITOR STATE TESTS PASSED\n";
