@@ -1,5 +1,11 @@
 # Changelog
 
+## 2026-09: Reject stale browser file opens
+
+- Filesystem Browser now verifies that a selected entry is a regular file before shell open routing.
+- Stale rows and dangling symlinks report a status error instead of creating a failed untitled editor or Drawing window.
+- Added browser state coverage for dangling entries.
+
 ## 2026-09: Keep dangling symlinks manageable
 
 - `Filesystem::exists()` now recognizes in-root dangling symlinks as directory entries.

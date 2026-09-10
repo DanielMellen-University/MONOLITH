@@ -62,6 +62,19 @@ int main() {
     browser.onResize(400, 240);
     check(browser.m_entries.size() == 15, "browser loads the complete directory listing");
 
+    const std::filesystem::path danglingPath = hostRoot / "home/monolith/dangling";
+    std::filesystem::create_symlink(hostRoot / "missing-browser-target", danglingPath, ec);
+    check(!ec, "create browser dangling symlink");
+    browser.refreshEntries();
+    check(browser.selectEntryNamed("dangling", false),
+          "select dangling browser entry");
+    browser.openFileEntry("dangling");
+    check(browser.m_statusMessage == "Open failed: not a regular file",
+          "browser rejects a dangling entry before shell open routing");
+    check(fs.removeRecursive("/home/monolith/dangling"),
+          "remove browser dangling test entry");
+    browser.refreshEntries();
+
     browser.setSelection(static_cast<int>(browser.m_entries.size()) - 1);
     browser.m_scrollOffset = 8;
     key(browser, SDLK_f, KMOD_CTRL);

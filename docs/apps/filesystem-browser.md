@@ -24,7 +24,7 @@ Long paths and status messages stay at the font's native size and clip at their 
 ## Navigation
 
 - **Double-click** a directory to enter it.
-- **Double-click** a file to open it with the shell default (case-insensitive **`.modr` → Drawing**, everything else → Text Editor).
+- **Double-click** a regular file to open it with the shell default (case-insensitive **`.modr` → Drawing**, everything else → Text Editor). Stale or dangling entries are rejected in the status bar instead of opening a blank app window.
 - Click **Up** in the toolbar or press **Backspace** to go to the parent directory.
 - **Arrow Up / Down** moves the primary selection; **Enter** activates it (same as double-click).
 

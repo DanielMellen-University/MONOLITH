@@ -208,9 +208,18 @@ std::string FilesystemApp::fullPathFor(const std::string& name) const {
 }
 
 void FilesystemApp::openFileEntry(const std::string& name, const char* forceApp) {
+    if (!m_fs) {
+        setStatus("Open failed: filesystem not available");
+        return;
+    }
+    const std::string path = fullPathFor(name);
+    if (!m_fs->isFile(path)) {
+        setStatus("Open failed: not a regular file");
+        return;
+    }
+
     if (!getController()) return;
 
-    const std::string path = fullPathFor(name);
     auto* ctrl = getController();
     if (forceApp && std::string(forceApp) == "drawing") {
         ctrl->openInDrawing(path);
