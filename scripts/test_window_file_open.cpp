@@ -53,7 +53,13 @@ int main() {
         wm.setAppResources(font, &fs);
 
         const auto settingsPath = hostRoot / "desktop-settings.txt";
+        {
+            std::ofstream seedSettings(settingsPath);
+            seedSettings << "wallpaper_path=/Wallpapers/../Wallpapers/old.bmp\n";
+        }
         wm.loadDesktopSettings(settingsPath.string());
+        check(wm.getWallpaperPath() == "/Wallpapers/old.bmp",
+              "loaded wallpaper paths are normalized");
         check(fs.createDirectory("/Wallpapers"), "create wallpaper directory");
         check(fs.createDirectory("/archive"), "create directory move destination");
         check(fs.writeFile("/Wallpapers/old.bmp", "placeholder"),

@@ -49,6 +49,8 @@ Scroll with the mouse wheel or Page Up/Down if the window is resized smaller. Ba
 
 The settings file accepts both Unix and Windows line endings, so copying it between systems does not add a hidden carriage return to a wallpaper path or other value.
 
+Wallpaper paths are canonicalized when settings load, so legacy values containing repeated separators or `.` and `..` segments are rewritten to their normalized virtual path before use.
+
 ## Information Panel
 
 Below the appearance controls, Settings shows read-only details:

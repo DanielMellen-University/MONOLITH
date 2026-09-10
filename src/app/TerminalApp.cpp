@@ -48,9 +48,10 @@ void TerminalApp::onVirtualPathMoved(const std::string& oldPath,
     const std::string oldNormalized = m_fs->normalize(oldPath);
     const std::string newNormalized = m_fs->normalize(newPath);
     if (oldNormalized == newNormalized || oldNormalized == "/") return;
-    if (!m_fs->isSameOrDescendant(oldNormalized, m_cwd)) return;
+    const std::string current = m_fs->normalize(m_cwd);
+    if (!m_fs->isSameOrDescendant(oldNormalized, current)) return;
 
-    m_cwd = newNormalized + m_cwd.substr(oldNormalized.size());
+    m_cwd = newNormalized + current.substr(oldNormalized.size());
     addOutput("Working directory moved to " + m_cwd);
 }
 

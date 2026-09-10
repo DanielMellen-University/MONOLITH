@@ -264,6 +264,14 @@ bool WindowManager::shouldQuit() const {
 void WindowManager::loadDesktopSettings(const std::string& hostPath) {
     m_desktopSettingsHostPath = hostPath;
     m_desktopSettings.loadFromHostPath(hostPath);
+    if (m_fs && !m_desktopSettings.wallpaperPath().empty()) {
+        const std::string rawWallpaperPath = m_desktopSettings.wallpaperPath();
+        const std::string normalizedWallpaperPath = m_fs->normalize(rawWallpaperPath);
+        if (rawWallpaperPath != normalizedWallpaperPath) {
+            m_desktopSettings.setWallpaperPath(normalizedWallpaperPath);
+            m_desktopSettings.saveToHostPath(hostPath);
+        }
+    }
     applyUiScaleFont();
     // Force wallpaper reload on next render (path may have changed).
     destroyWallpaperTexture();

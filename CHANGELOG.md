@@ -5,6 +5,12 @@
 - Documented canonical virtual path normalization for Drawing save/open prompts and bound file paths, including `.` and `..` examples.
 - Clarified that normalized paths are used for titles, session records, singleton routing, and active prompts.
 
+## 2026-09: Normalize virtual path state
+
+- Terminal working directories, Filesystem Browser views, Settings wallpaper prompts, wallpaper state, and shared clipboard paths now remap from canonical virtual paths.
+- Legacy wallpaper settings containing redundant path segments are normalized and persisted when loaded.
+- Added regression coverage for normalized wallpaper settings.
+
 ## 2026-09: Keep open documents attached across virtual moves
 
 - Filesystem Browser rename, Filesystem Browser cut/paste, and Terminal `mv` now update open Text Editor and Drawing bindings when a file or parent directory moves.

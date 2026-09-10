@@ -45,9 +45,10 @@ void FilesystemApp::onVirtualPathMoved(const std::string& oldPath,
     const std::string oldNormalized = m_fs->normalize(oldPath);
     const std::string newNormalized = m_fs->normalize(newPath);
     if (oldNormalized == newNormalized || oldNormalized == "/") return;
-    if (!m_fs->isSameOrDescendant(oldNormalized, m_currentPath)) return;
+    const std::string current = m_fs->normalize(m_currentPath);
+    if (!m_fs->isSameOrDescendant(oldNormalized, current)) return;
 
-    m_currentPath = newNormalized + m_currentPath.substr(oldNormalized.size());
+    m_currentPath = newNormalized + current.substr(oldNormalized.size());
     cancelPendingDelete();
     refreshEntries();
     setStatus("Folder moved: " + m_currentPath);
