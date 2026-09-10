@@ -93,6 +93,22 @@ int main() {
               "recursive symlink removal preserves the target tree");
     }
 
+    check(fs.createDirectory("/partial-src"), "create partial-copy source");
+    check(fs.writeFile("/partial-src/a-good.txt", "keep"),
+          "write partial-copy regular child");
+    const stdfs::path partialLink = hostRoot / "partial-src/z-broken-link";
+    stdfs::create_symlink(hostRoot / "missing-copy-target", partialLink, ec);
+    check(!ec, "create partial-copy broken symlink child");
+    if (!ec) {
+        check(!fs.copyRecursive("/partial-src", "/partial-dst"),
+              "recursive copy reports an unsupported child failure");
+        check(!fs.exists("/partial-dst"),
+              "failed recursive copy removes its partial new destination");
+        check(fs.isFile("/partial-src/a-good.txt"),
+              "failed recursive copy preserves the source tree");
+    }
+    check(fs.removeRecursive("/partial-src"), "remove partial-copy source");
+
     check(fs.writeFile("/rename-source.txt", "keep source"),
           "write rename source for dangling-link coverage");
     const stdfs::path danglingDestination = hostRoot / "dangling-destination";

@@ -1,5 +1,10 @@
 # Changelog
 
+## 2026-09: Roll back failed recursive copies
+
+- Recursive directory copies now remove a newly created destination when a child copy fails, instead of leaving a partial tree behind.
+- Added coverage for a source tree containing a broken symlink child.
+
 ## 2026-09: Refresh browsers after file creation
 
 - Added a centralized virtual path creation notification alongside move and removal notifications.

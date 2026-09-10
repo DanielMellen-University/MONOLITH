@@ -223,12 +223,18 @@ bool Filesystem::copyRecursive(const std::string& srcVirtualPath, const std::str
         return false;
     }
 
+    const bool destinationExisted = exists(dst);
     if (!createDirectory(dst) && !isDirectory(dst)) {
         return false;
     }
 
     for (const auto& entry : listEntries(src)) {
         if (!copyRecursive(join(src, entry.name), join(dst, entry.name))) {
+            // A new destination is owned by this copy operation. Remove it
+            // on failure so callers never mistake a partial tree for success.
+            if (!destinationExisted) {
+                removeRecursive(dst);
+            }
             return false;
         }
     }
