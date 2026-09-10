@@ -520,6 +520,8 @@ void DrawingApp::onBoundFileMoved(const std::string& oldPath,
                  || m_pathPromptMode == PathPromptMode::Save)) {
         const bool trailingSlash = !m_pathPromptBuffer.empty()
             && m_pathPromptBuffer.back() == '/';
+        const std::string oldPrompt = m_pathPromptBuffer;
+        const std::size_t oldCursor = m_pathPromptCursorPos;
         const std::string oldNormalized = m_fs->normalize(oldPath);
         const std::string promptPath = m_fs->normalize(m_pathPromptBuffer);
         if (m_fs->isSameOrDescendant(oldNormalized, promptPath)) {
@@ -528,7 +530,9 @@ void DrawingApp::onBoundFileMoved(const std::string& oldPath,
             if (trailingSlash && m_pathPromptBuffer.back() != '/') {
                 m_pathPromptBuffer.push_back('/');
             }
-            m_pathPromptCursorPos = m_pathPromptBuffer.size();
+            m_pathPromptCursorPos = remapUtf8CursorAfterPrefix(
+                oldPrompt, oldCursor, oldNormalized, normalizedNewPath,
+                m_pathPromptBuffer);
             m_pathPromptScrollPx = 0;
         }
     }

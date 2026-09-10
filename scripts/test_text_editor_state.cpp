@@ -213,10 +213,12 @@ int main() {
           "undo history stays within its 50-state cap");
 
     TestEditor promptEditor(nullptr, &fs, "/new.txt");
-    prepareSaveAs(promptEditor, "/new.txt");
+    prepareSaveAs(promptEditor, "/new.txt/child.txt");
+    promptEditor.m_pathPromptCursorPos = std::string("/new.txt/").size();
     promptEditor.onBoundFileMoved("/new.txt", "/docs/../renamed.txt");
-    check(promptEditor.m_pathPromptBuffer == "/renamed.txt",
-          "Save As prompt canonicalizes a moved bound editor file");
+    check(promptEditor.m_pathPromptBuffer == "/renamed.txt/child.txt"
+              && promptEditor.m_pathPromptCursorPos == std::string("/renamed.txt/").size(),
+          "Save As prompt canonicalizes a moved bound editor file and preserves its caret");
     prepareSaveAs(promptEditor, "/renamed.txt");
     promptEditor.onBoundFileRemoved("/renamed.txt");
     check(promptEditor.m_pathPromptBuffer == "/",

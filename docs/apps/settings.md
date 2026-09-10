@@ -26,6 +26,7 @@ The **APPEARANCE** section at the top lets you change live desktop preferences.
 - While the path field is focused, Left/Right/Home/End move the caret, typed text is inserted at the caret, Delete removes the next complete UTF-8 character, and Backspace removes the previous one.
 - Press Tab to complete a directory or BMP filename. With several matches, completion extends the shared prefix; the caret must be in the final path component.
 - Long paths scroll horizontally to keep the caret visible while editing.
+- If a configured wallpaper path moves while the field is focused, the prompt follows the move and preserves the caret's suffix position on a UTF-8 boundary.
 - **Clear** removes the image and returns to solid color only.
 - Empty path means solid color only. Missing or unloadable files fail soft (solid color stays).
 - A sample BMP is seeded at `/Wallpapers/sample.bmp` on first launch (from `assets/wallpapers/sample.bmp`).

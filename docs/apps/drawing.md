@@ -302,6 +302,7 @@ While a prompt is active, Drawing routes keyboard input to that prompt and ignor
 - **RGB** starts with the current active color and accepts exactly three integer channels. Tab completion does not apply to RGB input.
 - These prompts are inline status-bar inputs. Left/Right/Home/End move the caret, typed text is inserted at that position, and Backspace/Delete remove complete UTF-8 characters.
 - Tab replaces only the final path component before the caret. If the caret is inside a directory component, completion waits until the caret is in the final component so text after it is not rewritten.
+- If a bound file or directory moves while Save or Open is active, the prompt follows the canonical path and keeps the caret at the same suffix position on a UTF-8 boundary.
 - Enter accepts the active prompt and Escape cancels it. Save adds `.modr` when the entered path does not already end in `.modr`; entering `picture.mod` therefore saves as `picture.mod.modr`.
 - If a dirty sketch blocks Open, the first confirmation keeps the path prompt active. Confirming the same open action again discards the unsaved canvas and loads the file.
 - Editing the Open path after that warning resets the confirmation, so the new target requires its own second confirmation.

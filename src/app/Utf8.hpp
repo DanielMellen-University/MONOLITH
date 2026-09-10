@@ -47,6 +47,25 @@ inline std::size_t utf8ClampToCodepointBoundary(const std::string& value,
     return offset;
 }
 
+// Preserve a prompt caret's position after replacing a moved path prefix.
+inline std::size_t remapUtf8CursorAfterPrefix(
+    const std::string& oldValue,
+    std::size_t oldCursor,
+    const std::string& oldPrefix,
+    const std::string& newPrefix,
+    const std::string& newValue) {
+    oldCursor = utf8ClampToCodepointBoundary(oldValue, oldCursor);
+
+    std::size_t nextCursor = oldCursor;
+    if (oldCursor >= oldPrefix.size()
+        && oldValue.compare(0, oldPrefix.size(), oldPrefix) == 0) {
+        nextCursor = newPrefix.size() + (oldCursor - oldPrefix.size());
+    }
+
+    return utf8ClampToCodepointBoundary(
+        newValue, std::min(nextCursor, newValue.size()));
+}
+
 inline void erasePreviousUtf8Codepoint(std::string& value, std::size_t& cursor) {
     if (cursor > value.size()) cursor = value.size();
     if (cursor == 0) return;

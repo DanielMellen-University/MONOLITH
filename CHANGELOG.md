@@ -1,5 +1,10 @@
 # Changelog
 
+## 2026-09: Preserve prompt carets across path moves
+
+- Text Editor, Drawing, and Settings now keep an active path prompt's caret at the same suffix position when a bound file or directory moves.
+- Shared UTF-8-safe remapping prevents a path change from dropping the caret to the end or leaving it inside a multibyte character.
+
 ## 2026-09: Synchronize app sizes after interactive resize clamping
 
 - Window Manager resize notifications now use the final frame after desktop bounds are applied, keeping app canvases and layouts aligned at the desktop edge.

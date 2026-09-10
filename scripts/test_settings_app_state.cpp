@@ -105,11 +105,12 @@ int main() {
           "completed wallpaper path applies through the shell controller");
 
     settings.m_wallpaperFieldFocused = true;
-    settings.m_wallpaperEditBuffer = "/Wallpapers/alpha.bmp";
-    settings.m_wallpaperCursorPos = settings.m_wallpaperEditBuffer.size();
+    settings.m_wallpaperEditBuffer = "/Wallpapers/alpha.bmp/child.bmp";
+    settings.m_wallpaperCursorPos = std::string("/Wallpapers/alpha.bmp/").size();
     settings.onVirtualPathMoved("/Wallpapers", "/Archive");
-    check(settings.m_wallpaperEditBuffer == "/Archive/alpha.bmp",
-          "focused wallpaper prompt follows a moved parent directory");
+    check(settings.m_wallpaperEditBuffer == "/Archive/alpha.bmp/child.bmp"
+              && settings.m_wallpaperCursorPos == std::string("/Archive/alpha.bmp/").size(),
+          "focused wallpaper prompt follows a moved parent and preserves its caret");
     settings.m_wallpaperEditBuffer = "/Wallpapers/art/";
     settings.m_wallpaperCursorPos = settings.m_wallpaperEditBuffer.size();
     settings.onVirtualPathMoved("/Wallpapers", "/Archive");

@@ -112,13 +112,14 @@ int main() {
           "confirming the changed dirty drawing target loads it");
 
     drawing.beginPathPrompt(monolith::app::DrawingApp::PathPromptMode::Save);
-    drawing.m_pathPromptBuffer = "/drawings/alternate.modr";
-    drawing.m_pathPromptCursorPos = drawing.m_pathPromptBuffer.size();
+    drawing.m_pathPromptBuffer = "/drawings/alternate.modr/child.modr";
+    drawing.m_pathPromptCursorPos = std::string("/drawings/alternate.modr/").size();
     drawing.onBoundFileMoved(
         "/drawings/alternate.modr", "/archive/../archive/alternate.modr");
-    check(drawing.m_pathPromptBuffer == "/archive/alternate.modr"
-              && drawing.m_filePath == "/archive/alternate.modr",
-          "Save prompt canonicalizes a moved bound drawing file");
+    check(drawing.m_pathPromptBuffer == "/archive/alternate.modr/child.modr"
+              && drawing.m_filePath == "/archive/alternate.modr"
+              && drawing.m_pathPromptCursorPos == std::string("/archive/alternate.modr/").size(),
+          "Save prompt canonicalizes a moved bound drawing file and preserves its caret");
     drawing.beginPathPrompt(monolith::app::DrawingApp::PathPromptMode::Save);
     drawing.m_pathPromptBuffer = "/archive/alternate.modr";
     drawing.m_pathPromptCursorPos = drawing.m_pathPromptBuffer.size();
