@@ -71,6 +71,14 @@ int main() {
     check(terminal.m_inputBuffer == "echo two",
           "down does not replace an accepted search result with stale input");
 
+    terminal.m_inputBuffer = "echo saved command";
+    terminal.m_inputCursorPos = 5;
+    key(SDLK_r, KMOD_CTRL);
+    text("no-match");
+    key(SDLK_ESCAPE);
+    check(terminal.m_inputBuffer == "echo saved command" && terminal.m_inputCursorPos == 5,
+          "canceling reverse search restores the original input caret");
+
     terminal.executeCommand("ls /home/monolith/empty");
     check(!terminal.m_history.empty() && terminal.m_history.back() == "(empty)",
           "ls reports an empty directory");

@@ -1,5 +1,10 @@
 # Changelog
 
+## 2026-09: Preserve Terminal reverse-search caret
+
+- Canceling `Ctrl+R` reverse history search now restores the input caret where the search began instead of moving it to the end of the command.
+- Added Terminal state coverage for canceling search from the middle of an input line.
+
 ## 2026-09: Reset Filesystem Browser transient state
 
 - Directory navigation and external listing refreshes now clear stale context-menu, rename, and delete-confirmation state.

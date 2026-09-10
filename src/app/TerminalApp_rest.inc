@@ -25,6 +25,10 @@ void TerminalApp::enterReverseSearch() {
     m_searchCursorPos = 0;
     m_searchHorizontalScrollPx = 0;
     m_searchSavedInput = m_inputBuffer;
+    m_searchSavedCursorPos = std::clamp(
+        m_inputCursorPos,
+        0,
+        static_cast<int>(m_inputBuffer.size()));
     m_searchMatchIndex = -1;
     updateReverseSearchMatch();
 }
@@ -38,7 +42,10 @@ void TerminalApp::exitReverseSearch(bool accept) {
     } else {
         // Cancel: restore previous input
         m_inputBuffer = m_searchSavedInput;
-        m_inputCursorPos = static_cast<int>(m_inputBuffer.size());
+        m_inputCursorPos = std::clamp(
+            m_searchSavedCursorPos,
+            0,
+            static_cast<int>(m_inputBuffer.size()));
     }
 
     m_searchMode = false;
@@ -47,6 +54,7 @@ void TerminalApp::exitReverseSearch(bool accept) {
     m_searchHorizontalScrollPx = 0;
     m_searchMatchIndex = -1;
     m_searchSavedInput.clear();
+    m_searchSavedCursorPos = 0;
     m_historyIndex = -1;
     m_savedInputBuffer.clear();
     m_scrollOffset = 0;

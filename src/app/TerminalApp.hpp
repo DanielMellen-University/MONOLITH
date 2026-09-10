@@ -98,6 +98,7 @@ private:
     int m_searchHorizontalScrollPx = 0;
     int m_searchMatchIndex = -1;          // index in m_commandHistory, or -1
     std::string m_searchSavedInput;       // input buffer saved when entering search
+    int m_searchSavedCursorPos = 0;       // input caret saved when entering search
 
     // Persistent history
     static constexpr const char* HISTORY_FILE = "/home/monolith/.terminal_history";
