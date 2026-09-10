@@ -1,5 +1,10 @@
 # Changelog
 
+## 2026-09: Add Drawing operator reference
+
+- Added a compact daily workflow card to the Drawing guide.
+- Clarified when Save writes immediately and when it opens a path prompt.
+
 ## 2026-09: Keep game boards inside small windows
 
 - Snake and Minesweeper now fit their complete boards inside narrow or short client areas instead of letting the board cover the HUD or footer.

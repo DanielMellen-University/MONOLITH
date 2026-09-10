@@ -34,6 +34,21 @@ Drawing is a pixel editor, not a layer or vector editor. The canvas is edited in
 - A saved file contains only the opaque RGB canvas and its dimensions. The active tool, colors, brush size, undo history, and window state are not part of the file.
 - The status bar is the file prompt, progress display, and recovery guide. Press **Enter** to confirm a prompt and **Esc** to cancel it.
 
+## Daily Operator Card
+
+| Goal | Fastest path |
+|------|--------------|
+| Start a blank sketch | Open **Drawing**, or press **Ctrl+N** in an existing Drawing window. |
+| Draw | Choose a swatch, select **Pen**, **Eraser**, **Fill**, **Line**, or **Rect**, then use the canvas. |
+| Sample a color | Select **Pick**, click a canvas pixel, and continue with Pen. |
+| Save a new sketch | Press **Ctrl+S**, keep or edit the suggested `.modr` path, then press **Enter**. |
+| Save an open sketch | Press **Ctrl+S**. The current bound path is written immediately. |
+| Open another sketch | Press **Ctrl+O**, type or Tab-complete a `.modr` path, then press **Enter**. |
+| Recover from a mistaken stroke | Press **Ctrl+Z**. Use **Ctrl+Y** or **Ctrl+Shift+Z** to redo it. |
+| Rename or move a saved sketch | Use Filesystem Browser Rename or Terminal `mv`, keeping the full `.modr` suffix. |
+
+The status bar always shows the next useful action. During Save, Open, or RGB input, the status bar becomes the active prompt and canvas shortcuts are paused until **Enter** or **Esc**.
+
 ## File Naming Rules
 
 `.modr` is the Drawing file type. Keep the suffix visible when naming or renaming a sketch:
@@ -241,7 +256,7 @@ The toolbar has three rows.
 Top row:
 
 - **New**: clears the canvas, resets the file path, and restores the window's instance title (`Drawing`, `Drawing 2`, etc.).
-- **Save**: saves the current sketch. If the sketch has no file path yet, Drawing prompts for one.
+- **Save**: writes the current bound file immediately, or prompts for a path when the sketch has no file path yet.
 - **Open**: prompts for a `.modr` file path.
 - **Undo**: undoes the last stroke or clear.
 - **Redo**: redoes the last undone change.
