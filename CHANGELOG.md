@@ -1,5 +1,10 @@
 # Changelog
 
+## 2026-09: Highlight signed editor numbers
+
+- Text Editor syntax highlighting now keeps leading `-` and `+` signs attached to numeric tokens.
+- Added state coverage for signed number spans.
+
 ## 2026-09: Align architecture app inventory
 
 - Updated the architecture guide to include Pong in the built-in app table, launcher list, and Start menu Games grouping.

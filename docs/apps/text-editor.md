@@ -28,7 +28,7 @@ If an initial path is missing or unreadable, the failed window falls back to the
 - Line numbers appear in the left margin.
 - Empty files open as one editable blank line. A file that ends with a newline keeps its final blank line.
 - Files opened with CRLF or lone-CR line endings are normalized to LF in the editor. Saving writes the document with LF separators.
-- Syntax highlighting colors comments, strings, numbers, and (for code files) keywords.
+- Syntax highlighting colors comments, strings, signed and unsigned numbers, and (for code files) keywords.
 - A `*` in the status bar indicates unsaved changes.
 - Open/save results and errors appear in the status bar (e.g. `Saved: note.txt`, `Open failed: …`).
 - Failed reads are reported as open errors instead of being treated as empty documents.

@@ -204,11 +204,18 @@ std::vector<TextEditorApp::ColoredSpan> TextEditorApp::tokenizeLine(const std::s
         }
 
         const unsigned char ch = static_cast<unsigned char>(line[i]);
+        const bool signedNumber = (line[i] == '-' || line[i] == '+')
+            && i + 1 < n
+            && std::isdigit(static_cast<unsigned char>(line[i + 1]))
+            && (i == 0
+                || (!std::isalnum(static_cast<unsigned char>(line[i - 1]))
+                    && line[i - 1] != '_'));
         if (std::isdigit(ch)
+            || signedNumber
             || (line[i] == '.' && i + 1 < n
                 && std::isdigit(static_cast<unsigned char>(line[i + 1])))) {
             size_t j = i;
-            if (line[j] == '-') ++j;
+            if (line[j] == '-' || line[j] == '+') ++j;
             while (j < n) {
                 const unsigned char cj = static_cast<unsigned char>(line[j]);
                 if (!std::isdigit(cj) && line[j] != '.') break;

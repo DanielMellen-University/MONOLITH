@@ -184,6 +184,16 @@ int main() {
     check(editor.m_findMatches == std::vector<std::pair<int, int>>{{0, 0}, {0, 2}},
           "find uses non-overlapping matches like replace all");
 
+    const auto signedNumberSpans = editor.tokenizeLine("-42 +7");
+    check(signedNumberSpans.size() == 3
+              && signedNumberSpans[0].start == 0
+              && signedNumberSpans[0].length == 3
+              && signedNumberSpans[1].start == 3
+              && signedNumberSpans[1].length == 1
+              && signedNumberSpans[2].start == 4
+              && signedNumberSpans[2].length == 2,
+          "syntax highlighting keeps signs attached to numeric tokens");
+
     editor.m_undoStack.clear();
     for (int i = 0; i < 60; ++i) {
         editor.m_cursorCol = i;
