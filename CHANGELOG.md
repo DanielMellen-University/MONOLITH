@@ -1,5 +1,10 @@
 # Changelog
 
+## 2026-09: Document Drawing save paths
+
+- Documented that Drawing Save creates missing parent directories while Open requires an existing valid `.modr` file.
+- Clarified the distinction between virtual path normalization and filesystem writes.
+
 ## 2026-09: Highlight signed editor numbers
 
 - Text Editor syntax highlighting now keeps leading `-` and `+` signs attached to numeric tokens.

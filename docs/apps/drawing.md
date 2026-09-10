@@ -39,7 +39,7 @@ Drawing stores internal filesystem paths in canonical form. Before a path is ope
 | `/home/monolith/drawings/../drawings/sketch.modr` | `/home/monolith/drawings/sketch.modr` |
 | `//home//monolith//drawings//sketch.modr` | `/home/monolith/drawings/sketch.modr` |
 
-Normalization only changes the path spelling. It does not create missing directories or make a missing file valid. The same canonical path is used for Drawing's title, Save target, session record, one-window-per-file routing, and active path prompt. Directory moves and file renames therefore update the normalized path consistently.
+Normalization only changes the path spelling. It does not make a missing file valid. Save separately creates missing parent directories before writing when the internal filesystem allows it; Open never creates a missing file. The same canonical path is used for Drawing's title, Save target, session record, one-window-per-file routing, and active path prompt. Directory moves and file renames therefore update the normalized path consistently.
 
 ## At A Glance
 
@@ -308,6 +308,8 @@ If that file already exists, Drawing picks the next free name, such as:
 ```
 
 Drawing always writes a `.modr` document. If you save without typing `.modr`, Drawing appends the suffix automatically. It does not replace another suffix: entering `picture.mod` creates `picture.mod.modr`.
+
+Save creates missing parent directories for the entered virtual path before writing the document. For example, saving to `/home/monolith/drawings/concepts/rough.modr` creates `concepts/` when it does not already exist. This applies only to Save; an Open path must already name an existing valid `.modr` file.
 
 ## Opening
 
