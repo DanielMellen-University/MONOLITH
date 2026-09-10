@@ -19,12 +19,17 @@ namespace {
 
 struct TestController final : monolith::app::IWindowController {
     std::vector<std::string> createdPaths;
+    std::vector<std::string> changedPaths;
 
     void close() override {}
     void setTitle(const std::string&) override {}
 
     void notifyVirtualPathCreated(const std::string& path) override {
         createdPaths.push_back(path);
+    }
+
+    void notifyVirtualPathChanged(const std::string& path) override {
+        changedPaths.push_back(path);
     }
 };
 
@@ -131,6 +136,10 @@ int main() {
     check(!controller.createdPaths.empty()
               && controller.createdPaths.back() == "/home/monolith/copied.txt",
           "cp notifies the shell about a copied file");
+    terminal.executeCommand("cp /home/monolith/note.txt /home/monolith/copied.txt");
+    check(!controller.changedPaths.empty()
+              && controller.changedPaths.back() == "/home/monolith/copied.txt",
+          "cp notifies the shell about an overwritten file");
 
     terminal.m_history.clear();
     terminal.executeCommand("cat /home/monolith/line-endings.txt");

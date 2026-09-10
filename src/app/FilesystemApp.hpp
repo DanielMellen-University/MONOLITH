@@ -26,6 +26,7 @@ public:
     void onVirtualPathMoved(const std::string& oldPath,
                             const std::string& newPath) override;
     void onVirtualPathCreated(const std::string& path) override;
+    void onVirtualPathChanged(const std::string& path) override;
     void onVirtualPathRemoved(const std::string& path) override;
 
 private:

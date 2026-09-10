@@ -95,6 +95,13 @@ int main() {
           "remove the external creation test entry");
     browser.onVirtualPathRemoved("/home/monolith/external-create.txt");
 
+    check(fs.writeFile("/home/monolith/a.txt", "updated"),
+          "change a direct child outside the browser");
+    browser.onVirtualPathChanged("/home/monolith/a.txt");
+    check(browser.selectEntryNamed("a.txt", false)
+              && browser.m_statusMessage == "Listing updated",
+          "external child changes refresh the current browser listing");
+
     check(fs.remove("/home/monolith/c.txt"),
           "remove a direct child outside the browser");
     browser.onVirtualPathRemoved("/home/monolith/c.txt");

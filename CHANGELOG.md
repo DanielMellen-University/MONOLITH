@@ -1,5 +1,11 @@
 # Changelog
 
+## 2026-09: Refresh state after file overwrites
+
+- Added a virtual path change notification for successful overwrites, separate from creation events.
+- Open Filesystem Browser listings now refresh after overwrites, and the active BMP wallpaper reloads when its file changes.
+- Added focused Terminal, Browser, and WindowManager coverage for changed paths and wallpaper invalidation.
+
 ## 2026-09: Roll back failed recursive copies
 
 - Recursive directory copies now remove a newly created destination when a child copy fails, instead of leaving a partial tree behind.

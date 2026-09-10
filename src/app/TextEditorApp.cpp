@@ -360,6 +360,8 @@ bool TextEditorApp::saveCurrentFile() {
             if (auto* ctrl = getController()) {
                 ctrl->notifyVirtualPathCreated(m_filePath);
             }
+        } else if (auto* ctrl = getController()) {
+            ctrl->notifyVirtualPathChanged(m_filePath);
         }
         m_dirty = false;
         clearDiscardArm();

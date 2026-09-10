@@ -54,6 +54,9 @@ struct IWindowController {
     // Notify the shell that a new virtual file or directory was created.
     virtual void notifyVirtualPathCreated(const std::string& /*virtualPath*/) {}
 
+    // Notify the shell that an existing virtual file or directory changed.
+    virtual void notifyVirtualPathChanged(const std::string& /*virtualPath*/) {}
+
     // Notify the shell that a virtual file or directory was deleted.
     virtual void notifyVirtualPathRemoved(const std::string& /*virtualPath*/) {}
 
@@ -164,6 +167,9 @@ public:
 
     // Called when any new virtual file or directory is created.
     virtual void onVirtualPathCreated(const std::string& /*path*/) {}
+
+    // Called when any existing virtual file or directory changes.
+    virtual void onVirtualPathChanged(const std::string& /*path*/) {}
 
     // Called when a virtual file or directory is deleted.
     virtual void onVirtualPathRemoved(const std::string& /*path*/) {}

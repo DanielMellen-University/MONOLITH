@@ -150,6 +150,7 @@ public:
     void clearDrawingFileBinding(Window* window);
     void notifyVirtualPathMoved(const std::string& oldPath, const std::string& newPath);
     void notifyVirtualPathCreated(const std::string& virtualPath);
+    void notifyVirtualPathChanged(const std::string& virtualPath);
     void notifyVirtualPathRemoved(const std::string& virtualPath);
 
     bool focusEditorForFile(const std::string& virtualPath);

@@ -201,6 +201,25 @@ void WindowManager::notifyVirtualPathCreated(const std::string& virtualPath) {
     }
 }
 
+void WindowManager::notifyVirtualPathChanged(const std::string& virtualPath) {
+    if (!m_fs) return;
+
+    const std::string changed = m_fs->normalize(virtualPath);
+    if (changed.empty() || changed == "/") return;
+
+    const std::string wallpaper = m_fs->normalize(m_desktopSettings.wallpaperPath());
+    if (!wallpaper.empty() && m_fs->isSameOrDescendant(changed, wallpaper)) {
+        destroyWallpaperTexture();
+        m_wallpaperLoadedPath.clear();
+    }
+
+    for (const auto& windowPtr : m_windows) {
+        if (windowPtr && windowPtr->app) {
+            windowPtr->app->onVirtualPathChanged(changed);
+        }
+    }
+}
+
 void WindowManager::notifyVirtualPathRemoved(const std::string& virtualPath) {
     if (!m_fs) return;
 
@@ -366,6 +385,12 @@ struct WindowController : public monolith::app::IWindowController {
     void notifyVirtualPathCreated(const std::string& virtualPath) override {
         if (wm) {
             wm->notifyVirtualPathCreated(virtualPath);
+        }
+    }
+
+    void notifyVirtualPathChanged(const std::string& virtualPath) override {
+        if (wm) {
+            wm->notifyVirtualPathChanged(virtualPath);
         }
     }
 

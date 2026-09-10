@@ -264,6 +264,8 @@ void TerminalApp::executeCommand(const std::string& commandLine) {
                         dstPath = joinPath(dstPath, base);
                     }
 
+                    const bool destinationExisted = m_fs->exists(dstPath);
+
                     if (m_fs->isSameOrDescendant(srcPath, dstPath)) {
                         addOutput("cp: cannot copy a directory into itself");
                     } else {
@@ -277,7 +279,11 @@ void TerminalApp::executeCommand(const std::string& commandLine) {
                         if (!ok) {
                             addOutput("cp: cannot create '" + dst + "'");
                         } else if (auto* ctrl = getController()) {
-                            ctrl->notifyVirtualPathCreated(dstPath);
+                            if (destinationExisted) {
+                                ctrl->notifyVirtualPathChanged(dstPath);
+                            } else {
+                                ctrl->notifyVirtualPathCreated(dstPath);
+                            }
                         }
                         // success is silent
                     }

@@ -26,7 +26,12 @@ public:
         createdPaths.push_back(path);
     }
 
+    void onVirtualPathChanged(const std::string& path) override {
+        changedPaths.push_back(path);
+    }
+
     std::vector<std::string> createdPaths;
+    std::vector<std::string> changedPaths;
 };
 
 } // namespace
@@ -233,6 +238,13 @@ int main() {
         wm.notifyVirtualPathCreated("//docs/./created.txt");
         check(probePtr->createdPaths == std::vector<std::string>{"/docs/created.txt"},
               "WindowManager dispatches normalized creation notifications to apps");
+        wm.setWallpaperPath("/docs/wall.bmp");
+        wm.m_wallpaperLoadedPath = "/docs/wall.bmp";
+        wm.notifyVirtualPathChanged("//docs/./wall.bmp");
+        check(probePtr->changedPaths == std::vector<std::string>{"/docs/wall.bmp"},
+              "WindowManager dispatches normalized change notifications to apps");
+        check(wm.m_wallpaperLoadedPath.empty(),
+              "wallpaper cache is invalidated when its file changes");
     }
 
     TTF_CloseFont(font);

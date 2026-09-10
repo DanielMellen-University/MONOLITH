@@ -81,6 +81,17 @@ void FilesystemApp::onVirtualPathCreated(const std::string& path) {
     setStatus("Listing updated");
 }
 
+void FilesystemApp::onVirtualPathChanged(const std::string& path) {
+    if (!m_fs) return;
+
+    const std::string changed = m_fs->normalize(path);
+    const std::string current = m_fs->normalize(m_currentPath);
+    if (parentVirtualPath(changed) != current) return;
+
+    refreshEntries();
+    setStatus("Listing updated");
+}
+
 void FilesystemApp::onVirtualPathRemoved(const std::string& path) {
     if (!m_fs) return;
 

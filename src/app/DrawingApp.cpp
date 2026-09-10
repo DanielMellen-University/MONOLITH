@@ -453,6 +453,8 @@ bool DrawingApp::saveToPath(const std::string& virtualPath) {
         if (auto* ctrl = getController()) {
             ctrl->notifyVirtualPathCreated(path);
         }
+    } else if (auto* ctrl = getController()) {
+        ctrl->notifyVirtualPathChanged(path);
     }
 
     m_filePath = path;
