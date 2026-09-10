@@ -18,6 +18,12 @@ constexpr int kListTop = 52;
 constexpr int kStatusBarHeight = 22;
 constexpr int kStatusBarPadding = 8;
 constexpr int kMinimumListHeight = 20;
+
+std::string parentVirtualPath(const std::string& normalizedPath) {
+    if (normalizedPath.empty() || normalizedPath == "/") return "/";
+    const size_t slash = normalizedPath.find_last_of('/');
+    return slash == 0 ? "/" : normalizedPath.substr(0, slash);
+}
 }
 
 FilesystemApp::FilesystemApp(TTF_Font* font, monolith::fs::Filesystem* fs)
@@ -46,19 +52,37 @@ void FilesystemApp::onVirtualPathMoved(const std::string& oldPath,
     const std::string newNormalized = m_fs->normalize(newPath);
     if (oldNormalized == newNormalized || oldNormalized == "/") return;
     const std::string current = m_fs->normalize(m_currentPath);
-    if (!m_fs->isSameOrDescendant(oldNormalized, current)) return;
+    if (m_fs->isSameOrDescendant(oldNormalized, current)) {
+        m_currentPath = newNormalized + current.substr(oldNormalized.size());
+        cancelPendingDelete();
+        refreshEntries();
+        setStatus("Folder moved: " + m_currentPath);
+        return;
+    }
 
-    m_currentPath = newNormalized + current.substr(oldNormalized.size());
-    cancelPendingDelete();
-    refreshEntries();
-    setStatus("Folder moved: " + m_currentPath);
+    // A file or direct child folder can move through the directory currently
+    // being viewed without moving the browser itself. Refresh that listing so
+    // stale rows do not remain after an external rename or move.
+    if (parentVirtualPath(oldNormalized) == current
+        || parentVirtualPath(newNormalized) == current) {
+        refreshEntries();
+        setStatus("Listing updated");
+    }
 }
 
 void FilesystemApp::onVirtualPathRemoved(const std::string& path) {
     if (!m_fs) return;
 
     const std::string removed = m_fs->normalize(path);
-    if (removed == "/" || !m_fs->isSameOrDescendant(removed, m_currentPath)) return;
+    if (removed == "/") return;
+
+    const std::string current = m_fs->normalize(m_currentPath);
+    if (parentVirtualPath(removed) == current) {
+        refreshEntries();
+        setStatus("Listing updated");
+        return;
+    }
+    if (!m_fs->isSameOrDescendant(removed, current)) return;
 
     std::string fallback = removed;
     const size_t slash = fallback.find_last_of('/');

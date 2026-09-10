@@ -75,6 +75,25 @@ int main() {
           "remove browser dangling test entry");
     browser.refreshEntries();
 
+    check(fs.rename("/home/monolith/a.txt", "/home/monolith/renamed-a.txt"),
+          "rename a direct child outside the browser");
+    browser.onVirtualPathMoved("/home/monolith/a.txt", "/home/monolith/renamed-a.txt");
+    check(browser.selectEntryNamed("renamed-a.txt", false)
+              && !browser.selectEntryNamed("a.txt", false),
+          "external child rename refreshes the current browser listing");
+    check(fs.rename("/home/monolith/renamed-a.txt", "/home/monolith/a.txt"),
+          "restore the renamed browser test entry");
+    browser.onVirtualPathMoved("/home/monolith/renamed-a.txt", "/home/monolith/a.txt");
+
+    check(fs.remove("/home/monolith/c.txt"),
+          "remove a direct child outside the browser");
+    browser.onVirtualPathRemoved("/home/monolith/c.txt");
+    check(!browser.selectEntryNamed("c.txt", false),
+          "external child deletion refreshes the current browser listing");
+    check(fs.writeFile("/home/monolith/c.txt", "c"),
+          "restore the deleted browser test entry");
+    browser.refreshEntries();
+
     browser.setSelection(static_cast<int>(browser.m_entries.size()) - 1);
     browser.m_scrollOffset = 8;
     key(browser, SDLK_f, KMOD_CTRL);

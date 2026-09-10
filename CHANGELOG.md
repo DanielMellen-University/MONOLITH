@@ -1,5 +1,10 @@
 # Changelog
 
+## 2026-09: Refresh Browser listings after external child changes
+
+- Filesystem Browser now refreshes the current directory when another app renames, moves, or deletes a direct child entry.
+- Preserved the existing path-following behavior when the browser's current directory itself moves or is removed, with regression coverage for direct child changes.
+
 ## 2026-09: Clarify Drawing file workflows
 
 - Added a decision guide explaining when to use Drawing Save, Filesystem Browser copy/rename/move, or Terminal file commands.
