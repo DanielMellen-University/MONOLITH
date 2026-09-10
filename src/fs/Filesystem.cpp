@@ -33,6 +33,12 @@ bool isSymlinkPath(const stdfs::path& path) {
     return !ec && stdfs::is_symlink(status);
 }
 
+bool hostEntryExists(const stdfs::path& path) {
+    std::error_code ec;
+    const auto status = stdfs::symlink_status(path, ec);
+    return !ec && status.type() != stdfs::file_type::not_found;
+}
+
 } // namespace
 
 Filesystem::Filesystem(const std::string& hostRootPath)
@@ -245,8 +251,9 @@ bool Filesystem::rename(const std::string& oldVirtualPath, const std::string& ne
         stdfs::path oldHost(oldHostPath);
         stdfs::path newHost(newHostPath);
 
-        // Prevent overwriting existing files/directories
-        if (stdfs::exists(newHost)) {
+        // Prevent overwriting any existing directory entry, including a
+        // dangling symlink that std::filesystem::exists would not report.
+        if (hostEntryExists(newHost)) {
             return false;
         }
 

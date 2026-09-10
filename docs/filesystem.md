@@ -69,7 +69,7 @@ Implementation: `src/fs/Filesystem.hpp`, `src/fs/Filesystem.cpp`.
 | `copyRecursive(src, dst)` | Copies a file or tree; creates destination directories as needed. Fails if `dst` is the same as or under `src`. |
 | `copyItemsInto(srcs, destDir)` | Copies each source into `destDir` under its basename (uses `copyRecursive`). Skips existing names, self-copy, and invalid names. Returns the count copied. |
 | `moveItemsInto(srcs, destDir)` | Moves each source into `destDir` under its basename. Uses non-overwriting rename, so existing destination names leave their original sources untouched. Returns the count moved. |
-| `rename(old, new)` | Renames or moves one entry without overwriting. Rejects the virtual root and destinations that are the source or inside its subtree. |
+| `rename(old, new)` | Renames or moves one entry without overwriting. Existing regular entries and dangling symlinks both block the destination. Rejects the virtual root and destinations that are the source or inside its subtree. |
 | `renameEntry(dir, old, new)` | Renames one entry in `dir`. Rejects names that fail `isValidEntryName` (including `/`). |
 | `filterEntries(entries, query)` | Case-insensitive substring filter on entry names. Empty query returns all. |
 | `isSameOrDescendant(a, p)` | True when `p` is `a` or a path under `a` (after normalize). |
@@ -98,6 +98,7 @@ Terminal (`cp -r` / `rm -r`) and the Filesystem Browser (delete, cut/paste) both
 - No permissions, ownership, or metadata layer; symlinks remain host filesystem entries.
 - Symlink targets that resolve outside the host root are rejected and omitted from virtual directory listings. Symlinks that remain inside the root are still host filesystem entries, not a separate metadata layer.
 - Recursive copy rejects a symlink source instead of traversing it. Recursive remove deletes a symlink entry itself and never walks through that link into its target tree.
+- Rename treats a dangling symlink as an existing destination, so a move cannot silently replace any directory entry that is already present.
 - No quotas or versioning; `readFile` has no size cap (apps should refuse huge files if needed).
 - No cross-app file locking (two editors can theoretically race on the same file).
 - Empty files are valid and read as an empty string; callers that need to distinguish an empty file from an I/O failure should use the boolean-output `readFile(path, out)` overload.

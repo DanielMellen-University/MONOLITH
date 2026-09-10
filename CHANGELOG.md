@@ -1,5 +1,10 @@
 # Changelog
 
+## 2026-09: Preserve dangling filesystem entries on rename
+
+- Non-overwriting virtual renames now recognize dangling symlinks as existing destinations.
+- Added regression coverage proving both the source and dangling destination remain unchanged.
+
 ## 2026-09: Synchronize app sizes after desktop clamping
 
 - Visible apps now receive `onResize` when a logical desktop size change moves or resizes their window frame.

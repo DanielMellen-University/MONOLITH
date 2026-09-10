@@ -93,6 +93,19 @@ int main() {
               "recursive symlink removal preserves the target tree");
     }
 
+    check(fs.writeFile("/rename-source.txt", "keep source"),
+          "write rename source for dangling-link coverage");
+    const stdfs::path danglingDestination = hostRoot / "dangling-destination";
+    stdfs::create_symlink(hostRoot / "missing-target", danglingDestination, ec);
+    check(!ec, "create dangling rename destination");
+    if (!ec) {
+        check(!fs.rename("/rename-source.txt", "/dangling-destination"),
+              "rename rejects an existing dangling symlink destination");
+        check(fs.isFile("/rename-source.txt")
+                  && stdfs::is_symlink(stdfs::symlink_status(danglingDestination)),
+              "dangling destination and rename source remain intact");
+    }
+
     const stdfs::path fileRoot = stdfs::temp_directory_path()
         / ("monolith-fs-file-root-" + std::to_string(getpid()));
     stdfs::remove_all(fileRoot, ec);
