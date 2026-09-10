@@ -103,9 +103,11 @@ int main() {
     drawing.beginPathPrompt(monolith::app::DrawingApp::PathPromptMode::Save);
     drawing.m_pathPromptBuffer = "/drawings/alternate.modr";
     drawing.m_pathPromptCursorPos = drawing.m_pathPromptBuffer.size();
-    drawing.onBoundFileMoved("/drawings/alternate.modr", "/archive/alternate.modr");
-    check(drawing.m_pathPromptBuffer == "/archive/alternate.modr",
-          "Save prompt follows a moved bound drawing file");
+    drawing.onBoundFileMoved(
+        "/drawings/alternate.modr", "/archive/../archive/alternate.modr");
+    check(drawing.m_pathPromptBuffer == "/archive/alternate.modr"
+              && drawing.m_filePath == "/archive/alternate.modr",
+          "Save prompt canonicalizes a moved bound drawing file");
     drawing.beginPathPrompt(monolith::app::DrawingApp::PathPromptMode::Save);
     drawing.m_pathPromptBuffer = "/archive/alternate.modr";
     drawing.m_pathPromptCursorPos = drawing.m_pathPromptBuffer.size();

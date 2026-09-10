@@ -110,6 +110,11 @@ int main() {
     settings.onVirtualPathMoved("/Wallpapers", "/Archive");
     check(settings.m_wallpaperEditBuffer == "/Archive/alpha.bmp",
           "focused wallpaper prompt follows a moved parent directory");
+    settings.m_wallpaperEditBuffer = "/Wallpapers/art/";
+    settings.m_wallpaperCursorPos = settings.m_wallpaperEditBuffer.size();
+    settings.onVirtualPathMoved("/Wallpapers", "/Archive");
+    check(settings.m_wallpaperEditBuffer == "/Archive/art/",
+          "focused wallpaper directory prompt preserves its trailing slash");
     settings.onVirtualPathRemoved("/Archive");
     check(settings.m_wallpaperEditBuffer.empty() && settings.m_wallpaperCursorPos == 0,
           "focused wallpaper prompt clears a deleted parent directory");

@@ -514,6 +514,7 @@ void DrawingApp::setStatus(const std::string& message) {
 void DrawingApp::onBoundFileMoved(const std::string& oldPath,
                                   const std::string& newPath) {
     if (newPath.empty()) return;
+    const std::string normalizedNewPath = m_fs ? m_fs->normalize(newPath) : newPath;
 
     if (m_fs && (m_pathPromptMode == PathPromptMode::Open
                  || m_pathPromptMode == PathPromptMode::Save)) {
@@ -522,7 +523,7 @@ void DrawingApp::onBoundFileMoved(const std::string& oldPath,
         const std::string oldNormalized = m_fs->normalize(oldPath);
         const std::string promptPath = m_fs->normalize(m_pathPromptBuffer);
         if (m_fs->isSameOrDescendant(oldNormalized, promptPath)) {
-            m_pathPromptBuffer = m_fs->normalize(newPath)
+            m_pathPromptBuffer = normalizedNewPath
                 + promptPath.substr(oldNormalized.size());
             if (trailingSlash && m_pathPromptBuffer.back() != '/') {
                 m_pathPromptBuffer.push_back('/');
@@ -532,17 +533,17 @@ void DrawingApp::onBoundFileMoved(const std::string& oldPath,
         }
     }
 
-    m_filePath = newPath;
+    m_filePath = normalizedNewPath;
     clearDiscardArm();
 
-    const size_t nameStart = newPath.find_last_of('/');
+    const size_t nameStart = normalizedNewPath.find_last_of('/');
     const std::string baseName = nameStart != std::string::npos
-        ? newPath.substr(nameStart + 1)
-        : newPath;
+        ? normalizedNewPath.substr(nameStart + 1)
+        : normalizedNewPath;
     if (auto* ctrl = getController()) {
         ctrl->setTitle("Drawing - " + baseName);
     }
-    setStatus("File moved: " + newPath);
+    setStatus("File moved: " + normalizedNewPath);
 }
 
 void DrawingApp::onBoundFileRemoved(const std::string& removedPath) {

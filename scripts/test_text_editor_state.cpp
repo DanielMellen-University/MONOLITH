@@ -194,9 +194,9 @@ int main() {
 
     TestEditor promptEditor(nullptr, &fs, "/new.txt");
     prepareSaveAs(promptEditor, "/new.txt");
-    promptEditor.onBoundFileMoved("/new.txt", "/renamed.txt");
+    promptEditor.onBoundFileMoved("/new.txt", "/docs/../renamed.txt");
     check(promptEditor.m_pathPromptBuffer == "/renamed.txt",
-          "Save As prompt follows a moved bound editor file");
+          "Save As prompt canonicalizes a moved bound editor file");
     prepareSaveAs(promptEditor, "/renamed.txt");
     promptEditor.onBoundFileRemoved("/renamed.txt");
     check(promptEditor.m_pathPromptBuffer == "/",

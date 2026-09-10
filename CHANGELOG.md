@@ -11,6 +11,12 @@
 - Legacy wallpaper settings containing redundant path segments are normalized and persisted when loaded.
 - Added regression coverage for normalized wallpaper settings.
 
+## 2026-09: Keep app path callbacks canonical
+
+- Text Editor and Drawing now normalize bound-file move callbacks before updating their file paths, titles, and active prompts.
+- Settings wallpaper prompts preserve a trailing directory slash when a parent path moves.
+- Added focused state coverage for callback normalization and directory prompt preservation.
+
 ## 2026-09: Keep open documents attached across virtual moves
 
 - Filesystem Browser rename, Filesystem Browser cut/paste, and Terminal `mv` now update open Text Editor and Drawing bindings when a file or parent directory moves.

@@ -407,6 +407,7 @@ void TextEditorApp::updateTitleForPath() {
 void TextEditorApp::onBoundFileMoved(const std::string& oldPath,
                                      const std::string& newPath) {
     if (newPath.empty()) return;
+    const std::string normalizedNewPath = m_fs ? m_fs->normalize(newPath) : newPath;
 
     if (m_fs && (m_pathPromptMode == PathPromptMode::Open
                  || m_pathPromptMode == PathPromptMode::SaveAs)) {
@@ -415,7 +416,7 @@ void TextEditorApp::onBoundFileMoved(const std::string& oldPath,
         const std::string oldNormalized = m_fs->normalize(oldPath);
         const std::string promptPath = m_fs->normalize(m_pathPromptBuffer);
         if (m_fs->isSameOrDescendant(oldNormalized, promptPath)) {
-            m_pathPromptBuffer = m_fs->normalize(newPath)
+            m_pathPromptBuffer = normalizedNewPath
                 + promptPath.substr(oldNormalized.size());
             if (trailingSlash && m_pathPromptBuffer.back() != '/') {
                 m_pathPromptBuffer.push_back('/');
@@ -425,11 +426,11 @@ void TextEditorApp::onBoundFileMoved(const std::string& oldPath,
         }
     }
 
-    m_filePath = newPath;
+    m_filePath = normalizedNewPath;
     refreshSyntaxMode();
     clearDiscardArm();
     updateTitleForPath();
-    setStatus("File moved: " + newPath);
+    setStatus("File moved: " + normalizedNewPath);
 }
 
 void TextEditorApp::onBoundFileRemoved(const std::string& removedPath) {

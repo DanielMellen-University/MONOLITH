@@ -96,9 +96,14 @@ void SettingsApp::onVirtualPathMoved(const std::string& oldPath,
     if (oldNormalized == newNormalized || oldNormalized == "/") return;
 
     auto remap = [&](const std::string& current) -> std::string {
+        const bool trailingSlash = !current.empty() && current.back() == '/';
         const std::string normalizedCurrent = m_fs->normalize(current);
         if (!m_fs->isSameOrDescendant(oldNormalized, normalizedCurrent)) return {};
-        return newNormalized + normalizedCurrent.substr(oldNormalized.size());
+        std::string next = newNormalized + normalizedCurrent.substr(oldNormalized.size());
+        if (trailingSlash && !next.empty() && next.back() != '/') {
+            next.push_back('/');
+        }
+        return next;
     };
 
     if (m_wallpaperFieldFocused) {
