@@ -147,7 +147,13 @@ void SettingsApp::buildInfoLines() {
     m_lines.push_back({"", ""});
 
     m_lines.push_back({"", "ENVIRONMENT"});
-    m_lines.push_back({"Logical desktop", "1280 × 720"});
+    int logicalWidth = 1280;
+    int logicalHeight = 720;
+    if (const auto* ctrl = getController()) {
+        ctrl->getLogicalDesktopSize(logicalWidth, logicalHeight);
+    }
+    m_lines.push_back({"Logical desktop",
+                       std::to_string(logicalWidth) + " x " + std::to_string(logicalHeight)});
     if (m_fs) {
         m_lines.push_back({"Filesystem root", m_fs->hostRoot()});
     } else {
@@ -951,6 +957,7 @@ void SettingsApp::handleEvent(const SDL_Event& event) {
 void SettingsApp::onResize(int clientWidth, int clientHeight) {
     m_clientWidth = clientWidth;
     m_clientHeight = clientHeight;
+    buildInfoLines();
     clampScrollOffset();
 }
 

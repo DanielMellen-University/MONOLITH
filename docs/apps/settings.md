@@ -61,7 +61,7 @@ Below the appearance controls, Settings shows read-only details:
 - Engine (SDL2 + custom window manager)
 
 **Environment**
-- Logical desktop size (1280 × 720)
+- Current logical desktop size, excluding host-window scaling
 - Filesystem host root on disk (e.g. `~/.monolith/fs/`)
 - Virtual home path (`/home/monolith`)
 

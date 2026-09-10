@@ -69,6 +69,7 @@ public:
 
     // Set the logical internal desktop size (runtime default: 1280x720 from main.cpp)
     void setLogicalDesktopSize(int width, int height);
+    void getLogicalDesktopSize(int& width, int& height) const;
 
     // Optional Y offset before logical coordinate mapping (0 in current main.cpp)
     void setHeaderOffset(int offsetY);

@@ -1,5 +1,10 @@
 # Changelog
 
+## 2026-09: Show live desktop dimensions in Settings
+
+- Settings now reads the current logical desktop size from the WindowManager instead of displaying a hardcoded value.
+- Added focused state coverage for a resized logical desktop.
+
 ## 2026-09: Add Drawing operator reference
 
 - Added a compact daily workflow card to the Drawing guide.

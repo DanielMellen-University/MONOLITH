@@ -97,6 +97,12 @@ struct IWindowController {
     virtual int getUiScalePercent() const { return 100; }
     virtual void setUiScalePercent(int percent) { (void)percent; }
 
+    // Current logical desktop dimensions, excluding host-window scaling.
+    virtual void getLogicalDesktopSize(int& width, int& height) const {
+        width = 1280;
+        height = 720;
+    }
+
     // Desktop wallpaper image (virtual FS path; empty = solid color only).
     virtual std::string getWallpaperPath() const { return {}; }
     virtual void setWallpaperPath(const std::string& virtualPath) { (void)virtualPath; }

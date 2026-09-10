@@ -95,6 +95,7 @@ Remote: SSH `git@github.com:DanielMellen-University/MONOLITH.git`
 | 2026-09-10 | cleanup | Warned Text Editor about external overwrites while preserving its in-memory buffer; added save-notification coverage and updated editor/architecture docs; CURRENT_CHUNK remains 7.1 |
 | 2026-09-10 | cleanup | Warned Drawing about external `.modr` overwrites while preserving the canvas and undo history; added save-notification coverage and updated the Drawing guide; CURRENT_CHUNK remains 7.1 |
 | 2026-09-10 | cleanup | Kept Snake and Minesweeper boards inside tiny client areas; guarded compressed-cell rendering and added geometry coverage plus game guide updates; CURRENT_CHUNK remains 7.1 |
+| 2026-09-10 | cleanup | Made Settings report the live logical desktop dimensions through the WindowManager controller; added focused state coverage and updated the Settings guide; CURRENT_CHUNK remains 7.1 |
 | 2026-09-10 | docs | Added a compact Drawing operator card and clarified immediate Save versus new-sketch Save prompts; documentation-only; CURRENT_CHUNK remains 7.1 |
 | 2026-09-10 | docs | Documented Drawing behavior after external `.modr` overwrites and added RGB prompt examples; documentation-only; CURRENT_CHUNK remains 7.1 |
 | 2026-09-10 | cleanup | Added virtual path change notifications for overwrites, refreshing open Browser listings and invalidating the active wallpaper cache; added focused lifecycle coverage; CURRENT_CHUNK remains 7.1 |

@@ -16,6 +16,8 @@ namespace {
 
 struct TestController final : monolith::app::IWindowController {
     std::string wallpaperPath;
+    int logicalWidth = 1280;
+    int logicalHeight = 720;
 
     void close() override {}
     void setTitle(const std::string&) override {}
@@ -26,6 +28,11 @@ struct TestController final : monolith::app::IWindowController {
 
     void setWallpaperPath(const std::string& path) override {
         wallpaperPath = path;
+    }
+
+    void getLogicalDesktopSize(int& width, int& height) const override {
+        width = logicalWidth;
+        height = logicalHeight;
     }
 };
 
@@ -71,6 +78,13 @@ int main() {
     TestSettings settings(&fs);
     TestController controller;
     settings.setController(&controller);
+    controller.logicalWidth = 1024;
+    controller.logicalHeight = 640;
+    settings.onResize(400, 240);
+    check(settings.m_lines.size() > 5
+              && settings.m_lines[5].label == "Logical desktop"
+              && settings.m_lines[5].value == "1024 x 640",
+          "Settings reports the live logical desktop size");
     settings.m_wallpaperFieldFocused = true;
 
     settings.m_wallpaperEditBuffer = "/Wallpapers/al";

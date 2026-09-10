@@ -445,6 +445,15 @@ struct WindowController : public monolith::app::IWindowController {
         }
     }
 
+    void getLogicalDesktopSize(int& width, int& height) const override {
+        if (wm) {
+            wm->getLogicalDesktopSize(width, height);
+            return;
+        }
+        width = 1280;
+        height = 720;
+    }
+
     bool getFilesystemClipboard(std::vector<std::string>& paths, bool& isCut) const override {
         return wm ? wm->getFilesystemClipboard(paths, isCut) : false;
     }

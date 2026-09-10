@@ -209,6 +209,11 @@ void WindowManager::setLogicalDesktopSize(int width, int height) {
     }
 }
 
+void WindowManager::getLogicalDesktopSize(int& width, int& height) const {
+    width = m_logicalWidth;
+    height = m_logicalHeight;
+}
+
 void WindowManager::setHeaderOffset(int offsetY) {
     m_headerOffset = offsetY;
 }
