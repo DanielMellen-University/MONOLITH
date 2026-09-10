@@ -97,6 +97,7 @@ Terminal (`cp -r` / `rm -r`) and the Filesystem Browser (delete, cut/paste) both
 
 - No permissions, ownership, or metadata layer; symlinks remain host filesystem entries.
 - Symlink targets that resolve outside the host root are rejected and omitted from virtual directory listings. Symlinks that remain inside the root are still host filesystem entries, not a separate metadata layer.
+- Recursive copy rejects a symlink source instead of traversing it. Recursive remove deletes a symlink entry itself and never walks through that link into its target tree.
 - No quotas or versioning; `readFile` has no size cap (apps should refuse huge files if needed).
 - No cross-app file locking (two editors can theoretically race on the same file).
 - Empty files are valid and read as an empty string; callers that need to distinguish an empty file from an I/O failure should use the boolean-output `readFile(path, out)` overload.

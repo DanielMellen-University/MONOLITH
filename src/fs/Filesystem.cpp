@@ -27,6 +27,12 @@ bool entryNameLess(const Filesystem::DirEntry& left, const Filesystem::DirEntry&
     return left.name < right.name;
 }
 
+bool isSymlinkPath(const stdfs::path& path) {
+    std::error_code ec;
+    const auto status = stdfs::symlink_status(path, ec);
+    return !ec && stdfs::is_symlink(status);
+}
+
 } // namespace
 
 Filesystem::Filesystem(const std::string& hostRootPath)
@@ -161,6 +167,14 @@ bool Filesystem::removeRecursive(const std::string& virtualPath) {
         return false; // never delete the virtual root
     }
 
+    const std::string hostPathString = toHostPath(path);
+    if (hostPathString.empty()) return false;
+    const stdfs::path hostPath(hostPathString);
+    if (isSymlinkPath(hostPath)) {
+        std::error_code ec;
+        return stdfs::remove(hostPath, ec) && !ec;
+    }
+
     if (isFile(path)) {
         return remove(path);
     }
@@ -182,6 +196,12 @@ bool Filesystem::copyRecursive(const std::string& srcVirtualPath, const std::str
 
     if (src.empty() || dst.empty()) return false;
     if (isSameOrDescendant(src, dst)) return false;
+
+    const std::string sourceHostPathString = toHostPath(src);
+    if (sourceHostPathString.empty()
+        || isSymlinkPath(stdfs::path(sourceHostPathString))) {
+        return false;
+    }
 
     if (isFile(src)) {
         std::uint64_t expectedBytes = 0;

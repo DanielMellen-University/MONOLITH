@@ -1,5 +1,11 @@
 # Changelog
 
+## 2026-09: Keep recursive filesystem operations symlink-safe
+
+- Recursive copy now rejects symlink sources instead of following them into an alias or cycle.
+- Recursive delete now removes an in-root symlink itself without deleting the directory tree it targets.
+- Added regression coverage for an in-root directory symlink and documented the behavior.
+
 ## 2026-09: Clarify Drawing file workflows
 
 - Documented the difference between Save's automatic `.modr` suffix and exact rename or `mv` destinations.

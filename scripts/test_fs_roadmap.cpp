@@ -77,6 +77,22 @@ int main() {
               "typed directory listing hides outside symlink");
     }
 
+    check(fs.createDirectory("/symlink-target"), "create in-root symlink target");
+    check(fs.writeFile("/symlink-target/keep.txt", "keep me"),
+          "write in-root symlink target file");
+    const stdfs::path internalLink = hostRoot / "internal-link";
+    stdfs::create_directory_symlink(hostRoot / "symlink-target", internalLink, ec);
+    check(!ec, "create in-root symlink");
+    if (!ec) {
+        check(!fs.copyRecursive("/internal-link", "/copied-link"),
+              "copy rejects a symlink source instead of traversing it");
+        check(fs.removeRecursive("/internal-link"),
+              "recursive remove deletes the symlink itself");
+        check(!fs.exists("/internal-link") && fs.isFile("/symlink-target/keep.txt")
+                  && fs.readFile("/symlink-target/keep.txt") == "keep me",
+              "recursive symlink removal preserves the target tree");
+    }
+
     const stdfs::path fileRoot = stdfs::temp_directory_path()
         / ("monolith-fs-file-root-" + std::to_string(getpid()));
     stdfs::remove_all(fileRoot, ec);
