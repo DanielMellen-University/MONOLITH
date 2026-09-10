@@ -133,7 +133,7 @@ void WindowManager::applyResize(Window* window, int mouseX, int mouseY) {
     const int desktopBottom = getUsableDesktopBottom();
     if (r.y < 0) r.y = 0;
     if (r.y + Window::TITLE_BAR_HEIGHT > desktopBottom) {
-        r.y = desktopBottom - Window::TITLE_BAR_HEIGHT;
+        r.y = std::max(0, desktopBottom - Window::TITLE_BAR_HEIGHT);
     }
     if (r.y + r.h > desktopBottom) {
         r.h = std::max(minH, desktopBottom - r.y);

@@ -81,6 +81,10 @@ int main() {
     check(window->rect.x == 0 && window->rect.w == 120,
           "narrow logical desktops keep clamped windows inside the left edge");
 
+    wm.setLogicalDesktopSize(120, 20);
+    check(window->rect.y == 0,
+          "undersized logical desktops keep the window origin non-negative");
+
     if (failures == 0) {
         std::cout << "ALL WINDOW COORDINATE TESTS PASSED\n";
         return 0;

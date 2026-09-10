@@ -1,5 +1,10 @@
 # Changelog
 
+## 2026-09: Keep windows valid on tiny desktops
+
+- Window clamping now keeps the window origin non-negative when a logical desktop is shorter than the title bar.
+- Added a coordinate regression for undersized desktop geometry and documented the shell invariant.
+
 ## 2026-09: Keep virtual filesystem paths inside the root
 
 - Host-path conversion now rejects symlink traversal that resolves outside Monolith's configured filesystem root.
