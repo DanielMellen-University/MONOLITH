@@ -15,6 +15,7 @@ Drawing files use the `.modr` extension (Monolith Drawing Raster).
 - [Mouse Controls](#mouse-controls)
 - [Prompt Behavior](#prompt-behavior)
 - [Saving](#saving)
+- [External File Changes](#external-file-changes)
 - [Common File Workflows](#common-file-workflows)
 - [Opening](#opening)
 - [Undo And Redo](#undo-and-redo)
@@ -189,6 +190,7 @@ Drawing keeps the live canvas separate from the file path and from editor-sessio
 | Open fails | The current canvas remains open and unchanged. Correct the path or save the current sketch elsewhere. |
 | Open succeeds | The canvas dimensions and pixels are replaced, the file becomes clean, and undo/redo history is cleared. Tools, brush size, and color stay as session settings. |
 | Resize a loaded sketch | Pixels keep their top-left alignment, the canvas may crop or grow, history is cleared, and the file becomes modified until saved again. |
+| Another app overwrites the bound `.modr` | The open canvas stays in memory and is not silently replaced. Use Open to load the external version, or Save to deliberately write the current canvas back. |
 | Close, choose **New**, or open while modified | The first action shows a status-bar warning. Repeat the same action to discard, or save first. |
 
 There is no automatic recovery file. If the process exits before Save succeeds, unsaved pixels and in-memory undo history are lost.
@@ -309,6 +311,16 @@ The built-in swatches use these exact RGB values:
 
 Select **RGB** to edit the current custom color in the status bar. Enter exactly three channel values, either as `r,g,b` or `r g b`, with every value between 0 and 255. Enter applies the color and switches back to Pen when needed. Escape cancels the prompt.
 
+Accepted examples include:
+
+```text
+255,0,128
+255 0 128
+255, 0, 128
+```
+
+Hex values such as `#ff0080`, decimal fractions, and a fourth alpha channel are rejected. RGB values describe the opaque canvas color; Drawing does not save transparency.
+
 Pick samples the RGB value at the clicked canvas pixel, stores it as the custom color, and switches back to Pen. Sampling does not change the canvas or add an undo state.
 
 ## Mouse Controls
@@ -380,6 +392,20 @@ Drawing always writes a `.modr` document. If you save without typing `.modr`, Dr
 Save creates missing parent directories for the entered virtual path before writing the document. For example, saving to `/home/monolith/drawings/concepts/rough.modr` creates `concepts/` when it does not already exist. This applies only to Save; an Open path must already name an existing valid `.modr` file.
 
 Drawing has no separate **Save As** command. To make a copy, copy the `.modr` file in Filesystem Browser or with Terminal, then open the copy and continue editing it. Saving an already-open sketch always writes its current bound path.
+
+## External File Changes
+
+Drawing treats the canvas in the active window as the working copy. It does not reload automatically when Terminal, Filesystem Browser, Text Editor, or another filesystem operation writes the same virtual path. This prevents a background file operation from replacing unsaved pixels without warning.
+
+Use the action that matches your intent:
+
+| Situation | Action |
+|-----------|--------|
+| You want to keep the canvas currently visible | Press **Ctrl+S**. The current canvas becomes the file contents. |
+| You want to inspect the version written by another app | Press **Ctrl+O**, select the same `.modr`, and confirm the second Open action if the canvas is modified. |
+| You want both versions | Copy the file to a new `.modr` path first, then open the copy or save the current canvas to another path. |
+
+An external overwrite does not change the Drawing title, bound path, dirty marker, or undo history. A successful Save still sends the normal filesystem change notification so other open apps can refresh their views.
 
 ## Common File Workflows
 

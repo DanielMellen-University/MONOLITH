@@ -89,6 +89,7 @@ Remote: SSH `git@github.com:DanielMellen-University/MONOLITH.git`
 
 ### Session log
 
+| 2026-09-10 | docs | Documented Drawing behavior after external `.modr` overwrites and added RGB prompt examples; documentation-only; CURRENT_CHUNK remains 7.1 |
 | 2026-09-10 | cleanup | Added virtual path change notifications for overwrites, refreshing open Browser listings and invalidating the active wallpaper cache; added focused lifecycle coverage; CURRENT_CHUNK remains 7.1 |
 | 2026-09-10 | cleanup | Rolled back newly created destinations after failed recursive copies and added a broken-symlink partial-tree regression; CURRENT_CHUNK remains 7.1 |
 | 2026-09-10 | cleanup | Broadcast successful virtual file creation so open Filesystem Browser listings stay current after Terminal, Browser, Text Editor, or Drawing writes; added focused state and WindowManager coverage; CURRENT_CHUNK remains 7.1 |

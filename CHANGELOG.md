@@ -1,5 +1,10 @@
 # Changelog
 
+## 2026-09: Document Drawing file recovery
+
+- Documented how Drawing handles an external overwrite of its bound `.modr` file without silently replacing the in-memory canvas.
+- Added concrete accepted and rejected examples for the custom RGB prompt.
+
 ## 2026-09: Refresh state after file overwrites
 
 - Added a virtual path change notification for successful overwrites, separate from creation events.
