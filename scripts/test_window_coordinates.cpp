@@ -1,5 +1,10 @@
-#include "../src/window/WindowManager.hpp"
+#include <SDL2/SDL.h>
 
+#define private public
+#include "../src/window/WindowManager.hpp"
+#undef private
+
+#include <cstdlib>
 #include <iostream>
 #include <memory>
 
@@ -43,6 +48,15 @@ int main() {
             std::cout << "ok: " << message << '\n';
         }
     };
+
+    if (!std::getenv("SDL_VIDEODRIVER")) {
+        setenv("SDL_VIDEODRIVER", "dummy", 1);
+    }
+    check(SDL_Init(SDL_INIT_VIDEO) == 0, "SDL initializes for taskbar geometry checks");
+    SDL_Surface* surface = SDL_CreateRGBSurfaceWithFormat(
+        0, 1280, 720, 32, SDL_PIXELFORMAT_RGBA32);
+    SDL_Renderer* renderer = surface ? SDL_CreateSoftwareRenderer(surface) : nullptr;
+    check(renderer != nullptr, "software renderer initializes for taskbar geometry checks");
 
     monolith::window::WindowManager wm;
     wm.setLogicalDesktopSize(1000, 700);
@@ -108,6 +122,42 @@ int main() {
     wm.setLogicalDesktopSize(120, 20);
     check(window->rect.y == 0,
           "undersized logical desktops keep the window origin non-negative");
+
+    auto rectInside = [](const SDL_Rect& rect, int width, int height) {
+        return rect.x >= 0 && rect.y >= 0 && rect.w >= 0 && rect.h >= 0
+            && rect.x <= width - rect.w
+            && rect.y <= height - rect.h;
+    };
+
+    if (renderer) {
+        wm.setContentScale(1.0f);
+        wm.setLogicalDesktopSize(120, 120);
+        wm.render(renderer);
+        check(wm.m_taskbarButtonAreaLeft >= 0
+                  && wm.m_taskbarButtonAreaWidth >= 0
+                  && wm.m_taskbarButtonAreaLeft + wm.m_taskbarButtonAreaWidth <= 120,
+              "narrow taskbars keep the button viewport inside the desktop");
+        check(rectInside(wm.m_taskbarLeftArrowRect, 120, 120)
+                  && rectInside(wm.m_taskbarRightArrowRect, 120, 120),
+              "narrow taskbars keep scroll arrow hit rectangles inside the desktop");
+        for (const auto& entry : wm.m_taskbarEntries) {
+            check(rectInside(entry.rect, 120, 120),
+                  "narrow taskbars keep window button hit rectangles inside the desktop");
+        }
+
+        wm.setLogicalDesktopSize(1000, 700);
+        wm.m_taskbarScrollOffset = 400;
+        wm.setLogicalDesktopSize(120, 120);
+        wm.render(renderer);
+        check(!wm.m_taskbarNeedsScroll || wm.m_taskbarButtonAreaWidth >= 40,
+              "taskbar scrolling is disabled when arrow controls cannot fit");
+        check(wm.m_taskbarScrollOffset == 0,
+              "shrinking the desktop resets an unusable taskbar scroll offset");
+    }
+
+    if (renderer) SDL_DestroyRenderer(renderer);
+    if (surface) SDL_FreeSurface(surface);
+    SDL_Quit();
 
     if (failures == 0) {
         std::cout << "ALL WINDOW COORDINATE TESTS PASSED\n";

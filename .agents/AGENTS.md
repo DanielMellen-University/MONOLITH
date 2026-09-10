@@ -89,6 +89,7 @@ Remote: SSH `git@github.com:DanielMellen-University/MONOLITH.git`
 
 ### Session log
 
+| 2026-09-10 | cleanup | Kept taskbar viewport, scroll arrows, clock placement, and window-button hit targets valid on narrow logical desktops; added render-backed coordinate coverage and updated architecture/scripts docs; CURRENT_CHUNK remains 7.1 |
 | 2026-09-10 | docs | Added a compact Drawing file workflow reference with Browser and Terminal copy, rename, move, and open examples; clarified that renaming to `.modr` does not convert file contents; documentation-only; CURRENT_CHUNK remains 7.1 |
 | 2026-09-10 | cleanup | Made Filesystem Browser reject stale or dangling file opens before shell routing; added browser state coverage and updated the app guide/changelog; CURRENT_CHUNK remains 7.1 |
 | 2026-09-10 | cleanup | Made in-root dangling symlinks visible to safe existence checks so Terminal `rm` can remove them; added filesystem/Terminal coverage and updated docs/changelog; CURRENT_CHUNK remains 7.1 |

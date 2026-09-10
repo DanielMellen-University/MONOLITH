@@ -33,6 +33,7 @@
                 };
                 SDL_RenderCopy(renderer, m_clockDateTexture, nullptr, &tipDst);
             }
+            }
         }
     }
 

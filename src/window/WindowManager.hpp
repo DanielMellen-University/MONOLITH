@@ -253,7 +253,7 @@ private:
     int m_wallpaperTexH = 0;
 
     // Taskbar XP-style horizontal scrolling
-    int m_taskbarScrollOffset = 0;        // logical pixels, can be negative
+    int m_taskbarScrollOffset = 0;        // non-negative logical pixels
     int m_taskbarButtonAreaLeft = 0;      // logical left edge of button strip
     int m_taskbarButtonAreaWidth = 0;     // logical width for buttons
     bool m_taskbarNeedsScroll = false;

@@ -30,10 +30,19 @@
         }
     }
 
-    // Compute scrollable button area (leave room for clock on the right)
-    const int clockReserve = 100; // logical pixels reserved for clock tray
-    m_taskbarButtonAreaLeft = 8 + 70 + 8;  // after Start button + padding (logical)
-    m_taskbarButtonAreaWidth = m_logicalWidth - m_taskbarButtonAreaLeft - clockReserve - 8;
+    // Compute the button area from the actual logical width. Very narrow
+    // desktops still need non-negative hit rectangles and a usable partial
+    // button instead of a negative viewport.
+    const int clockReserve = 100; // desired logical space for the clock tray
+    const int taskbarButtonStart = 8 + 70 + 8;
+    m_taskbarButtonAreaLeft = std::clamp(taskbarButtonStart, 0, m_logicalWidth);
+    const int availableAfterStart = std::max(
+        0, m_logicalWidth - m_taskbarButtonAreaLeft - 8);
+    const int adaptiveClockReserve = std::min(
+        clockReserve,
+        std::max(0, availableAfterStart - kMinimumVisibleButtonSpace));
+    m_taskbarButtonAreaWidth = std::max(
+        0, availableAfterStart - adaptiveClockReserve);
 
     // Calculate total width + prepare drawing order (active/focused window always leftmost)
     std::vector<Window*> buttonOrder;
@@ -54,10 +63,12 @@
         totalButtonsWidth += bw + 6;
     }
 
-    m_taskbarNeedsScroll = (totalButtonsWidth > m_taskbarButtonAreaWidth);
-
     // Draw scroll arrows if needed
-    int arrowWidth = 16;
+    const int arrowWidth = 16;
+    const int arrowGap = 4;
+    const int arrowReserve = (arrowWidth + arrowGap) * 2;
+    m_taskbarNeedsScroll = totalButtonsWidth > m_taskbarButtonAreaWidth
+        && m_taskbarButtonAreaWidth >= arrowReserve;
     int buttonsStartX = m_taskbarButtonAreaLeft;
 
     if (m_taskbarNeedsScroll) {
@@ -77,10 +88,10 @@
         SDL_RenderDrawLine(renderer, ax + 6, ay - 5, ax, ay);
         SDL_RenderDrawLine(renderer, ax, ay, ax + 6, ay + 5);
 
-        buttonsStartX += arrowWidth + 4;
+        buttonsStartX += arrowWidth + arrowGap;
 
         // Right arrow
-        int rightX = m_taskbarButtonAreaLeft + m_taskbarButtonAreaWidth - arrowWidth;
+        const int rightX = m_taskbarButtonAreaLeft + m_taskbarButtonAreaWidth - arrowWidth;
         SDL_SetRenderDrawColor(renderer, 80, 80, 90, 255);
         m_taskbarRightArrowRect = {
             logicalToScreenX(rightX),
@@ -94,7 +105,12 @@
         SDL_RenderDrawLine(renderer, ax, ay - 5, ax + 6, ay);
         SDL_RenderDrawLine(renderer, ax + 6, ay, ax, ay + 5);
 
-        m_taskbarButtonAreaWidth -= (arrowWidth + 4) * 2;
+        m_taskbarButtonAreaWidth -= arrowReserve;
+    } else {
+        // A viewport too small for both arrows cannot be scrolled. Resetting
+        // here prevents a prior wide-desktop scroll offset from hiding the
+        // only partial button after the desktop shrinks.
+        m_taskbarScrollOffset = 0;
     }
 
     // Keep scrolling bounded by the actual button viewport. Without this
@@ -106,6 +122,9 @@
 
     // --- Middle: Window buttons (ALL windows, XP style) ---
     // Active window is always drawn leftmost (per user request)
+    const int areaLeftScreen = logicalToScreenX(buttonsStartX);
+    const int areaRightScreen = logicalToScreenX(
+        buttonsStartX + m_taskbarButtonAreaWidth);
     int currentX = logicalToScreenX(buttonsStartX) - static_cast<int>(m_taskbarScrollOffset * m_contentScale);
 
     for (size_t i = 0; i < buttonOrder.size(); ++i) {
@@ -120,9 +139,6 @@
         };
 
         // Only consider for hit testing if it would be at least partially visible in the button area
-        int areaLeftScreen = logicalToScreenX(buttonsStartX);
-        int areaRightScreen = logicalToScreenX(buttonsStartX + m_taskbarButtonAreaWidth);
-
         bool visible = (btnRect.x + btnRect.w > areaLeftScreen) && (btnRect.x < areaRightScreen);
 
         // Determine button appearance (Windows XP-ish)
@@ -167,8 +183,16 @@
         }
 
         if (visible) {
-            // Store for click handling (use the drawn rect)
-            m_taskbarEntries.push_back({btnRect, win});
+            // Match hit testing to the portion that is actually visible in
+            // the taskbar viewport. A narrow desktop may show only part of a
+            // button, but input must never extend outside that visible area.
+            SDL_Rect hitRect = btnRect;
+            const int hitRight = std::min(btnRect.x + btnRect.w, areaRightScreen);
+            hitRect.x = std::max(hitRect.x, areaLeftScreen);
+            hitRect.w = std::max(0, hitRight - hitRect.x);
+            if (hitRect.w > 0) {
+                m_taskbarEntries.push_back({hitRect, win});
+            }
         }
 
         currentX += static_cast<int>((bw + 6) * m_contentScale);
@@ -235,8 +259,11 @@
             const int trayX = logicalToScreenX(m_logicalWidth) - trayW - static_cast<int>(6 * m_contentScale);
             const int trayY = btnY;
 
-            SDL_SetRenderDrawColor(renderer, 45, 45, 52, 255);
-            SDL_Rect tray = {trayX, trayY, trayW, trayH};
-            SDL_RenderFillRect(renderer, &tray);
-            SDL_SetRenderDrawColor(renderer, 100, 100, 108, 255);
-            SDL_RenderDrawRect(renderer, &tray);
+            const int buttonAreaRight = logicalToScreenX(
+                buttonsStartX + m_taskbarButtonAreaWidth);
+            if (trayX >= buttonAreaRight) {
+                SDL_SetRenderDrawColor(renderer, 45, 45, 52, 255);
+                SDL_Rect tray = {trayX, trayY, trayW, trayH};
+                SDL_RenderFillRect(renderer, &tray);
+                SDL_SetRenderDrawColor(renderer, 100, 100, 108, 255);
+                SDL_RenderDrawRect(renderer, &tray);
