@@ -125,9 +125,19 @@
     const int areaLeftScreen = logicalToScreenX(buttonsStartX);
     const int areaRightScreen = logicalToScreenX(
         buttonsStartX + m_taskbarButtonAreaWidth);
+    const SDL_Rect buttonClipRect = {
+        areaLeftScreen,
+        btnY,
+        std::max(0, areaRightScreen - areaLeftScreen),
+        btnHeight
+    };
+    if (buttonClipRect.w > 0) {
+        SDL_RenderSetClipRect(renderer, &buttonClipRect);
+    }
     int currentX = logicalToScreenX(buttonsStartX) - static_cast<int>(m_taskbarScrollOffset * m_contentScale);
 
     for (size_t i = 0; i < buttonOrder.size(); ++i) {
+        if (buttonClipRect.w <= 0) break;
         Window* win = buttonOrder[i];
         int bw = buttonWidths[i];
 
@@ -168,14 +178,21 @@
                 if (t) {
                     // Keep the label at native size. The button owns the clip
                     // so long titles cannot bleed into neighboring buttons.
-                    SDL_RenderSetClipRect(renderer, &btnRect);
-                    SDL_Rect textDst = {
-                        btnRect.x + 5,
-                        btnY + (btnHeight - s->h) / 2,
-                        s->w, s->h
-                    };
-                    SDL_RenderCopy(renderer, t, nullptr, &textDst);
-                    SDL_RenderSetClipRect(renderer, nullptr);
+                    SDL_Rect textClip = btnRect;
+                    const int textClipRight = std::min(
+                        btnRect.x + btnRect.w, buttonClipRect.x + buttonClipRect.w);
+                    textClip.x = std::max(textClip.x, buttonClipRect.x);
+                    textClip.w = std::max(0, textClipRight - textClip.x);
+                    if (textClip.w > 0) {
+                        SDL_RenderSetClipRect(renderer, &textClip);
+                        SDL_Rect textDst = {
+                            btnRect.x + 5,
+                            btnY + (btnHeight - s->h) / 2,
+                            s->w, s->h
+                        };
+                        SDL_RenderCopy(renderer, t, nullptr, &textDst);
+                        SDL_RenderSetClipRect(renderer, &buttonClipRect);
+                    }
                     SDL_DestroyTexture(t);
                 }
                 SDL_FreeSurface(s);
@@ -196,6 +213,9 @@
         }
 
         currentX += static_cast<int>((bw + 6) * m_contentScale);
+    }
+    if (buttonClipRect.w > 0) {
+        SDL_RenderSetClipRect(renderer, nullptr);
     }
 
     // --- Right: System clock (local time; texture rebuilt when the minute changes) ---

@@ -56,6 +56,7 @@ int main() {
     SDL_Surface* surface = SDL_CreateRGBSurfaceWithFormat(
         0, 1280, 720, 32, SDL_PIXELFORMAT_RGBA32);
     SDL_Renderer* renderer = surface ? SDL_CreateSoftwareRenderer(surface) : nullptr;
+    SDL_PixelFormat* rgbaFormat = SDL_AllocFormat(SDL_PIXELFORMAT_RGBA32);
     check(renderer != nullptr, "software renderer initializes for taskbar geometry checks");
 
     monolith::window::WindowManager wm;
@@ -132,6 +133,8 @@ int main() {
     if (renderer) {
         wm.setContentScale(1.0f);
         wm.setLogicalDesktopSize(120, 120);
+        SDL_SetRenderDrawColor(renderer, 0, 0, 0, 255);
+        SDL_RenderClear(renderer);
         wm.render(renderer);
         check(wm.m_taskbarButtonAreaLeft >= 0
                   && wm.m_taskbarButtonAreaWidth >= 0
@@ -145,6 +148,29 @@ int main() {
                   "narrow taskbars keep window button hit rectangles inside the desktop");
         }
 
+        wm.setLogicalDesktopSize(200, 120);
+        SDL_SetRenderDrawColor(renderer, 0, 0, 0, 255);
+        SDL_RenderClear(renderer);
+        wm.render(renderer);
+        check(wm.m_taskbarNeedsScroll,
+              "taskbar scrolling remains active when the button strip is crowded");
+        Uint32 arrowPixel = 0;
+        SDL_Rect arrowSample = {
+            wm.m_taskbarRightArrowRect.x + 1,
+            wm.m_taskbarRightArrowRect.y + 1,
+            1,
+            1
+        };
+        const bool readArrowPixel = rgbaFormat
+            && SDL_RenderReadPixels(renderer, &arrowSample, SDL_PIXELFORMAT_RGBA32,
+                                    &arrowPixel, sizeof(arrowPixel)) == 0;
+        Uint8 arrowR = 0, arrowG = 0, arrowB = 0, arrowA = 0;
+        if (readArrowPixel) {
+            SDL_GetRGBA(arrowPixel, rgbaFormat, &arrowR, &arrowG, &arrowB, &arrowA);
+        }
+        check(readArrowPixel && arrowR == 80 && arrowG == 80 && arrowB == 90,
+              "taskbar buttons stay clipped behind the visible right arrow");
+
         wm.setLogicalDesktopSize(1000, 700);
         wm.m_taskbarScrollOffset = 400;
         wm.setLogicalDesktopSize(120, 120);
@@ -157,6 +183,7 @@ int main() {
 
     if (renderer) SDL_DestroyRenderer(renderer);
     if (surface) SDL_FreeSurface(surface);
+    if (rgbaFormat) SDL_FreeFormat(rgbaFormat);
     SDL_Quit();
 
     if (failures == 0) {

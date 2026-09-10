@@ -3,7 +3,7 @@
 ## 2026-09: Keep taskbar hit testing valid on narrow desktops
 
 - Clamped the taskbar button viewport to non-negative logical space and disabled scroll arrows when both controls cannot fit.
-- Reset stale taskbar scroll offsets after a desktop shrink, clipped partial button hit targets to the visible viewport, and prevented the clock tray from overlapping the button strip.
+- Reset stale taskbar scroll offsets after a desktop shrink, clipped partial button rendering and hit targets to the visible viewport, and prevented the clock tray from overlapping the button strip.
 - Added render-backed WindowManager coverage for narrow taskbar geometry.
 
 ## 2026-09: Document Drawing file workflows
