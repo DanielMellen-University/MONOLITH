@@ -29,6 +29,18 @@ Drawing is a pixel editor, not a layer or vector editor. The canvas is edited in
 
 The suffix is matched case-insensitively when opening, so `SKETCH.MODR` is still a Drawing file. Save and Open operate on the internal Monolith filesystem, not the host filesystem.
 
+## Virtual Path Handling
+
+Drawing stores internal filesystem paths in canonical form. Before a path is opened, saved, bound to a window, or shown in status text, Monolith removes repeated separators and resolves `.` and `..` segments.
+
+| Entered path | Canonical path |
+|--------------|----------------|
+| `/home/monolith/drawings/./sketch.modr` | `/home/monolith/drawings/sketch.modr` |
+| `/home/monolith/drawings/../drawings/sketch.modr` | `/home/monolith/drawings/sketch.modr` |
+| `//home//monolith//drawings//sketch.modr` | `/home/monolith/drawings/sketch.modr` |
+
+Normalization only changes the path spelling. It does not create missing directories or make a missing file valid. The same canonical path is used for Drawing's title, Save target, session record, one-window-per-file routing, and active path prompt. Directory moves and file renames therefore update the normalized path consistently.
+
 ## At A Glance
 
 | Item | Behavior |
@@ -432,6 +444,8 @@ The Drawing implementation has three boundaries worth preserving when changing i
 1. `DrawingRaster` owns format and pixel rules that can be tested without SDL.
 2. `DrawingApp` owns the live canvas, prompts, dirty state, and editor-session settings.
 3. `WindowManager` owns file singleton routing, instance titles, session restore, and desktop close guards.
+
+All Drawing file paths should be normalized before they are stored in app state or passed to WindowManager. This keeps titles, prompts, session records, and one-window-per-file routing aligned when a path contains redundant separators or `.` and `..` segments.
 
 Changes that move behavior across those boundaries should update this guide and the matching focused state or raster check. The `.modr` format should remain strict: invalid magic, dimensions outside the supported range, truncated payloads, and trailing bytes must fail without replacing the current canvas.
 

@@ -1,5 +1,10 @@
 # Changelog
 
+## 2026-09: Document Drawing path handling
+
+- Documented canonical virtual path normalization for Drawing save/open prompts and bound file paths, including `.` and `..` examples.
+- Clarified that normalized paths are used for titles, session records, singleton routing, and active prompts.
+
 ## 2026-09: Keep open documents attached across virtual moves
 
 - Filesystem Browser rename, Filesystem Browser cut/paste, and Terminal `mv` now update open Text Editor and Drawing bindings when a file or parent directory moves.
