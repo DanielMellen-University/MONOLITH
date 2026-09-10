@@ -89,6 +89,7 @@ Remote: SSH `git@github.com:DanielMellen-University/MONOLITH.git`
 
 ### Session log
 
+| 2026-09-10 | docs | Clarified Drawing Save versus Open Tab completion candidates and expanded the guide map; documentation-only; CURRENT_CHUNK remains 7.1 |
 | 2026-09-10 | cleanup | Synchronized maximized frame geometry and app client sizes across desktop resize and restore, with coordinate coverage and architecture/changelog updates; CURRENT_CHUNK remains 7.1 |
 | 2026-09-10 | cleanup | Kept Terminal Tab completion from rewriting already-closed quoted paths; added lexer and filesystem-state coverage and updated the Terminal guide/changelog; CURRENT_CHUNK remains 7.1 |
 | 2026-09-10 | docs | Published a navigable Drawing app guide covering the complete user workflow, file format, and troubleshooting; documentation-only; CURRENT_CHUNK remains 7.1 |

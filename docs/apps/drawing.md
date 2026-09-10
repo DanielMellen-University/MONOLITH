@@ -8,12 +8,18 @@ Drawing files use the `.modr` extension (Monolith Drawing Raster).
 
 - [Quick Start](#quick-start)
 - [Keyboard-First Reference](#keyboard-first-reference)
+- [File Lifecycle](#file-lifecycle)
 - [Toolbar](#toolbar)
 - [Colors](#colors)
+- [Mouse Controls](#mouse-controls)
+- [Prompt Behavior](#prompt-behavior)
 - [Saving](#saving)
+- [Common File Workflows](#common-file-workflows)
 - [Opening](#opening)
 - [Undo And Redo](#undo-and-redo)
 - [File Format](#file-format)
+- [Unsaved Changes](#unsaved-changes)
+- [Status Bar Messages](#status-bar-messages)
 - [Troubleshooting](#troubleshooting)
 
 ## Read This First
@@ -305,7 +311,7 @@ Pick samples the RGB value at the clicked canvas pixel, stores it as the custom 
 | Home / End | Move to the beginning or end of the active prompt |
 | Backspace / Delete | Remove the previous or next complete UTF-8 character |
 
-While a prompt is active, Drawing routes keyboard input to that prompt and ignores canvas actions and normal shortcuts until the prompt is finished. Printable UTF-8 characters are inserted at the caret. Tab completes a matching directory or `.modr` file during Save and Open; with several matches it completes the shared prefix or shows a short match preview in the status bar. Long prompts stay at native text size and scroll horizontally to keep the caret visible.
+While a prompt is active, Drawing routes keyboard input to that prompt and ignores canvas actions and normal shortcuts until the prompt is finished. Printable UTF-8 characters are inserted at the caret. Tab completes a matching directory or file during Save. During Open, it completes directories and `.modr` files only. With several matches it completes the shared prefix or shows a short match preview in the status bar. Long prompts stay at native text size and scroll horizontally to keep the caret visible.
 
 ### Prompt Behavior
 
@@ -314,6 +320,7 @@ While a prompt is active, Drawing routes keyboard input to that prompt and ignor
 - **RGB** starts with the current active color and accepts exactly three integer channels. Tab completion does not apply to RGB input.
 - These prompts are inline status-bar inputs. Left/Right/Home/End move the caret, typed text is inserted at that position, and Backspace/Delete remove complete UTF-8 characters.
 - Tab replaces only the final path component before the caret. If the caret is inside a directory component, completion waits until the caret is in the final component so text after it is not rewritten.
+- Completion candidates depend on the prompt: Save considers directories and existing entries, Open considers directories and `.modr` files, and RGB has no completion.
 - If a bound file or directory moves while Save or Open is active, the prompt follows the canonical path and keeps the caret at the same suffix position on a UTF-8 boundary.
 - Enter accepts the active prompt and Escape cancels it. Save adds `.modr` when the entered path does not already end in `.modr`; entering `picture.mod` therefore saves as `picture.mod.modr`.
 - If a dirty sketch blocks Open, the first confirmation keeps the path prompt active. Confirming the same open action again discards the unsaved canvas and loads the file.
@@ -471,7 +478,7 @@ The status bar is both the command hint area and the app's lightweight feedback 
 | `Open path (...)` | An Open path prompt is active. Tab-complete a directory or `.modr` file, then press Enter. |
 | `Custom RGB ...` | The RGB prompt is active. Enter three channels from 0 through 255. |
 | `Path completed...` | Tab found a completion. Review the path before confirming it. |
-| `No path matches.` | Tab found no matching directory or `.modr` file at the caret. Keep editing the path. |
+| `No path matches.` | Tab found no eligible directory or file at the caret. Keep editing the path. |
 | `Saved: ...` / `Opened: ...` | The operation completed and includes the normalized internal path. |
 | `Save failed: ...` / `Open failed: ...` | The operation was rejected. The current canvas remains open so it can be corrected or saved elsewhere. |
 | `RGB failed: ...` | The color was not changed. Enter exactly three integer channels in the accepted range. |

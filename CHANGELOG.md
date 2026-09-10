@@ -1,5 +1,10 @@
 # Changelog
 
+## 2026-09: Clarify Drawing prompt completion
+
+- Updated the Drawing guide to distinguish Save completion, which accepts existing entries, from Open completion, which filters files to `.modr`.
+- Added a prompt-completion reference and expanded the guide map.
+
 ## 2026-09: Synchronize maximized window geometry
 
 - Maximized windows now update their frame and app client size when the logical desktop changes.
