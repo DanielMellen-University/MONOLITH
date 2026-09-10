@@ -110,7 +110,8 @@ void SettingsApp::onVirtualPathMoved(const std::string& oldPath,
         const std::string next = remap(m_wallpaperEditBuffer);
         if (!next.empty()) {
             m_wallpaperEditBuffer = next;
-            m_wallpaperCursorPos = std::min(m_wallpaperCursorPos, m_wallpaperEditBuffer.size());
+            m_wallpaperCursorPos = utf8ClampToCodepointBoundary(
+                m_wallpaperEditBuffer, m_wallpaperCursorPos);
             m_wallpaperScrollPx = 0;
         }
     } else {

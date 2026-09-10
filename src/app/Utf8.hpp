@@ -1,5 +1,6 @@
 #pragma once
 
+#include <algorithm>
 #include <cstddef>
 #include <string>
 
@@ -34,6 +35,16 @@ inline std::size_t utf8NextCodepointStart(const std::string& value, std::size_t 
     if (offset >= value.size()) return value.size();
     const std::size_t step = utf8CodepointByteLen(value, offset);
     return offset + step > value.size() ? value.size() : offset + step;
+}
+
+inline std::size_t utf8ClampToCodepointBoundary(const std::string& value,
+                                                std::size_t offset) {
+    offset = std::min(offset, value.size());
+    while (offset > 0 && offset < value.size()
+           && (static_cast<unsigned char>(value[offset]) & 0xC0) == 0x80) {
+        --offset;
+    }
+    return offset;
 }
 
 inline void erasePreviousUtf8Codepoint(std::string& value, std::size_t& cursor) {

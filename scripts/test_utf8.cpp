@@ -6,6 +6,7 @@
 using monolith::app::popLastUtf8Codepoint;
 using monolith::app::erasePreviousUtf8Codepoint;
 using monolith::app::utf8CodepointByteLen;
+using monolith::app::utf8ClampToCodepointBoundary;
 using monolith::app::utf8NextCodepointStart;
 using monolith::app::utf8PrevCodepointStart;
 
@@ -27,6 +28,10 @@ int main() {
     check(utf8CodepointByteLen(value, 6) == 4, "four-byte codepoint length");
     check(utf8PrevCodepointStart(value, value.size()) == 6,
           "previous codepoint finds four-byte start");
+    check(utf8ClampToCodepointBoundary(value, 7) == 6,
+          "cursor clamp backs out of a continuation byte");
+    check(utf8ClampToCodepointBoundary(value, 999) == value.size(),
+          "cursor clamp limits offsets past the string");
 
     std::string edited = value;
     popLastUtf8Codepoint(edited);

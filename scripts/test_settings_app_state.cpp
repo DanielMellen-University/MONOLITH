@@ -119,6 +119,14 @@ int main() {
     check(settings.m_wallpaperEditBuffer.empty() && settings.m_wallpaperCursorPos == 0,
           "focused wallpaper prompt clears a deleted parent directory");
 
+    settings.m_wallpaperFieldFocused = true;
+    settings.m_wallpaperEditBuffer = "/Wallpapers/alpha.bmp";
+    settings.m_wallpaperCursorPos = 2;
+    settings.onVirtualPathMoved("/Wallpapers", "/\xC3\xA9");
+    check(settings.m_wallpaperEditBuffer == "/\xC3\xA9/alpha.bmp"
+              && settings.m_wallpaperCursorPos == 1,
+          "moved wallpaper prompt caret stays on a UTF-8 boundary");
+
     std::filesystem::remove_all(hostRoot, ec);
     if (failures == 0) {
         std::cout << "ALL SETTINGS APP STATE TESTS PASSED\n";

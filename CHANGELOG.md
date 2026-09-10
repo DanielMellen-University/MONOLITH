@@ -1,5 +1,10 @@
 # Changelog
 
+## 2026-09: Keep Settings path carets UTF-8 safe
+
+- Shared path editing now clamps caret offsets to complete UTF-8 codepoint boundaries after virtual path remaps.
+- Added Settings and shared UTF-8 coverage for moved paths containing multi-byte characters.
+
 ## 2026-09: Keep Text Editor UTF-8 cursor boundaries valid
 
 - Vertical cursor movement now snaps to a complete UTF-8 codepoint boundary before editing.

@@ -1221,10 +1221,8 @@ void TextEditorApp::clampCursor() {
 
     // Vertical movement can carry a byte column onto a continuation byte in
     // a shorter or differently encoded line. Keep every edit boundary valid.
-    while (m_cursorCol > 0 && m_cursorCol < len
-           && (static_cast<unsigned char>(m_lines[m_cursorRow][static_cast<size_t>(m_cursorCol)]) & 0xC0) == 0x80) {
-        --m_cursorCol;
-    }
+    m_cursorCol = static_cast<int>(utf8ClampToCodepointBoundary(
+        m_lines[m_cursorRow], static_cast<std::size_t>(m_cursorCol)));
 }
 
 void TextEditorApp::ensureCursorVisible() {
