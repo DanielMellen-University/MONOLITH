@@ -77,7 +77,7 @@ Paths may be absolute or relative to the current working directory. Quoted paths
 
 Reverse history search has its own editable query. Left/Right/Home/End move through the query, typed text is inserted at the caret, Delete removes the next complete UTF-8 character, and Backspace removes the previous one. Long search queries scroll horizontally to keep the caret visible. Up/Down cancel search and return to normal history navigation. Canceling restores both the original input and its caret position. Accepting or canceling a search also clears any older Up/Down navigation state, so the accepted or restored input is not overwritten by a stale history slot.
 
-Completion replaces only the token text before the cursor. Opening quotes remain in place, and unquoted completions escape spaces, backslashes, and quote characters so the completed command keeps the same meaning when it runs.
+Completion replaces only the token text before the cursor. Opening quotes remain in place; a single file completion at the end of an open double-quoted path adds the closing quote automatically. Directory completions keep the quote open and add a trailing slash so another Tab can continue into that directory. Unquoted completions escape spaces, backslashes, and quote characters so the completed command keeps the same meaning when it runs.
 
 `cat` prints one scrollback line per file line (truncated after many lines so huge files cannot flood the terminal). CRLF and lone-CR separators are normalized to LF before output. It reports a read failure separately from a valid empty file.
 
@@ -125,7 +125,6 @@ Unterminated quotes print `parse error: ...` and do not run the command.
 - No script execution or custom language integration yet.
 - `touch` creates an empty file if missing; existing files are left unchanged (no mtime update yet).
 - The prompt is a single line and does not provide Text Editor-style selection or clipboard editing.
-- Tab completion does not add a closing quote automatically when completing inside an open quoted path.
 - Scrollback lines stay at native text size and clip at the viewport edge instead of being horizontally scaled.
 - Esc clears the current input and resets the insertion point, so typing can continue immediately.
 

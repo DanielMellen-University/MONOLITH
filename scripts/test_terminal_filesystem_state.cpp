@@ -41,6 +41,8 @@ int main() {
           "create mixed line-ending file");
     check(fs.writeFile("/home/monolith/my  file.txt", "exact spacing"),
           "create file with repeated spaces");
+    check(fs.createDirectory("/home/monolith/quoted dir"),
+          "create directory for quoted completion");
 
     monolith::app::TerminalApp terminal(nullptr, &fs);
     check(terminal.m_commandHistory == std::vector<std::string>{"echo first", "echo second"},
@@ -115,6 +117,18 @@ int main() {
     terminal.handleTabCompletion();
     check(terminal.m_inputBuffer == "ls /home/",
           "absolute-root completion searches the virtual root");
+
+    terminal.m_inputBuffer = "cat \"/home/monolith/my  ";
+    terminal.m_inputCursorPos = static_cast<int>(terminal.m_inputBuffer.size());
+    terminal.handleTabCompletion();
+    check(terminal.m_inputBuffer == "cat \"/home/monolith/my  file.txt\"",
+          "quoted file completion adds the closing double quote");
+
+    terminal.m_inputBuffer = "cd \"/home/monolith/quoted";
+    terminal.m_inputCursorPos = static_cast<int>(terminal.m_inputBuffer.size());
+    terminal.handleTabCompletion();
+    check(terminal.m_inputBuffer == "cd \"/home/monolith/quoted dir/",
+          "quoted directory completion stays open for continued navigation");
 
     check(fs.createDirectory("/home/monolith/work/nested"),
           "create terminal cwd move source");

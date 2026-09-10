@@ -1,5 +1,10 @@
 # Changelog
 
+## 2026-09: Finish quoted Terminal path completion
+
+- Terminal Tab completion now closes an open double-quoted path after completing a single file.
+- Quoted directory completion remains open with a trailing slash for continued navigation, with regression coverage for both workflows.
+
 ## 2026-09: Keep taskbar hit testing valid on narrow desktops
 
 - Clamped the taskbar button viewport to non-negative logical space and disabled scroll arrows when both controls cannot fit.

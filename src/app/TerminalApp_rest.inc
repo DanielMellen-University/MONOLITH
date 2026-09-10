@@ -148,16 +148,23 @@ void TerminalApp::handleTabCompletion() {
         // Single match - complete it
         std::string completion = matches[0];
         std::string newWord = completion;
+        bool directoryCompletion = false;
 
         // For paths, append / if it's a directory
         if (!context.firstWord) {
             std::string fullPath = resolvePath(newWord);
             if (m_fs && m_fs->isDirectory(fullPath) && !newWord.empty() && newWord.back() != '/') {
                 newWord += "/";
+                directoryCompletion = true;
             }
         }
 
+        const bool cursorAtLineEnd = m_inputCursorPos == static_cast<int>(m_inputBuffer.size());
         replacePrefix(newWord);
+        if (context.quote == '"' && !directoryCompletion && cursorAtLineEnd) {
+            m_inputBuffer.insert(static_cast<std::size_t>(m_inputCursorPos), 1, '"');
+            ++m_inputCursorPos;
+        }
     } else {
         // Multiple matches - complete common prefix if possible
         std::string common = context.prefix;
