@@ -1218,6 +1218,13 @@ void TextEditorApp::clampCursor() {
     int len = static_cast<int>(m_lines[m_cursorRow].size());
     if (m_cursorCol < 0) m_cursorCol = 0;
     if (m_cursorCol > len) m_cursorCol = len;
+
+    // Vertical movement can carry a byte column onto a continuation byte in
+    // a shorter or differently encoded line. Keep every edit boundary valid.
+    while (m_cursorCol > 0 && m_cursorCol < len
+           && (static_cast<unsigned char>(m_lines[m_cursorRow][static_cast<size_t>(m_cursorCol)]) & 0xC0) == 0x80) {
+        --m_cursorCol;
+    }
 }
 
 void TextEditorApp::ensureCursorVisible() {

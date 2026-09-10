@@ -17,7 +17,7 @@ If an initial path is missing or unreadable, the failed window falls back to the
 
 ## Editing
 
-- Type to insert characters at the cursor (UTF-8 text input; left/right and backspace/delete move by codepoint).
+- Type to insert characters at the cursor (UTF-8 text input; cursor movement and backspace/delete stay on complete codepoint boundaries).
 - **Enter** inserts a new line.
 - **Arrow keys**, **Home**, and **End** move the cursor; hold **Shift** to extend the selection.
 - Click to place the cursor; drag to select. **Esc** clears the selection.

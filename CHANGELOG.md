@@ -1,5 +1,10 @@
 # Changelog
 
+## 2026-09: Keep Text Editor UTF-8 cursor boundaries valid
+
+- Vertical cursor movement now snaps to a complete UTF-8 codepoint boundary before editing.
+- Added state coverage for moving onto a multi-byte character and inserting text safely.
+
 ## 2026-09: Keep Drawing default names unique
 
 - Drawing's suggested Save path now continues past `sketch_999.modr` instead of falling back to an occupied `sketch.modr`.

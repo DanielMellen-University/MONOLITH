@@ -184,6 +184,16 @@ int main() {
     check(editor.m_findMatches == std::vector<std::pair<int, int>>{{0, 0}, {0, 2}},
           "find uses non-overlapping matches like replace all");
 
+    editor.m_lines = {"ab", "\xF0\x9F\x98\x80"};
+    editor.m_cursorRow = 0;
+    editor.m_cursorCol = 2;
+    editor.moveDown(false);
+    check(editor.m_cursorRow == 1 && editor.m_cursorCol == 0,
+          "vertical movement keeps the cursor on a UTF-8 boundary");
+    editor.insertText("X");
+    check(editor.m_lines[1] == "X\xF0\x9F\x98\x80",
+          "editing after vertical movement preserves the full UTF-8 character");
+
     const auto signedNumberSpans = editor.tokenizeLine("-42 +7");
     check(signedNumberSpans.size() == 3
               && signedNumberSpans[0].start == 0
