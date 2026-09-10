@@ -115,9 +115,9 @@ The Window Manager handles the frame, decorations, and top-level input routing.
 
 ### Desktop Shell & App Coordination
 
-The Window Manager also acts as a small "desktop shell". It provides launcher methods (`launchTerminal()`, `launchTextEditor(path)`, `launchFilesystem()`, `launchDrawing()`, `launchSettings()`, `launchSnake()`, `launchMinesweeper()`) used by the Start Menu and by apps.
+The Window Manager also acts as a small "desktop shell". It provides launcher methods (`launchTerminal()`, `launchTextEditor(path)`, `launchFilesystem()`, `launchDrawing()`, `launchSettings()`, `launchSnake()`, `launchMinesweeper()`, `launchPong()`) used by the Start Menu and by apps.
 
-The Start menu keeps most apps as top-level entries. Games that clearly form a group (**Snake**, **Minesweeper**) sit under a non-clickable **Games** category header with a slight indent; only categories that make sense are introduced this way.
+The Start menu keeps most apps as top-level entries. Games that clearly form a group (**Snake**, **Minesweeper**, **Pong**) sit under a non-clickable **Games** category header with a slight indent; only categories that make sense are introduced this way.
 
 Each frame, `WindowManager::update()` calls `App::update()` on every non-minimized window's app. Most apps leave this as a no-op; games use it for fixed-rate ticks and timers.
 
@@ -159,6 +159,7 @@ Native C++ apps render into window client areas and are launched via shell metho
 | Settings | [apps/settings.md](apps/settings.md) | `SettingsApp` |
 | Snake | [apps/snake.md](apps/snake.md) | `SnakeApp` |
 | Minesweeper | [apps/minesweeper.md](apps/minesweeper.md) | `MinesweeperApp` |
+| Pong | [apps/pong.md](apps/pong.md) | `PongApp` |
 
 **Shell coordination:** Apps use `IWindowController` for close, titles, open/openPath, file bindings, shared virtual filesystem clipboard, desktop color, wallpaper path, clock format, and interface text scale. Settings persists these preferences to `~/.monolith/desktop_settings.txt`. Session layout persists to `~/.monolith/session.txt` via `WindowManager::saveSession` / `loadSession` (wired from `main`).
 

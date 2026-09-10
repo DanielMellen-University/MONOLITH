@@ -1,5 +1,9 @@
 # Changelog
 
+## 2026-09: Align architecture app inventory
+
+- Updated the architecture guide to include Pong in the built-in app table, launcher list, and Start menu Games grouping.
+
 ## 2026-09: Document Drawing path handling
 
 - Documented canonical virtual path normalization for Drawing save/open prompts and bound file paths, including `.` and `..` examples.
