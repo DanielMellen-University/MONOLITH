@@ -87,6 +87,7 @@ If the renamed entry is open in Text Editor or Drawing, the shell updates that w
 - **Enter** keeps the filter and leaves typing mode.
 - **Esc** clears the filter.
 - Changing directory clears the filter.
+- Changing directory also cancels an active rename, pending delete, or context menu so actions cannot target a row from the previous directory.
 
 ### Delete Confirmation
 

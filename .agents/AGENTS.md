@@ -89,6 +89,7 @@ Remote: SSH `git@github.com:DanielMellen-University/MONOLITH.git`
 
 ### Session log
 
+| 2026-09-10 | cleanup | Cleared stale Filesystem Browser rename, context-menu, and delete state across directory changes and external refreshes; added state coverage and updated the app guide; CURRENT_CHUNK remains 7.1 |
 | 2026-09-10 | cleanup | Kept WindowManager geometry non-negative on undersized logical desktops; added coordinate coverage and documented the shell invariant; CURRENT_CHUNK remains 7.1 |
 | 2026-09-10 | cleanup | Kept virtual filesystem operations inside the configured host root across symlink traversal; added a roadmap regression and updated filesystem docs; CURRENT_CHUNK remains 7.1 |
 | 2026-09-10 | docs | Completed the Drawing app reference with workflow, file format, prompt behavior, troubleshooting, and path-maintenance invariants; documentation-only; CURRENT_CHUNK remains 7.1 |

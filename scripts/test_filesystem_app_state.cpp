@@ -106,6 +106,26 @@ int main() {
     check(browser.selectedIndicesSorted().size() == 2,
           "clearing a filter preserves the visible multi-selection");
 
+    check(browser.selectEntryNamed("a.txt", false), "select a single entry for transient state reset");
+    browser.startRenameSelected();
+    check(browser.m_renaming, "rename mode is active before directory change");
+    browser.m_showContextMenu = true;
+    browser.m_contextMenuTarget = 0;
+    browser.m_contextMenuItems = {"Open", "Rename"};
+    browser.m_confirmingDelete = true;
+    browser.m_pendingDeleteIndex = 0;
+    browser.setCurrentPath("/home/monolith");
+    check(!browser.m_renaming && !browser.m_showContextMenu
+              && browser.m_contextMenuItems.empty()
+              && !browser.m_confirmingDelete,
+          "changing directories clears transient rename and context-menu state");
+    browser.m_showContextMenu = true;
+    browser.m_contextMenuItems = {"Refresh"};
+    browser.m_contextMenuTarget = 0;
+    browser.refreshEntries();
+    check(!browser.m_showContextMenu && browser.m_contextMenuItems.empty(),
+          "refresh clears a stale context menu target");
+
     check(browser.selectEntryNamed("a.txt", false), "select an item before filtered delete");
     browser.requestDeleteSelected();
     key(browser, SDLK_f, KMOD_CTRL);

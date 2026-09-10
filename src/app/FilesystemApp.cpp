@@ -79,6 +79,10 @@ void FilesystemApp::setCurrentPath(const std::string& virtualPath) {
 
     std::string normalized = m_fs->normalize(virtualPath);
     if (m_fs->isDirectory(normalized)) {
+        if (m_renaming) {
+            finishRename(false);
+        }
+        closeContextMenu();
         cancelPendingDelete();
         m_currentPath = normalized;
         m_filtering = false;
@@ -113,6 +117,12 @@ void FilesystemApp::goUp() {
 }
 
 void FilesystemApp::refreshEntries() {
+    // A refresh can follow an external rename, move, or delete. Do not leave
+    // a menu target pointing at an index from the previous listing.
+    if (m_showContextMenu) {
+        closeContextMenu();
+    }
+
     using SelectionIdentity = std::pair<std::string, bool>;
     std::set<SelectionIdentity> selectedIdentities;
     for (const int index : selectedIndicesSorted()) {

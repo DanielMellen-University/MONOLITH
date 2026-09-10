@@ -1,5 +1,10 @@
 # Changelog
 
+## 2026-09: Reset Filesystem Browser transient state
+
+- Directory navigation and external listing refreshes now clear stale context-menu, rename, and delete-confirmation state.
+- Added browser state coverage for changing directories while those transient actions are active.
+
 ## 2026-09: Keep windows valid on tiny desktops
 
 - Window clamping now keeps the window origin non-negative when a logical desktop is shorter than the title bar.
