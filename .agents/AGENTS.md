@@ -89,6 +89,8 @@ Remote: SSH `git@github.com:DanielMellen-University/MONOLITH.git`
 
 ### Session log
 
+| 2026-09-10 | docs | Clarified Drawing `.modr` Save versus rename behavior, added Terminal rename/open examples, and documented the copy workflow; documentation-only; CURRENT_CHUNK remains 7.1 |
+
 | 2026-09-10 | cleanup | Preserved the Terminal input caret when canceling reverse history search; added state coverage and updated the Terminal guide; CURRENT_CHUNK remains 7.1 |
 | 2026-09-10 | cleanup | Cleared stale Filesystem Browser rename, context-menu, and delete state across directory changes and external refreshes; added state coverage and updated the app guide; CURRENT_CHUNK remains 7.1 |
 | 2026-09-10 | cleanup | Kept WindowManager geometry non-negative on undersized logical desktops; added coordinate coverage and documented the shell invariant; CURRENT_CHUNK remains 7.1 |

@@ -29,6 +29,23 @@ Drawing is a pixel editor, not a layer or vector editor. The canvas is edited in
 
 The suffix is matched case-insensitively when opening, so `SKETCH.MODR` is still a Drawing file. Save and Open operate on the internal Monolith filesystem, not the host filesystem.
 
+Save and rename follow different rules. Save adds `.modr` when the typed path has no `.modr` suffix, but Filesystem Browser rename and Terminal `mv` use the destination name exactly as entered. To convert an existing file into a Drawing file, rename it to the complete name, for example `draft.mod` to `draft.modr`, then open the renamed file. Renaming it to `draft` does not add the suffix automatically, and `draft.mod` remains a Text Editor file.
+
+For a normal rename:
+
+1. In Filesystem Browser, select the sketch and choose **Rename**, or use Terminal `mv`.
+2. Keep the `.modr` suffix in the new name.
+3. Open the renamed file from Filesystem Browser, or run `open <path>` in Terminal.
+
+Example Terminal workflow:
+
+```text
+mv /home/monolith/drawings/draft.mod /home/monolith/drawings/draft.modr
+open /home/monolith/drawings/draft.modr
+```
+
+If the sketch is already open, Monolith updates its title and Save target after a successful rename or move. The open window keeps the canvas in memory while its canonical virtual path changes.
+
 ## Virtual Path Handling
 
 Drawing stores internal filesystem paths in canonical form. Before a path is opened, saved, bound to a window, or shown in status text, Monolith removes repeated separators and resolves `.` and `..` segments.
@@ -312,6 +329,8 @@ The name generator keeps scanning until it finds a free suffix, so a large colle
 Drawing always writes a `.modr` document. If you save without typing `.modr`, Drawing appends the suffix automatically. It does not replace another suffix: entering `picture.mod` creates `picture.mod.modr`.
 
 Save creates missing parent directories for the entered virtual path before writing the document. For example, saving to `/home/monolith/drawings/concepts/rough.modr` creates `concepts/` when it does not already exist. This applies only to Save; an Open path must already name an existing valid `.modr` file.
+
+Drawing has no separate **Save As** command. To make a copy, copy the `.modr` file in Filesystem Browser or with Terminal, then open the copy and continue editing it. Saving an already-open sketch always writes its current bound path.
 
 ## Opening
 

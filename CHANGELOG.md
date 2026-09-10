@@ -1,5 +1,10 @@
 # Changelog
 
+## 2026-09: Clarify Drawing file workflows
+
+- Documented the difference between Save's automatic `.modr` suffix and exact rename or `mv` destinations.
+- Added a concrete rename-and-open example and clarified how to create a copy without a Drawing Save As command.
+
 ## 2026-09: Preserve Terminal reverse-search caret
 
 - Canceling `Ctrl+R` reverse history search now restores the input caret where the search began instead of moving it to the end of the command.
