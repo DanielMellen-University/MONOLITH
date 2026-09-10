@@ -1,5 +1,10 @@
 # Changelog
 
+## 2026-09: Clarify Drawing file workflows
+
+- Added a decision guide explaining when to use Drawing Save, Filesystem Browser copy/rename/move, or Terminal file commands.
+- Documented the difference between changing a `.modr` path and creating a valid MODR drawing payload.
+
 ## 2026-09: Finish quoted Terminal path completion
 
 - Terminal Tab completion now closes an open double-quoted path after completing a single file.

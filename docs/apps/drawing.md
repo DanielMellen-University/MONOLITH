@@ -359,6 +359,20 @@ mv /home/monolith/drawings/draft.mod /home/monolith/drawings/draft.modr
 open /home/monolith/drawings/draft.modr
 ```
 
+### Choose The Right Operation
+
+Use the operation that matches the result you want:
+
+| Goal | Use | Why |
+|------|-----|-----|
+| Continue editing the current sketch | **Save** | Writes the current canvas to its existing bound path. |
+| Start another sketch from the same pixels | **Copy**, then **Open** the copy | Preserves the original and creates a separate file binding. |
+| Change the sketch's filename | **Rename** or `mv` | Changes the virtual path; it does not rewrite or convert the file payload. |
+| Put the sketch in another folder | **Cut/Paste** or `mv` | Moves the same file and updates an open Drawing window to the new path. |
+| Turn a blank canvas into a Drawing file | **Save** with a `.modr` name | Creates a valid MODR header, dimensions, and RGB payload. |
+
+Do not use rename to convert an unknown file into a Drawing. Changing `image.mod` to `image.modr` only changes its name. Use Drawing Save to create a valid document, or open the renamed file only when its contents are already a valid MODR raster.
+
 ## Opening
 
 Drawing opens `.modr` files only, with case-insensitive suffix matching. The shell routes `.modr` paths from Terminal `open` and the Filesystem Browser to Drawing; `.mod` remains a text file and does not open in Drawing. This keeps drawing files distinct from future module-style files that may use similar names.
