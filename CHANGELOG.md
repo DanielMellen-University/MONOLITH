@@ -1,5 +1,10 @@
 # Changelog
 
+## 2026-09: Keep Drawing default names unique
+
+- Drawing's suggested Save path now continues past `sketch_999.modr` instead of falling back to an occupied `sketch.modr`.
+- Added a boundary regression covering the first 999 occupied sketch names.
+
 ## 2026-09: Document Drawing save paths
 
 - Documented that Drawing Save creates missing parent directories while Open requires an existing valid `.modr` file.

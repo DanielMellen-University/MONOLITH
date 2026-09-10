@@ -307,6 +307,8 @@ If that file already exists, Drawing picks the next free name, such as:
 /home/monolith/drawings/sketch_2.modr
 ```
 
+The name generator keeps scanning until it finds a free suffix, so a large collection of sketches does not fall back to an occupied earlier name.
+
 Drawing always writes a `.modr` document. If you save without typing `.modr`, Drawing appends the suffix automatically. It does not replace another suffix: entering `picture.mod` creates `picture.mod.modr`.
 
 Save creates missing parent directories for the entered virtual path before writing the document. For example, saving to `/home/monolith/drawings/concepts/rough.modr` creates `concepts/` when it does not already exist. This applies only to Save; an Open path must already name an existing valid `.modr` file.

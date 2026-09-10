@@ -395,7 +395,7 @@ std::string DrawingApp::defaultSavePath() {
     m_fs->createDirectory("/home/monolith");
     m_fs->createDirectory(baseDir);
 
-    for (int i = 1; i < 1000; ++i) {
+    for (std::uint64_t i = 1;; ++i) {
         std::ostringstream oss;
         oss << baseDir << "/sketch";
         if (i > 1) oss << "_" << i;

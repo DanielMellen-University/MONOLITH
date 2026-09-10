@@ -41,6 +41,17 @@ int main() {
           "write resize drawing");
 
     monolith::app::DrawingApp drawing(nullptr, &fs);
+    bool occupiedSketchNames = true;
+    for (int i = 1; i <= 999; ++i) {
+        std::string path = "/home/monolith/drawings/sketch";
+        if (i > 1) path += "_" + std::to_string(i);
+        path += ".modr";
+        occupiedSketchNames = fs.writeFile(path, "occupied") && occupiedSketchNames;
+    }
+    check(occupiedSketchNames, "occupy the first 999 default Drawing names");
+    check(drawing.defaultSavePath() == "/home/monolith/drawings/sketch_1000.modr",
+          "default Drawing save name continues past sketch_999");
+
     drawing.onResize(300, 300);
     check(!drawing.m_dirty, "initial blank resize stays clean");
     check(drawing.loadFromPath("/drawings/resize.modr"), "load resize drawing");
