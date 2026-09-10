@@ -111,13 +111,14 @@ int main() {
 
     window->rect = {0, 0, 300, 240};
     window->minimized = true;
-    const int resizeCallsBeforeRestore = probePtr->resizeCalls;
+    const int resizeCallsBeforeMinimizedRestore = probePtr->resizeCalls;
     SDL_Event altTab{};
     altTab.type = SDL_KEYDOWN;
     altTab.key.keysym.sym = SDLK_TAB;
     altTab.key.keysym.mod = KMOD_ALT;
     wm.handleEvent(altTab);
-    check(!window->minimized && probePtr->resizeCalls == resizeCallsBeforeRestore + 1,
+    check(!window->minimized
+              && probePtr->resizeCalls == resizeCallsBeforeMinimizedRestore + 1,
           "restoring a minimized clamped window notifies the app once");
 
     wm.setContentScale(1.0f);
@@ -139,6 +140,42 @@ int main() {
     wm.m_mouseDown = false;
     wm.m_resizingWindow = nullptr;
     wm.m_resizeDirection = monolith::window::ResizeDirection::None;
+
+    wm.setLogicalDesktopSize(800, 600);
+    window->minimized = false;
+    window->maximized = false;
+    window->rect = {430, 300, 300, 220};
+    const auto maximizeButtons = wm.getTitleButtonRects(*window);
+    const int resizeCallsBeforeMaximize = probePtr->resizeCalls;
+    check(wm.handleTitleBarButtons(
+              window, maximizeButtons.maximize.x + 1, maximizeButtons.maximize.y + 1),
+          "maximize button toggles the window");
+    check(window->maximized && probePtr->resizeCalls == resizeCallsBeforeMaximize + 1,
+          "maximizing notifies the app of the client size");
+
+    wm.setLogicalDesktopSize(420, 220);
+    const SDL_Rect smallerUsable = wm.getUsableDesktopRect();
+    check(window->maximized
+              && window->rect.x == smallerUsable.x
+              && window->rect.y == smallerUsable.y
+              && window->rect.w == smallerUsable.w
+              && window->rect.h == smallerUsable.h
+              && probePtr->resizeCalls == resizeCallsBeforeMaximize + 2,
+          "desktop resize keeps maximized geometry and app size synchronized");
+
+    const auto restoreButtons = wm.getTitleButtonRects(*window);
+    const int resizeCallsBeforeMaxRestore = probePtr->resizeCalls;
+    check(wm.handleTitleBarButtons(
+              window, restoreButtons.maximize.x + 1, restoreButtons.maximize.y + 1),
+          "restore button toggles a maximized window");
+    check(!window->maximized
+              && window->rect.x >= 0
+              && window->rect.y >= 0
+              && window->rect.x + window->rect.w <= wm.m_logicalWidth
+              && window->rect.y + window->rect.h
+                  <= wm.getUsableDesktopRect().y + wm.getUsableDesktopRect().h
+              && probePtr->resizeCalls == resizeCallsBeforeMaxRestore + 1,
+          "restoring after a desktop shrink clamps the frame above the taskbar");
 
     wm.setLogicalDesktopSize(120, 20);
     check(window->rect.y == 0,

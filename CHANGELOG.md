@@ -1,5 +1,11 @@
 # Changelog
 
+## 2026-09: Synchronize maximized window geometry
+
+- Maximized windows now update their frame and app client size when the logical desktop changes.
+- Restoring a maximized window clamps its saved geometry above the taskbar before notifying the app.
+- Added coordinate coverage for maximize, desktop resize, and restore behavior.
+
 ## 2026-09: Preserve closed quoted Terminal paths
 
 - Terminal Tab completion now leaves a command unchanged when the cursor is immediately after a closed quoted path, preserving its closing quote.

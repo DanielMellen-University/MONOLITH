@@ -64,6 +64,7 @@ The Window Manager is the most foundational subsystem.
 - Taskbar scrolling is clamped to the measured button strip after arrow controls reserve their space, so repeated input cannot scroll every window button out of view.
 - On narrow logical desktops, the taskbar button viewport is clamped to non-negative space; scroll arrows are shown only when both controls fit, stale scroll offsets reset after a shrink, and button rendering plus hit rectangles are clipped to the visible viewport.
 - The clock tray yields the button strip when the available width is too small for both controls, preventing taskbar status UI from overlapping window-button input.
+- Maximize, restore, and logical desktop resizing keep maximized frames aligned to the usable area, clamp restored frames above the taskbar, and notify the app after the final client geometry is known.
 - Taskbar window labels stay at native text size and clip inside their own button, so long titles do not get horizontally distorted or draw over neighboring buttons.
 - Window title labels stay at native text size and clip before the minimize button, so long file-backed titles do not get horizontally distorted or cover title-bar controls.
 - The taskbar shows a compact local-time clock on the right (12-hour by default; Settings can switch to 24-hour via `DesktopSettings`). The time texture is rebuilt when the minute or format changes; hovering the clock tray shows the full local date in a small tooltip above the bar.

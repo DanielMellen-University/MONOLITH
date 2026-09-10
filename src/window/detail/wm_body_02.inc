@@ -135,8 +135,10 @@ void WindowManager::update() {
     // not something individual apps should have to handle.
     for (auto& w : m_windows) {
         if (w->maximized && !w->minimized) {
+            const SDL_Rect before = w->rect;
             SDL_Rect usable = getUsableDesktopRect();
             w->rect = usable;
+            notifyAppResizeIfGeometryChanged(*w, before);
         }
     }
 

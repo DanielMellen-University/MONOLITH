@@ -194,7 +194,11 @@ void WindowManager::setLogicalDesktopSize(int width, int height) {
         if (!windowPtr || windowPtr->minimized) continue;
 
         const SDL_Rect before = windowPtr->rect;
-        clampSingleWindow(*windowPtr);
+        if (windowPtr->maximized) {
+            windowPtr->rect = getUsableDesktopRect();
+        } else {
+            clampSingleWindow(*windowPtr);
+        }
         if (windowPtr->rect.x == before.x
             && windowPtr->rect.y == before.y
             && windowPtr->rect.w == before.w
@@ -295,6 +299,7 @@ ResizeDirection WindowManager::getResizeDirectionAt(int mouseX, int mouseY) cons
 bool WindowManager::handleTitleBarButtons(Window* window, int mouseX, int mouseY) {
     if (!window) return false;
 
+    const SDL_Rect before = window->rect;
     SDL_Point mouse = {mouseX, mouseY};
     const TitleButtonRects buttons = getTitleButtonRects(*window);
 
@@ -318,11 +323,8 @@ bool WindowManager::handleTitleBarButtons(Window* window, int mouseX, int mouseY
             window->maximized = true;
         }
 
-        // Notify app of size change
-        if (window->app) {
-            const int clientH = window->rect.h - Window::TITLE_BAR_HEIGHT;
-            window->app->onResize(window->rect.w, clientH > 0 ? clientH : 0);
-        }
+        clampSingleWindow(*window);
+        notifyAppResizeIfGeometryChanged(*window, before);
         return true;
     }
 
