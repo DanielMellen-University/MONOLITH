@@ -46,6 +46,8 @@ open /home/monolith/drawings/draft.modr
 
 If the sketch is already open, Monolith updates its title and Save target after a successful rename or move. The open window keeps the canvas in memory while its canonical virtual path changes.
 
+Renaming changes the virtual filename only; it does not convert file contents. A file renamed from `.mod` to `.modr` must already contain a valid `MODR` header, dimensions, and RGB payload or Drawing will reject it as corrupt. To create a new Drawing file from a blank sketch or another image, use Drawing Save or copy an existing valid `.modr` file.
+
 ## Virtual Path Handling
 
 Drawing stores internal filesystem paths in canonical form. Before a path is opened, saved, bound to a window, or shown in status text, Monolith removes repeated separators and resolves `.` and `..` segments.
@@ -331,6 +333,31 @@ Drawing always writes a `.modr` document. If you save without typing `.modr`, Dr
 Save creates missing parent directories for the entered virtual path before writing the document. For example, saving to `/home/monolith/drawings/concepts/rough.modr` creates `concepts/` when it does not already exist. This applies only to Save; an Open path must already name an existing valid `.modr` file.
 
 Drawing has no separate **Save As** command. To make a copy, copy the `.modr` file in Filesystem Browser or with Terminal, then open the copy and continue editing it. Saving an already-open sketch always writes its current bound path.
+
+## Common File Workflows
+
+Use this sequence when managing a saved sketch outside the canvas:
+
+| Goal | Filesystem Browser | Terminal equivalent |
+|------|--------------------|---------------------|
+| Copy a sketch | Select the `.modr` file, choose **Copy**, open the destination folder, then choose **Paste**. | `cp /home/monolith/drawings/sketch.modr /home/monolith/drawings/sketch-copy.modr` |
+| Rename a sketch | Select the file, choose **Rename**, and keep or type the full `.modr` suffix. | `mv /home/monolith/drawings/draft.mod /home/monolith/drawings/draft.modr` |
+| Open a sketch | Double-click a valid `.modr` file. | `open /home/monolith/drawings/sketch-copy.modr` |
+| Move a sketch | Cut the file, navigate to the destination, then paste it. | `mv /home/monolith/drawings/sketch.modr /home/monolith/archive/sketch.modr` |
+
+The copy and move destinations must not already contain an entry with the same name. `cp` and `mv` use the destination exactly as entered, so neither command adds `.modr`. When a bound sketch is moved or renamed, its open Drawing window follows the new canonical path. When it is copied, the copy is a separate file and must be opened explicitly.
+
+The short version is:
+
+```text
+# Duplicate a valid drawing, then open the duplicate.
+cp /home/monolith/drawings/sketch.modr /home/monolith/drawings/sketch-copy.modr
+open /home/monolith/drawings/sketch-copy.modr
+
+# Rename a valid drawing without changing its contents.
+mv /home/monolith/drawings/draft.mod /home/monolith/drawings/draft.modr
+open /home/monolith/drawings/draft.modr
+```
 
 ## Opening
 

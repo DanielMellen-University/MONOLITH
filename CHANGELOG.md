@@ -1,5 +1,10 @@
 # Changelog
 
+## 2026-09: Document Drawing file workflows
+
+- Added a compact Drawing file workflow reference for copying, renaming, moving, and opening sketches from Filesystem Browser and Terminal.
+- Clarified that renaming a file to `.modr` changes only its name; Drawing still requires a valid MODR payload.
+
 ## 2026-09: Reject stale browser file opens
 
 - Filesystem Browser now verifies that a selected entry is a regular file before shell open routing.
