@@ -89,6 +89,7 @@ Remote: SSH `git@github.com:DanielMellen-University/MONOLITH.git`
 
 ### Session log
 
+| 2026-09-10 | cleanup | Made in-root dangling symlinks visible to safe existence checks so Terminal `rm` can remove them; added filesystem/Terminal coverage and updated docs/changelog; CURRENT_CHUNK remains 7.1 |
 | 2026-09-10 | cleanup | Kept non-overwriting filesystem renames from replacing dangling symlinks; added roadmap coverage and updated filesystem docs/changelog; CURRENT_CHUNK remains 7.1 |
 | 2026-09-10 | cleanup | Synchronized app client sizes after logical desktop clamping; added WindowManager resize-notification coverage and updated architecture/changelog; CURRENT_CHUNK remains 7.1 |
 | 2026-09-10 | cleanup | Made recursive filesystem copy and delete symlink-safe; added an in-root symlink regression and updated filesystem docs; CURRENT_CHUNK remains 7.1 |

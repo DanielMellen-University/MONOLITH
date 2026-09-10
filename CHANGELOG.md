@@ -1,5 +1,11 @@
 # Changelog
 
+## 2026-09: Keep dangling symlinks manageable
+
+- `Filesystem::exists()` now recognizes in-root dangling symlinks as directory entries.
+- Terminal `rm` can remove those entries, while outside-root symlinks remain rejected.
+- Added filesystem and Terminal regression coverage.
+
 ## 2026-09: Preserve dangling filesystem entries on rename
 
 - Non-overwriting virtual renames now recognize dangling symlinks as existing destinations.

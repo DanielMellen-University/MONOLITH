@@ -102,6 +102,14 @@ int main() {
     check(terminal.m_history == std::vector<std::string>{"exact spacing"},
           "quoted command paths preserve repeated spaces");
 
+    const std::filesystem::path danglingPath = hostRoot / "home/monolith/dangling";
+    std::filesystem::create_symlink(hostRoot / "missing-terminal-target", danglingPath, ec);
+    check(!ec, "create terminal dangling symlink");
+    terminal.executeCommand("rm /home/monolith/dangling");
+    check(std::filesystem::symlink_status(danglingPath, ec).type()
+              == std::filesystem::file_type::not_found,
+          "rm removes an in-root dangling symlink entry");
+
     terminal.m_inputBuffer = "ls /";
     terminal.m_inputCursorPos = static_cast<int>(terminal.m_inputBuffer.size());
     terminal.handleTabCompletion();

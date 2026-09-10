@@ -99,6 +99,8 @@ int main() {
     stdfs::create_symlink(hostRoot / "missing-target", danglingDestination, ec);
     check(!ec, "create dangling rename destination");
     if (!ec) {
+        check(fs.exists("/dangling-destination"),
+              "exists recognizes an in-root dangling symlink entry");
         check(!fs.rename("/rename-source.txt", "/dangling-destination"),
               "rename rejects an existing dangling symlink destination");
         check(fs.isFile("/rename-source.txt")

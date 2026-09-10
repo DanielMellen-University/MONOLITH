@@ -126,7 +126,9 @@ std::string Filesystem::normalize(const std::string& path) const {
 
 bool Filesystem::exists(const std::string& virtualPath) const {
     try {
-        return stdfs::exists(toHostPath(virtualPath));
+        const std::string hostPath = toHostPath(virtualPath);
+        if (hostPath.empty()) return false;
+        return hostEntryExists(stdfs::path(hostPath));
     } catch (...) {
         return false;
     }
