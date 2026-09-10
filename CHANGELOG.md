@@ -1,5 +1,10 @@
 # Changelog
 
+## 2026-09: Synchronize app sizes after desktop clamping
+
+- Visible apps now receive `onResize` when a logical desktop size change moves or resizes their window frame.
+- Added WindowManager coverage for the client dimensions delivered after clamping.
+
 ## 2026-09: Keep recursive filesystem operations symlink-safe
 
 - Recursive copy now rejects symlink sources instead of following them into an alias or cycle.

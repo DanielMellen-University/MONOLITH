@@ -17,9 +17,18 @@ public:
         }
     }
 
+    void onResize(int clientWidth, int clientHeight) override {
+        lastResizeWidth = clientWidth;
+        lastResizeHeight = clientHeight;
+        ++resizeCalls;
+    }
+
     int lastDownX = -1;
     int lastDownY = -1;
     int buttonDowns = 0;
+    int lastResizeWidth = 0;
+    int lastResizeHeight = 0;
+    int resizeCalls = 0;
 };
 
 } // namespace
@@ -80,6 +89,21 @@ int main() {
     wm.setLogicalDesktopSize(120, 120);
     check(window->rect.x == 0 && window->rect.w == 120,
           "narrow logical desktops keep clamped windows inside the left edge");
+    check(probePtr->resizeCalls == 2
+              && probePtr->lastResizeWidth == window->rect.w
+              && probePtr->lastResizeHeight == window->rect.h - monolith::window::Window::TITLE_BAR_HEIGHT,
+          "desktop clamping notifies the app of its changed client size");
+
+    window->rect = {0, 0, 300, 240};
+    window->minimized = true;
+    const int resizeCallsBeforeRestore = probePtr->resizeCalls;
+    SDL_Event altTab{};
+    altTab.type = SDL_KEYDOWN;
+    altTab.key.keysym.sym = SDLK_TAB;
+    altTab.key.keysym.mod = KMOD_ALT;
+    wm.handleEvent(altTab);
+    check(!window->minimized && probePtr->resizeCalls == resizeCallsBeforeRestore + 1,
+          "restoring a minimized clamped window notifies the app once");
 
     wm.setLogicalDesktopSize(120, 20);
     check(window->rect.y == 0,

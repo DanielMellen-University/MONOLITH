@@ -244,6 +244,20 @@ void WindowManager::clampWindowsToDesktop() {
     }
 }
 
+void WindowManager::notifyAppResizeIfGeometryChanged(Window& window,
+                                                      const SDL_Rect& before) {
+    if (!window.app
+        || (window.rect.x == before.x
+            && window.rect.y == before.y
+            && window.rect.w == before.w
+            && window.rect.h == before.h)) {
+        return;
+    }
+
+    const int clientHeight = window.rect.h - Window::TITLE_BAR_HEIGHT;
+    window.app->onResize(window.rect.w, clientHeight > 0 ? clientHeight : 0);
+}
+
 void WindowManager::clampSingleWindow(Window& w) {
     if (w.minimized) return;
 

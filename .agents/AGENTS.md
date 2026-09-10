@@ -89,6 +89,7 @@ Remote: SSH `git@github.com:DanielMellen-University/MONOLITH.git`
 
 ### Session log
 
+| 2026-09-10 | cleanup | Synchronized app client sizes after logical desktop clamping; added WindowManager resize-notification coverage and updated architecture/changelog; CURRENT_CHUNK remains 7.1 |
 | 2026-09-10 | cleanup | Made recursive filesystem copy and delete symlink-safe; added an in-root symlink regression and updated filesystem docs; CURRENT_CHUNK remains 7.1 |
 
 | 2026-09-10 | docs | Clarified Drawing `.modr` Save versus rename behavior, added Terminal rename/open examples, and documented the copy workflow; documentation-only; CURRENT_CHUNK remains 7.1 |

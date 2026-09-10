@@ -100,6 +100,8 @@ Window* WindowManager::getWindowAt(int mouseX, int mouseY) {
 void WindowManager::bringToFront(Window* window) {
     if (!window) return;
 
+    const SDL_Rect before = window->rect;
+
     // Any operation that explicitly focuses a window, including the
     // file-singleton bridges, must restore it if it was minimized.
     window->minimized = false;
@@ -107,6 +109,7 @@ void WindowManager::bringToFront(Window* window) {
     // desktop size. Re-apply the shell geometry invariant before it becomes
     // visible so its title bar stays above the taskbar.
     clampSingleWindow(*window);
+    notifyAppResizeIfGeometryChanged(*window, before);
 
     // Move the window to the end of the vector (drawn last = on top)
     auto it = std::find_if(m_windows.begin(), m_windows.end(),
@@ -184,8 +187,21 @@ void WindowManager::setLogicalDesktopSize(int width, int height) {
     m_logicalWidth = std::max(1, width);
     m_logicalHeight = std::max(1, height);
 
-    // Re-clamp when logical size changes
-    clampWindowsToDesktop();
+    // Re-clamp when logical size changes and keep each app's client geometry
+    // synchronized when the shell had to move or resize its window.
+    for (auto& windowPtr : m_windows) {
+        if (!windowPtr || windowPtr->minimized) continue;
+
+        const SDL_Rect before = windowPtr->rect;
+        clampSingleWindow(*windowPtr);
+        if (windowPtr->rect.x == before.x
+            && windowPtr->rect.y == before.y
+            && windowPtr->rect.w == before.w
+            && windowPtr->rect.h == before.h) {
+            continue;
+        }
+        notifyAppResizeIfGeometryChanged(*windowPtr, before);
+    }
 }
 
 void WindowManager::setHeaderOffset(int offsetY) {

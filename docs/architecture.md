@@ -72,6 +72,7 @@ The Window Manager is the most foundational subsystem.
 - Focusing an already-open file through the editor or Drawing singleton bridge also restores that window from minimized state before bringing it forward.
 - Bringing a minimized window forward re-applies desktop clamping first, so stale session geometry cannot put its title bar under the taskbar or off the desktop.
 - Desktop clamping keeps window origins non-negative even when a pathological logical desktop is shorter than the title bar; the frame stays anchored at the top when the full frame cannot fit.
+- When a logical desktop resize changes a visible window's frame, the Window Manager sends `App::onResize` with the new client dimensions after clamping. Apps never have to infer shell geometry changes from stale render rectangles.
 - The Alt+Tab title overlay converts measured text from screen pixels to logical width before sizing its box, then clips the native-size label inside that box.
 - No snapping or automatic tiling.
 

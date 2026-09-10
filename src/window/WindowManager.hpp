@@ -94,6 +94,7 @@ public:
     // Ensure all windows have their title bars (and thus buttons) at least partially visible
     void clampWindowsToDesktop();
     void clampSingleWindow(Window& w);
+    void notifyAppResizeIfGeometryChanged(Window& w, const SDL_Rect& before);
 
     // Internal: create a controller that lets an app operate on a specific window
     monolith::app::IWindowController* createControllerFor(Window* window);
