@@ -6,11 +6,11 @@
         r.x = m_logicalWidth - minButtonSpace;
     }
 
-    // Shrink if bigger than current desktop. A very small logical desktop is
-    // allowed to override the normal minimum so the window can still be
-    // clamped fully inside the available coordinate space.
+    // Shrink if bigger than the usable desktop. A very small logical desktop
+    // overrides the normal minimum so the frame cannot extend below the
+    // taskbar just because the usual minimum height no longer fits.
     if (r.w > m_logicalWidth)  r.w = m_logicalWidth;
-    if (r.h > usableHeight) r.h = std::max(Window::MIN_HEIGHT + titleH, usableHeight);
+    if (r.h > usableHeight) r.h = usableHeight;
 
     // Final bounds correction
     if (r.x < 0) r.x = 0;

@@ -104,6 +104,10 @@ int main() {
     wm.setLogicalDesktopSize(120, 120);
     check(window->rect.x == 0 && window->rect.w == 120,
           "narrow logical desktops keep clamped windows inside the left edge");
+    const SDL_Rect narrowUsable = wm.getUsableDesktopRect();
+    check(window->rect.y >= narrowUsable.y
+              && window->rect.y + window->rect.h <= narrowUsable.y + narrowUsable.h,
+          "narrow logical desktops keep the full frame above the taskbar");
     check(probePtr->resizeCalls == 2
               && probePtr->lastResizeWidth == window->rect.w
               && probePtr->lastResizeHeight == window->rect.h - monolith::window::Window::TITLE_BAR_HEIGHT,
@@ -178,8 +182,10 @@ int main() {
           "restoring after a desktop shrink clamps the frame above the taskbar");
 
     wm.setLogicalDesktopSize(120, 20);
-    check(window->rect.y == 0,
-          "undersized logical desktops keep the window origin non-negative");
+    const SDL_Rect undersizedUsable = wm.getUsableDesktopRect();
+    check(window->rect.y == 0
+              && window->rect.h <= undersizedUsable.h,
+          "undersized logical desktops keep frame geometry non-negative");
 
     auto rectInside = [](const SDL_Rect& rect, int width, int height) {
         return rect.x >= 0 && rect.y >= 0 && rect.w >= 0 && rect.h >= 0

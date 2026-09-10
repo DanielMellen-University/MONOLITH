@@ -90,6 +90,7 @@ Remote: SSH `git@github.com:DanielMellen-University/MONOLITH.git`
 ### Session log
 
 | 2026-09-10 | cleanup | Refreshed ancestor Filesystem Browser listings after nested parent creation; added state coverage and updated filesystem lifecycle docs; CURRENT_CHUNK remains 7.1 |
+| 2026-09-10 | cleanup | Kept window frames above the taskbar on narrow and undersized logical desktops; added coordinate coverage and updated the shell geometry docs; CURRENT_CHUNK remains 7.1 |
 | 2026-09-10 | docs | Documented Drawing behavior after external `.modr` overwrites and added RGB prompt examples; documentation-only; CURRENT_CHUNK remains 7.1 |
 | 2026-09-10 | cleanup | Added virtual path change notifications for overwrites, refreshing open Browser listings and invalidating the active wallpaper cache; added focused lifecycle coverage; CURRENT_CHUNK remains 7.1 |
 | 2026-09-10 | cleanup | Rolled back newly created destinations after failed recursive copies and added a broken-symlink partial-tree regression; CURRENT_CHUNK remains 7.1 |

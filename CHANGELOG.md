@@ -1,5 +1,10 @@
 # Changelog
 
+## 2026-09: Keep tiny desktop frames above the taskbar
+
+- Window clamping now lets very small logical desktops override the normal minimum frame height, so visible frames do not extend below the taskbar.
+- Added coordinate coverage for narrow and undersized desktop geometry.
+
 ## 2026-09: Refresh Browsers after nested creation
 
 - Open Filesystem Browser windows now refresh ancestor listings when a file or folder creation also creates missing parent directories.

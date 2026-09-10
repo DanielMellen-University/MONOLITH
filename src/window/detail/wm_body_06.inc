@@ -254,7 +254,7 @@ void WindowManager::clampSingleWindow(Window& w) {
 
     const SDL_Rect usable = getUsableDesktopRect();
     const int desktopBottom = usable.y + usable.h;
-    const int usableHeight = std::max(titleH, usable.h);
+    const int usableHeight = std::max(0, usable.h);
 
     // Vertical - title bar fully visible above the taskbar
     if (r.y < 0) r.y = 0;
