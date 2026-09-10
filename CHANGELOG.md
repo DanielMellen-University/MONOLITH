@@ -1,5 +1,10 @@
 # Changelog
 
+## 2026-09: Refresh Browsers after nested creation
+
+- Open Filesystem Browser windows now refresh ancestor listings when a file or folder creation also creates missing parent directories.
+- Added a regression covering a nested file save that previously left its new parent folder invisible.
+
 ## 2026-09: Document Drawing file recovery
 
 - Documented how Drawing handles an external overwrite of its bound `.modr` file without silently replacing the in-memory canvas.

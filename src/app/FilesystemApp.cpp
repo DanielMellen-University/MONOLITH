@@ -75,7 +75,13 @@ void FilesystemApp::onVirtualPathCreated(const std::string& path) {
 
     const std::string created = m_fs->normalize(path);
     const std::string current = m_fs->normalize(m_currentPath);
-    if (parentVirtualPath(created) != current) return;
+    // File-backed apps and recursive directory creation report the final path.
+    // Refresh ancestor listings too so a newly created parent becomes visible
+    // without requiring the user to press Refresh.
+    if (parentVirtualPath(created) != current
+        && !m_fs->isSameOrDescendant(current, created)) {
+        return;
+    }
 
     refreshEntries();
     setStatus("Listing updated");

@@ -95,6 +95,15 @@ int main() {
           "remove the external creation test entry");
     browser.onVirtualPathRemoved("/home/monolith/external-create.txt");
 
+    check(fs.writeFile("/home/monolith/nested-created/deep.txt", "deep"),
+          "create a file with a new parent directory outside the browser");
+    browser.onVirtualPathCreated("/home/monolith/nested-created/deep.txt");
+    check(browser.selectEntryNamed("nested-created", true),
+          "ancestor browser refresh reveals a newly created parent directory");
+    check(fs.removeRecursive("/home/monolith/nested-created"),
+          "remove the nested creation test tree");
+    browser.onVirtualPathRemoved("/home/monolith/nested-created");
+
     check(fs.writeFile("/home/monolith/a.txt", "updated"),
           "change a direct child outside the browser");
     browser.onVirtualPathChanged("/home/monolith/a.txt");

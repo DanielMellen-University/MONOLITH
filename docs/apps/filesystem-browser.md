@@ -141,7 +141,7 @@ Right-clicking an already selected row keeps the current multi-selection, so con
 - Successful cut + paste moves notify open Text Editor and Drawing windows, so bound paths follow files and directories into their new location.
 - A browser currently viewing a moved directory follows it and refreshes the listing at the new path.
 - External renames, moves, and deletions of a file or direct child folder refresh the folder currently being viewed, so rows do not remain after their backing entries change.
-- External creations from Terminal, Text Editor, Drawing, or another Filesystem Browser refresh the folder currently being viewed, so new direct-child rows appear without pressing Refresh.
+- External creations from Terminal, Text Editor, Drawing, or another Filesystem Browser refresh the folder currently being viewed, including ancestor folders when a write also creates missing parents, so new rows appear without pressing Refresh.
 - External changes to an existing direct child use the same refresh path, keeping listings current after an overwrite.
 - The shared virtual clipboard follows a successful rename or move made by another Filesystem Browser or Terminal, including sources nested under a moved directory.
 - Paste skips items whose names already exist in the destination, same-folder sources, and folders pasted into themselves (`isSameOrDescendant`).
