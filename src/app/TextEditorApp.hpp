@@ -25,6 +25,7 @@ public:
     void onResize(int clientWidth, int clientHeight) override;
     void onBoundFileMoved(const std::string& oldPath,
                           const std::string& newPath) override;
+    void onVirtualPathChanged(const std::string& changedPath) override;
     void onBoundFileRemoved(const std::string& removedPath) override;
     bool allowClose() override;
 
@@ -146,6 +147,7 @@ private:
 
     std::string m_filePath;   // virtual path in Monolith FS (if set)
     bool m_dirty = false;
+    bool m_suppressChangedNotification = false;
     std::string m_statusMessage;  // transient status-bar feedback (save/open errors, etc.)
     DiscardKind m_discardKind = DiscardKind::None;
     std::string m_discardPath;

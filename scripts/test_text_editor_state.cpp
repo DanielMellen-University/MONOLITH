@@ -21,6 +21,7 @@ struct TestController final : monolith::app::IWindowController {
     std::string blockedPath;
     std::string focusedPath;
     std::string boundPath;
+    monolith::app::TextEditorApp* editor = nullptr;
 
     void close() override {}
     void setTitle(const std::string&) override {}
@@ -32,6 +33,10 @@ struct TestController final : monolith::app::IWindowController {
 
     void bindEditorFile(const std::string& path) override {
         boundPath = path;
+    }
+
+    void notifyVirtualPathChanged(const std::string& path) override {
+        if (editor) editor->onVirtualPathChanged(path);
     }
 };
 
@@ -119,6 +124,29 @@ int main() {
     check(editor.m_filePath == "/new.txt", "successful Save As updates the file path");
     check(fs.readFile("/new.txt") == "original", "successful Save As writes the document");
     check(controller.boundPath == "/new.txt", "successful Save As updates the shell binding");
+
+    TestEditor externalEditor(nullptr, &fs, "/new.txt");
+    TestController externalController;
+    externalEditor.setController(&externalController);
+    check(fs.writeFile("/new.txt", "outside change"),
+          "overwrite the editor file outside the editor");
+    externalEditor.onVirtualPathChanged("/new.txt");
+    check(externalEditor.m_lines == std::vector<std::string>{"original"}
+              && externalEditor.m_statusMessage.find("changed externally") != std::string::npos,
+          "external overwrite warns without replacing the editor buffer");
+
+    TestEditor selfSaveEditor(nullptr, &fs, "/new.txt");
+    TestController selfSaveController;
+    selfSaveEditor.setController(&selfSaveController);
+    selfSaveController.editor = &selfSaveEditor;
+    selfSaveEditor.m_lines = {"editor save"};
+    selfSaveEditor.m_dirty = true;
+    check(selfSaveEditor.saveCurrentFile(), "editor save succeeds after an external overwrite");
+    check(selfSaveEditor.m_statusMessage == "Saved: new.txt"
+              && !selfSaveEditor.m_suppressChangedNotification,
+          "the editor ignores its own synchronous change notification");
+    check(fs.readFile("/new.txt") == "editor save",
+          "editor save deliberately replaces the external file content");
 
     check(fs.createDirectory("/blocked.txt"), "create blocked direct-save target");
     editor.m_filePath = "/blocked.txt";

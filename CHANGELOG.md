@@ -1,5 +1,10 @@
 # Changelog
 
+## 2026-09: Warn about external Text Editor overwrites
+
+- Text Editor now reports when another app changes its bound file without replacing the in-memory buffer.
+- Saving afterward remains an explicit overwrite, while Open can load the external version; added state coverage for both paths.
+
 ## 2026-09: Remove directories containing hidden symlinks
 
 - Recursive filesystem removal now unlinks symlink entries that safe virtual listings hide because their targets resolve outside the host root.

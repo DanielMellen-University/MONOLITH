@@ -356,15 +356,19 @@ bool TextEditorApp::saveCurrentFile() {
     const bool wasExisting = m_fs->exists(m_filePath);
     bool ok = m_fs->writeFile(m_filePath, oss.str());
     if (ok) {
+        m_dirty = false;
+        clearDiscardArm();
         if (!wasExisting) {
             if (auto* ctrl = getController()) {
                 ctrl->notifyVirtualPathCreated(m_filePath);
             }
         } else if (auto* ctrl = getController()) {
+            // The shell broadcasts synchronously, including back to this
+            // editor. Do not report our own save as an external overwrite.
+            m_suppressChangedNotification = true;
             ctrl->notifyVirtualPathChanged(m_filePath);
+            m_suppressChangedNotification = false;
         }
-        m_dirty = false;
-        clearDiscardArm();
         setStatus("Saved: " + getDisplayName());
     } else {
         clearDiscardArm();
@@ -450,6 +454,14 @@ void TextEditorApp::onBoundFileMoved(const std::string& oldPath,
     clearDiscardArm();
     updateTitleForPath();
     setStatus("File moved: " + normalizedNewPath);
+}
+
+void TextEditorApp::onVirtualPathChanged(const std::string& changedPath) {
+    if (m_suppressChangedNotification || !m_fs || m_filePath.empty()) return;
+
+    if (m_fs->normalize(changedPath) != m_fs->normalize(m_filePath)) return;
+
+    setStatus("File changed externally; buffer unchanged. Save to overwrite it.");
 }
 
 void TextEditorApp::onBoundFileRemoved(const std::string& removedPath) {
