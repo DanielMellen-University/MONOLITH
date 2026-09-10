@@ -1,5 +1,11 @@
 # Changelog
 
+## 2026-09: Keep virtual filesystem paths inside the root
+
+- Host-path conversion now rejects symlink traversal that resolves outside Monolith's configured filesystem root.
+- Directory listings omit out-of-root symlinks, preventing normal file operations from following them through the virtual filesystem.
+- Added a regression covering outside-target reads, writes, path conversion, and listings.
+
 ## 2026-09: Complete Drawing app reference
 
 - Expanded the Drawing guide with the app workflow, prompt behavior, `.modr` format, file lifecycle, keyboard and mouse reference, troubleshooting, and maintenance invariants.

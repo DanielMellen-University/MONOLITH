@@ -39,6 +39,44 @@ int main() {
     Filesystem fs(hostRoot.string());
     check(fs.initialize(), "filesystem initialize");
 
+    const stdfs::path outsideRoot = stdfs::temp_directory_path()
+        / ("monolith-fs-outside-" + std::to_string(getpid()));
+    stdfs::remove_all(outsideRoot, ec);
+    stdfs::create_directories(outsideRoot, ec);
+    check(!ec, "create outside symlink target");
+    {
+        std::ofstream outsideFile(outsideRoot / "secret.txt");
+        outsideFile << "outside";
+    }
+    const stdfs::path escapeLink = hostRoot / "escape";
+    stdfs::create_directory_symlink(outsideRoot, escapeLink, ec);
+    check(!ec, "create outside symlink");
+    if (!ec) {
+        check(fs.toHostPath("/escape/secret.txt").empty(),
+              "host path rejects symlink target outside root");
+        check(!fs.exists("/escape") && !fs.isDirectory("/escape"),
+              "outside symlink is not visible as a virtual entry");
+        std::string escapedContent;
+        check(!fs.readFile("/escape/secret.txt", escapedContent),
+              "read rejects outside symlink target");
+        check(!fs.writeFile("/escape/new.txt", "blocked"),
+              "write rejects outside symlink target");
+        const auto rootEntries = fs.list("/");
+        check(std::find(rootEntries.begin(), rootEntries.end(), "escape")
+                  == rootEntries.end(),
+              "directory listing hides outside symlink");
+        std::ifstream outsideCheck(outsideRoot / "secret.txt");
+        std::string outsideContent;
+        std::getline(outsideCheck, outsideContent);
+        check(outsideContent == "outside",
+              "outside file remains untouched");
+        const auto typedRootEntries = fs.listEntries("/");
+        check(std::find_if(typedRootEntries.begin(), typedRootEntries.end(), [](const auto& entry) {
+                  return entry.name == "escape";
+              }) == typedRootEntries.end(),
+              "typed directory listing hides outside symlink");
+    }
+
     const stdfs::path fileRoot = stdfs::temp_directory_path()
         / ("monolith-fs-file-root-" + std::to_string(getpid()));
     stdfs::remove_all(fileRoot, ec);
@@ -154,6 +192,7 @@ int main() {
           "entryNameMatches rejects non-matching name");
 
     stdfs::remove_all(hostRoot, ec);
+    stdfs::remove_all(outsideRoot, ec);
 
     if (failures == 0) {
         std::cout << "ALL FS ROADMAP TESTS PASSED\n";

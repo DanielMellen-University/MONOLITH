@@ -153,10 +153,14 @@ public:
     /**
      * Converts a virtual path to a real path on the host disk under hostRoot().
      * Useful for host APIs (e.g. SDL_LoadBMP) that need a filesystem path.
+     * Returns an empty string when an existing symlink would resolve outside
+     * the configured host root.
      */
     std::string toHostPath(const std::string& virtualPath) const;
 
 private:
+    bool isWithinHostRoot(const std::string& hostPath) const;
+
     std::string m_hostRoot;
 };
 

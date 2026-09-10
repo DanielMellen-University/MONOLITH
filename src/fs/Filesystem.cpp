@@ -53,13 +53,38 @@ std::string Filesystem::hostRoot() const {
     return m_hostRoot;
 }
 
+bool Filesystem::isWithinHostRoot(const std::string& hostPath) const {
+    try {
+        std::error_code ec;
+        const stdfs::path root = stdfs::weakly_canonical(stdfs::path(m_hostRoot), ec);
+        if (ec) return false;
+
+        ec.clear();
+        const stdfs::path resolved = stdfs::weakly_canonical(stdfs::path(hostPath), ec);
+        if (ec) return false;
+
+        auto rootPart = root.begin();
+        auto resolvedPart = resolved.begin();
+        for (; rootPart != root.end(); ++rootPart, ++resolvedPart) {
+            if (resolvedPart == resolved.end() || *rootPart != *resolvedPart) {
+                return false;
+            }
+        }
+        return true;
+    } catch (...) {
+        return false;
+    }
+}
+
 std::string Filesystem::toHostPath(const std::string& virtualPath) const {
     std::string normalized = normalize(virtualPath);
     // Remove leading slash so it becomes relative to root
     if (!normalized.empty() && normalized[0] == '/') {
         normalized = normalized.substr(1);
     }
-    return (stdfs::path(m_hostRoot) / normalized).string();
+    const std::string hostPath = (stdfs::path(m_hostRoot) / normalized).string();
+    if (!isWithinHostRoot(hostPath)) return {};
+    return hostPath;
 }
 
 std::string Filesystem::normalize(const std::string& path) const {
@@ -113,7 +138,9 @@ bool Filesystem::isDirectory(const std::string& virtualPath) const {
 
 bool Filesystem::createDirectory(const std::string& virtualPath) {
     try {
-        return stdfs::create_directories(toHostPath(virtualPath));
+        const std::string hostPath = toHostPath(virtualPath);
+        if (hostPath.empty()) return false;
+        return stdfs::create_directories(hostPath);
     } catch (const std::exception& e) {
         std::cerr << "createDirectory failed: " << e.what() << std::endl;
         return false;
@@ -192,8 +219,11 @@ bool Filesystem::rename(const std::string& oldVirtualPath, const std::string& ne
             return false;
         }
 
-        stdfs::path oldHost = toHostPath(oldVirtualPath);
-        stdfs::path newHost = toHostPath(newVirtualPath);
+        const std::string oldHostPath = toHostPath(oldVirtualPath);
+        const std::string newHostPath = toHostPath(newVirtualPath);
+        if (oldHostPath.empty() || newHostPath.empty()) return false;
+        stdfs::path oldHost(oldHostPath);
+        stdfs::path newHost(newHostPath);
 
         // Prevent overwriting existing files/directories
         if (stdfs::exists(newHost)) {
@@ -306,7 +336,9 @@ std::vector<Filesystem::DirEntry> Filesystem::filterEntries(const std::vector<Di
 
 bool Filesystem::writeFile(const std::string& virtualPath, const std::string& content) {
     try {
-        stdfs::path hostPath = toHostPath(virtualPath);
+        const std::string hostPathString = toHostPath(virtualPath);
+        if (hostPathString.empty()) return false;
+        stdfs::path hostPath(hostPathString);
         stdfs::create_directories(hostPath.parent_path());
 
         std::ofstream file(hostPath, std::ios::binary | std::ios::trunc);
@@ -368,6 +400,7 @@ std::vector<std::string> Filesystem::list(const std::string& virtualPath) const 
         if (!stdfs::is_directory(hostPath)) return entries;
 
         for (const auto& entry : stdfs::directory_iterator(hostPath)) {
+            if (!isWithinHostRoot(entry.path().string())) continue;
             entries.push_back(entry.path().filename().string());
         }
     } catch (...) {
@@ -385,6 +418,7 @@ std::vector<Filesystem::DirEntry> Filesystem::listEntries(const std::string& vir
         if (!stdfs::is_directory(hostPath)) return {};
 
         for (const auto& entry : stdfs::directory_iterator(hostPath)) {
+            if (!isWithinHostRoot(entry.path().string())) continue;
             DirEntry de;
             de.name = entry.path().filename().string();
             de.isDirectory = entry.is_directory();

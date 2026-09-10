@@ -89,6 +89,7 @@ Remote: SSH `git@github.com:DanielMellen-University/MONOLITH.git`
 
 ### Session log
 
+| 2026-09-10 | cleanup | Kept virtual filesystem operations inside the configured host root across symlink traversal; added a roadmap regression and updated filesystem docs; CURRENT_CHUNK remains 7.1 |
 | 2026-09-10 | docs | Completed the Drawing app reference with workflow, file format, prompt behavior, troubleshooting, and path-maintenance invariants; documentation-only; CURRENT_CHUNK remains 7.1 |
 | 2026-09-10 | cleanup | Shared UTF-8 caret boundary clamping across Text Editor and Settings path remaps; added focused coverage; CURRENT_CHUNK remains 7.1 |
 | 2026-09-10 | cleanup | Kept Text Editor vertical cursor movement on UTF-8 codepoint boundaries and added state coverage; CURRENT_CHUNK remains 7.1 |
