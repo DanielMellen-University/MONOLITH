@@ -85,6 +85,16 @@ int main() {
           "restore the renamed browser test entry");
     browser.onVirtualPathMoved("/home/monolith/renamed-a.txt", "/home/monolith/a.txt");
 
+    check(fs.writeFile("/home/monolith/external-create.txt", "created"),
+          "create a direct child outside the browser");
+    browser.onVirtualPathCreated("/home/monolith/external-create.txt");
+    check(browser.selectEntryNamed("external-create.txt", false)
+              && browser.m_statusMessage == "Listing updated",
+          "external child creation refreshes the current browser listing");
+    check(fs.remove("/home/monolith/external-create.txt"),
+          "remove the external creation test entry");
+    browser.onVirtualPathRemoved("/home/monolith/external-create.txt");
+
     check(fs.remove("/home/monolith/c.txt"),
           "remove a direct child outside the browser");
     browser.onVirtualPathRemoved("/home/monolith/c.txt");

@@ -16,6 +16,21 @@
 #include <unistd.h>
 #include <vector>
 
+namespace {
+
+class CreationProbeApp final : public monolith::app::App {
+public:
+    void render(SDL_Renderer*, const SDL_Rect&) override {}
+
+    void onVirtualPathCreated(const std::string& path) override {
+        createdPaths.push_back(path);
+    }
+
+    std::vector<std::string> createdPaths;
+};
+
+} // namespace
+
 int main() {
     int failures = 0;
     auto check = [&](bool ok, const char* message) {
@@ -211,6 +226,13 @@ int main() {
             });
         check(detachedEditor != wm.m_windows.end(),
               "deleted editor becomes a tracked untitled window");
+
+        auto probe = std::make_unique<CreationProbeApp>();
+        CreationProbeApp* probePtr = probe.get();
+        wm.createWindow("Probe", 0, 0, 120, 80, std::move(probe));
+        wm.notifyVirtualPathCreated("//docs/./created.txt");
+        check(probePtr->createdPaths == std::vector<std::string>{"/docs/created.txt"},
+              "WindowManager dispatches normalized creation notifications to apps");
     }
 
     TTF_CloseFont(font);

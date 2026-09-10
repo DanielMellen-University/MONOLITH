@@ -237,7 +237,7 @@ void TerminalApp::executeCommand(const std::string& commandLine) {
             std::vector<std::string> operands;
             for (size_t i = 1; i < args.size(); ++i) {
                 const std::string& a = args[i];
-                if (a == "-r" || a == "-rf" || a == "-r") {
+                if (a == "-r" || a == "-rf") {
                     recursive = true;
                 } else {
                     operands.push_back(a);
@@ -276,6 +276,8 @@ void TerminalApp::executeCommand(const std::string& commandLine) {
                         }
                         if (!ok) {
                             addOutput("cp: cannot create '" + dst + "'");
+                        } else if (auto* ctrl = getController()) {
+                            ctrl->notifyVirtualPathCreated(dstPath);
                         }
                         // success is silent
                     }
@@ -349,7 +351,9 @@ void TerminalApp::executeCommand(const std::string& commandLine) {
             if (m_fs->exists(path)) {
                 addOutput("mkdir: cannot create directory '" + operand + "': File exists");
             } else if (m_fs->createDirectory(path)) {
-                // success - silent like real mkdir
+                if (auto* ctrl = getController()) {
+                    ctrl->notifyVirtualPathCreated(path);
+                }
             } else {
                 addOutput("mkdir: cannot create directory '" + operand + "'");
             }
@@ -459,7 +463,9 @@ void TerminalApp::executeCommand(const std::string& commandLine) {
             } else if (m_fs->isFile(path)) {
                 // Already exists: leave content unchanged (do not truncate).
             } else if (m_fs->writeFile(path, "")) {
-                // Created empty file.
+                if (auto* ctrl = getController()) {
+                    ctrl->notifyVirtualPathCreated(path);
+                }
             } else {
                 addOutput("touch: cannot touch '" + operand + "'");
             }

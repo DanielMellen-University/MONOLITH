@@ -353,8 +353,14 @@ bool TextEditorApp::saveCurrentFile() {
     }
     // If last line is non-empty we may want a trailing newline? For now match common behavior: no forced trailing newline unless present.
 
+    const bool wasExisting = m_fs->exists(m_filePath);
     bool ok = m_fs->writeFile(m_filePath, oss.str());
     if (ok) {
+        if (!wasExisting) {
+            if (auto* ctrl = getController()) {
+                ctrl->notifyVirtualPathCreated(m_filePath);
+            }
+        }
         m_dirty = false;
         clearDiscardArm();
         setStatus("Saved: " + getDisplayName());

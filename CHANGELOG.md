@@ -1,5 +1,11 @@
 # Changelog
 
+## 2026-09: Refresh browsers after file creation
+
+- Added a centralized virtual path creation notification alongside move and removal notifications.
+- Terminal `mkdir`, `touch`, and `cp`, Browser creation and copy, and new Text Editor or Drawing saves now refresh open Browser listings when appropriate.
+- Added focused Browser, Terminal, and WindowManager coverage for the lifecycle event.
+
 ## 2026-09: Complete Drawing app guide
 
 - Added a compact workflow reference for creating, editing, duplicating, renaming, and moving `.modr` drawings.

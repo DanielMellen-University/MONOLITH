@@ -70,6 +70,17 @@ void FilesystemApp::onVirtualPathMoved(const std::string& oldPath,
     }
 }
 
+void FilesystemApp::onVirtualPathCreated(const std::string& path) {
+    if (!m_fs) return;
+
+    const std::string created = m_fs->normalize(path);
+    const std::string current = m_fs->normalize(m_currentPath);
+    if (parentVirtualPath(created) != current) return;
+
+    refreshEntries();
+    setStatus("Listing updated");
+}
+
 void FilesystemApp::onVirtualPathRemoved(const std::string& path) {
     if (!m_fs) return;
 
@@ -303,8 +314,13 @@ void FilesystemApp::createNewFolder() {
         candidate = oss.str();
     }
 
-    if (m_fs->createDirectory(fullPathFor(candidate))) {
-        refreshEntries();
+    const std::string path = fullPathFor(candidate);
+    if (m_fs->createDirectory(path)) {
+        if (auto* ctrl = getController()) {
+            ctrl->notifyVirtualPathCreated(path);
+        } else {
+            refreshEntries();
+        }
         selectEntryNamed(candidate, true);
         setStatus("Created folder: " + candidate);
     } else {
@@ -328,8 +344,13 @@ void FilesystemApp::createNewFile() {
         candidate = oss.str();
     }
 
-    if (m_fs->writeFile(fullPathFor(candidate), "")) {
-        refreshEntries();
+    const std::string path = fullPathFor(candidate);
+    if (m_fs->writeFile(path, "")) {
+        if (auto* ctrl = getController()) {
+            ctrl->notifyVirtualPathCreated(path);
+        } else {
+            refreshEntries();
+        }
         if (selectEntryNamed(candidate, false)) {
             startRenameSelected();
             setStatus("Created file: " + candidate);
@@ -570,6 +591,12 @@ void FilesystemApp::pasteFromClipboard() {
                 if (!m_fs->exists(source) && m_fs->exists(destination)) {
                     ctrl->notifyVirtualPathMoved(source, destination);
                 }
+            }
+        }
+    } else if (auto* ctrl = getController()) {
+        for (const auto& [source, destination] : candidateMoves) {
+            if (m_fs->exists(source) && m_fs->exists(destination)) {
+                ctrl->notifyVirtualPathCreated(destination);
             }
         }
     }

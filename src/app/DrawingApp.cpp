@@ -425,6 +425,8 @@ bool DrawingApp::saveToPath(const std::string& virtualPath) {
         path += ".modr";
     }
 
+    const bool wasExisting = m_fs->exists(path);
+
     std::string parent = path;
     const size_t slash = parent.find_last_of('/');
     if (slash != std::string::npos) {
@@ -445,6 +447,12 @@ bool DrawingApp::saveToPath(const std::string& virtualPath) {
         clearDiscardArm();
         setStatus("Save failed: could not write file.");
         return false;
+    }
+
+    if (!wasExisting) {
+        if (auto* ctrl = getController()) {
+            ctrl->notifyVirtualPathCreated(path);
+        }
     }
 
     m_filePath = path;

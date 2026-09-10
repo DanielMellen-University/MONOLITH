@@ -8,11 +8,34 @@
 #include <string>
 #include <unistd.h>
 
+#include "../src/app/App.hpp"
 #include "../src/fs/Filesystem.hpp"
 
 #define private public
 #include "../src/app/TerminalApp.hpp"
 #undef private
+
+namespace {
+
+struct TestController final : monolith::app::IWindowController {
+    std::vector<std::string> createdPaths;
+
+    void close() override {}
+    void setTitle(const std::string&) override {}
+
+    void notifyVirtualPathCreated(const std::string& path) override {
+        createdPaths.push_back(path);
+    }
+};
+
+struct TestTerminal final : monolith::app::TerminalApp {
+    using monolith::app::App::setController;
+
+    TestTerminal(TTF_Font* font, monolith::fs::Filesystem* fs)
+        : TerminalApp(font, fs) {}
+};
+
+} // namespace
 
 int main() {
     int failures = 0;
@@ -44,7 +67,9 @@ int main() {
     check(fs.createDirectory("/home/monolith/quoted dir"),
           "create directory for quoted completion");
 
-    monolith::app::TerminalApp terminal(nullptr, &fs);
+    TestTerminal terminal(nullptr, &fs);
+    TestController controller;
+    terminal.setController(&controller);
     check(terminal.m_commandHistory == std::vector<std::string>{"echo first", "echo second"},
           "CRLF history entries lose their carriage returns");
 
@@ -93,6 +118,19 @@ int main() {
     check(!terminal.m_history.empty()
               && terminal.m_history.back() == "ls: /home/monolith/missing: No such file or directory",
           "ls reports a missing path");
+
+    terminal.executeCommand("mkdir /home/monolith/created-dir");
+    check(!controller.createdPaths.empty()
+              && controller.createdPaths.back() == "/home/monolith/created-dir",
+          "mkdir notifies the shell about a created directory");
+    terminal.executeCommand("touch /home/monolith/created.txt");
+    check(!controller.createdPaths.empty()
+              && controller.createdPaths.back() == "/home/monolith/created.txt",
+          "touch notifies the shell about a created file");
+    terminal.executeCommand("cp /home/monolith/note.txt /home/monolith/copied.txt");
+    check(!controller.createdPaths.empty()
+              && controller.createdPaths.back() == "/home/monolith/copied.txt",
+          "cp notifies the shell about a copied file");
 
     terminal.m_history.clear();
     terminal.executeCommand("cat /home/monolith/line-endings.txt");

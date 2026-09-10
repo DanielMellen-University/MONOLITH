@@ -188,6 +188,19 @@ void WindowManager::notifyVirtualPathMoved(const std::string& oldPath,
     }
 }
 
+void WindowManager::notifyVirtualPathCreated(const std::string& virtualPath) {
+    if (!m_fs) return;
+
+    const std::string created = m_fs->normalize(virtualPath);
+    if (created.empty() || created == "/") return;
+
+    for (const auto& windowPtr : m_windows) {
+        if (windowPtr && windowPtr->app) {
+            windowPtr->app->onVirtualPathCreated(created);
+        }
+    }
+}
+
 void WindowManager::notifyVirtualPathRemoved(const std::string& virtualPath) {
     if (!m_fs) return;
 
@@ -347,6 +360,12 @@ struct WindowController : public monolith::app::IWindowController {
                                 const std::string& newPath) override {
         if (wm) {
             wm->notifyVirtualPathMoved(oldPath, newPath);
+        }
+    }
+
+    void notifyVirtualPathCreated(const std::string& virtualPath) override {
+        if (wm) {
+            wm->notifyVirtualPathCreated(virtualPath);
         }
     }
 
