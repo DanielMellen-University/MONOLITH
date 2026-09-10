@@ -1,5 +1,10 @@
 # Changelog
 
+## 2026-09: Keep Text Editor shortcuts discoverable
+
+- Text Editor status messages no longer hide the footer keyboard hints after open, save, clipboard, or other feedback actions.
+- The normal footer now continues to advertise `Ctrl+F` find, `Ctrl+H` replace, and the surrounding editing shortcuts.
+
 ## 2026-09: Clarify Drawing prompt completion
 
 - Updated the Drawing guide to distinguish Save completion, which accepts existing entries, from Open completion, which filters files to `.modr`.

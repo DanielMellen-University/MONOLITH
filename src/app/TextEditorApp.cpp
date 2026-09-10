@@ -1734,11 +1734,12 @@ void TextEditorApp::render(SDL_Renderer* renderer, const SDL_Rect& contentRect) 
             if (m_dirty) status += " *";
             if (!m_statusMessage.empty()) {
                 status += "   |  " + m_statusMessage;
-            } else {
-                status += "   |  Ctrl+S save   Ctrl+C/X/V clipboard   Ctrl+A select all";
-                status += "   |  Ctrl+F find   Ctrl+H replace   Ctrl+G line   Ctrl+Z undo";
-                status += "   |  Shift+wheel horizontal";
             }
+            // Keep the editor's discovery hints visible after status feedback
+            // such as Opened, Saved, or Copied messages.
+            status += "   |  Ctrl+S save   Ctrl+C/X/V clipboard   Ctrl+A select all";
+            status += "   |  Ctrl+F find   Ctrl+H replace   Ctrl+G line   Ctrl+Z undo";
+            status += "   |  Shift+wheel horizontal";
         }
 
         SDL_Surface* surf = TTF_RenderUTF8_Blended(m_font, status.c_str(), {150, 155, 160, 255});
