@@ -1,5 +1,9 @@
 # Changelog
 
+## 2026-09: Publish Drawing app guide
+
+- Added a navigable user guide for the Drawing app, covering canvas tools, keyboard workflows, colors, file operations, `.modr` storage, unsaved changes, and troubleshooting.
+
 ## 2026-09: Preserve prompt carets across path moves
 
 - Text Editor, Drawing, and Settings now keep an active path prompt's caret at the same suffix position when a bound file or directory moves.

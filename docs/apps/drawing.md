@@ -4,6 +4,18 @@ The Drawing app is Monolith's native sketching tool. It provides a pixel canvas,
 
 Drawing files use the `.modr` extension (Monolith Drawing Raster).
 
+## Guide Map
+
+- [Quick Start](#quick-start)
+- [Keyboard-First Reference](#keyboard-first-reference)
+- [Toolbar](#toolbar)
+- [Colors](#colors)
+- [Saving](#saving)
+- [Opening](#opening)
+- [Undo And Redo](#undo-and-redo)
+- [File Format](#file-format)
+- [Troubleshooting](#troubleshooting)
+
 ## Read This First
 
 Drawing is a pixel editor, not a layer or vector editor. The canvas is edited in memory and is not written to the internal filesystem until **Save** succeeds.

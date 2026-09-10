@@ -89,6 +89,7 @@ Remote: SSH `git@github.com:DanielMellen-University/MONOLITH.git`
 
 ### Session log
 
+| 2026-09-10 | docs | Published a navigable Drawing app guide covering the complete user workflow, file format, and troubleshooting; documentation-only; CURRENT_CHUNK remains 7.1 |
 | 2026-09-10 | cleanup | Preserved UTF-8-safe carets when Text Editor, Drawing, or Settings path prompts follow moved prefixes; added cross-app state coverage and updated app guides/changelog; CURRENT_CHUNK remains 7.1 |
 | 2026-09-10 | cleanup | Synchronized app resize notifications with final interactive window clamping at desktop edges; added coordinate coverage and updated architecture/changelog; CURRENT_CHUNK remains 7.1 |
 | 2026-09-10 | cleanup | Refreshed Filesystem Browser listings after external direct-child renames, moves, and deletions while preserving current-folder path following; added state coverage and updated the Browser guide/changelog; CURRENT_CHUNK remains 7.1 |
