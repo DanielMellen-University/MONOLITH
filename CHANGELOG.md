@@ -1,5 +1,10 @@
 # Changelog
 
+## 2026-09: Complete Drawing app guide
+
+- Added a compact workflow reference for creating, editing, duplicating, renaming, and moving `.modr` drawings.
+- Clarified the difference between saving a sketch and managing its file through the Filesystem Browser or Terminal.
+
 ## 2026-09: Preserve Filesystem Browser range anchors
 
 - Refreshing a Filesystem Browser listing now restores the Shift-selection anchor by entry identity instead of dropping it.

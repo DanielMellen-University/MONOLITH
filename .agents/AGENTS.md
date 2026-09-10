@@ -89,6 +89,7 @@ Remote: SSH `git@github.com:DanielMellen-University/MONOLITH.git`
 
 ### Session log
 
+| 2026-09-10 | docs | Completed the Drawing app workflow guide with create, edit, duplicate, rename, and move recipes; documentation-only; CURRENT_CHUNK remains 7.1 |
 | 2026-09-10 | cleanup | Preserved Filesystem Browser Shift-selection anchors across refreshes and Ctrl-selection changes; added state coverage and updated the Browser guide/changelog; CURRENT_CHUNK remains 7.1 |
 | 2026-09-10 | cleanup | Kept Text Editor keyboard discovery hints visible alongside status feedback so Ctrl+F and related actions remain discoverable; updated the editor guide/changelog; CURRENT_CHUNK remains 7.1 |
 | 2026-09-10 | docs | Clarified Drawing Save versus Open Tab completion candidates and expanded the guide map; documentation-only; CURRENT_CHUNK remains 7.1 |

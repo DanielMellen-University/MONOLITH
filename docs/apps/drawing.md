@@ -7,6 +7,7 @@ Drawing files use the `.modr` extension (Monolith Drawing Raster).
 ## Guide Map
 
 - [Quick Start](#quick-start)
+- [Workflow Recipes](#workflow-recipes)
 - [Keyboard-First Reference](#keyboard-first-reference)
 - [File Lifecycle](#file-lifecycle)
 - [Toolbar](#toolbar)
@@ -100,6 +101,32 @@ Drawing has no separate file-picker or modal prompt. Save, Open, and custom RGB 
 4. Press **Ctrl+S**, choose a path if this is a new sketch, and press Enter.
 
 The canvas is a raster surface. It fills the space between the toolbar and the status bar, and its pixel dimensions follow the Drawing window's client area. Resizing the window preserves the existing pixels from the top-left corner and clears undo/redo history for the new canvas size.
+
+## Workflow Recipes
+
+### Start A New Drawing
+
+1. Open **Drawing** from Start, or press **Ctrl+N** in an existing Drawing window.
+2. Select a swatch, set a custom color with **RGB**, and choose a tool and brush size.
+3. Draw on the canvas. The status bar adds `[modified]` after the first canvas change.
+4. Press **Ctrl+S**, keep the suggested `.modr` path or edit it, then press **Enter**.
+
+### Edit An Existing Drawing
+
+1. Double-click a `.modr` file in Filesystem Browser, or press **Ctrl+O** and enter its internal path.
+2. Use **Pick** to sample an existing pixel when you need to continue with its color.
+3. Use **Ctrl+Z** and **Ctrl+Y** while refining the canvas.
+4. Press **Ctrl+S** to write changes back to the file's current path.
+
+### Make A Variant
+
+1. Copy the original `.modr` file in Filesystem Browser or with Terminal `cp`.
+2. Open the copied path explicitly.
+3. Edit and save the copy. The original remains unchanged and the new Drawing window is bound to the copy.
+
+### Rename Or Move A Drawing
+
+Use Filesystem Browser Rename or Terminal `mv`, keeping the complete `.modr` suffix. The open Drawing window follows the new internal path. Renaming changes the file name only; it does not convert a non-MODR file into a valid drawing.
 
 ## Keyboard-First Reference
 
