@@ -1,5 +1,10 @@
 # Changelog
 
+## 2026-09: Complete Drawing app reference
+
+- Expanded the Drawing guide with the app workflow, prompt behavior, `.modr` format, file lifecycle, keyboard and mouse reference, troubleshooting, and maintenance invariants.
+- Documented that default Save names remain unique for large sketch collections and that moved UTF-8 paths keep prompt carets on character boundaries.
+
 ## 2026-09: Keep Settings path carets UTF-8 safe
 
 - Shared path editing now clamps caret offsets to complete UTF-8 codepoint boundaries after virtual path remaps.

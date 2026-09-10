@@ -451,6 +451,11 @@ The Drawing implementation has three boundaries worth preserving when changing i
 
 All Drawing file paths should be normalized before they are stored in app state or passed to WindowManager. This keeps titles, prompts, session records, and one-window-per-file routing aligned when a path contains redundant separators or `.` and `..` segments.
 
+Two path invariants are especially important:
+
+- New Save prompts scan from `sketch.modr` through increasing numbered names until they find a free path. The generator must not wrap back to an earlier name after a fixed number of candidates.
+- When a bound file or directory moves, the active prompt path is remapped with the file path. Its caret is then clamped to a complete UTF-8 codepoint boundary so editing cannot split a multi-byte character.
+
 Changes that move behavior across those boundaries should update this guide and the matching focused state or raster check. The `.modr` format should remain strict: invalid magic, dimensions outside the supported range, truncated payloads, and trailing bytes must fail without replacing the current canvas.
 
 Verification scripts: see [Development Scripts](../development/scripts.md). The focused Drawing checks are:
