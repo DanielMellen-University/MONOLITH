@@ -454,7 +454,11 @@ bool DrawingApp::saveToPath(const std::string& virtualPath) {
             ctrl->notifyVirtualPathCreated(path);
         }
     } else if (auto* ctrl = getController()) {
+        // The shell broadcasts synchronously, including back to this Drawing
+        // window. Do not report the window's own save as an external change.
+        m_suppressChangedNotification = true;
         ctrl->notifyVirtualPathChanged(path);
+        m_suppressChangedNotification = false;
     }
 
     m_filePath = path;
@@ -558,6 +562,14 @@ void DrawingApp::onBoundFileMoved(const std::string& oldPath,
         ctrl->setTitle("Drawing - " + baseName);
     }
     setStatus("File moved: " + normalizedNewPath);
+}
+
+void DrawingApp::onVirtualPathChanged(const std::string& changedPath) {
+    if (m_suppressChangedNotification || !m_fs || m_filePath.empty()) return;
+
+    if (m_fs->normalize(changedPath) != m_fs->normalize(m_filePath)) return;
+
+    setStatus("File changed externally; canvas unchanged. Save to overwrite it.");
 }
 
 void DrawingApp::onBoundFileRemoved(const std::string& removedPath) {

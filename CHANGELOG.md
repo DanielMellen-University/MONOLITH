@@ -1,5 +1,10 @@
 # Changelog
 
+## 2026-09: Warn about external Drawing overwrites
+
+- Drawing now reports external changes to a bound `.modr` file while preserving the canvas and undo history.
+- Saving remains an explicit overwrite, with focused coverage for external and self-generated change notifications.
+
 ## 2026-09: Warn about external Text Editor overwrites
 
 - Text Editor now reports when another app changes its bound file without replacing the in-memory buffer.

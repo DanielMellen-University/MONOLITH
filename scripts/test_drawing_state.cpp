@@ -17,6 +17,28 @@
 #include "../src/app/DrawingApp.hpp"
 #undef private
 
+namespace {
+
+struct TestController final : monolith::app::IWindowController {
+    monolith::app::DrawingApp* drawing = nullptr;
+
+    void close() override {}
+    void setTitle(const std::string&) override {}
+
+    void notifyVirtualPathChanged(const std::string& path) override {
+        if (drawing) drawing->onVirtualPathChanged(path);
+    }
+};
+
+struct TestDrawing final : monolith::app::DrawingApp {
+    using monolith::app::App::setController;
+
+    TestDrawing(TTF_Font* font, monolith::fs::Filesystem* fs)
+        : DrawingApp(font, fs) {}
+};
+
+} // namespace
+
 int main() {
     int failures = 0;
     auto check = [&](bool ok, const char* message) {
@@ -40,7 +62,7 @@ int main() {
                        monolith::drawing::encodeModr(2, 2, pixels)),
           "write resize drawing");
 
-    monolith::app::DrawingApp drawing(nullptr, &fs);
+    TestDrawing drawing(nullptr, &fs);
     bool occupiedSketchNames = true;
     for (int i = 1; i <= 999; ++i) {
         std::string path = "/home/monolith/drawings/sketch";
@@ -56,6 +78,26 @@ int main() {
     check(!drawing.m_dirty, "initial blank resize stays clean");
     check(drawing.loadFromPath("/drawings/resize.modr"), "load resize drawing");
     check(!drawing.m_dirty, "loaded drawing starts clean");
+
+    TestController controller;
+    drawing.setController(&controller);
+    controller.drawing = &drawing;
+    const std::vector<uint8_t> loadedPixels = drawing.m_pixels;
+    const std::vector<uint8_t> externalPixels(1 * 1 * 4, 255);
+    check(fs.writeFile("/drawings/resize.modr",
+                       monolith::drawing::encodeModr(1, 1, externalPixels)),
+          "overwrite the Drawing file outside the app");
+    drawing.onVirtualPathChanged("/drawings/resize.modr");
+    check(drawing.m_pixels == loadedPixels
+              && drawing.m_canvasWidth == 2
+              && drawing.m_canvasHeight == 2
+              && drawing.m_statusMessage.find("changed externally") != std::string::npos,
+          "external overwrite warns without replacing the Drawing canvas");
+    check(drawing.saveToPath("/drawings/resize.modr"),
+          "Drawing save succeeds after an external overwrite");
+    check(drawing.m_statusMessage == "Saved: /drawings/resize.modr"
+              && !drawing.m_suppressChangedNotification,
+          "Drawing ignores its own synchronous change notification");
 
     drawing.onResize(320, 300);
     check(drawing.m_dirty, "resizing a loaded drawing marks it modified");

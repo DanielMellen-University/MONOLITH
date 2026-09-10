@@ -93,6 +93,7 @@ Remote: SSH `git@github.com:DanielMellen-University/MONOLITH.git`
 | 2026-09-10 | cleanup | Kept window frames above the taskbar on narrow and undersized logical desktops; added coordinate coverage and updated the shell geometry docs; CURRENT_CHUNK remains 7.1 |
 | 2026-09-10 | cleanup | Made recursive filesystem removal unlink hidden outside-root symlinks without following them; added safety coverage and updated filesystem docs; CURRENT_CHUNK remains 7.1 |
 | 2026-09-10 | cleanup | Warned Text Editor about external overwrites while preserving its in-memory buffer; added save-notification coverage and updated editor/architecture docs; CURRENT_CHUNK remains 7.1 |
+| 2026-09-10 | cleanup | Warned Drawing about external `.modr` overwrites while preserving the canvas and undo history; added save-notification coverage and updated the Drawing guide; CURRENT_CHUNK remains 7.1 |
 | 2026-09-10 | docs | Documented Drawing behavior after external `.modr` overwrites and added RGB prompt examples; documentation-only; CURRENT_CHUNK remains 7.1 |
 | 2026-09-10 | cleanup | Added virtual path change notifications for overwrites, refreshing open Browser listings and invalidating the active wallpaper cache; added focused lifecycle coverage; CURRENT_CHUNK remains 7.1 |
 | 2026-09-10 | cleanup | Rolled back newly created destinations after failed recursive copies and added a broken-symlink partial-tree regression; CURRENT_CHUNK remains 7.1 |

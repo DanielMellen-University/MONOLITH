@@ -395,7 +395,7 @@ Drawing has no separate **Save As** command. To make a copy, copy the `.modr` fi
 
 ## External File Changes
 
-Drawing treats the canvas in the active window as the working copy. It does not reload automatically when Terminal, Filesystem Browser, Text Editor, or another filesystem operation writes the same virtual path. This prevents a background file operation from replacing unsaved pixels without warning.
+Drawing treats the canvas in the active window as the working copy. It does not reload automatically when Terminal, Filesystem Browser, Text Editor, or another filesystem operation writes the same virtual path. Instead, the status bar reports the external change while the canvas remains stable, preventing a background file operation from replacing unsaved pixels.
 
 Use the action that matches your intent:
 
@@ -405,7 +405,7 @@ Use the action that matches your intent:
 | You want to inspect the version written by another app | Press **Ctrl+O**, select the same `.modr`, and confirm the second Open action if the canvas is modified. |
 | You want both versions | Copy the file to a new `.modr` path first, then open the copy or save the current canvas to another path. |
 
-An external overwrite does not change the Drawing title, bound path, dirty marker, or undo history. A successful Save still sends the normal filesystem change notification so other open apps can refresh their views.
+An external overwrite does not change the Drawing title, bound path, dirty marker, or undo history. The status bar says `File changed externally; canvas unchanged. Save to overwrite it.` A successful Save still sends the normal filesystem change notification so other open apps can refresh their views.
 
 ## Common File Workflows
 

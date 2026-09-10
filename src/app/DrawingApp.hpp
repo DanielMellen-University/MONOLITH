@@ -26,6 +26,7 @@ public:
     void onResize(int clientWidth, int clientHeight) override;
     void onBoundFileMoved(const std::string& oldPath,
                           const std::string& newPath) override;
+    void onVirtualPathChanged(const std::string& changedPath) override;
     void onBoundFileRemoved(const std::string& removedPath) override;
     bool allowClose() override;
 
@@ -129,6 +130,7 @@ private:
 
     std::string m_filePath;
     bool m_dirty = false;
+    bool m_suppressChangedNotification = false;
     DiscardKind m_discardKind = DiscardKind::None;
     std::string m_discardPath;
 
