@@ -1,5 +1,10 @@
 # Changelog
 
+## 2026-09: Preserve closed quoted Terminal paths
+
+- Terminal Tab completion now leaves a command unchanged when the cursor is immediately after a closed quoted path, preserving its closing quote.
+- Added lexer and filesystem-state regression coverage for this completion boundary.
+
 ## 2026-09: Publish Drawing app guide
 
 - Added a navigable user guide for the Drawing app, covering canvas tools, keyboard workflows, colors, file operations, `.modr` storage, unsaved changes, and troubleshooting.

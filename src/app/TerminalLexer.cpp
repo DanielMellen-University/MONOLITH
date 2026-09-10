@@ -108,6 +108,7 @@ CompletionContext completionContextAt(const std::string& line, std::size_t curso
     bool inToken = false;
     bool firstWord = true;
     char quote = '\0';
+    bool closedQuoteAtCursor = false;
     std::size_t valueStart = 0;
     std::string decoded;
 
@@ -117,6 +118,7 @@ CompletionContext completionContextAt(const std::string& line, std::size_t curso
         if (quote == '\'') {
             if (c == '\'') {
                 quote = '\0';
+                closedQuoteAtCursor = i + 1 == cursor;
             } else {
                 decoded.push_back(c);
             }
@@ -126,6 +128,7 @@ CompletionContext completionContextAt(const std::string& line, std::size_t curso
         if (quote == '"') {
             if (c == '"') {
                 quote = '\0';
+                closedQuoteAtCursor = i + 1 == cursor;
             } else if (c == '\\' && i + 1 < cursor) {
                 decoded.push_back(line[++i]);
             } else {
@@ -135,6 +138,7 @@ CompletionContext completionContextAt(const std::string& line, std::size_t curso
         }
 
         if (c == ' ' || c == '\t') {
+            closedQuoteAtCursor = false;
             if (inToken) {
                 firstWord = false;
                 inToken = false;
@@ -149,6 +153,7 @@ CompletionContext completionContextAt(const std::string& line, std::size_t curso
             valueStart = i;
             decoded.clear();
         }
+        closedQuoteAtCursor = false;
 
         if ((c == '"' || c == '\'') && decoded.empty() && i == valueStart) {
             quote = c;
@@ -165,7 +170,7 @@ CompletionContext completionContextAt(const std::string& line, std::size_t curso
     out.replacementStart = valueStart;
     out.prefix = std::move(decoded);
     out.firstWord = firstWord;
-    out.hasToken = inToken;
+    out.hasToken = inToken && !closedQuoteAtCursor;
     out.quote = quote;
     return out;
 }

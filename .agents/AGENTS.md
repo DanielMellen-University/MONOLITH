@@ -89,6 +89,7 @@ Remote: SSH `git@github.com:DanielMellen-University/MONOLITH.git`
 
 ### Session log
 
+| 2026-09-10 | cleanup | Kept Terminal Tab completion from rewriting already-closed quoted paths; added lexer and filesystem-state coverage and updated the Terminal guide/changelog; CURRENT_CHUNK remains 7.1 |
 | 2026-09-10 | docs | Published a navigable Drawing app guide covering the complete user workflow, file format, and troubleshooting; documentation-only; CURRENT_CHUNK remains 7.1 |
 | 2026-09-10 | cleanup | Preserved UTF-8-safe carets when Text Editor, Drawing, or Settings path prompts follow moved prefixes; added cross-app state coverage and updated app guides/changelog; CURRENT_CHUNK remains 7.1 |
 | 2026-09-10 | cleanup | Synchronized app resize notifications with final interactive window clamping at desktop edges; added coordinate coverage and updated architecture/changelog; CURRENT_CHUNK remains 7.1 |

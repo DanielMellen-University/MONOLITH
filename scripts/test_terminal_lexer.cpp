@@ -91,6 +91,13 @@ int main() {
               "unquoted completion escapes spaces");
     }
 
+    {
+        const std::string line = "open \"/home/monolith/sketch.modr\"";
+        const CompletionContext context = completionContextAt(line, line.size());
+        check(!context.hasToken,
+              "completion after a closed quoted token does not reopen it");
+    }
+
     check(escapeCompletion("my file", '"') == "my file",
           "double-quoted completion keeps spaces literal");
     check(escapeCompletion("a\\b\"c", '"') == "a\\\\b\\\"c",

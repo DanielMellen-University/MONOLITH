@@ -15,6 +15,7 @@ struct CommandTokens {
 /**
  * The token currently being edited for Tab completion.
  * `replacementStart` points after an opening quote when one is active.
+ * A cursor immediately after a closed quoted token has no active token.
  */
 struct CompletionContext {
     std::size_t replacementStart = 0;

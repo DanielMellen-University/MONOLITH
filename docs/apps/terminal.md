@@ -79,6 +79,8 @@ Reverse history search has its own editable query. Left/Right/Home/End move thro
 
 Completion replaces only the token text before the cursor. Opening quotes remain in place; a single file completion at the end of an open double-quoted path adds the closing quote automatically. Directory completions keep the quote open and add a trailing slash so another Tab can continue into that directory. Unquoted completions escape spaces, backslashes, and quote characters so the completed command keeps the same meaning when it runs.
 
+When the cursor is immediately after a closed quoted token, Tab does nothing. The existing closing quote is already part of a complete command, so completion does not rewrite it or reopen the quote.
+
 `cat` prints one scrollback line per file line (truncated after many lines so huge files cannot flood the terminal). CRLF and lone-CR separators are normalized to LF before output. It reports a read failure separately from a valid empty file.
 
 After a successful `mv`, any open Text Editor or Drawing window bound to the source path follows the normalized destination path. Moving a directory also updates bindings for open files beneath it, and any Terminal or Filesystem Browser currently inside that directory follows the new location.

@@ -130,6 +130,12 @@ int main() {
     check(terminal.m_inputBuffer == "cd \"/home/monolith/quoted dir/",
           "quoted directory completion stays open for continued navigation");
 
+    terminal.m_inputBuffer = "cat \"/home/monolith/my  file.txt\"";
+    terminal.m_inputCursorPos = static_cast<int>(terminal.m_inputBuffer.size());
+    terminal.handleTabCompletion();
+    check(terminal.m_inputBuffer == "cat \"/home/monolith/my  file.txt\"",
+          "completion after a closed quoted file leaves the command unchanged");
+
     check(fs.createDirectory("/home/monolith/work/nested"),
           "create terminal cwd move source");
     terminal.m_cwd = "/home/monolith/work/nested";
