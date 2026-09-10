@@ -47,7 +47,7 @@ private:
 
     static constexpr int kHudHeight = 56;
     static constexpr int kFooterHeight = 24;
-    static constexpr int kMinCellPx = 8;
+    static constexpr int kMinCellPx = 1;
 
     static const DifficultySpec& specFor(Difficulty d);
     void newGame(Difficulty d);

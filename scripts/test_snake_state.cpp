@@ -30,6 +30,13 @@ int main() {
     };
 
     SnakeApp game(nullptr);
+    const SDL_Rect tinyContent{0, 0, 120, 80};
+    game.layoutBoard(tinyContent);
+    check(game.m_boardX >= tinyContent.x
+              && game.m_boardY >= tinyContent.y
+              && game.m_boardX + game.m_boardPxW <= tinyContent.x + tinyContent.w
+              && game.m_boardY + game.m_boardPxH <= tinyContent.y + tinyContent.h,
+          "Snake keeps the complete board inside a tiny client area");
     const auto tailTurnBody = [] {
         return std::deque<std::pair<int, int>>{
             {2, 1}, // head

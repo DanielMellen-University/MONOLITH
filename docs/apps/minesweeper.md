@@ -55,7 +55,7 @@ Per-difficulty best times are stored on the host at `~/.monolith/minesweeper_bes
 - The HUD status line clips before the face button, and the footer clips at the window edge, so narrow windows do not cover controls with text
 - Win / lose messages are a **centered vertical stack** on the board (title, time/best or restart hint, optional **NEW BEST!**)
 
-The board letterboxes inside the window. Expert on a small window uses small cells; maximize for comfort.
+The board letterboxes inside the window. Expert on a small window uses compressed cells so the full board remains inside the client area; maximize for comfort. Tiny cells prioritize keeping the board and footer contained over drawing number glyphs that would not fit.
 
 ## Current Limitations
 

@@ -1,5 +1,10 @@
 # Changelog
 
+## 2026-09: Keep game boards inside small windows
+
+- Snake and Minesweeper now fit their complete boards inside narrow or short client areas instead of letting the board cover the HUD or footer.
+- Tiny-cell rendering avoids drawing glyphs and shapes that cannot fit, with geometry coverage for small Snake and Expert Minesweeper layouts.
+
 ## 2026-09: Warn about external Drawing overwrites
 
 - Drawing now reports external changes to a bound `.modr` file while preserving the canvas and undo history.

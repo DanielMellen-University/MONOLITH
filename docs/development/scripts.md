@@ -42,13 +42,13 @@ Headless Pong state test:
 g++ -std=c++23 scripts/test_pong_state.cpp src/app/PongLogic.cpp -o build/test_pong_state && ./build/test_pong_state
 ```
 
-Headless Snake state test for tail movement and growth collisions:
+Headless Snake state and tiny-client layout test for tail movement, growth collisions, and keeping the board inside its content area:
 
 ```bash
 g++ -std=c++23 scripts/test_snake_state.cpp src/app/SnakeApp.cpp $(pkg-config --cflags --libs sdl2 SDL2_ttf) -o build/test_snake_state && ./build/test_snake_state
 ```
 
-Headless Minesweeper state test for precise focus pause/resume timing:
+Headless Minesweeper state and tiny-client layout test for precise focus pause/resume timing and keeping the Expert board inside its content area:
 
 ```bash
 g++ -std=c++23 scripts/test_minesweeper_state.cpp src/app/MinesweeperApp.cpp $(pkg-config --cflags --libs sdl2 SDL2_ttf) -o build/test_minesweeper_state && ./build/test_minesweeper_state

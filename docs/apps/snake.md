@@ -44,7 +44,7 @@ The best score is saved on the host at `~/.monolith/snake_highscore.txt` and sho
 - Pause / game over / win messages are a **centered vertical stack** on the board (title + detail lines)
 - Brief flash when food is eaten
 
-The board letterboxes inside the window when resized or maximized.
+The board letterboxes inside the window when resized or maximized. If the client area becomes very small, cells compress so the full board remains inside the window instead of covering the HUD.
 
 ## Current Limitations
 

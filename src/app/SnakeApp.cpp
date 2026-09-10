@@ -226,7 +226,7 @@ void SnakeApp::onResize(int clientWidth, int clientHeight) {
 void SnakeApp::layoutBoard(const SDL_Rect& contentRect) {
     const int availW = contentRect.w;
     const int availH = std::max(1, contentRect.h - kHudHeight);
-    m_cellPx = std::max(6, std::min(availW / kGridW, availH / kGridH));
+    m_cellPx = std::max(1, std::min(availW / kGridW, availH / kGridH));
     m_boardPxW = m_cellPx * kGridW;
     m_boardPxH = m_cellPx * kGridH;
     m_boardX = contentRect.x + (availW - m_boardPxW) / 2;
@@ -439,12 +439,14 @@ void SnakeApp::render(SDL_Renderer* renderer, const SDL_Rect& contentRect) {
     // Food (with brief flash after eating via larger highlight)
     {
         const bool flash = SDL_GetTicks() < m_eatFlashUntilMs;
-        const int inset = std::max(1, m_cellPx / (flash ? 5 : 6));
+        const int inset = m_cellPx >= 3
+            ? std::max(1, m_cellPx / (flash ? 5 : 6))
+            : 0;
         SDL_Rect fr{
             m_boardX + m_foodX * m_cellPx + inset,
             m_boardY + m_foodY * m_cellPx + inset,
-            m_cellPx - 2 * inset,
-            m_cellPx - 2 * inset
+            std::max(1, m_cellPx - 2 * inset),
+            std::max(1, m_cellPx - 2 * inset)
         };
         SDL_SetRenderDrawColor(renderer, flash ? 255 : 220, flash ? 120 : 90, flash ? 90 : 70, 255);
         SDL_RenderFillRect(renderer, &fr);
@@ -462,12 +464,12 @@ void SnakeApp::render(SDL_Renderer* renderer, const SDL_Rect& contentRect) {
     for (size_t i = 0; i < m_body.size(); ++i) {
         const auto& seg = m_body[m_body.size() - 1 - i];
         const bool isHead = (i == m_body.size() - 1);
-        const int inset = std::max(1, m_cellPx / 8);
+        const int inset = m_cellPx >= 3 ? std::max(1, m_cellPx / 8) : 0;
         SDL_Rect cr{
             m_boardX + seg.first * m_cellPx + inset,
             m_boardY + seg.second * m_cellPx + inset,
-            m_cellPx - 2 * inset,
-            m_cellPx - 2 * inset
+            std::max(1, m_cellPx - 2 * inset),
+            std::max(1, m_cellPx - 2 * inset)
         };
 
         if (isHead) {

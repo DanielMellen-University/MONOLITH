@@ -26,6 +26,18 @@ int main() {
     };
 
     MinesweeperApp game(nullptr);
+    game.newGame(MinesweeperApp::Difficulty::Expert);
+    game.onResize(120, 120);
+    int boardX = 0;
+    int boardY = 0;
+    int cellPx = 0;
+    int boardW = 0;
+    int boardH = 0;
+    game.clientBoardMetrics(boardX, boardY, cellPx, boardW, boardH);
+    check(cellPx >= 1 && boardX >= 0 && boardY >= MinesweeperApp::kHudHeight
+              && boardX + boardW <= 120
+              && boardY + boardH <= 120 - MinesweeperApp::kFooterHeight,
+          "Minesweeper keeps the complete expert board inside a tiny client area");
     game.m_minesPlaced = true;
     game.m_state = MinesweeperApp::State::Playing;
     game.m_focusPaused = false;

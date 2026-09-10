@@ -675,8 +675,8 @@ void MinesweeperApp::render(SDL_Renderer* renderer, const SDL_Rect& contentRect)
             SDL_Rect cell{
                 m_boardX + x * m_cellPx,
                 m_boardY + y * m_cellPx,
-                m_cellPx - 1,
-                m_cellPx - 1
+                std::max(1, m_cellPx - 1),
+                std::max(1, m_cellPx - 1)
             };
 
             const bool isHitMine = (m_state == State::Lost && x == m_hitX && y == m_hitY);
@@ -695,13 +695,17 @@ void MinesweeperApp::render(SDL_Renderer* renderer, const SDL_Rect& contentRect)
                 SDL_RenderDrawRect(renderer, &cell);
 
                 if (c.mark == Mark::Flag) {
-                    if (wrongFlag) {
-                        drawCenteredText(renderer, "X", cell, {220, 80, 70, 255});
-                    } else {
-                        drawCenteredText(renderer, "!", cell, {220, 80, 70, 255});
+                    if (m_cellPx >= 8) {
+                        if (wrongFlag) {
+                            drawCenteredText(renderer, "X", cell, {220, 80, 70, 255});
+                        } else {
+                            drawCenteredText(renderer, "!", cell, {220, 80, 70, 255});
+                        }
                     }
                 } else if (c.mark == Mark::Question) {
-                    drawCenteredText(renderer, "?", cell, {200, 200, 120, 255});
+                    if (m_cellPx >= 8) {
+                        drawCenteredText(renderer, "?", cell, {200, 200, 120, 255});
+                    }
                 }
             } else {
                 if (isHitMine) {
@@ -713,20 +717,27 @@ void MinesweeperApp::render(SDL_Renderer* renderer, const SDL_Rect& contentRect)
 
                 if (c.mine) {
                     SDL_SetRenderDrawColor(renderer, 20, 20, 24, 255);
-                    const int inset = std::max(2, m_cellPx / 4);
-                    SDL_Rect mine{
-                        cell.x + inset, cell.y + inset,
-                        cell.w - 2 * inset, cell.h - 2 * inset
-                    };
-                    SDL_RenderFillRect(renderer, &mine);
+                    if (m_cellPx >= 4) {
+                        const int inset = std::max(1, m_cellPx / 4);
+                        SDL_Rect mine{
+                            cell.x + inset, cell.y + inset,
+                            std::max(1, cell.w - 2 * inset),
+                            std::max(1, cell.h - 2 * inset)
+                        };
+                        SDL_RenderFillRect(renderer, &mine);
+                    }
                     if (m_state == State::Lost) {
-                        drawCenteredText(renderer, "*", cell,
-                                         isHitMine ? SDL_Color{255, 220, 80, 255}
-                                                   : SDL_Color{200, 70, 70, 255});
+                        if (m_cellPx >= 8) {
+                            drawCenteredText(renderer, "*", cell,
+                                             isHitMine ? SDL_Color{255, 220, 80, 255}
+                                                       : SDL_Color{200, 70, 70, 255});
+                        }
                     }
                 } else if (c.adjacent > 0) {
-                    const char digit[2] = {static_cast<char>('0' + c.adjacent), '\0'};
-                    drawCenteredText(renderer, digit, cell, numberColor(c.adjacent));
+                    if (m_cellPx >= 8) {
+                        const char digit[2] = {static_cast<char>('0' + c.adjacent), '\0'};
+                        drawCenteredText(renderer, digit, cell, numberColor(c.adjacent));
+                    }
                 }
             }
         }
