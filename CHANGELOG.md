@@ -1,5 +1,10 @@
 # Changelog
 
+## 2026-09: Synchronize app sizes after interactive resize clamping
+
+- Window Manager resize notifications now use the final frame after desktop bounds are applied, keeping app canvases and layouts aligned at the desktop edge.
+- Added coordinate coverage for an oversized interactive resize.
+
 ## 2026-09: Refresh Browser listings after external child changes
 
 - Filesystem Browser now refreshes the current directory when another app renames, moves, or deletes a direct child entry.

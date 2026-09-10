@@ -89,6 +89,7 @@ Remote: SSH `git@github.com:DanielMellen-University/MONOLITH.git`
 
 ### Session log
 
+| 2026-09-10 | cleanup | Synchronized app resize notifications with final interactive window clamping at desktop edges; added coordinate coverage and updated architecture/changelog; CURRENT_CHUNK remains 7.1 |
 | 2026-09-10 | cleanup | Refreshed Filesystem Browser listings after external direct-child renames, moves, and deletions while preserving current-folder path following; added state coverage and updated the Browser guide/changelog; CURRENT_CHUNK remains 7.1 |
 | 2026-09-10 | docs | Added a Drawing file-operation decision guide covering Save, copy, rename, move, and valid MODR creation; documentation-only; CURRENT_CHUNK remains 7.1 |
 | 2026-09-10 | cleanup | Completed Terminal double-quoted path completion for files while keeping directory prompts open for continued navigation; added filesystem-state coverage and updated the Terminal guide/changelog; CURRENT_CHUNK remains 7.1 |

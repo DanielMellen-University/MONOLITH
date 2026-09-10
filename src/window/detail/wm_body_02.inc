@@ -127,7 +127,6 @@ void WindowManager::update() {
 
     if (m_resizingWindow && m_mouseDown) {
         applyResize(m_resizingWindow, logicalMouseX, logicalMouseY);
-        clampSingleWindow(*m_resizingWindow);
     }
 
     // Enforce maximized windows fill the full logical area (minus the always-visible taskbar)

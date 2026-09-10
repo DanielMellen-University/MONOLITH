@@ -27,6 +27,7 @@ void WindowManager::applyResize(Window* window, int mouseX, int mouseY) {
     const int minW = Window::MIN_WIDTH;
     const int minH = Window::MIN_HEIGHT + Window::TITLE_BAR_HEIGHT;
 
+    const SDL_Rect before = window->rect;
     SDL_Rect& r = window->rect;
 
     // Compute new dimensions while respecting minimums.
@@ -129,25 +130,10 @@ void WindowManager::applyResize(Window* window, int mouseX, int mouseY) {
     r.w = newW;
     r.h = newH;
 
-    // Additional safety to keep title bar + buttons accessible above the taskbar
-    const int desktopBottom = getUsableDesktopBottom();
-    if (r.y < 0) r.y = 0;
-    if (r.y + Window::TITLE_BAR_HEIGHT > desktopBottom) {
-        r.y = std::max(0, desktopBottom - Window::TITLE_BAR_HEIGHT);
-    }
-    if (r.y + r.h > desktopBottom) {
-        r.h = std::max(minH, desktopBottom - r.y);
-    }
-    if (r.x + r.w < 60) {
-        r.x = 60 - r.w;
-    }
-
-    // Notify the app of the new client size (if any)
-    if (window->app) {
-        const int clientW = r.w;
-        const int clientH = r.h - Window::TITLE_BAR_HEIGHT;
-        window->app->onResize(clientW, clientH > 0 ? clientH : 0);
-    }
+    // Clamp once more after the pointer-derived geometry is applied. This is
+    // the final frame the app will render, so resize notification must follow it.
+    clampSingleWindow(*window);
+    notifyAppResizeIfGeometryChanged(*window, before);
 }
 
 void WindowManager::closeWindow(Window* window) {

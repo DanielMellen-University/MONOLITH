@@ -120,6 +120,26 @@ int main() {
     check(!window->minimized && probePtr->resizeCalls == resizeCallsBeforeRestore + 1,
           "restoring a minimized clamped window notifies the app once");
 
+    wm.setContentScale(1.0f);
+    wm.setLogicalDesktopSize(500, 400);
+    window->rect = {100, 100, 300, 200};
+    const int resizeCallsBeforeEdgeDrag = probePtr->resizeCalls;
+    wm.m_resizingWindow = window;
+    wm.m_resizeDirection = monolith::window::ResizeDirection::BottomRight;
+    wm.m_mouseDown = true;
+    wm.m_mouseX = 1000;
+    wm.m_mouseY = 350;
+    wm.update();
+    check(window->rect.w <= 500 && window->rect.h <= 372
+              && probePtr->resizeCalls == resizeCallsBeforeEdgeDrag + 1
+              && probePtr->lastResizeWidth == window->rect.w
+              && probePtr->lastResizeHeight == window->rect.h
+                  - monolith::window::Window::TITLE_BAR_HEIGHT,
+          "interactive resize notifies the app after final desktop clamping");
+    wm.m_mouseDown = false;
+    wm.m_resizingWindow = nullptr;
+    wm.m_resizeDirection = monolith::window::ResizeDirection::None;
+
     wm.setLogicalDesktopSize(120, 20);
     check(window->rect.y == 0,
           "undersized logical desktops keep the window origin non-negative");
