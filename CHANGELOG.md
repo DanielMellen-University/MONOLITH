@@ -1,5 +1,10 @@
 # Changelog
 
+## 2026-09: Remove directories containing hidden symlinks
+
+- Recursive filesystem removal now unlinks symlink entries that safe virtual listings hide because their targets resolve outside the host root.
+- Added coverage proving the containing directory is removed while the outside target remains intact.
+
 ## 2026-09: Keep tiny desktop frames above the taskbar
 
 - Window clamping now lets very small logical desktops override the normal minimum frame height, so visible frames do not extend below the taskbar.

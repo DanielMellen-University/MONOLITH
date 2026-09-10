@@ -96,7 +96,7 @@ Terminal (`cp -r` / `rm -r`) and the Filesystem Browser (delete, cut/paste) both
 ## Current Limitations
 
 - No permissions, ownership, or metadata layer; symlinks remain host filesystem entries.
-- Symlink targets that resolve outside the host root are rejected and omitted from virtual directory listings. Symlinks that remain inside the root are still host filesystem entries, not a separate metadata layer.
+- Symlink targets that resolve outside the host root are rejected and omitted from virtual directory listings. Recursive removal still unlinks a hidden outside symlink entry itself so its containing directory can be deleted without touching the target. Symlinks that remain inside the root are still host filesystem entries, not a separate metadata layer.
 - Recursive copy rejects a symlink source instead of traversing it. Recursive remove deletes a symlink entry itself and never walks through that link into its target tree.
 - A failed recursive copy does not leave a partial newly created destination tree behind; an existing destination is not rolled back.
 - Rename treats a dangling symlink as an existing destination, so a move cannot silently replace any directory entry that is already present.

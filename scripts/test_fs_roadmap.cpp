@@ -77,6 +77,20 @@ int main() {
               "typed directory listing hides outside symlink");
     }
 
+    check(fs.createDirectory("/outside-link-container"),
+          "create directory containing an outside symlink");
+    const stdfs::path nestedEscapeLink = hostRoot / "outside-link-container/escape";
+    stdfs::create_directory_symlink(outsideRoot, nestedEscapeLink, ec);
+    check(!ec, "create nested outside symlink");
+    if (!ec) {
+        check(fs.removeRecursive("/outside-link-container"),
+              "recursive remove unlinks hidden outside symlinks");
+        check(!fs.exists("/outside-link-container")
+                  && stdfs::is_directory(outsideRoot)
+                  && stdfs::is_regular_file(outsideRoot / "secret.txt"),
+              "removing an outside symlink preserves its target");
+    }
+
     check(fs.createDirectory("/symlink-target"), "create in-root symlink target");
     check(fs.writeFile("/symlink-target/keep.txt", "keep me"),
           "write in-root symlink target file");
