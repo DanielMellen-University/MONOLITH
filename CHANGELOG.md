@@ -1,5 +1,11 @@
 # Changelog
 
+## 2026-09: Preserve Filesystem Browser range anchors
+
+- Refreshing a Filesystem Browser listing now restores the Shift-selection anchor by entry identity instead of dropping it.
+- Removing the current anchor during Ctrl-selection promotes the surviving primary selection to keep range selection usable.
+- Added focused state coverage for extending a range after a refresh.
+
 ## 2026-09: Keep Text Editor shortcuts discoverable
 
 - Text Editor status messages no longer hide the footer keyboard hints after open, save, clipboard, or other feedback actions.

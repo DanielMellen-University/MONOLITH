@@ -138,6 +138,37 @@ int main() {
     check(browser.selectedIndicesSorted().size() == 2,
           "clearing a filter preserves the visible multi-selection");
 
+    check(browser.selectEntryNamed("a.txt", false),
+          "reset primary selection before anchor refresh coverage");
+    browser.selectRange(browser.m_anchorIndex, cIndex);
+    browser.refreshEntries();
+    check(browser.m_anchorIndex >= 0
+              && browser.m_entries[static_cast<size_t>(browser.m_anchorIndex)].name == "a.txt",
+          "refresh preserves the Shift-selection anchor by entry identity");
+    int noteIndex = -1;
+    for (size_t i = 0; i < browser.m_entries.size(); ++i) {
+        if (browser.m_entries[i].name == "note_0.txt") {
+            noteIndex = static_cast<int>(i);
+            break;
+        }
+    }
+    check(noteIndex >= 0, "find a later item for anchor extension");
+    if (noteIndex >= 0) {
+        int aIndex = -1;
+        for (size_t i = 0; i < browser.m_entries.size(); ++i) {
+            if (browser.m_entries[i].name == "a.txt") {
+                aIndex = static_cast<int>(i);
+                break;
+            }
+        }
+        browser.selectRange(browser.m_anchorIndex, noteIndex);
+        check(browser.m_selectedIndex == noteIndex
+                  && aIndex >= 0
+                  && browser.isIndexSelected(aIndex)
+                  && browser.isIndexSelected(noteIndex),
+              "preserved anchor continues to drive a later range selection");
+    }
+
     check(browser.selectEntryNamed("a.txt", false), "select a single entry for transient state reset");
     browser.startRenameSelected();
     check(browser.m_renaming, "rename mode is active before directory change");

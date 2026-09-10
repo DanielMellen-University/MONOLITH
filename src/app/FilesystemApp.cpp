@@ -164,6 +164,14 @@ void FilesystemApp::refreshEntries() {
         primaryIdentity = {entry.name, entry.isDirectory};
     }
 
+    const bool hadAnchor = m_anchorIndex >= 0
+        && m_anchorIndex < static_cast<int>(m_entries.size());
+    SelectionIdentity anchorIdentity;
+    if (hadAnchor) {
+        const auto& entry = m_entries[static_cast<size_t>(m_anchorIndex)];
+        anchorIdentity = {entry.name, entry.isDirectory};
+    }
+
     m_entries.clear();
     if (!m_fs) {
         clearMultiSelection();
@@ -176,9 +184,13 @@ void FilesystemApp::refreshEntries() {
 
     clearMultiSelection();
     int restoredPrimary = -1;
+    int restoredAnchor = -1;
     for (size_t i = 0; i < m_entries.size(); ++i) {
         const auto& entry = m_entries[i];
         const SelectionIdentity identity{entry.name, entry.isDirectory};
+        if (hadAnchor && identity == anchorIdentity) {
+            restoredAnchor = static_cast<int>(i);
+        }
         if (!selectedIdentities.count(identity)) continue;
 
         const int index = static_cast<int>(i);
@@ -197,6 +209,10 @@ void FilesystemApp::refreshEntries() {
     } else {
         m_selectedIndex = -1;
     }
+
+    m_anchorIndex = restoredAnchor >= 0
+        ? restoredAnchor
+        : m_selectedIndex;
 
     clampSelection();
 
@@ -364,6 +380,9 @@ void FilesystemApp::toggleSelection(int index) {
         m_selectedSet.erase(index);
         if (m_selectedIndex == index) {
             m_selectedIndex = m_selectedSet.empty() ? -1 : *m_selectedSet.begin();
+        }
+        if (m_anchorIndex == index) {
+            m_anchorIndex = m_selectedIndex;
         }
     } else {
         m_selectedSet.insert(index);

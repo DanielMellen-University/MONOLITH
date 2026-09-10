@@ -35,7 +35,7 @@ Long paths and status messages stay at the font's native size and clip at their 
 - **Ctrl+A** selects all entries in the current folder.
 - Primary selection is drawn slightly brighter than other selected rows.
 - Delete, Copy, and Cut apply to the whole multi-selection. Rename still requires a single item.
-- Refreshing or filtering keeps every selected entry that is still visible by name and type; if the primary entry disappears, a surviving selected entry becomes primary. If no selected entries remain, selection clears and the list scrolls back inside the available results.
+- Refreshing or filtering keeps every selected entry that is still visible by name and type, along with the Shift-selection anchor when that entry survives. If the primary or anchor entry disappears, a surviving selected entry becomes the fallback anchor. If no selected entries remain, selection clears and the list scrolls back inside the available results.
 
 ### Properties
 
