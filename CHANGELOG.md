@@ -25,6 +25,12 @@
 - When a prompted bound path is deleted, the prompt returns to the nearest valid parent while preserving the document buffer or canvas.
 - Added focused prompt-state coverage for both apps.
 
+## 2026-09: Keep the shared virtual clipboard aligned
+
+- Copy and Cut paths now follow successful renames and moves from another Filesystem Browser or Terminal, including moved parent directories.
+- Cut/paste cleanup now runs before its internal move notification, so a completed paste still clears the cut clipboard normally.
+- Added regression coverage for a pending clipboard source that moves between directories.
+
 ## 2026-09: Keep windows inside narrow logical desktops
 
 - Window clamping now handles desktops narrower than the normal minimum window width without producing a negative left coordinate.

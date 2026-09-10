@@ -73,6 +73,20 @@ int main() {
         wm.notifyVirtualPathRemoved("/archive/moved.bmp");
         check(wm.getWallpaperPath().empty(), "deleted wallpaper path is cleared");
 
+        check(fs.writeFile("/docs/queued.txt", "queued"),
+              "write clipboard move source");
+        wm.setFilesystemClipboard({"/docs/queued.txt"}, true);
+        check(fs.rename("/docs/queued.txt", "/archive/queued.txt"),
+              "move clipboard source");
+        wm.notifyVirtualPathMoved("/docs/queued.txt", "/archive/queued.txt");
+        std::vector<std::string> clipboardPaths;
+        bool clipboardIsCut = false;
+        check(wm.getFilesystemClipboard(clipboardPaths, clipboardIsCut)
+                  && clipboardIsCut
+                  && clipboardPaths == std::vector<std::string>{"/archive/queued.txt"},
+              "shared clipboard follows a moved source");
+        wm.clearFilesystemClipboard();
+
         wm.openPath("/docs/retry.txt");
         check(!wm.focusEditorForFile("/docs/retry.txt"),
               "failed editor open does not reserve a file singleton");

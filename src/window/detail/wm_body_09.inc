@@ -127,6 +127,22 @@ void WindowManager::notifyVirtualPathMoved(const std::string& oldPath,
         }
     }
 
+    std::vector<std::string> remappedClipboardPaths;
+    remappedClipboardPaths.reserve(m_filesystemClipboardPaths.size());
+    bool clipboardChanged = false;
+    for (const auto& path : m_filesystemClipboardPaths) {
+        const std::string next = remap(path);
+        if (next.empty()) {
+            remappedClipboardPaths.push_back(path);
+        } else {
+            remappedClipboardPaths.push_back(next);
+            clipboardChanged = true;
+        }
+    }
+    if (clipboardChanged) {
+        m_filesystemClipboardPaths = std::move(remappedClipboardPaths);
+    }
+
     std::vector<std::pair<Window*, std::string>> editorUpdates;
     std::vector<std::pair<Window*, std::string>> drawingUpdates;
     for (const auto& windowPtr : m_windows) {

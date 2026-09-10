@@ -461,6 +461,7 @@ When unspecified, choose:
 | 2026-09-09 | cleanup | Kept Terminal cwd, Filesystem Browser views, and wallpaper settings aligned across virtual moves; added cross-app path lifecycle coverage; CURRENT_CHUNK remains 7.1 |
 | 2026-09-09 | cleanup | Recovered Editor, Drawing, Terminal, Filesystem Browser, wallpaper, and clipboard state after virtual deletion; fixed file-backed Drawing New titles; added deletion lifecycle coverage; CURRENT_CHUNK remains 7.1 |
 | 2026-09-10 | cleanup | Kept Text Editor and Drawing Save/Open prompts aligned across virtual moves and deletion; added focused prompt-state coverage; CURRENT_CHUNK remains 7.1 |
+| 2026-09-10 | cleanup | Kept shared Copy/Cut clipboard paths aligned across virtual renames and moves; preserved normal cut/paste clearing; added clipboard lifecycle coverage; CURRENT_CHUNK remains 7.1 |
 | 2026-09-09 | docs | Added a focused Drawing file-lifecycle reference covering saves, failures, resizing, and dirty-state confirmation; CURRENT_CHUNK remains 7.1 |
 | 2026-09-09 | cleanup | Blocked Filesystem renames into a source subtree or the virtual root; extended the shared roadmap check; CURRENT_CHUNK remains 7.1 |
 | 2026-09-09 | cleanup | Added Tab completion for Settings wallpaper directories and BMP files; added focused state coverage; CURRENT_CHUNK remains 7.1 |

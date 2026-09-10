@@ -139,6 +139,7 @@ Right-clicking an already selected row keeps the current multi-selection, so con
 - Cut + Paste moves items via `Filesystem::moveItemsInto`; Copy + Paste duplicates them, including directory trees via `copyItemsInto` → `copyRecursive`.
 - Successful cut + paste moves notify open Text Editor and Drawing windows, so bound paths follow files and directories into their new location.
 - A browser currently viewing a moved directory follows it and refreshes the listing at the new path.
+- The shared virtual clipboard follows a successful rename or move made by another Filesystem Browser or Terminal, including sources nested under a moved directory.
 - Paste skips items whose names already exist in the destination, same-folder sources, and folders pasted into themselves (`isSameOrDescendant`).
 - Backspace in rename and filter prompts removes one UTF-8 codepoint at a time.
 - Long names stay at their normal text size and are clipped within the list; while renaming, the visible text follows the caret so edits remain visible at either end of the name.

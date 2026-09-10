@@ -486,13 +486,6 @@ void FilesystemApp::pasteFromClipboard() {
         : m_fs->copyItemsInto(sources, m_currentPath);
 
     if (wasCut) {
-        if (auto* ctrl = getController()) {
-            for (const auto& [source, destination] : candidateMoves) {
-                if (!m_fs->exists(source) && m_fs->exists(destination)) {
-                    ctrl->notifyVirtualPathMoved(source, destination);
-                }
-            }
-        }
         // Keep only sources that still exist. A partial move should leave
         // destination-conflicted items available for retry, not already-moved
         // paths that can never be pasted again.
@@ -507,6 +500,14 @@ void FilesystemApp::pasteFromClipboard() {
             clearClipboard();
         } else if (remainingPaths.size() != clipboardPaths.size()) {
             writeClipboard(remainingPaths, true);
+        }
+
+        if (auto* ctrl = getController()) {
+            for (const auto& [source, destination] : candidateMoves) {
+                if (!m_fs->exists(source) && m_fs->exists(destination)) {
+                    ctrl->notifyVirtualPathMoved(source, destination);
+                }
+            }
         }
     }
 
