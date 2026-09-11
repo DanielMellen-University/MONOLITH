@@ -30,6 +30,5 @@ namespace {
 #include "detail/wm_body_05.inc"
 #include "detail/wm_body_06.inc"
 #include "detail/wm_body_07.inc"
-#include "detail/wm_body_08a.inc"
-#include "detail/wm_body_08b.inc"
+#include "detail/wm_body_08.inc"
 #include "detail/wm_body_09.inc"
