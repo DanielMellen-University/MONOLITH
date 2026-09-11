@@ -1,4 +1,5 @@
 #include "WindowManager.hpp"
+#include "WallpaperImage.hpp"
 #include "SessionFormat.hpp"
 #include "../app/App.hpp"
 #include "../app/FilePath.hpp"

@@ -12,9 +12,24 @@ find_package(SDL2 REQUIRED)
 find_package(PkgConfig REQUIRED)
 pkg_check_modules(SDL2_TTF REQUIRED SDL2_ttf)
 
+# Fetch pinned stb_image.h for PNG/JPEG wallpaper decode.
+set(MONOLITH_STB_IMAGE_AMALGAM "${CMAKE_CURRENT_BINARY_DIR}/generated/stb_image.h")
+set(MONOLITH_STB_IMAGE_SHA256 "594c2fe35d49488b4382dbfaec8f98366defca819d916ac95becf3e75f4200b3")
+add_custom_command(
+    OUTPUT "${MONOLITH_STB_IMAGE_AMALGAM}"
+    COMMAND ${CMAKE_COMMAND} -E make_directory "${CMAKE_CURRENT_BINARY_DIR}/generated"
+    COMMAND python3 "${CMAKE_SOURCE_DIR}/third_party/stb/amalgamate.py"
+            "${MONOLITH_STB_IMAGE_AMALGAM}" "${MONOLITH_STB_IMAGE_SHA256}"
+    DEPENDS "${CMAKE_SOURCE_DIR}/third_party/stb/amalgamate.py"
+    COMMENT "Fetching pinned stb_image.h"
+    VERBATIM
+)
+add_custom_target(monolith_stb_image DEPENDS "${MONOLITH_STB_IMAGE_AMALGAM}")
+
 add_executable(monolith
     src/main.cpp
     src/window/WindowManager.cpp
+    src/window/WallpaperImage.cpp
 
     # App implementations
     src/app/TerminalApp.cpp
@@ -36,7 +51,11 @@ add_executable(monolith
     src/settings/DesktopSettings.cpp
 )
 
-target_include_directories(monolith PRIVATE ${SDL2_TTF_INCLUDE_DIRS})
+target_include_directories(monolith PRIVATE
+    ${SDL2_TTF_INCLUDE_DIRS}
+    ${CMAKE_CURRENT_BINARY_DIR}/generated
+)
+add_dependencies(monolith monolith_stb_image)
 
 target_link_libraries(monolith
     PRIVATE
