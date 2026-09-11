@@ -1,8 +1,7 @@
 /* This path is not compiled directly.
  *
- * Upstream stb_image.h is stored as zlib-compressed base64 fragments
- * (stb_image_b64_XX.txt) and amalgamated into the CMake build directory as
- * generated/stb_image.h (see amalgamate.py).
+ * Upstream stb_image.h is downloaded into the CMake build directory as
+ * generated/stb_image.h (see amalgamate.py and CMakeLists.txt).
  *
  * Source: https://github.com/nothings/stb
  */

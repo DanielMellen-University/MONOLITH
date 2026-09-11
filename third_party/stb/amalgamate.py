@@ -1,27 +1,31 @@
 #!/usr/bin/env python3
-"""Rebuild stb_image.h from zlib-compressed base64 fragments."""
+"""Fetch upstream stb_image.h into the build tree (SHA-256 pinned by CMake)."""
 from __future__ import annotations
 
-import base64
+import hashlib
 import pathlib
 import sys
-import zlib
+import urllib.request
+
+STB_IMAGE_URL = "https://raw.githubusercontent.com/nothings/stb/master/stb_image.h"
 
 
 def main() -> int:
-    if len(sys.argv) != 2:
-        print("usage: amalgamate.py <out.h>", file=sys.stderr)
+    if len(sys.argv) != 3:
+        print("usage: amalgamate.py <out.h> <sha256>", file=sys.stderr)
         return 2
     out = pathlib.Path(sys.argv[1])
-    root = pathlib.Path(__file__).resolve().parent
-    parts = sorted(root.glob("stb_image_b64_*.txt"))
-    if not parts:
-        print("no stb_image_b64_*.txt fragments found", file=sys.stderr)
-        return 1
-    b64 = "".join(part.read_text(encoding="ascii") for part in parts)
-    b64 = "".join(b64.split())
-    data = zlib.decompress(base64.b64decode(b64))
+    expected = sys.argv[2].lower()
     out.parent.mkdir(parents=True, exist_ok=True)
+    with urllib.request.urlopen(STB_IMAGE_URL, timeout=60) as resp:
+        data = resp.read()
+    digest = hashlib.sha256(data).hexdigest()
+    if digest != expected:
+        print(
+            f"stb_image.h sha256 mismatch: got {digest}, expected {expected}",
+            file=sys.stderr,
+        )
+        return 1
     out.write_bytes(data)
     return 0
 
