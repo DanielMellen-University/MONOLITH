@@ -19,4 +19,12 @@ inline bool hasCaseInsensitiveSuffix(const std::string& value,
     return true;
 }
 
+/** True for desktop wallpaper image extensions: .bmp, .png, .jpg, .jpeg. */
+inline bool isWallpaperImagePath(const std::string& path) {
+    return hasCaseInsensitiveSuffix(path, ".bmp")
+        || hasCaseInsensitiveSuffix(path, ".png")
+        || hasCaseInsensitiveSuffix(path, ".jpg")
+        || hasCaseInsensitiveSuffix(path, ".jpeg");
+}
+
 } // namespace monolith::app
