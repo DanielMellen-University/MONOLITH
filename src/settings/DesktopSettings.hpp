@@ -14,9 +14,8 @@ struct RGB {
 class DesktopSettings {
 public:
     static constexpr RGB kDefaultDesktopBackground{25, 25, 30};
-    static constexpr int kDefaultUiFontSize = 14;
-    static constexpr int kMinUiFontSize = 12;
-    static constexpr int kMaxUiFontSize = 18;
+
+    static bool isSupportedUiScalePercent(int percent);
 
     RGB desktopBackground() const { return m_desktopBackground; }
     void setDesktopBackground(RGB color) { m_desktopBackground = color; }
@@ -25,15 +24,15 @@ public:
     bool clock24Hour() const { return m_clock24Hour; }
     void setClock24Hour(bool enabled) { m_clock24Hour = enabled; }
 
+    // Stored as a percentage. The Settings app exposes 90, 100, and 115.
+    int uiScalePercent() const { return m_uiScalePercent; }
+    void setUiScalePercent(int percent) {
+        if (isSupportedUiScalePercent(percent)) m_uiScalePercent = percent;
+    }
+
     // Empty clears wallpaper (solid color only).
     const std::string& wallpaperPath() const { return m_wallpaperPath; }
     void setWallpaperPath(std::string path) { m_wallpaperPath = std::move(path); }
-
-    // Shell UI font size in points (title bars, taskbar, Start menu).
-    int uiFontSize() const { return m_uiFontSize; }
-    void setUiFontSize(int points);
-
-    static int clampUiFontSize(int points);
 
     bool loadFromHostPath(const std::string& hostPath);
     bool saveToHostPath(const std::string& hostPath) const;
@@ -41,8 +40,8 @@ public:
 private:
     RGB m_desktopBackground = kDefaultDesktopBackground;
     bool m_clock24Hour = false;
+    int m_uiScalePercent = 100;
     std::string m_wallpaperPath;
-    int m_uiFontSize = kDefaultUiFontSize;
 };
 
 } // namespace monolith::settings
