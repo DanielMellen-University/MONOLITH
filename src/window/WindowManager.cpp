@@ -1,4 +1,5 @@
 #include "WindowManager.hpp"
+#include "WallpaperImage.hpp"
 #include "SessionFormat.hpp"
 #include "../app/App.hpp"
 #include "../app/FilePath.hpp"
@@ -29,5 +30,8 @@ namespace {
 #include "detail/wm_body_05.inc"
 #include "detail/wm_body_06.inc"
 #include "detail/wm_body_07.inc"
+// Route the single SDL_LoadBMP wallpaper call through WallpaperImage (BMP/PNG/JPEG).
+#define SDL_LoadBMP(path) loadWallpaperSurface(path)
 #include "detail/wm_body_08.inc"
+#undef SDL_LoadBMP
 #include "detail/wm_body_09.inc"

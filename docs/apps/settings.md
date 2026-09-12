@@ -22,14 +22,14 @@ The **APPEARANCE** section at the top lets you change live desktop preferences.
 
 ### Wallpaper image
 
-- Enter a virtual filesystem path to a **BMP** file (for example `/Wallpapers/sample.bmp`) and press **Set**.
+- Enter a virtual filesystem path to a **BMP**, **PNG**, or **JPEG** file (for example `/Wallpapers/sample.png`) and press **Set**.
 - While the path field is focused, Left/Right/Home/End move the caret, typed text is inserted at the caret, Delete removes the next complete UTF-8 character, and Backspace removes the previous one.
-- Press Tab to complete a directory or BMP filename. With several matches, completion extends the shared prefix; the caret must be in the final path component.
+- Press Tab to complete a directory or image filename (`.bmp`/`.png`/`.jpg`/`.jpeg`). With several matches, completion extends the shared prefix; the caret must be in the final path component.
 - Long paths scroll horizontally to keep the caret visible while editing.
 - If a configured wallpaper path moves while the field is focused, the prompt follows the move and preserves the caret's suffix position on a UTF-8 boundary.
 - **Clear** removes the image and returns to solid color only.
 - Empty path means solid color only. Missing or unloadable files fail soft (solid color stays).
-- A sample BMP is seeded at `/Wallpapers/sample.bmp` on first launch (from `assets/wallpapers/sample.bmp`).
+- Sample wallpapers are seeded at `/Wallpapers/sample.bmp` and `/Wallpapers/sample.png` on first launch (from `assets/wallpapers/`).
 - The image is cover-scaled to fill the logical desktop.
 - Renaming or moving the configured wallpaper in Filesystem Browser or Terminal updates the setting and persists the new virtual path. If the wallpaper field is being edited at the same time, its prompt follows the move too.
 - Deleting the configured wallpaper clears the setting and persists solid-color mode. An active wallpaper path prompt is cleared if its file or parent directory is deleted.
@@ -74,7 +74,7 @@ Long information labels, values, and the footer stay at their normal text size. 
 ## Current Limitations
 
 - Desktop background color uses six presets only (no custom RGB picker).
-- Wallpaper images are BMP-only (`SDL_LoadBMP`; no SDL_image / PNG / JPEG yet).
+- Wallpaper images: BMP via `SDL_LoadBMP`; PNG/JPEG via build-time `stb_image` (`WallpaperImage`). No `SDL_image` package.
 - Path entry is typed with Tab completion (no full file picker dialog yet).
 - Session restore and other shell prefs are not controlled from Settings (session is automatic via `~/.monolith/session.txt`).
 - Other preferences (keybindings, default paths, taskbar style) are not exposed yet.

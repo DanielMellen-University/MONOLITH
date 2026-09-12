@@ -12,9 +12,56 @@ find_package(SDL2 REQUIRED)
 find_package(PkgConfig REQUIRED)
 pkg_check_modules(SDL2_TTF REQUIRED SDL2_ttf)
 
+# Fetch pinned stb_image.h for PNG/JPEG wallpaper decode.
+set(MONOLITH_STB_IMAGE_AMALGAM "${CMAKE_CURRENT_BINARY_DIR}/generated/stb_image.h")
+set(MONOLITH_STB_IMAGE_SHA256 "594c2fe35d49488b4382dbfaec8f98366defca819d916ac95becf3e75f4200b3")
+add_custom_command(
+    OUTPUT "${MONOLITH_STB_IMAGE_AMALGAM}"
+    COMMAND ${CMAKE_COMMAND} -E make_directory "${CMAKE_CURRENT_BINARY_DIR}/generated"
+    COMMAND python3 "${CMAKE_SOURCE_DIR}/third_party/stb/amalgamate.py"
+            "${MONOLITH_STB_IMAGE_AMALGAM}" "${MONOLITH_STB_IMAGE_SHA256}"
+    DEPENDS "${CMAKE_SOURCE_DIR}/third_party/stb/amalgamate.py"
+    COMMENT "Fetching pinned stb_image.h"
+    VERBATIM
+)
+add_custom_target(monolith_stb_image DEPENDS "${MONOLITH_STB_IMAGE_AMALGAM}")
+
+# Decompress SettingsApp body includes (MCP-friendly compressed fragments).
+set(MONOLITH_SETTINGS_BODIES_DIR "${CMAKE_CURRENT_BINARY_DIR}/generated/settings")
+file(GLOB MONOLITH_SETTINGS_BODY_Z64
+    "${CMAKE_SOURCE_DIR}/src/app/SettingsApp_body_*.inc.z64")
+add_custom_command(
+    OUTPUT "${MONOLITH_SETTINGS_BODIES_DIR}/SettingsApp_body_00.inc"
+    COMMAND ${CMAKE_COMMAND} -E make_directory "${MONOLITH_SETTINGS_BODIES_DIR}"
+    COMMAND python3 "${CMAKE_SOURCE_DIR}/src/app/decompress_settings_bodies.py"
+            "${MONOLITH_SETTINGS_BODIES_DIR}"
+    DEPENDS ${MONOLITH_SETTINGS_BODY_Z64}
+            "${CMAKE_SOURCE_DIR}/src/app/decompress_settings_bodies.py"
+    COMMENT "Decompressing SettingsApp body includes"
+    VERBATIM
+)
+add_custom_target(monolith_settings_bodies DEPENDS "${MONOLITH_SETTINGS_BODIES_DIR}/SettingsApp_body_00.inc")
+
+# Decompress main.cpp body includes (MCP-friendly compressed fragments).
+set(MONOLITH_MAIN_BODIES_DIR "${CMAKE_CURRENT_BINARY_DIR}/generated/main")
+file(GLOB MONOLITH_MAIN_BODY_Z64
+    "${CMAKE_SOURCE_DIR}/src/main_body_*.inc.z64")
+add_custom_command(
+    OUTPUT "${MONOLITH_MAIN_BODIES_DIR}/main_body_a.inc"
+    COMMAND ${CMAKE_COMMAND} -E make_directory "${MONOLITH_MAIN_BODIES_DIR}"
+    COMMAND python3 "${CMAKE_SOURCE_DIR}/src/decompress_main_bodies.py"
+            "${MONOLITH_MAIN_BODIES_DIR}"
+    DEPENDS ${MONOLITH_MAIN_BODY_Z64}
+            "${CMAKE_SOURCE_DIR}/src/decompress_main_bodies.py"
+    COMMENT "Decompressing main body includes"
+    VERBATIM
+)
+add_custom_target(monolith_main_bodies DEPENDS "${MONOLITH_MAIN_BODIES_DIR}/main_body_a.inc")
+
 add_executable(monolith
     src/main.cpp
     src/window/WindowManager.cpp
+    src/window/WallpaperImage.cpp
 
     # App implementations
     src/app/TerminalApp.cpp
@@ -36,7 +83,14 @@ add_executable(monolith
     src/settings/DesktopSettings.cpp
 )
 
-target_include_directories(monolith PRIVATE ${SDL2_TTF_INCLUDE_DIRS})
+target_include_directories(monolith PRIVATE
+    ${SDL2_TTF_INCLUDE_DIRS}
+    ${CMAKE_SOURCE_DIR}/src
+    ${CMAKE_CURRENT_BINARY_DIR}/generated
+    ${CMAKE_CURRENT_BINARY_DIR}/generated/settings
+    ${CMAKE_CURRENT_BINARY_DIR}/generated/main
+)
+add_dependencies(monolith monolith_stb_image monolith_settings_bodies monolith_main_bodies)
 
 target_link_libraries(monolith
     PRIVATE
