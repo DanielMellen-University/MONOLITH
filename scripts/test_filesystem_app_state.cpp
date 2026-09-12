@@ -260,6 +260,10 @@ int main() {
     check(browser.m_selectedIndex >= 0
               && browser.m_entries[static_cast<size_t>(browser.m_selectedIndex)].name == "a.txt",
           "status-bar clicks do not select a list row");
+    browser.onResize(200, 40);
+    check(browser.getVisibleRowCount({0, 0, 200, 40}) == 0,
+          "tiny browser clients report no visible rows below their chrome");
+    browser.onResize(400, 240);
 
     check(browser.selectEntryNamed("a.txt", false), "select an item before filtered delete");
     browser.requestDeleteSelected();

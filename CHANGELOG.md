@@ -1,5 +1,10 @@
 # Changelog
 
+## 2026-09: Keep tiny Browser clients inside their chrome
+
+- Filesystem Browser now reports zero visible rows when its path, toolbar, and status bands consume the client area.
+- Rendering no longer paints list rows through the status bar in undersized windows.
+
 ## 2026-09: Keep Filesystem Browser status clicks out of the list
 
 - Browser row hit-testing now stops at the scaled status bar, so clicking status feedback cannot select or activate a file.

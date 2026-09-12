@@ -15,7 +15,6 @@ constexpr int kToolbarPadding = 8;
 constexpr int kToolbarGap = 6;
 constexpr int kStatusBarHeight = 22;
 constexpr int kStatusBarPadding = 8;
-constexpr int kMinimumListHeight = 20;
 
 std::string parentVirtualPath(const std::string& normalizedPath) {
     if (normalizedPath.empty() || normalizedPath == "/") return "/";
@@ -899,9 +898,8 @@ int FilesystemApp::getVisibleRowCount(const SDL_Rect& contentRect) const {
     const int reservedTop = getListTop();
     const int reservedBottom = getStatusBarHeight() + kStatusBarPadding;
     int available = contentRect.h - reservedTop - reservedBottom;
-    if (available < kMinimumListHeight) available = kMinimumListHeight;
-
-    return std::max(3, available / rh);
+    if (available <= 0) return 0;
+    return std::max(1, available / rh);
 }
 
 void FilesystemApp::handleMouseButton(const SDL_MouseButtonEvent& e) {
@@ -1521,7 +1519,9 @@ void FilesystemApp::drawList(SDL_Renderer* r, const SDL_Rect& contentRect, int l
     SDL_Color selText      = {230, 235, 245, 255};
 
     int y = listTopY + 2;
-    int visible = getVisibleRowCount(contentRect);
+    const int visible = listHeight > 0
+        ? std::min(getVisibleRowCount(contentRect), listHeight / rowH)
+        : 0;
 
     for (int i = 0; i < visible; ++i) {
         int entryIdx = m_scrollOffset + i;
