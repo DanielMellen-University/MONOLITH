@@ -1,5 +1,10 @@
 # Changelog
 
+## 2026-09: Keep Settings wallpaper actions inside narrow clients
+
+- The wallpaper path field now shrinks to preserve the Set and Clear controls inside narrow Settings windows.
+- Added render-level geometry coverage for the responsive wallpaper row and updated the Settings guide.
+
 ## 2026-09: Keep zero-height clients valid on tiny desktops
 
 - WindowManager now clamps rendered client height to zero when a desktop is shorter than a window title bar.

@@ -76,11 +76,13 @@ int main() {
     check(fs.writeFile("/Wallpapers/notes.txt", "not a wallpaper"),
           "create non-BMP completion distractor");
 
+    check(SDL_Init(SDL_INIT_VIDEO) == 0, "settings state SDL initialize");
     check(TTF_Init() == 0, "settings state SDL_ttf initialize");
     TTF_Font* font = TTF_OpenFont("assets/fonts/DejaVuSans.ttf", 14);
     check(font != nullptr, "settings state loads test font");
     if (!font) {
         TTF_Quit();
+        SDL_Quit();
         std::filesystem::remove_all(hostRoot, ec);
         return 1;
     }
@@ -174,9 +176,28 @@ int main() {
               && tinyFooter.y + tinyFooter.h <= tinyContent.y + tinyContent.h,
           "Settings footer stays inside an undersized client area");
 
+    SDL_Surface* surface = SDL_CreateRGBSurfaceWithFormat(
+        0, 240, 260, 32, SDL_PIXELFORMAT_RGBA32);
+    SDL_Renderer* renderer = surface ? SDL_CreateSoftwareRenderer(surface) : nullptr;
+    check(renderer != nullptr, "settings state creates a software renderer");
+    if (renderer) {
+        settings.render(renderer, {0, 0, 200, 240});
+        auto insideClient = [](const SDL_Rect& rect, int width) {
+            return rect.x >= 0 && rect.y >= 0 && rect.w >= 0 && rect.h >= 0
+                && rect.x + rect.w <= width;
+        };
+        check(insideClient(settings.m_wallpaperFieldRect, 200)
+                  && insideClient(settings.m_wallpaperSetRect, 200)
+                  && insideClient(settings.m_wallpaperClearRect, 200),
+              "Settings wallpaper controls stay inside a narrow client width");
+        SDL_DestroyRenderer(renderer);
+    }
+    if (surface) SDL_FreeSurface(surface);
+
     std::filesystem::remove_all(hostRoot, ec);
     TTF_CloseFont(font);
     TTF_Quit();
+    SDL_Quit();
     if (failures == 0) {
         std::cout << "ALL SETTINGS APP STATE TESTS PASSED\n";
         return 0;

@@ -1,5 +1,7 @@
 # Session log
 
+| 2026-09-12 | fix | Made the Settings wallpaper field yield width to keep Set and Clear inside narrow clients; added render-level geometry coverage and updated the Settings guide. |
+
 | 2026-09-12 | fix | Clamped WindowManager client rendering height at zero on desktops shorter than a title bar; added shared shell coverage and updated architecture notes. |
 
 | 2026-09-12 | fix | Made Minesweeper difficulty controls compress to the available HUD width without overlapping the face button; added narrow and tiny-client coverage and updated the guide. |

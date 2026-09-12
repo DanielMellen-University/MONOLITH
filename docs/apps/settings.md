@@ -46,6 +46,7 @@ The **APPEARANCE** section at the top lets you change live desktop preferences.
 - The active option is highlighted with a white border.
 - Changing the size updates shared app and window text immediately, and open text-heavy apps keep their cursor and scroll views within the new font geometry.
 - Settings section spacing, wallpaper fields, clock/scale controls, and footer height grow from the active font metrics, keeping labels inside their controls at the supported 115% scale.
+- The wallpaper path field gives up width before the Set and Clear buttons do, so the action controls remain inside narrow Settings clients.
 - The footer is clamped inside the client rectangle when a Settings window is shorter than the scaled footer band.
 
 Scroll with the mouse wheel or Page Up/Down if the window is resized smaller. Background, wallpaper path, clock, and interface text choices are saved to `~/.monolith/desktop_settings.txt` and restored on the next launch. Malformed or unsupported persisted values are ignored so defaults remain intact; omitted values in a valid legacy file use their defaults.
