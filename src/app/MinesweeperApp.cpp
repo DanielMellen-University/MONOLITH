@@ -373,21 +373,31 @@ void MinesweeperApp::onUiScaleChanged() {
 
 void MinesweeperApp::refreshUiMetrics() {
     const int fontHeight = m_font ? TTF_FontHeight(m_font) : 14;
-    m_difficultyButtonHeight = std::clamp(
-        fontHeight + 4,
-        kDifficultyButtonMinHeight,
-        kDifficultyButtonMaxHeight);
+    m_difficultyButtonHeight = std::max(kDifficultyButtonMinHeight, fontHeight + 4);
+}
+
+int MinesweeperApp::hudHeight() const {
+    const int fontHeight = m_font ? TTF_FontHeight(m_font) : 14;
+    const int buttonHeight = std::max(kDifficultyButtonMinHeight, fontHeight + 4);
+    return std::max(kHudHeight, kDifficultyButtonY + buttonHeight + 4);
+}
+
+int MinesweeperApp::footerHeight() const {
+    const int fontHeight = m_font ? TTF_FontHeight(m_font) : 14;
+    return std::max(kFooterHeight, fontHeight + 8);
 }
 
 void MinesweeperApp::clientBoardMetrics(int& boardX, int& boardY, int& cellPx,
                                         int& boardPxW, int& boardPxH) const {
     const int availW = m_clientWidth > 0 ? m_clientWidth : 360;
-    const int availH = std::max(1, (m_clientHeight > 0 ? m_clientHeight : 420) - kHudHeight - kFooterHeight);
+    const int hudH = hudHeight();
+    const int footerH = footerHeight();
+    const int availH = std::max(1, (m_clientHeight > 0 ? m_clientHeight : 420) - hudH - footerH);
     cellPx = std::max(kMinCellPx, std::min(availW / m_width, availH / m_height));
     boardPxW = cellPx * m_width;
     boardPxH = cellPx * m_height;
     boardX = (availW - boardPxW) / 2;
-    boardY = kHudHeight + (availH - boardPxH) / 2;
+    boardY = hudH + (availH - boardPxH) / 2;
 }
 
 bool MinesweeperApp::cellAtClient(int mx, int my, int& outX, int& outY) const {
@@ -404,12 +414,14 @@ bool MinesweeperApp::cellAtClient(int mx, int my, int& outX, int& outY) const {
 
 void MinesweeperApp::layoutBoard(const SDL_Rect& contentRect) {
     const int availW = contentRect.w;
-    const int availH = std::max(1, contentRect.h - kHudHeight - kFooterHeight);
+    const int hudH = hudHeight();
+    const int footerH = footerHeight();
+    const int availH = std::max(1, contentRect.h - hudH - footerH);
     m_cellPx = std::max(kMinCellPx, std::min(availW / m_width, availH / m_height));
     m_boardPxW = m_cellPx * m_width;
     m_boardPxH = m_cellPx * m_height;
     m_boardX = contentRect.x + (availW - m_boardPxW) / 2;
-    m_boardY = contentRect.y + kHudHeight + (availH - m_boardPxH) / 2;
+    m_boardY = contentRect.y + hudH + (availH - m_boardPxH) / 2;
 
     refreshUiMetrics();
     const int btnW = 70;
@@ -618,10 +630,13 @@ void MinesweeperApp::render(SDL_Renderer* renderer, const SDL_Rect& contentRect)
         m_clientHeight = contentRect.h;
     }
     layoutBoard(contentRect);
+    const int hudH = hudHeight();
+    const int footerH = footerHeight();
+    const int fontHeight = m_font ? TTF_FontHeight(m_font) : 14;
 
     // HUD
     SDL_SetRenderDrawColor(renderer, 38, 38, 44, 255);
-    SDL_Rect hud{contentRect.x, contentRect.y, contentRect.w, kHudHeight};
+    SDL_Rect hud{contentRect.x, contentRect.y, contentRect.w, hudH};
     SDL_RenderFillRect(renderer, &hud);
 
     const int remaining = std::max(0, m_mineCount - flagCount());
@@ -640,9 +655,10 @@ void MinesweeperApp::render(SDL_Renderer* renderer, const SDL_Rect& contentRect)
         contentRect.x + 10,
         contentRect.y,
         std::max(0, m_faceBtnRect.x - 8 - (contentRect.x + 10)),
-        kHudHeight
+        kDifficultyButtonY
     };
-    drawText(renderer, status.c_str(), contentRect.x + 10, contentRect.y + 6,
+    drawText(renderer, status.c_str(), contentRect.x + 10,
+             contentRect.y + std::max(0, (kDifficultyButtonY - fontHeight) / 2),
              kHudText, &statusClip);
 
     const char* labels[3] = {"1 Begin", "2 Inter", "3 Expert"};
@@ -660,7 +676,8 @@ void MinesweeperApp::render(SDL_Renderer* renderer, const SDL_Rect& contentRect)
             std::max(0, m_diffBtnRects[i].w - 12),
             m_diffBtnRects[i].h
         };
-        drawText(renderer, labels[i], m_diffBtnRects[i].x + 6, m_diffBtnRects[i].y + 1,
+        drawText(renderer, labels[i], m_diffBtnRects[i].x + 6,
+                 m_diffBtnRects[i].y + std::max(0, (m_diffBtnRects[i].h - fontHeight) / 2),
                  kHudText, &labelClip);
     }
 
@@ -760,9 +777,9 @@ void MinesweeperApp::render(SDL_Renderer* renderer, const SDL_Rect& contentRect)
     SDL_SetRenderDrawColor(renderer, 38, 38, 44, 255);
     SDL_Rect footer{
         contentRect.x,
-        contentRect.y + contentRect.h - kFooterHeight,
+        contentRect.y + contentRect.h - footerH,
         contentRect.w,
-        kFooterHeight
+        footerH
     };
     SDL_RenderFillRect(renderer, &footer);
     const SDL_Rect footerTextClip = {
@@ -772,7 +789,7 @@ void MinesweeperApp::render(SDL_Renderer* renderer, const SDL_Rect& contentRect)
         footer.h
     };
     drawText(renderer, "L open  R flag/?  M/chord  face=new", contentRect.x + 10,
-             footer.y + 4, kDimText, &footerTextClip);
+             footer.y + std::max(0, (footerH - fontHeight) / 2), kDimText, &footerTextClip);
 
     // End overlays — centered vertical stack
     if (m_state == State::Won || m_state == State::Lost) {

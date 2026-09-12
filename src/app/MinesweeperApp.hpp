@@ -50,7 +50,6 @@ private:
     static constexpr int kFooterHeight = 24;
     static constexpr int kDifficultyButtonY = 30;
     static constexpr int kDifficultyButtonMinHeight = 18;
-    static constexpr int kDifficultyButtonMaxHeight = kHudHeight - kDifficultyButtonY - 4;
     static constexpr int kMinCellPx = 1;
 
     static const DifficultySpec& specFor(Difficulty d);
@@ -71,6 +70,8 @@ private:
     int neighborFlagCount(int x, int y) const;
     void layoutBoard(const SDL_Rect& contentRect);
     void refreshUiMetrics();
+    int hudHeight() const;
+    int footerHeight() const;
     void clientBoardMetrics(int& boardX, int& boardY, int& cellPx, int& boardPxW, int& boardPxH) const;
     bool cellAtClient(int mx, int my, int& outX, int& outY) const;
     void drawText(SDL_Renderer* renderer, const char* text, int x, int y,

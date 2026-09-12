@@ -35,10 +35,16 @@ int main() {
 
     MinesweeperApp game(font);
     const int baseButtonHeight = game.m_difficultyButtonHeight;
+    const int baseHudHeight = game.hudHeight();
+    const int baseFooterHeight = game.footerHeight();
     check(TTF_SetFontSize(font, 16) == 0, "Minesweeper state scales test font");
     game.onUiScaleChanged();
     check(game.m_difficultyButtonHeight > baseButtonHeight,
           "difficulty buttons grow with the shared interface font");
+    check(game.hudHeight() >= game.m_difficultyButtonHeight + MinesweeperApp::kDifficultyButtonY + 4,
+          "Minesweeper HUD grows with scaled difficulty controls");
+    check(game.footerHeight() >= baseFooterHeight,
+          "Minesweeper footer keeps a stable readable height");
     game.newGame(MinesweeperApp::Difficulty::Expert);
     game.onResize(120, 120);
     int boardX = 0;
@@ -47,9 +53,9 @@ int main() {
     int boardW = 0;
     int boardH = 0;
     game.clientBoardMetrics(boardX, boardY, cellPx, boardW, boardH);
-    check(cellPx >= 1 && boardX >= 0 && boardY >= MinesweeperApp::kHudHeight
+    check(cellPx >= 1 && boardX >= 0 && boardY >= game.hudHeight()
               && boardX + boardW <= 120
-              && boardY + boardH <= 120 - MinesweeperApp::kFooterHeight,
+              && boardY + boardH <= 120 - game.footerHeight(),
           "Minesweeper keeps the complete expert board inside a tiny client area");
     game.m_minesPlaced = true;
     game.m_state = MinesweeperApp::State::Playing;

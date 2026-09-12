@@ -1,5 +1,10 @@
 # Changelog
 
+## 2026-09: Keep Minesweeper bands readable after text scaling
+
+- Minesweeper now derives its HUD, difficulty buttons, and footer from the active interface font instead of clipping scaled labels against fixed bands.
+- Board layout and hit testing use the same dynamic HUD and footer heights, with focused coverage for scaled controls.
+
 ## 2026-09: Keep game HUDs aligned after text scaling
 
 - Snake and Pong now derive their HUD height and text position from the active interface font instead of laying out the playfield below a fixed strip.
