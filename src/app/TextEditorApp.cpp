@@ -1520,9 +1520,10 @@ int TextEditorApp::getStatusBarHeight() const {
 
 int TextEditorApp::getVisibleLineCount(const SDL_Rect& contentRect) const {
     int lh = getLineHeight();
-    if (lh <= 0) return 8;
+    if (lh <= 0) return 0;
     const int reserved = kPadding + getStatusBarHeight() + 4;
-    return std::max(3, (contentRect.h - reserved) / lh);
+    if (contentRect.h <= reserved) return 0;
+    return (contentRect.h - reserved) / lh;
 }
 
 void TextEditorApp::render(SDL_Renderer* renderer, const SDL_Rect& contentRect) {
@@ -2147,6 +2148,13 @@ void TextEditorApp::handleEvent(const SDL_Event& event) {
 void TextEditorApp::onResize(int clientWidth, int clientHeight) {
     m_clientWidth = clientWidth;
     m_clientHeight = clientHeight;
+    const int visible = std::max(
+        1,
+        getVisibleLineCount({0, 0, m_clientWidth, m_clientHeight}));
+    const int maxScroll = std::max(
+        0,
+        static_cast<int>(m_lines.size()) - visible);
+    m_scrollOffset = std::clamp(m_scrollOffset, 0, maxScroll);
     ensureCursorVisible();
 }
 

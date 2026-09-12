@@ -93,6 +93,17 @@ int main() {
         scaleEditor.onUiScaleChanged();
         check(scaleEditor.getStatusBarHeight() > baseStatusBarHeight,
               "Text Editor status bar grows with the shared interface font");
+        scaleEditor.m_lines.assign(20, "line");
+        scaleEditor.m_cursorRow = 19;
+        scaleEditor.m_scrollOffset = 19;
+        scaleEditor.onResize(320, 80);
+        const int resizedVisibleLines = std::max(
+            1,
+            scaleEditor.getVisibleLineCount({0, 0, 320, 80}));
+        check(scaleEditor.m_scrollOffset == 20 - resizedVisibleLines,
+              "Text Editor resize clamps vertical scrollback to the visible lines");
+        check(scaleEditor.getVisibleLineCount({0, 0, 320, 40}) == 0,
+              "Text Editor reports no rows when the status bar fills a tiny client");
     }
     check(fs.writeFile("/old.txt", "original"), "write original editor file");
     check(fs.writeFile("/empty.txt", ""), "write empty editor file");

@@ -1,5 +1,11 @@
 # Changelog
 
+## 2026-09: Keep Text Editor scrollback inside resized clients
+
+- Text Editor now clamps vertical scrollback when a window shrinks and derives visible rows from the actual space above the status bar.
+- Tiny clients no longer claim document rows that cannot be rendered.
+- Added focused resize coverage and updated the editor guide and verification notes.
+
 ## 2026-09: Keep Drawing chrome aligned after text scaling
 
 - Drawing toolbar buttons and the status bar now grow from the active interface font, keeping labels and hit areas aligned at larger text sizes.

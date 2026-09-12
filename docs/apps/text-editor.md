@@ -117,6 +117,7 @@ Path prompts support Left/Right/Home/End, UTF-8-safe Backspace/Delete, and inser
 - Highlighting is per-line only (no multiline strings or block comments).
 - No multiple buffers/tabs.
 - Long lines remain editable without wrapping; horizontal scrolling moves the text viewport in pixel increments while preserving document columns.
+- Resizing clamps vertical scrollback to the lines that fit in the new editor area. If the client is too short to fit a document row above the status bar, the editor leaves the document area empty instead of claiming rows that cannot be rendered.
 - Syntax-highlighted spans at the viewport edge are clipped without scaling, so text measurements and cursor geometry stay consistent.
 - Combining characters / complex scripts are treated as separate codepoints for cursor motion.
 - Clipboard uses the host OS clipboard (SDL), not a Monolith-only buffer.
