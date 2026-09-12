@@ -1651,7 +1651,7 @@ void FilesystemApp::render(SDL_Renderer* renderer, const SDL_Rect& contentRect) 
 void FilesystemApp::onResize(int clientWidth, int clientHeight) {
     m_clientWidth = clientWidth;
     m_clientHeight = clientHeight;
-    ensureSelectionVisible();
+    clampSelection();
     if (m_showContextMenu) {
         updateContextMenuLayout();
     }
@@ -1661,6 +1661,7 @@ void FilesystemApp::onUiScaleChanged() {
     // The filter prompt stores its horizontal position in pixels; remeasure it
     // against the new font on the next render.
     m_filterScrollPx = 0;
+    clampSelection();
     if (m_showContextMenu) {
         updateContextMenuLayout();
     }

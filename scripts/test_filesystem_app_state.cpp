@@ -260,10 +260,22 @@ int main() {
     check(browser.m_selectedIndex >= 0
               && browser.m_entries[static_cast<size_t>(browser.m_selectedIndex)].name == "a.txt",
           "status-bar clicks do not select a list row");
+    browser.clearMultiSelection();
+    browser.m_selectedIndex = -1;
+    browser.m_scrollOffset = 999;
     browser.onResize(200, 40);
     check(browser.getVisibleRowCount({0, 0, 200, 40}) == 0,
           "tiny browser clients report no visible rows below their chrome");
+    check(browser.m_scrollOffset == static_cast<int>(browser.m_entries.size()) - 1,
+          "browser resize clamps scrollback without a selected row");
     browser.onResize(400, 240);
+    browser.m_scrollOffset = 999;
+    browser.onUiScaleChanged();
+    const int scaledVisibleRows = std::max(
+        1,
+        browser.getVisibleRowCount({0, 0, browser.m_clientWidth, browser.m_clientHeight}));
+    check(browser.m_scrollOffset == static_cast<int>(browser.m_entries.size()) - scaledVisibleRows,
+          "browser text scaling clamps scrollback to the new listing area");
 
     check(browser.selectEntryNamed("a.txt", false), "select an item before filtered delete");
     browser.requestDeleteSelected();

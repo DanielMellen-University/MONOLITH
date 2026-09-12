@@ -159,6 +159,7 @@ Right-clicking an already selected row keeps the current multi-selection, so con
 - No drag-and-drop.
 - The virtual clipboard is shared across Filesystem instances, but it is not connected to the host OS clipboard. Cut/paste uses non-overwriting moves; successful sources leave the cut clipboard, while a destination conflict leaves that source available for a later retry.
 - The active filter prompt remeasures its caret and horizontal scroll after the shared interface text scale changes.
+- Resizing the window or changing the interface text scale clamps the listing scroll offset to the rows that fit, even when there is no selected entry to keep visible.
 
 ## Developer Notes
 

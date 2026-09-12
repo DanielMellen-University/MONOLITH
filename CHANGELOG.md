@@ -1,5 +1,10 @@
 # Changelog
 
+## 2026-09: Clamp Browser scroll after lifecycle changes
+
+- Filesystem Browser now clamps listing scrollback after window resizes and interface text scaling, including when no row is selected.
+- Added focused no-selection coverage and updated the Browser verification guide.
+
 ## 2026-09: Keep Text Editor scrollback inside resized clients
 
 - Text Editor now clamps vertical scrollback when a window shrinks and derives visible rows from the actual space above the status bar.
