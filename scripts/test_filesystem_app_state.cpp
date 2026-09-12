@@ -283,6 +283,27 @@ int main() {
     browser.handleMouseButton(partialRowClick);
     check(browser.m_entries[static_cast<size_t>(browser.m_selectedIndex)].name == "b.txt",
           "browser ignores clicks in a row fragment that is not rendered");
+
+    browser.onResize(400, 240);
+    check(browser.selectEntryNamed("a.txt", false),
+          "select the first row before list padding hit testing");
+    SDL_MouseButtonEvent listGapClick{};
+    listGapClick.button = SDL_BUTTON_LEFT;
+    listGapClick.clicks = 1;
+    listGapClick.x = 10;
+    listGapClick.y = browser.getListTop();
+    browser.handleMouseButton(listGapClick);
+    check(browser.m_entries[static_cast<size_t>(browser.m_selectedIndex)].name == "a.txt",
+          "browser ignores the padding above the first rendered row");
+    listGapClick.y = browser.getListRowTop() + browser.getRowHeight() - 1;
+    browser.handleMouseButton(listGapClick);
+    check(browser.m_entries[static_cast<size_t>(browser.m_selectedIndex)].name == "a.txt",
+          "browser ignores the one-pixel gap between rendered rows");
+    listGapClick.y = browser.getListRowTop() + browser.getRowHeight();
+    browser.handleMouseButton(listGapClick);
+    check(browser.m_entries[static_cast<size_t>(browser.m_selectedIndex)].name == "b.txt",
+          "browser maps the next rendered row to the next entry");
+
     browser.onResize(400, 240);
     browser.clearMultiSelection();
     browser.m_selectedIndex = -1;

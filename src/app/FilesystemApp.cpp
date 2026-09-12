@@ -895,7 +895,7 @@ int FilesystemApp::getVisibleRowCount(const SDL_Rect& contentRect) const {
     int rh = getRowHeight();
     if (rh <= 0) return 10;
 
-    const int reservedTop = getListTop();
+    const int reservedTop = getListRowTop();
     const int reservedBottom = getStatusBarHeight() + kStatusBarPadding;
     int available = contentRect.h - reservedTop - reservedBottom;
     if (available <= 0) return 0;
@@ -923,12 +923,18 @@ void FilesystemApp::handleMouseButton(const SDL_MouseButtonEvent& e) {
 
     // === Right click → show context menu ===
     if (e.button == SDL_BUTTON_RIGHT) {
-        const int listTop = getListTop();
+        const int listTop = getListRowTop();
         const int rowHeight = std::max(1, getRowHeight());
         const int visible = getVisibleRowCount({0, 0, m_clientWidth, m_clientHeight});
         if (my >= listTop && my < listTop + visible * rowHeight) {
 
             int relY = my - listTop;
+            if ((relY % rowHeight) >= rowHeight - 1) {
+                clearMultiSelection();
+                m_selectedIndex = -1;
+                showContextMenu(mx, my, -1);
+                return;
+            }
             int clickedRow = m_scrollOffset + (relY / rowHeight);
 
             if (clickedRow >= 0 && clickedRow < static_cast<int>(m_entries.size())) {
@@ -995,7 +1001,7 @@ void FilesystemApp::handleMouseButton(const SDL_MouseButtonEvent& e) {
     }
 
     // Path bar + toolbar area is above the list
-    const int listTop = getListTop();
+    const int listTop = getListRowTop();
     const int rowHeight = std::max(1, getRowHeight());
     const int visible = getVisibleRowCount({0, 0, m_clientWidth, m_clientHeight});
     if (my < listTop || my >= listTop + visible * rowHeight) return;
@@ -1003,6 +1009,7 @@ void FilesystemApp::handleMouseButton(const SDL_MouseButtonEvent& e) {
     // Compute which row was clicked
     int relY = my - listTop;
     if (relY < 0) return;
+    if ((relY % rowHeight) >= rowHeight - 1) return;
 
     int clickedRow = m_scrollOffset + (relY / rowHeight);
     if (clickedRow >= 0 && clickedRow < static_cast<int>(m_entries.size())) {
@@ -1301,6 +1308,10 @@ int FilesystemApp::getListTop() const {
     return getToolbarY() + getToolbarButtonHeight() + 2;
 }
 
+int FilesystemApp::getListRowTop() const {
+    return getListTop() + 2;
+}
+
 int FilesystemApp::getStatusBarHeight() const {
     const int fontHeight = m_font ? TTF_FontHeight(m_font) : 16;
     return std::max(kStatusBarHeight, fontHeight + 4);
@@ -1517,7 +1528,7 @@ void FilesystemApp::drawList(SDL_Renderer* r, const SDL_Rect& contentRect, int l
     SDL_Color selBg        = {55, 70, 95, 255};
     SDL_Color selText      = {230, 235, 245, 255};
 
-    int y = listTopY + 2;
+    int y = listTopY;
     const int visible = listHeight > 0
         ? std::min(getVisibleRowCount(contentRect), listHeight / rowH)
         : 0;
@@ -1639,7 +1650,7 @@ void FilesystemApp::render(SDL_Renderer* renderer, const SDL_Rect& contentRect) 
     int listTop = 0;
     drawPathBar(renderer, contentRect, listTop);
     drawToolbar(renderer, contentRect);
-    drawList(renderer, contentRect, contentRect.y + getListTop());
+    drawList(renderer, contentRect, contentRect.y + getListRowTop());
     drawStatusBar(renderer, contentRect);
 
     if (m_showContextMenu) {

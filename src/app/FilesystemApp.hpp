@@ -85,6 +85,7 @@ private:
     int getToolbarY() const;
     int getToolbarButtonHeight() const;
     int getListTop() const;
+    int getListRowTop() const;
     int getStatusBarHeight() const;
     void drawPathBar(SDL_Renderer* r, const SDL_Rect& contentRect, int& outTopY);
     void drawList(SDL_Renderer* r, const SDL_Rect& contentRect, int topY);

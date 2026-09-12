@@ -5,6 +5,12 @@
 - Expanded the Drawing guide's contributor verification block with the current integration, raster, state, format, and optional smoke commands.
 - Linked the user-facing guide to the maintenance expectations for Drawing prompt, file-format, and shell-routing changes.
 
+## 2026-09: Align Browser rows with rendered hit areas
+
+- Filesystem Browser now derives its list origin from the same row geometry used for drawing.
+- Clicks in the list's top padding and inter-row gaps are ignored instead of selecting a neighboring entry.
+- Added focused coverage for row-boundary and padding clicks and updated the Browser guide.
+
 ## 2026-09: Keep Settings controls readable after scaling
 
 - Settings now derives section spacing, wallpaper fields, clock and scale controls, and footer geometry from the active interface font instead of fixed text bands.
