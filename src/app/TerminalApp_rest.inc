@@ -264,17 +264,7 @@ int TerminalApp::getLineHeight() const {
 int TerminalApp::getMaxVisibleLines(const SDL_Rect& contentRect) const {
     int lh = getLineHeight();
     if (lh <= 0) return 0;
-
-    constexpr int padding = 8;
-    constexpr int inputStripExtra = 14;
-    constexpr int historyBottomGap = 4;
-    const int inputStripHeight = lh + inputStripExtra;
-    const int historyHeight = contentRect.h
-        - padding * 2
-        - inputStripHeight
-        - historyBottomGap;
-    if (historyHeight <= 0) return 0;
-    return historyHeight / lh;
+    return getHistoryRect(contentRect).h / lh;
 }
 
 int TerminalApp::getMaxScrollOffset() const {
@@ -290,6 +280,18 @@ SDL_Rect TerminalApp::getInputBarRect(const SDL_Rect& contentRect) const {
         contentRect.y + std::max(0, clientHeight - stripHeight),
         std::max(0, contentRect.w - 8),
         std::min(stripHeight, clientHeight)
+    };
+}
+
+SDL_Rect TerminalApp::getHistoryRect(const SDL_Rect& contentRect) const {
+    constexpr int padding = 8;
+    constexpr int historyBottomGap = 4;
+    const int inputStripHeight = getLineHeight() + 14;
+    return {
+        contentRect.x + padding,
+        contentRect.y + padding,
+        std::max(0, contentRect.w - padding * 2),
+        std::max(0, contentRect.h - padding * 2 - inputStripHeight - historyBottomGap)
     };
 }
 
@@ -345,17 +347,11 @@ void TerminalApp::render(SDL_Renderer* renderer, const SDL_Rect& contentRect) {
     // === Robust input area reservation (critical for maximized windows) ===
     // We reserve a fixed strip at the very bottom of the content area for the input.
     // This must never be eaten into by history, even when the window is very tall.
-    const int inputStripHeight = lineHeight + 14;   // prompt + padding + breathing room
     const SDL_Rect inputBar = getInputBarRect(contentRect);
     const int inputLineY = getInputLineY(contentRect, inputBar);
 
     // History gets everything above the input strip
-    SDL_Rect historyRect = {
-        contentRect.x + padding,
-        contentRect.y + padding,
-        contentRect.w - padding * 2,
-        std::max(0, contentRect.h - padding * 2 - inputStripHeight - 4)
-    };
+    const SDL_Rect historyRect = getHistoryRect(contentRect);
 
     // Draw input background strip (clearly separated)
     SDL_SetRenderDrawColor(renderer, 28, 28, 34, 255);

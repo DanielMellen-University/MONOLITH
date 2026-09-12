@@ -1,5 +1,10 @@
 # Changelog
 
+## 2026-09: Keep Terminal history clips valid in narrow clients
+
+- Centralized Terminal history viewport geometry and clamped both dimensions when a client is narrower or shorter than its padding and input strip.
+- Added focused coverage for non-negative history clip bounds and documented the tiny-client behavior.
+
 ## 2026-09: Consolidate Drawing verification documentation
 
 - Expanded the Drawing guide's contributor verification block with the current integration, raster, state, format, and optional smoke commands.

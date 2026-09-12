@@ -233,6 +233,9 @@ int main() {
               && tinyInputBar.x + tinyInputBar.w <= tinyContent.x + tinyContent.w
               && tinyInputBar.y + tinyInputBar.h <= tinyContent.y + tinyContent.h,
           "terminal input bar stays inside an undersized client area");
+    const SDL_Rect narrowHistory = terminal.getHistoryRect({20, 30, 12, 8});
+    check(narrowHistory.w >= 0 && narrowHistory.h >= 0,
+          "terminal history clip stays non-negative in a narrow client area");
 
     check(fs.createDirectory("/home/monolith/work/nested"),
           "create terminal cwd move source");
