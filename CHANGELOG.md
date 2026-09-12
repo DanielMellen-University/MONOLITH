@@ -1,5 +1,10 @@
 # Changelog
 
+## 2026-09: Isolate shell pointer releases
+
+- Taskbar and Start-menu clicks now consume their matching mouse-up instead of forwarding an orphaned release to the focused app.
+- Added Window Manager mouse-capture coverage for taskbar interactions.
+
 ## 2026-09: Keep session focus on visible windows
 
 - Restoring a minimized final session entry now hands keyboard focus to the topmost visible window.

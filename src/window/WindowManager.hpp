@@ -190,6 +190,8 @@ private:
     // Client window that received the active left-button press, if any.
     // Its release must be delivered even if focus changes or the pointer leaves it.
     Window* m_mouseCaptureWindow = nullptr;
+    // Shell controls consume both halves of their left-button interaction.
+    bool m_shellMouseCapture = false;
 
     // Font used for window titles (not owned by WindowManager)
     TTF_Font* m_font = nullptr;
