@@ -1,5 +1,11 @@
 # Changelog
 
+## 2026-09: Keep app views aligned after text scaling
+
+- UI scale changes now notify every open app, including minimized windows.
+- Terminal and Text Editor rebuild their pixel-based scroll state against the new font metrics instead of retaining stale offsets.
+- Added regression coverage for scale notifications reaching a minimized app.
+
 ## 2026-09: Align wallpaper roadmap documentation
 
 - Updated the vision, architecture, and Terminal guides to describe shipped BMP/PNG/JPEG wallpaper support accurately.

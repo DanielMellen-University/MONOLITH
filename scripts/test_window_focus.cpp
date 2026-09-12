@@ -19,10 +19,12 @@ public:
 
     void onFocusGained() override { ++focusGained; }
     void onFocusLost() override { ++focusLost; }
+    void onUiScaleChanged() override { ++uiScaleChanges; }
 
     int keyDowns = 0;
     int focusGained = 0;
     int focusLost = 0;
+    int uiScaleChanges = 0;
 };
 
 bool minimizeWindow(monolith::window::WindowManager& wm, monolith::window::Window* window) {
@@ -100,6 +102,13 @@ int main() {
           "restored Drawing geometry is clamped before it becomes visible");
     wm.handleEvent(key);
     check(thirdPtr->keyDowns == 1, "restored Drawing receives keyboard focus");
+
+    check(minimizeWindow(wm, secondWindow),
+          "minimize editor before shared UI scale change");
+    wm.setUiScalePercent(115);
+    check(firstPtr->uiScaleChanges == 1 && secondPtr->uiScaleChanges == 1
+              && thirdPtr->uiScaleChanges == 1,
+          "shared UI scale reaches visible and minimized apps");
 
     std::error_code ec;
     std::filesystem::remove_all(hostRoot, ec);

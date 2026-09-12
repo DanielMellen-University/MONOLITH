@@ -494,4 +494,18 @@ void TerminalApp::onResize(int clientWidth, int clientHeight) {
     if (m_scrollOffset > maxScroll) m_scrollOffset = maxScroll;
 }
 
+void TerminalApp::onUiScaleChanged() {
+    const int maxScroll = std::max(
+        0,
+        static_cast<int>(m_history.size())
+            - getMaxVisibleLines({0, 0, m_clientWidth, m_clientHeight})
+            + 2);
+    m_scrollOffset = std::clamp(m_scrollOffset, 0, maxScroll);
+
+    // Font metrics changed, so pixel-based horizontal offsets must be measured
+    // again by the next render pass.
+    m_inputHorizontalScrollPx = 0;
+    m_searchHorizontalScrollPx = 0;
+}
+
 } // namespace monolith::app

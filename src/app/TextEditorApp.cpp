@@ -2144,6 +2144,22 @@ void TextEditorApp::onResize(int clientWidth, int clientHeight) {
     ensureCursorVisible();
 }
 
+void TextEditorApp::onUiScaleChanged() {
+    const int visible = std::max(
+        1,
+        getVisibleLineCount({0, 0, m_clientWidth, m_clientHeight}));
+    const int maxScroll = std::max(
+        0,
+        static_cast<int>(m_lines.size()) - visible);
+    m_scrollOffset = std::clamp(m_scrollOffset, 0, maxScroll);
+
+    // Horizontal positions are measured in pixels and are invalid after the
+    // shared font changes. Cursor visibility will rebuild the needed offset.
+    m_horizontalScrollOffset = 0;
+    m_statusHorizontalScrollPx = 0;
+    ensureCursorVisible();
+}
+
 void TextEditorApp::pushUndoState(UndoCoalesce kind) {
     const std::uint32_t now = SDL_GetTicks();
     if (kind != UndoCoalesce::None
