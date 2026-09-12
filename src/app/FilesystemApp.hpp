@@ -87,6 +87,7 @@ private:
     int getListTop() const;
     int getListRowTop() const;
     int getStatusBarHeight() const;
+    SDL_Rect getFilterRect(const SDL_Rect& contentRect) const;
     void drawPathBar(SDL_Renderer* r, const SDL_Rect& contentRect, int& outTopY);
     void drawList(SDL_Renderer* r, const SDL_Rect& contentRect, int topY);
     void drawToolbar(SDL_Renderer* r, const SDL_Rect& contentRect);

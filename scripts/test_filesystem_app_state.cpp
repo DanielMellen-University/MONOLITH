@@ -249,6 +249,10 @@ int main() {
               && browser.getToolbarButtonHeight() > toolbarBeforeScale
               && browser.getStatusBarHeight() > statusBarBeforeScale,
           "browser chrome bands grow with the shared interface font");
+    const SDL_Rect narrowFilter = browser.getFilterRect({0, 0, 16, 80});
+    check(narrowFilter.x >= 0 && narrowFilter.w >= 0
+              && narrowFilter.x + narrowFilter.w <= 16,
+          "browser filter control stays inside a narrow client width");
     check(browser.selectEntryNamed("a.txt", false),
           "select an item before status-bar hit testing");
     SDL_MouseButtonEvent statusClick{};

@@ -1,5 +1,10 @@
 # Changelog
 
+## 2026-09: Keep Browser filter controls inside narrow clients
+
+- Filesystem Browser now derives a client-contained filter rectangle and reduces its width when the normal minimum cannot fit.
+- Added focused narrow-width geometry coverage and updated the Browser guide.
+
 ## 2026-09: Keep Terminal history clips valid in narrow clients
 
 - Centralized Terminal history viewport geometry and clamped both dimensions when a client is narrower or shorter than its padding and input strip.

@@ -1,5 +1,7 @@
 # Session log
 
+| 2026-09-12 | fix | Kept the Filesystem Browser filter control inside narrow client widths by sharing a clamped filter rectangle; added focused geometry coverage and updated the Browser guide. |
+
 | 2026-09-12 | fix | Centralized Terminal history viewport geometry and clamped narrow-client clip dimensions; added focused non-negative-bound coverage and updated the Terminal guide. |
 
 Historical session rows were trimmed during the 7.1 MCP ship to keep AGENTS.md small.
