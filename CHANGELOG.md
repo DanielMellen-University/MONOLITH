@@ -1,5 +1,11 @@
 # Changelog
 
+## 2026-09: Keep wallpaper dispatch warning-free
+
+- Routed Window Manager wallpaper loading directly through `WallpaperImage` instead of a translation macro around `SDL_LoadBMP`.
+- Removed the resulting SDL macro redefinition warning without changing BMP, PNG, or JPEG behavior.
+- Updated WindowManager test commands for generated Settings bodies and the wallpaper loader source.
+
 ## 2026-09: Keep Filesystem menus aligned after text scaling
 
 - Open Filesystem context menus now rebuild their cached size and hit targets when Settings changes the shared interface scale.

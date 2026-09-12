@@ -347,7 +347,7 @@ void WindowManager::ensureWallpaperTexture(SDL_Renderer* renderer) {
     }
 
     const std::string hostPath = m_fs->toHostPath(path);
-    SDL_Surface* surface = SDL_LoadBMP(hostPath.c_str());
+    SDL_Surface* surface = loadWallpaperSurface(hostPath);
     if (!surface) {
         // Fail soft: keep solid color background.
         return;

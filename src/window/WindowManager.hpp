@@ -249,7 +249,7 @@ private:
 
     void applyUiScaleFont();
 
-    // Wallpaper image (BMP via SDL_LoadBMP). Cover-scaled over the solid background.
+    // Wallpaper image via WallpaperImage. Cover-scaled over the solid background.
     SDL_Texture* m_wallpaperTexture = nullptr;
     std::string m_wallpaperLoadedPath; // path currently represented by m_wallpaperTexture
     int m_wallpaperTexW = 0;
