@@ -16,6 +16,22 @@ constexpr int kToolbarGap = 6;
 constexpr int kStatusBarHeight = 22;
 constexpr int kStatusBarPadding = 8;
 
+struct RendererClipState {
+    SDL_Rect rect{};
+    bool active = false;
+};
+
+RendererClipState captureRendererClip(SDL_Renderer* renderer) {
+    RendererClipState state;
+    SDL_RenderGetClipRect(renderer, &state.rect);
+    state.active = state.rect.w > 0 && state.rect.h > 0;
+    return state;
+}
+
+void restoreRendererClip(SDL_Renderer* renderer, const RendererClipState& state) {
+    SDL_RenderSetClipRect(renderer, state.active ? &state.rect : nullptr);
+}
+
 std::string parentVirtualPath(const std::string& normalizedPath) {
     if (normalizedPath.empty() || normalizedPath == "/") return "/";
     const size_t slash = normalizedPath.find_last_of('/');
@@ -1325,6 +1341,7 @@ SDL_Rect FilesystemApp::getFilterRect(const SDL_Rect& contentRect) const {
 }
 
 void FilesystemApp::drawPathBar(SDL_Renderer* r, const SDL_Rect& contentRect, int& outTopY) {
+    const RendererClipState previousClip = captureRendererClip(r);
     const int pathBarHeight = getPathBarHeight();
     SDL_Rect bar = {
         contentRect.x,
@@ -1361,7 +1378,7 @@ void FilesystemApp::drawPathBar(SDL_Renderer* r, const SDL_Rect& contentRect, in
                         surf->h
                     };
                     SDL_RenderCopy(r, tex, nullptr, &dst);
-                    SDL_RenderSetClipRect(r, &contentRect);
+                    restoreRendererClip(r, previousClip);
                 }
                 SDL_DestroyTexture(tex);
             }
@@ -1427,7 +1444,7 @@ void FilesystemApp::drawPathBar(SDL_Renderer* r, const SDL_Rect& contentRect, in
                         fs->h
                     };
                     SDL_RenderCopy(r, ft, nullptr, &dst);
-                    SDL_RenderSetClipRect(r, &contentRect);
+                    restoreRendererClip(r, previousClip);
                 }
                 SDL_DestroyTexture(ft);
             }
@@ -1494,6 +1511,7 @@ void FilesystemApp::drawToolbar(SDL_Renderer* r, const SDL_Rect& contentRect) {
 }
 
 void FilesystemApp::drawList(SDL_Renderer* r, const SDL_Rect& contentRect, int listTopY) {
+    const RendererClipState previousClip = captureRendererClip(r);
     if (!m_font) {
         SDL_SetRenderDrawColor(r, 20, 20, 24, 255);
         SDL_RenderFillRect(r, &contentRect);
@@ -1623,7 +1641,7 @@ void FilesystemApp::drawList(SDL_Renderer* r, const SDL_Rect& contentRect, int l
                     SDL_RenderSetClipRect(r, &nameClip);
                     SDL_Rect d = {nameX - textOffset, rowRect.y + 2, s->w, s->h};
                     SDL_RenderCopy(r, t, nullptr, &d);
-                    SDL_RenderSetClipRect(r, &contentRect);
+                    restoreRendererClip(r, previousClip);
                     SDL_DestroyTexture(t);
                 }
                 SDL_FreeSurface(s);
@@ -1637,7 +1655,7 @@ void FilesystemApp::drawList(SDL_Renderer* r, const SDL_Rect& contentRect, int l
                 SDL_Rect nameClip = {nameX, rowRect.y, nameWidth, rowH};
                 SDL_RenderSetClipRect(r, &nameClip);
                 SDL_RenderDrawLine(r, cursorX, cursorY, cursorX, cursorY + rowH - 6);
-                SDL_RenderSetClipRect(r, &contentRect);
+                restoreRendererClip(r, previousClip);
             }
         }
 
@@ -1892,6 +1910,7 @@ int FilesystemApp::contextMenuItemAt(int x, int y) const {
 }
 
 void FilesystemApp::drawStatusBar(SDL_Renderer* r, const SDL_Rect& contentRect) {
+    const RendererClipState previousClip = captureRendererClip(r);
     const int statusBarHeight = getStatusBarHeight();
     SDL_Rect bar = {
         contentRect.x,
@@ -1943,7 +1962,7 @@ void FilesystemApp::drawStatusBar(SDL_Renderer* r, const SDL_Rect& contentRect) 
                 surf->h
             };
             SDL_RenderCopy(r, tex, nullptr, &dst);
-            SDL_RenderSetClipRect(r, &contentRect);
+            restoreRendererClip(r, previousClip);
             SDL_DestroyTexture(tex);
         }
         SDL_FreeSurface(surf);

@@ -150,6 +150,7 @@ Right-clicking an already selected row keeps the current multi-selection, so con
 - Backspace in rename and filter prompts removes one UTF-8 codepoint at a time.
 - The path bar, toolbar buttons, list start, and status bar follow the shared interface font with stable minimums, so scaled labels keep their hit targets and the listing below them.
 - The path-bar filter control stays inside the client width; in a very narrow window it shrinks below its normal minimum instead of moving partly off-screen.
+- Internal path, list, and status text clips restore the caller's renderer clip, keeping Browser inside the shell's visible client intersection.
 - The status bar is outside the list hit area; clicking its message does not select or activate a file row.
 - List hit testing only accepts complete rendered rows, so a narrow bottom fragment cannot select an invisible item.
 - If a client area is too short to contain the chrome, Browser reports zero visible rows and does not paint list rows over the status bar.

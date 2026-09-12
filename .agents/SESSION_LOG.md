@@ -1,5 +1,7 @@
 # Session log
 
+| 2026-09-12 | fix | Preserved the caller renderer clip through Filesystem Browser path, list, and status regions; added frame-level clip coverage and updated Browser and architecture docs. |
+
 | 2026-09-12 | fix | Preserved and intersected the caller renderer clip through Settings scroll and wallpaper-field rendering; added clip-restoration coverage and updated architecture and Settings docs. |
 
 | 2026-09-12 | fix | Made the Settings wallpaper field yield width to keep Set and Clear inside narrow clients; added render-level geometry coverage and updated the Settings guide. |

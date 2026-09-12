@@ -1,5 +1,10 @@
 # Changelog
 
+## 2026-09: Preserve Browser renderer boundaries
+
+- Filesystem Browser now captures and restores the caller clip through path, list, and status text regions instead of resetting to an un-intersected content rectangle.
+- Added renderer-clip regression coverage and updated Browser and architecture documentation.
+
 ## 2026-09: Preserve Settings renderer boundaries
 
 - Settings now intersects its scroll clip with the caller clip and restores that clip after rendering, including through the wallpaper field's internal text clip.
