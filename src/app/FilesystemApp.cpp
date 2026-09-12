@@ -926,7 +926,7 @@ void FilesystemApp::handleMouseButton(const SDL_MouseButtonEvent& e) {
     // === Right click → show context menu ===
     if (e.button == SDL_BUTTON_RIGHT) {
         const int listTop = getListTop();
-        if (my >= listTop) {
+        if (my >= listTop && my < m_clientHeight - getStatusBarHeight()) {
             int rowHeight = getRowHeight();
             if (rowHeight <= 0) rowHeight = 20;
 
@@ -998,7 +998,7 @@ void FilesystemApp::handleMouseButton(const SDL_MouseButtonEvent& e) {
 
     // Path bar + toolbar area is above the list
     const int listTop = getListTop();
-    if (my < listTop) return;
+    if (my < listTop || my >= m_clientHeight - getStatusBarHeight()) return;
 
     // Compute which row was clicked
     int rowHeight = getRowHeight();
@@ -1485,7 +1485,8 @@ void FilesystemApp::drawList(SDL_Renderer* r, const SDL_Rect& contentRect, int l
     const int rowH = getRowHeight();
     (void)rowH; // used via getVisibleRowCount
 
-    const int listHeight = contentRect.h - (listTopY - contentRect.y) - 6 - getStatusBarHeight();
+    const int listHeight = std::max(
+        0, contentRect.h - (listTopY - contentRect.y) - 6 - getStatusBarHeight());
 
     SDL_Rect listArea = {
         contentRect.x,

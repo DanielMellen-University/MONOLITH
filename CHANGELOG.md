@@ -1,5 +1,10 @@
 # Changelog
 
+## 2026-09: Keep Filesystem Browser status clicks out of the list
+
+- Browser row hit-testing now stops at the scaled status bar, so clicking status feedback cannot select or activate a file.
+- Tiny client areas clamp the rendered list region to a non-negative height.
+
 ## 2026-09: Keep Filesystem Browser chrome aligned after text scaling
 
 - The path bar, toolbar buttons, list origin, and status bar now share font-aware geometry with the existing row and context-menu metrics.

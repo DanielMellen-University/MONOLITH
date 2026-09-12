@@ -249,6 +249,17 @@ int main() {
               && browser.getToolbarButtonHeight() > toolbarBeforeScale
               && browser.getStatusBarHeight() > statusBarBeforeScale,
           "browser chrome bands grow with the shared interface font");
+    check(browser.selectEntryNamed("a.txt", false),
+          "select an item before status-bar hit testing");
+    SDL_MouseButtonEvent statusClick{};
+    statusClick.button = SDL_BUTTON_LEFT;
+    statusClick.clicks = 1;
+    statusClick.x = 10;
+    statusClick.y = browser.m_clientHeight - browser.getStatusBarHeight();
+    browser.handleMouseButton(statusClick);
+    check(browser.m_selectedIndex >= 0
+              && browser.m_entries[static_cast<size_t>(browser.m_selectedIndex)].name == "a.txt",
+          "status-bar clicks do not select a list row");
 
     check(browser.selectEntryNamed("a.txt", false), "select an item before filtered delete");
     browser.requestDeleteSelected();
