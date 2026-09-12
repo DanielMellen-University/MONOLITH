@@ -1,5 +1,10 @@
 # Changelog
 
+## 2026-09: Preserve Text Editor renderer boundaries
+
+- Text Editor now intersects document and status clips with the caller clip and restores that clip after each region.
+- Added renderer-clip regression coverage and updated Text Editor and architecture documentation.
+
 ## 2026-09: Preserve Terminal renderer boundaries
 
 - Terminal now intersects its input and history clips with the caller clip and restores that clip after each region.

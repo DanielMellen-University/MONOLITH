@@ -10,6 +10,30 @@ namespace monolith::app {
 
 namespace {
 
+struct RendererClipState {
+    SDL_Rect rect{};
+    bool active = false;
+};
+
+RendererClipState captureRendererClip(SDL_Renderer* renderer) {
+    RendererClipState state;
+    SDL_RenderGetClipRect(renderer, &state.rect);
+    state.active = state.rect.w > 0 && state.rect.h > 0;
+    return state;
+}
+
+void restoreRendererClip(SDL_Renderer* renderer, const RendererClipState& state) {
+    SDL_RenderSetClipRect(renderer, state.active ? &state.rect : nullptr);
+}
+
+SDL_Rect intersectRendererClip(const SDL_Rect& requested, const RendererClipState& state) {
+    SDL_Rect result = requested;
+    if (state.active) {
+        SDL_IntersectRect(&state.rect, &requested, &result);
+    }
+    return result;
+}
+
 std::string commonPrefix(const std::vector<std::string>& values) {
     if (values.empty()) return "";
 
@@ -1537,6 +1561,8 @@ void TextEditorApp::render(SDL_Renderer* renderer, const SDL_Rect& contentRect) 
         return;
     }
 
+    const RendererClipState previousClip = captureRendererClip(renderer);
+
     // Background
     SDL_SetRenderDrawColor(renderer, 18, 18, 22, 255);
     SDL_RenderFillRect(renderer, &contentRect);
@@ -1562,6 +1588,7 @@ void TextEditorApp::render(SDL_Renderer* renderer, const SDL_Rect& contentRect) 
         textWidth,
         textClipHeight
     };
+    const SDL_Rect effectiveTextClip = intersectRendererClip(textClip, previousClip);
 
     int selR0 = 0, selC0 = 0, selR1 = 0, selC1 = 0;
     const bool drawSel = hasSelection();
@@ -1593,7 +1620,7 @@ void TextEditorApp::render(SDL_Renderer* renderer, const SDL_Rect& contentRect) 
             SDL_FreeSurface(numSurf);
         }
 
-        SDL_RenderSetClipRect(renderer, &textClip);
+        SDL_RenderSetClipRect(renderer, &effectiveTextClip);
 
         // Selection highlight (behind text)
         if (drawSel && lineIdx >= selR0 && lineIdx <= selR1) {
@@ -1676,7 +1703,7 @@ void TextEditorApp::render(SDL_Renderer* renderer, const SDL_Rect& contentRect) 
             SDL_RenderFillRect(renderer, &cursorRect);
         }
 
-        SDL_RenderSetClipRect(renderer, &contentRect);
+        restoreRendererClip(renderer, previousClip);
 
         y += lineHeight;
     }
@@ -1791,7 +1818,8 @@ void TextEditorApp::render(SDL_Renderer* renderer, const SDL_Rect& contentRect) 
                     visibleWidth,
                     statusBar.h
                 };
-                SDL_RenderSetClipRect(renderer, &statusClip);
+                const SDL_Rect effectiveStatusClip = intersectRendererClip(statusClip, previousClip);
+                SDL_RenderSetClipRect(renderer, &effectiveStatusClip);
                 SDL_Rect dst = {
                     contentRect.x + padding
                         - (searchPromptActive ? m_statusHorizontalScrollPx : 0),
@@ -1800,7 +1828,7 @@ void TextEditorApp::render(SDL_Renderer* renderer, const SDL_Rect& contentRect) 
                     surf->h
                 };
                 SDL_RenderCopy(renderer, tex, nullptr, &dst);
-                SDL_RenderSetClipRect(renderer, &contentRect);
+                restoreRendererClip(renderer, previousClip);
                 SDL_DestroyTexture(tex);
             }
             SDL_FreeSurface(surf);

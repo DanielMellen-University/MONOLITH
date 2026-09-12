@@ -79,6 +79,8 @@ int main() {
 
     monolith::fs::Filesystem fs(hostRoot.string());
     check(fs.initialize(), "editor state filesystem initialize");
+    const bool videoReady = SDL_Init(SDL_INIT_VIDEO) == 0;
+    check(videoReady, "editor state SDL initialize");
     const bool ttfReady = TTF_Init() == 0;
     check(ttfReady, "editor state SDL_ttf initialize");
     TTF_Font* scaleFont = ttfReady
@@ -119,6 +121,26 @@ int main() {
         scaleEditor.handleEvent(gapEvent);
         check(!scaleEditor.m_selectingWithMouse && scaleEditor.m_cursorRow == 0,
               "Text Editor ignores clicks in the gap below the last rendered row");
+
+        SDL_Surface* surface = videoReady
+            ? SDL_CreateRGBSurfaceWithFormat(0, 240, 200, 32, SDL_PIXELFORMAT_RGBA32)
+            : nullptr;
+        SDL_Renderer* renderer = surface ? SDL_CreateSoftwareRenderer(surface) : nullptr;
+        check(renderer != nullptr, "editor state creates a software renderer");
+        if (renderer) {
+            const SDL_Rect expectedClip{5, 6, 140, 120};
+            SDL_RenderSetClipRect(renderer, &expectedClip);
+            scaleEditor.render(renderer, {0, 0, 200, 160});
+            SDL_Rect restoredClip{};
+            SDL_RenderGetClipRect(renderer, &restoredClip);
+            check(restoredClip.x == expectedClip.x
+                      && restoredClip.y == expectedClip.y
+                      && restoredClip.w == expectedClip.w
+                      && restoredClip.h == expectedClip.h,
+                  "Text Editor restores the caller renderer clip after rendering");
+            SDL_DestroyRenderer(renderer);
+        }
+        if (surface) SDL_FreeSurface(surface);
     }
     check(fs.writeFile("/old.txt", "original"), "write original editor file");
     check(fs.writeFile("/empty.txt", ""), "write empty editor file");
@@ -296,6 +318,7 @@ int main() {
     std::filesystem::remove_all(hostRoot, ec);
     if (scaleFont) TTF_CloseFont(scaleFont);
     if (ttfReady) TTF_Quit();
+    if (videoReady) SDL_Quit();
     if (failures == 0) {
         std::cout << "ALL TEXT EDITOR STATE TESTS PASSED\n";
         return 0;

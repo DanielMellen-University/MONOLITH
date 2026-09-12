@@ -1,5 +1,7 @@
 # Session log
 
+| 2026-09-12 | fix | Preserved the caller renderer clip through Text Editor document and status regions; added frame-level clip coverage and updated Text Editor and architecture docs. |
+
 | 2026-09-12 | fix | Preserved the caller renderer clip through Terminal input and history regions; added frame-level clip coverage and updated Terminal and architecture docs. |
 
 | 2026-09-12 | fix | Preserved the caller renderer clip through Filesystem Browser path, list, and status regions; added frame-level clip coverage and updated Browser and architecture docs. |
