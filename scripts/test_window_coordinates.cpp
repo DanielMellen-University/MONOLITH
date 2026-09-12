@@ -1,4 +1,5 @@
 #include <SDL2/SDL.h>
+#include <SDL2/SDL_ttf.h>
 
 #define private public
 #include "../src/window/WindowManager.hpp"
@@ -53,6 +54,7 @@ int main() {
         setenv("SDL_VIDEODRIVER", "dummy", 1);
     }
     check(SDL_Init(SDL_INIT_VIDEO) == 0, "SDL initializes for taskbar geometry checks");
+    check(TTF_Init() == 0, "SDL_ttf initializes for taskbar text measurement checks");
     SDL_Surface* surface = SDL_CreateRGBSurfaceWithFormat(
         0, 1280, 720, 32, SDL_PIXELFORMAT_RGBA32);
     SDL_Renderer* renderer = surface ? SDL_CreateSoftwareRenderer(surface) : nullptr;
@@ -62,6 +64,10 @@ int main() {
     monolith::window::WindowManager wm;
     wm.setLogicalDesktopSize(1000, 700);
     wm.setContentScale(2.0f);
+
+    TTF_Font* font = TTF_OpenFont("assets/fonts/DejaVuSans.ttf", 14);
+    check(font != nullptr, "taskbar geometry test loads the shared font");
+    wm.setFont(font);
 
     auto probe = std::make_unique<ProbeApp>();
     ProbeApp* probePtr = probe.get();
@@ -195,6 +201,11 @@ int main() {
 
     if (renderer) {
         wm.setContentScale(1.0f);
+        wm.setLogicalDesktopSize(1000, 700);
+        auto longTitleApp = std::make_unique<ProbeApp>();
+        auto* longTitleWindow = wm.createWindow(
+            "Editor - an unusually long document title.txt", 420, 100, 300, 240,
+            std::move(longTitleApp));
         wm.setLogicalDesktopSize(120, 120);
         SDL_SetRenderDrawColor(renderer, 0, 0, 0, 255);
         SDL_RenderClear(renderer);
@@ -242,8 +253,28 @@ int main() {
               "taskbar scrolling is disabled when arrow controls cannot fit");
         check(wm.m_taskbarScrollOffset == 0,
               "shrinking the desktop resets an unusable taskbar scroll offset");
+
+        wm.setLogicalDesktopSize(1000, 700);
+        SDL_SetRenderDrawColor(renderer, 0, 0, 0, 255);
+        SDL_RenderClear(renderer);
+        wm.render(renderer);
+        auto findTaskbarWidth = [&]() {
+            for (const auto& entry : wm.m_taskbarEntries) {
+                if (entry.window == longTitleWindow) return entry.rect.w;
+            }
+            return 0;
+        };
+        const int normalFontButtonWidth = findTaskbarWidth();
+        wm.setUiScalePercent(115);
+        SDL_SetRenderDrawColor(renderer, 0, 0, 0, 255);
+        SDL_RenderClear(renderer);
+        wm.render(renderer);
+        check(findTaskbarWidth() > normalFontButtonWidth,
+              "taskbar buttons grow with measured UI text width");
     }
 
+    if (font) TTF_CloseFont(font);
+    TTF_Quit();
     if (renderer) SDL_DestroyRenderer(renderer);
     if (surface) SDL_FreeSurface(surface);
     if (rgbaFormat) SDL_FreeFormat(rgbaFormat);

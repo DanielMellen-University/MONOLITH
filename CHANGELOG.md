@@ -1,5 +1,11 @@
 # Changelog
 
+## 2026-09: Measure taskbar titles at their real width
+
+- Taskbar buttons now size long UTF-8 titles from the active font metrics instead of a character-count estimate.
+- Larger interface text no longer makes file-backed taskbar labels disproportionately cramped.
+- Added scaled-render coverage for measured taskbar button growth.
+
 ## 2026-09: Keep app views aligned after text scaling
 
 - UI scale changes now notify every open app, including minimized windows.

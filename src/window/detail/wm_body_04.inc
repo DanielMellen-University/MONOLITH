@@ -58,7 +58,20 @@
     int totalButtonsWidth = 0;
     std::vector<int> buttonWidths;
     for (Window* win : buttonOrder) {
-        int bw = std::max(85, static_cast<int>(win->title.length() * 6.5f));
+        int bw = 85;
+        if (m_font) {
+            int textW = 0;
+            int textH = 0;
+            if (TTF_SizeUTF8(m_font, win->title.c_str(), &textW, &textH) == 0) {
+                // Text textures use native screen pixels, so convert the
+                // measured width back to logical pixels before scaling the
+                // taskbar button.
+                const float scale = std::max(0.01f, m_contentScale);
+                bw = std::max(bw, static_cast<int>(std::ceil(textW / scale)) + 10);
+            }
+        } else {
+            bw = std::max(bw, static_cast<int>(win->title.length() * 6.5f));
+        }
         buttonWidths.push_back(bw);
         totalButtonsWidth += bw + 6;
     }
