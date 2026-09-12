@@ -1676,7 +1676,7 @@ void TextEditorApp::render(SDL_Renderer* renderer, const SDL_Rect& contentRect) 
             SDL_RenderFillRect(renderer, &cursorRect);
         }
 
-        SDL_RenderSetClipRect(renderer, nullptr);
+        SDL_RenderSetClipRect(renderer, &contentRect);
 
         y += lineHeight;
     }
@@ -1800,7 +1800,7 @@ void TextEditorApp::render(SDL_Renderer* renderer, const SDL_Rect& contentRect) 
                     surf->h
                 };
                 SDL_RenderCopy(renderer, tex, nullptr, &dst);
-                SDL_RenderSetClipRect(renderer, nullptr);
+                SDL_RenderSetClipRect(renderer, &contentRect);
                 SDL_DestroyTexture(tex);
             }
             SDL_FreeSurface(surf);

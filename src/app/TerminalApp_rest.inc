@@ -465,7 +465,7 @@ void TerminalApp::render(SDL_Renderer* renderer, const SDL_Rect& contentRect) {
             }
         }
     }
-    SDL_RenderSetClipRect(renderer, nullptr);
+    SDL_RenderSetClipRect(renderer, &contentRect);
 
     // Draw history, respecting scroll offset (0 = bottom/newest)
     SDL_RenderSetClipRect(renderer, &historyRect);
@@ -498,7 +498,7 @@ void TerminalApp::render(SDL_Renderer* renderer, const SDL_Rect& contentRect) {
             y -= lineHeight;
         }
     }
-    SDL_RenderSetClipRect(renderer, nullptr);
+    SDL_RenderSetClipRect(renderer, &contentRect);
 
     // Note: Cursor for input is drawn earlier in the input strip section above.
     // The old duplicate cursor block that used full-buffer calculation was removed.

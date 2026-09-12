@@ -1354,7 +1354,7 @@ void FilesystemApp::drawPathBar(SDL_Renderer* r, const SDL_Rect& contentRect, in
                     surf->h
                 };
                 SDL_RenderCopy(r, tex, nullptr, &dst);
-                SDL_RenderSetClipRect(r, nullptr);
+                SDL_RenderSetClipRect(r, &contentRect);
                 SDL_DestroyTexture(tex);
             }
             SDL_FreeSurface(surf);
@@ -1418,7 +1418,7 @@ void FilesystemApp::drawPathBar(SDL_Renderer* r, const SDL_Rect& contentRect, in
                     fs->h
                 };
                 SDL_RenderCopy(r, ft, nullptr, &dst);
-                SDL_RenderSetClipRect(r, nullptr);
+                SDL_RenderSetClipRect(r, &contentRect);
                 SDL_DestroyTexture(ft);
             }
             SDL_FreeSurface(fs);
@@ -1613,7 +1613,7 @@ void FilesystemApp::drawList(SDL_Renderer* r, const SDL_Rect& contentRect, int l
                     SDL_RenderSetClipRect(r, &nameClip);
                     SDL_Rect d = {nameX - textOffset, rowRect.y + 2, s->w, s->h};
                     SDL_RenderCopy(r, t, nullptr, &d);
-                    SDL_RenderSetClipRect(r, nullptr);
+                    SDL_RenderSetClipRect(r, &contentRect);
                     SDL_DestroyTexture(t);
                 }
                 SDL_FreeSurface(s);
@@ -1627,7 +1627,7 @@ void FilesystemApp::drawList(SDL_Renderer* r, const SDL_Rect& contentRect, int l
                 SDL_Rect nameClip = {nameX, rowRect.y, nameWidth, rowH};
                 SDL_RenderSetClipRect(r, &nameClip);
                 SDL_RenderDrawLine(r, cursorX, cursorY, cursorX, cursorY + rowH - 6);
-                SDL_RenderSetClipRect(r, nullptr);
+                SDL_RenderSetClipRect(r, &contentRect);
             }
         }
 
@@ -1933,7 +1933,7 @@ void FilesystemApp::drawStatusBar(SDL_Renderer* r, const SDL_Rect& contentRect) 
                 surf->h
             };
             SDL_RenderCopy(r, tex, nullptr, &dst);
-            SDL_RenderSetClipRect(r, nullptr);
+            SDL_RenderSetClipRect(r, &contentRect);
             SDL_DestroyTexture(tex);
         }
         SDL_FreeSurface(surf);

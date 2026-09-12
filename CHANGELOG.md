@@ -17,6 +17,11 @@
 - Tiny or undersized existing app layouts can no longer paint over title bars or the taskbar.
 - Added WindowManager renderer-clip coverage and documented the shared rendering boundary.
 
+## 2026-09: Preserve client clipping through app helpers
+
+- Terminal, Text Editor, Drawing, and Filesystem Browser now restore their client clip after drawing clipped text regions instead of disabling it mid-render.
+- The shared WindowManager client-boundary guarantee now remains active through each app's internal text and status rendering passes.
+
 ## 2026-09: Keep Settings controls readable after scaling
 
 - Settings now derives section spacing, wallpaper fields, clock and scale controls, and footer geometry from the active interface font instead of fixed text bands.

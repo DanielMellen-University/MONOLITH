@@ -1152,7 +1152,7 @@ void DrawingApp::drawStatusBar(SDL_Renderer* renderer, const SDL_Rect& contentRe
                 surf->h
             };
             SDL_RenderCopy(renderer, tex, nullptr, &dst);
-            SDL_RenderSetClipRect(renderer, nullptr);
+            SDL_RenderSetClipRect(renderer, &contentRect);
             SDL_DestroyTexture(tex);
         }
         SDL_FreeSurface(surf);
