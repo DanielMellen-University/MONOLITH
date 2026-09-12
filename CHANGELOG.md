@@ -1,5 +1,10 @@
 # Changelog
 
+## 2026-09: Keep Filesystem menus aligned after text scaling
+
+- Open Filesystem context menus now rebuild their cached size and hit targets when Settings changes the shared interface scale.
+- Added an app scale-change hook and focused menu layout coverage.
+
 ## 2026-09: Show live desktop dimensions in Settings
 
 - Settings now reads the current logical desktop size from the WindowManager instead of displaying a hardcoded value.

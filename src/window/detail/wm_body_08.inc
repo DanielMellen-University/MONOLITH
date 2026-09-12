@@ -415,6 +415,11 @@ void WindowManager::setUiScalePercent(int percent) {
 
     m_desktopSettings.setUiScalePercent(percent);
     applyUiScaleFont();
+    for (auto& windowPtr : m_windows) {
+        if (windowPtr && windowPtr->app && !windowPtr->minimized) {
+            windowPtr->app->onUiScaleChanged();
+        }
+    }
     if (!m_desktopSettingsHostPath.empty()) {
         m_desktopSettings.saveToHostPath(m_desktopSettingsHostPath);
     }

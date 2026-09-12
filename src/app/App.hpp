@@ -160,6 +160,9 @@ public:
     // Dimensions are in logical pixels (excluding title bar height).
     virtual void onResize(int /*clientWidth*/, int /*clientHeight*/) {}
 
+    // Called after the shared interface font changes so apps can refresh cached layout.
+    virtual void onUiScaleChanged() {}
+
     // Called when the virtual path bound to this app is renamed or moved.
     virtual void onBoundFileMoved(const std::string& /*oldPath*/,
                                   const std::string& /*newPath*/) {}

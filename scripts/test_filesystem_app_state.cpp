@@ -3,6 +3,7 @@
 #include "../src/fs/Filesystem.hpp"
 
 #include <SDL2/SDL.h>
+#include <SDL2/SDL_ttf.h>
 #include <cstdio>
 #include <filesystem>
 #include <iostream>
@@ -58,7 +59,16 @@ int main() {
         fs.writeFile("/home/monolith/note_" + std::to_string(i) + ".txt", "note");
     }
 
-    monolith::app::FilesystemApp browser(nullptr, &fs);
+    check(TTF_Init() == 0, "browser state SDL_ttf initialize");
+    TTF_Font* font = TTF_OpenFont("assets/fonts/DejaVuSans.ttf", 14);
+    check(font != nullptr, "browser state loads test font");
+    if (!font) {
+        TTF_Quit();
+        std::filesystem::remove_all(hostRoot, ec);
+        return 1;
+    }
+
+    monolith::app::FilesystemApp browser(font, &fs);
     browser.onResize(400, 240);
     check(browser.m_entries.size() == 15, "browser loads the complete directory listing");
 
@@ -215,6 +225,21 @@ int main() {
     check(!browser.m_showContextMenu && browser.m_contextMenuItems.empty(),
           "refresh clears a stale context menu target");
 
+    browser.m_clientWidth = 400;
+    browser.m_clientHeight = 240;
+    browser.m_contextMenuItems = {"Open", "Open with Text Editor", "Open with Drawing"};
+    browser.m_contextMenuPos = {220, 180};
+    browser.m_showContextMenu = true;
+    browser.updateContextMenuLayout();
+    const SDL_Rect menuBeforeScale = browser.m_contextMenuRect;
+    check(menuBeforeScale.w > 0 && menuBeforeScale.h > 0,
+          "context menu layout is available before UI scaling");
+    check(TTF_SetFontSize(font, 20) == 0, "browser state applies larger test font");
+    browser.onUiScaleChanged();
+    check(browser.m_contextMenuRect.h > menuBeforeScale.h
+              && browser.m_contextMenuRect.w >= menuBeforeScale.w,
+          "open context menu relayouts after UI scale changes");
+
     check(browser.selectEntryNamed("a.txt", false), "select an item before filtered delete");
     browser.requestDeleteSelected();
     key(browser, SDLK_f, KMOD_CTRL);
@@ -301,6 +326,8 @@ int main() {
     check(browser.m_currentPath == "/home/monolith/moved-sub",
           "browser view returns to a valid parent after deletion");
 
+    TTF_CloseFont(font);
+    TTF_Quit();
     std::filesystem::remove_all(hostRoot, ec);
     if (failures == 0) {
         std::cout << "ALL FILESYSTEM APP STATE TESTS PASSED\n";

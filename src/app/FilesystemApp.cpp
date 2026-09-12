@@ -1630,6 +1630,12 @@ void FilesystemApp::onResize(int clientWidth, int clientHeight) {
     }
 }
 
+void FilesystemApp::onUiScaleChanged() {
+    if (m_showContextMenu) {
+        updateContextMenuLayout();
+    }
+}
+
 void FilesystemApp::showContextMenu(int x, int y, int targetIndex) {
     closeContextMenu(); // close any existing menu first
 

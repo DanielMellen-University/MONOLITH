@@ -117,6 +117,8 @@ Deleting a file or folder that contains an open Editor or Drawing document does 
 - Rename
 - Delete
 
+An open context menu recalculates its size and hit targets when Settings changes the shared interface text scale, so menu actions remain aligned with their labels.
+
 **Right-click a directory:**
 
 - Open (enter directory)
