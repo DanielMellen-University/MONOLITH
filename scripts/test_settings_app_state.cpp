@@ -142,6 +142,11 @@ int main() {
               && settings.m_wallpaperCursorPos == 1,
           "moved wallpaper prompt caret stays on a UTF-8 boundary");
 
+    settings.m_wallpaperScrollPx = 42;
+    settings.onUiScaleChanged();
+    check(settings.m_wallpaperScrollPx == 0,
+          "settings resets pixel prompt scroll after UI scaling");
+
     std::filesystem::remove_all(hostRoot, ec);
     if (failures == 0) {
         std::cout << "ALL SETTINGS APP STATE TESTS PASSED\n";
