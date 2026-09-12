@@ -77,7 +77,7 @@ The Window Manager is the most foundational subsystem.
 - **Open-with routing**: `WindowManager::openPath` / `IWindowController::openPath` maps a case-insensitive `.modr` suffix → Drawing and all other files → Text Editor (used by Terminal `open` and the Filesystem Browser default Open).
 - Focusing an already-open file through the editor or Drawing singleton bridge also restores that window from minimized state before bringing it forward.
 - Bringing a minimized window forward re-applies desktop clamping first, so stale session geometry cannot put its title bar under the taskbar or off the desktop.
-- Desktop clamping keeps visible frames above the taskbar, shrinking below the normal minimum when a narrow logical desktop cannot fit a full-size window. If the usable region is shorter than the title bar, the frame stays anchored at a non-negative origin instead of producing negative geometry.
+- Desktop clamping keeps visible frames above the taskbar, shrinking below the normal minimum when a narrow logical desktop cannot fit a full-size window. If the usable region is shorter than the title bar, the frame stays anchored at a non-negative origin and rendering passes apps a zero-height client instead of negative geometry.
 - When a logical desktop resize or interactive resize changes a visible window's frame, the Window Manager sends `App::onResize` with the final client dimensions after all clamping. Apps never have to infer shell geometry changes from stale render rectangles.
 - The Alt+Tab title overlay converts measured text from screen pixels to logical width before sizing its box, then clips the native-size label inside that box.
 - No snapping or automatic tiling.
@@ -137,7 +137,7 @@ The Window Manager broadcasts virtual path creation, change, move, and removal e
 
 - The entire environment is rendered inside a single SDL2 window (currently fixed at 1280 × 720 logical pixels).
 - The Window Manager is responsible for compositing window frames and delegating content drawing to apps.
-- App rendering is clipped to the window's client rectangle at the shell boundary, so tiny or undersized app layouts cannot paint into title bars or the taskbar.
+- App rendering is clipped to the window's client rectangle at the shell boundary, so tiny or undersized app layouts cannot paint into title bars or the taskbar. Client rectangles may be zero-sized on an undersized desktop, but are never negative.
 - Rendering uses SDL2's accelerated renderer with VSYNC; apps draw text via SDL_ttf and primitives via SDL draw calls.
 
 ### 4. Input System

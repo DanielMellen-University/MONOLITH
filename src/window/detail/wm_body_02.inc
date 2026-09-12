@@ -167,10 +167,11 @@ void WindowManager::render(SDL_Renderer* renderer) {
         const int scaledW = static_cast<int>(win.rect.w * m_contentScale);
         const int scaledH = static_cast<int>(win.rect.h * m_contentScale);
         const int scaledTitleH = static_cast<int>(Window::TITLE_BAR_HEIGHT * m_contentScale);
+        const int scaledClientH = std::max(0, scaledH - scaledTitleH);
 
         // === Window background (content area) ===
         SDL_SetRenderDrawColor(renderer, 45, 45, 50, 255);
-        SDL_Rect contentRect = {screenX, screenY + scaledTitleH, scaledW, scaledH - scaledTitleH};
+        SDL_Rect contentRect = {screenX, screenY + scaledTitleH, scaledW, scaledClientH};
         SDL_RenderFillRect(renderer, &contentRect);
 
         // Delegate to the app (if present) so it can draw its own content

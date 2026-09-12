@@ -1,5 +1,10 @@
 # Changelog
 
+## 2026-09: Keep zero-height clients valid on tiny desktops
+
+- WindowManager now clamps rendered client height to zero when a desktop is shorter than a window title bar.
+- Added shared shell coverage so apps never receive negative client geometry.
+
 ## 2026-09: Keep Minesweeper controls separated in narrow clients
 
 - Minesweeper difficulty buttons now compress against the available HUD width so they cannot overlap the face/new-game button.

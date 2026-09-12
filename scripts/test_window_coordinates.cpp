@@ -208,6 +208,12 @@ int main() {
     check(window->rect.y == 0
               && window->rect.h <= undersizedUsable.h,
           "undersized logical desktops keep frame geometry non-negative");
+    wm.render(renderer);
+    check(probePtr->renderRect.h >= 0
+              && probePtr->renderClip.h >= 0
+              && probePtr->renderRect.h == 0
+              && probePtr->renderClip.h == 0,
+          "WindowManager never passes a negative client height to apps");
 
     auto rectInside = [](const SDL_Rect& rect, int width, int height) {
         return rect.x >= 0 && rect.y >= 0 && rect.w >= 0 && rect.h >= 0
