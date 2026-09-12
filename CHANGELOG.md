@@ -1,5 +1,10 @@
 # Changelog
 
+## 2026-09: Align wallpaper roadmap documentation
+
+- Updated the vision, architecture, and Terminal guides to describe shipped BMP/PNG/JPEG wallpaper support accurately.
+- Reserved future wording for richer wallpaper controls instead of already-shipped image formats.
+
 ## 2026-09: Keep wallpaper dispatch warning-free
 
 - Routed Window Manager wallpaper loading directly through `WallpaperImage` instead of a translation macro around `SDL_LoadBMP`.

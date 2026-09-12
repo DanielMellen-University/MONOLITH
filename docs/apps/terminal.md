@@ -85,7 +85,7 @@ When the cursor is immediately after a closed quoted token, Tab does nothing. Th
 
 After a successful `mv`, any open Text Editor or Drawing window bound to the source path follows the normalized destination path. Moving a directory also updates bindings for open files beneath it, and any Terminal or Filesystem Browser currently inside that directory follows the new location.
 
-After a successful `mkdir`, `touch`, or `cp`, open Filesystem Browser windows refresh when the new or changed entry belongs directly to the folder they are viewing. If the operation also creates missing parent directories, ancestor Browser windows refresh as well. Creating or overwriting a file by saving a Text Editor document or Drawing sketch uses the same notification path. If the changed path is the active BMP wallpaper, the desktop reloads it on the next render.
+After a successful `mkdir`, `touch`, or `cp`, open Filesystem Browser windows refresh when the new or changed entry belongs directly to the folder they are viewing. If the operation also creates missing parent directories, ancestor Browser windows refresh as well. Creating or overwriting a file by saving a Text Editor document or Drawing sketch uses the same notification path. If the changed path is the active wallpaper image, the desktop reloads it on the next render.
 
 The shared Filesystem Browser clipboard also follows a moved source, so a pending Copy or Cut can still be pasted after another window renames or moves that source.
 
