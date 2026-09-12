@@ -10,11 +10,9 @@ namespace monolith::app {
 
 namespace {
 constexpr int kPathBarHeight = 28;
-constexpr int kToolbarY = 30;
 constexpr int kToolbarButtonHeight = 20;
 constexpr int kToolbarPadding = 8;
 constexpr int kToolbarGap = 6;
-constexpr int kListTop = 52;
 constexpr int kStatusBarHeight = 22;
 constexpr int kStatusBarPadding = 8;
 constexpr int kMinimumListHeight = 20;
@@ -898,8 +896,8 @@ int FilesystemApp::getVisibleRowCount(const SDL_Rect& contentRect) const {
     int rh = getRowHeight();
     if (rh <= 0) return 10;
 
-    const int reservedTop = kListTop;
-    const int reservedBottom = kStatusBarHeight + kStatusBarPadding;
+    const int reservedTop = getListTop();
+    const int reservedBottom = getStatusBarHeight() + kStatusBarPadding;
     int available = contentRect.h - reservedTop - reservedBottom;
     if (available < kMinimumListHeight) available = kMinimumListHeight;
 
@@ -927,11 +925,12 @@ void FilesystemApp::handleMouseButton(const SDL_MouseButtonEvent& e) {
 
     // === Right click → show context menu ===
     if (e.button == SDL_BUTTON_RIGHT) {
-        if (my >= kListTop) {
+        const int listTop = getListTop();
+        if (my >= listTop) {
             int rowHeight = getRowHeight();
             if (rowHeight <= 0) rowHeight = 20;
 
-            int relY = my - kListTop;
+            int relY = my - listTop;
             int clickedRow = m_scrollOffset + (relY / rowHeight);
 
             if (clickedRow >= 0 && clickedRow < static_cast<int>(m_entries.size())) {
@@ -998,13 +997,14 @@ void FilesystemApp::handleMouseButton(const SDL_MouseButtonEvent& e) {
     }
 
     // Path bar + toolbar area is above the list
-    if (my < kListTop) return;
+    const int listTop = getListTop();
+    if (my < listTop) return;
 
     // Compute which row was clicked
     int rowHeight = getRowHeight();
     if (rowHeight <= 0) rowHeight = 20;
 
-    int relY = my - kListTop;
+    int relY = my - listTop;
     if (relY < 0) return;
 
     int clickedRow = m_scrollOffset + (relY / rowHeight);
@@ -1286,12 +1286,36 @@ int FilesystemApp::getRowHeight() const {
     return TTF_FontHeight(m_font) + 4; // small padding between rows
 }
 
+int FilesystemApp::getPathBarHeight() const {
+    const int fontHeight = m_font ? TTF_FontHeight(m_font) : 16;
+    return std::max(kPathBarHeight, fontHeight + 6);
+}
+
+int FilesystemApp::getToolbarY() const {
+    return getPathBarHeight() + 2;
+}
+
+int FilesystemApp::getToolbarButtonHeight() const {
+    const int fontHeight = m_font ? TTF_FontHeight(m_font) : 16;
+    return std::max(kToolbarButtonHeight, fontHeight + 2);
+}
+
+int FilesystemApp::getListTop() const {
+    return getToolbarY() + getToolbarButtonHeight() + 2;
+}
+
+int FilesystemApp::getStatusBarHeight() const {
+    const int fontHeight = m_font ? TTF_FontHeight(m_font) : 16;
+    return std::max(kStatusBarHeight, fontHeight + 4);
+}
+
 void FilesystemApp::drawPathBar(SDL_Renderer* r, const SDL_Rect& contentRect, int& outTopY) {
+    const int pathBarHeight = getPathBarHeight();
     SDL_Rect bar = {
         contentRect.x,
         contentRect.y,
         contentRect.w,
-        kPathBarHeight
+        pathBarHeight
     };
 
     // Slightly different background for the path area
@@ -1300,7 +1324,7 @@ void FilesystemApp::drawPathBar(SDL_Renderer* r, const SDL_Rect& contentRect, in
 
     // Current path text
     const int filterBoxW = std::min(180, std::max(90, contentRect.w / 3));
-    m_filterHitRect = {contentRect.w - filterBoxW - 8, 4, filterBoxW, kPathBarHeight - 8};
+    m_filterHitRect = {contentRect.w - filterBoxW - 8, 4, filterBoxW, pathBarHeight - 8};
     if (m_font) {
         SDL_Color pathColor = {180, 190, 200, 255};
         SDL_Surface* surf = TTF_RenderUTF8_Blended(m_font, m_currentPath.c_str(), pathColor);
@@ -1312,12 +1336,12 @@ void FilesystemApp::drawPathBar(SDL_Renderer* r, const SDL_Rect& contentRect, in
                     contentRect.x + 10,
                     contentRect.y,
                     pathVisibleWidth,
-                    kPathBarHeight
+                    pathBarHeight
                 };
                 SDL_RenderSetClipRect(r, &pathClip);
                 SDL_Rect dst = {
                     contentRect.x + 10,
-                    contentRect.y + (kPathBarHeight - surf->h) / 2,
+                    contentRect.y + (pathBarHeight - surf->h) / 2,
                     surf->w,
                     surf->h
                 };
@@ -1393,23 +1417,25 @@ void FilesystemApp::drawPathBar(SDL_Renderer* r, const SDL_Rect& contentRect, in
         }
     }
 
-    outTopY = contentRect.y + kPathBarHeight;
+    outTopY = contentRect.y + pathBarHeight;
 }
 
 void FilesystemApp::drawToolbar(SDL_Renderer* r, const SDL_Rect& contentRect) {
+    const int toolbarY = getToolbarY();
+    const int toolbarButtonHeight = getToolbarButtonHeight();
     // Store button rects in relative coordinates (for hit testing with relative mouse events)
     int relX = kToolbarPadding;
 
     auto drawButton = [&](SDL_Rect& outRect, const char* label, int w) {
         // Store relative rect for input
-        outRect = {relX, kToolbarY, w, kToolbarButtonHeight};
+        outRect = {relX, toolbarY, w, toolbarButtonHeight};
 
         // Draw using absolute screen coordinates
         SDL_Rect drawRect = {
             contentRect.x + relX,
-            contentRect.y + kToolbarY,
+            contentRect.y + toolbarY,
             w,
-            kToolbarButtonHeight
+            toolbarButtonHeight
         };
 
         // Button background
@@ -1459,7 +1485,7 @@ void FilesystemApp::drawList(SDL_Renderer* r, const SDL_Rect& contentRect, int l
     const int rowH = getRowHeight();
     (void)rowH; // used via getVisibleRowCount
 
-    const int listHeight = contentRect.h - (listTopY - contentRect.y) - 6 - kStatusBarHeight;
+    const int listHeight = contentRect.h - (listTopY - contentRect.y) - 6 - getStatusBarHeight();
 
     SDL_Rect listArea = {
         contentRect.x,
@@ -1613,7 +1639,7 @@ void FilesystemApp::render(SDL_Renderer* renderer, const SDL_Rect& contentRect) 
     int listTop = 0;
     drawPathBar(renderer, contentRect, listTop);
     drawToolbar(renderer, contentRect);
-    drawList(renderer, contentRect, contentRect.y + kListTop);
+    drawList(renderer, contentRect, contentRect.y + getListTop());
     drawStatusBar(renderer, contentRect);
 
     if (m_showContextMenu) {
@@ -1844,11 +1870,12 @@ int FilesystemApp::contextMenuItemAt(int x, int y) const {
 }
 
 void FilesystemApp::drawStatusBar(SDL_Renderer* r, const SDL_Rect& contentRect) {
+    const int statusBarHeight = getStatusBarHeight();
     SDL_Rect bar = {
         contentRect.x,
-        contentRect.y + contentRect.h - kStatusBarHeight,
+        contentRect.y + contentRect.h - statusBarHeight,
         contentRect.w,
-        kStatusBarHeight
+        statusBarHeight
     };
 
     SDL_SetRenderDrawColor(r, 30, 32, 38, 255);
@@ -1889,7 +1916,7 @@ void FilesystemApp::drawStatusBar(SDL_Renderer* r, const SDL_Rect& contentRect) 
             SDL_RenderSetClipRect(r, &statusClip);
             SDL_Rect dst = {
                 contentRect.x + 10,
-                bar.y + (kStatusBarHeight - surf->h) / 2,
+                bar.y + (statusBarHeight - surf->h) / 2,
                 surf->w,
                 surf->h
             };

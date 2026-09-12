@@ -234,6 +234,9 @@ int main() {
     const SDL_Rect menuBeforeScale = browser.m_contextMenuRect;
     check(menuBeforeScale.w > 0 && menuBeforeScale.h > 0,
           "context menu layout is available before UI scaling");
+    const int pathBarBeforeScale = browser.getPathBarHeight();
+    const int toolbarBeforeScale = browser.getToolbarButtonHeight();
+    const int statusBarBeforeScale = browser.getStatusBarHeight();
     check(TTF_SetFontSize(font, 20) == 0, "browser state applies larger test font");
     browser.m_filterScrollPx = 42;
     browser.onUiScaleChanged();
@@ -242,6 +245,10 @@ int main() {
           "open context menu relayouts after UI scale changes");
     check(browser.m_filterScrollPx == 0,
           "filter prompt resets its cached offset after UI scale changes");
+    check(browser.getPathBarHeight() > pathBarBeforeScale
+              && browser.getToolbarButtonHeight() > toolbarBeforeScale
+              && browser.getStatusBarHeight() > statusBarBeforeScale,
+          "browser chrome bands grow with the shared interface font");
 
     check(browser.selectEntryNamed("a.txt", false), "select an item before filtered delete");
     browser.requestDeleteSelected();

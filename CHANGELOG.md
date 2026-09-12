@@ -1,5 +1,10 @@
 # Changelog
 
+## 2026-09: Keep Filesystem Browser chrome aligned after text scaling
+
+- The path bar, toolbar buttons, list origin, and status bar now share font-aware geometry with the existing row and context-menu metrics.
+- Mouse row calculations and visible-row counts use the same dynamic bands, with focused scale coverage.
+
 ## 2026-09: Keep Text Editor prompts inside the scaled status bar
 
 - Text Editor now derives its status-bar height from the active interface font, keeping prompt text and mouse hit testing aligned at larger scales.

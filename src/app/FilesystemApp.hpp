@@ -81,6 +81,11 @@ private:
 
     // === Rendering helpers ===
     int getRowHeight() const;
+    int getPathBarHeight() const;
+    int getToolbarY() const;
+    int getToolbarButtonHeight() const;
+    int getListTop() const;
+    int getStatusBarHeight() const;
     void drawPathBar(SDL_Renderer* r, const SDL_Rect& contentRect, int& outTopY);
     void drawList(SDL_Renderer* r, const SDL_Rect& contentRect, int topY);
     void drawToolbar(SDL_Renderer* r, const SDL_Rect& contentRect);
