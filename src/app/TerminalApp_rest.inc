@@ -1,11 +1,6 @@
 void TerminalApp::scrollHistory(int delta) {
-    int visible = getMaxVisibleLines({0, 0, m_clientWidth, m_clientHeight});
-    int maxScroll = static_cast<int>(m_history.size()) - visible + 2;
-    if (maxScroll < 0) maxScroll = 0;
-
     m_scrollOffset += delta;
-    if (m_scrollOffset < 0) m_scrollOffset = 0;
-    if (m_scrollOffset > maxScroll) m_scrollOffset = maxScroll;
+    m_scrollOffset = std::clamp(m_scrollOffset, 0, getMaxScrollOffset());
 }
 
 void TerminalApp::handleMouseWheel(const SDL_MouseWheelEvent& e) {
@@ -262,8 +257,23 @@ int TerminalApp::getLineHeight() const {
 
 int TerminalApp::getMaxVisibleLines(const SDL_Rect& contentRect) const {
     int lh = getLineHeight();
-    if (lh <= 0) return 10;
-    return std::max(3, (contentRect.h - 20) / lh); // small padding
+    if (lh <= 0) return 0;
+
+    constexpr int padding = 8;
+    constexpr int inputStripExtra = 14;
+    constexpr int historyBottomGap = 4;
+    const int inputStripHeight = lh + inputStripExtra;
+    const int historyHeight = contentRect.h
+        - padding * 2
+        - inputStripHeight
+        - historyBottomGap;
+    if (historyHeight <= 0) return 0;
+    return historyHeight / lh;
+}
+
+int TerminalApp::getMaxScrollOffset() const {
+    const int visible = getMaxVisibleLines({0, 0, m_clientWidth, m_clientHeight});
+    return std::max(0, static_cast<int>(m_history.size()) - visible);
 }
 
 std::string TerminalApp::resolvePath(const std::string& path) const {
@@ -323,7 +333,7 @@ void TerminalApp::render(SDL_Renderer* renderer, const SDL_Rect& contentRect) {
         contentRect.x + padding,
         contentRect.y + padding,
         contentRect.w - padding * 2,
-        contentRect.h - padding * 2 - inputStripHeight - 4
+        std::max(0, contentRect.h - padding * 2 - inputStripHeight - 4)
     };
 
     // Draw input background strip (clearly separated)
@@ -489,18 +499,11 @@ void TerminalApp::onResize(int clientWidth, int clientHeight) {
     m_clientWidth = clientWidth;
     m_clientHeight = clientHeight;
     // Keep scroll within bounds after resize
-    int maxScroll = static_cast<int>(m_history.size()) - getMaxVisibleLines({0,0, m_clientWidth, m_clientHeight}) + 2;
-    if (maxScroll < 0) maxScroll = 0;
-    if (m_scrollOffset > maxScroll) m_scrollOffset = maxScroll;
+    m_scrollOffset = std::clamp(m_scrollOffset, 0, getMaxScrollOffset());
 }
 
 void TerminalApp::onUiScaleChanged() {
-    const int maxScroll = std::max(
-        0,
-        static_cast<int>(m_history.size())
-            - getMaxVisibleLines({0, 0, m_clientWidth, m_clientHeight})
-            + 2);
-    m_scrollOffset = std::clamp(m_scrollOffset, 0, maxScroll);
+    m_scrollOffset = std::clamp(m_scrollOffset, 0, getMaxScrollOffset());
 
     // Font metrics changed, so pixel-based horizontal offsets must be measured
     // again by the next render pass.

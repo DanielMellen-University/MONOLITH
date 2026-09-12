@@ -1,5 +1,11 @@
 # Changelog
 
+## 2026-09: Bound Terminal scrollback to its rendered history area
+
+- Terminal scroll limits now use the rows that actually fit above the input strip instead of an overestimated height with extra scroll allowance.
+- Resizing, text scaling, Page Up, Page Down, and mouse-wheel scrolling now clamp to the oldest fully visible output; tiny clients no longer claim or paint unavailable history rows.
+- Added focused Terminal coverage and updated the app guide and verification notes.
+
 ## 2026-09: Keep tiny Browser clients inside their chrome
 
 - Filesystem Browser now reports zero visible rows when its path, toolbar, and status bands consume the client area.

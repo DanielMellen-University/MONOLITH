@@ -50,6 +50,7 @@ private:
     // Drawing helpers
     int getLineHeight() const;
     int getMaxVisibleLines(const SDL_Rect& contentRect) const;
+    int getMaxScrollOffset() const;
 
     std::string getInputPrompt() const;  // includes cwd for better UX
 

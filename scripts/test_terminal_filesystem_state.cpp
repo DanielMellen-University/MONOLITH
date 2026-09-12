@@ -72,7 +72,16 @@ int main() {
     check(fs.createDirectory("/home/monolith/quoted dir"),
           "create directory for quoted completion");
 
-    TestTerminal terminal(nullptr, &fs);
+    check(TTF_Init() == 0, "terminal state SDL_ttf initialize");
+    TTF_Font* font = TTF_OpenFont("assets/fonts/DejaVuSans.ttf", 14);
+    check(font != nullptr, "terminal state loads test font");
+    if (!font) {
+        TTF_Quit();
+        std::filesystem::remove_all(hostRoot, ec);
+        return 1;
+    }
+
+    TestTerminal terminal(font, &fs);
     TestController controller;
     terminal.setController(&controller);
     check(terminal.m_commandHistory == std::vector<std::string>{"echo first", "echo second"},
@@ -183,6 +192,28 @@ int main() {
     check(terminal.m_inputBuffer == "cat \"/home/monolith/my  file.txt\"",
           "completion after a closed quoted file leaves the command unchanged");
 
+    terminal.m_history.assign(40, "output");
+    terminal.onResize(320, 240);
+    const int visibleLines = terminal.getMaxVisibleLines({0, 0, 320, 240});
+    check(visibleLines > 0 && visibleLines < 40,
+          "terminal visible lines match the rendered history area");
+    terminal.scrollHistory(1000);
+    check(terminal.m_scrollOffset == 40 - visibleLines,
+          "terminal scrollback stops at the oldest fully visible output");
+    terminal.onResize(320, 40);
+    check(terminal.getMaxVisibleLines({0, 0, 320, 40}) == 0,
+          "terminal reports no history rows when the input strip fills the client");
+    check(terminal.m_scrollOffset == 40 - visibleLines,
+          "terminal resize preserves a scrollback offset inside tiny client bounds");
+    terminal.onResize(320, 240);
+    terminal.m_scrollOffset = 39;
+    check(TTF_SetFontSize(font, 22) == 0,
+          "terminal state applies a larger test font");
+    terminal.onUiScaleChanged();
+    const int scaledVisibleLines = terminal.getMaxVisibleLines({0, 0, 320, 240});
+    check(terminal.m_scrollOffset == 40 - scaledVisibleLines,
+          "terminal text scaling clamps scrollback to the new history area");
+
     check(fs.createDirectory("/home/monolith/work/nested"),
           "create terminal cwd move source");
     terminal.m_cwd = "/home/monolith/work/nested";
@@ -204,8 +235,12 @@ int main() {
     std::filesystem::remove_all(hostRoot, ec);
     if (failures == 0) {
         std::cout << "ALL TERMINAL FILESYSTEM TESTS PASSED\n";
+        TTF_CloseFont(font);
+        TTF_Quit();
         return 0;
     }
     std::cerr << failures << " test(s) failed\n";
+    TTF_CloseFont(font);
+    TTF_Quit();
     return 1;
 }

@@ -103,6 +103,8 @@ History is saved after each submitted command. Command history is capped (oldest
 
 History loading accepts both Unix and Windows line endings, so recalled commands do not carry a hidden carriage return into command parsing.
 
+Output scrolling is bounded to the history rows that fit above the input strip. Page Up, Page Down, and the mouse wheel cannot scroll beyond the oldest fully visible output, and resizing or changing the interface text scale clamps the saved scroll position to the new history area. If the client is too short to expose a history row, the Terminal leaves the history area empty instead of painting through the input strip.
+
 ## Argument Quoting
 
 Whitespace splits arguments unless you quote them:
