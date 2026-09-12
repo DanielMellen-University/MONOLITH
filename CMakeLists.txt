@@ -26,6 +26,22 @@ add_custom_command(
 )
 add_custom_target(monolith_stb_image DEPENDS "${MONOLITH_STB_IMAGE_AMALGAM}")
 
+# Decompress SettingsApp body includes (MCP-friendly compressed fragments).
+set(MONOLITH_SETTINGS_BODIES_DIR "${CMAKE_CURRENT_BINARY_DIR}/generated/settings")
+file(GLOB MONOLITH_SETTINGS_BODY_Z64
+    "${CMAKE_SOURCE_DIR}/src/app/SettingsApp_body_*.inc.z64")
+add_custom_command(
+    OUTPUT "${MONOLITH_SETTINGS_BODIES_DIR}/SettingsApp_body_00.inc"
+    COMMAND ${CMAKE_COMMAND} -E make_directory "${MONOLITH_SETTINGS_BODIES_DIR}"
+    COMMAND python3 "${CMAKE_SOURCE_DIR}/src/app/decompress_settings_bodies.py"
+            "${MONOLITH_SETTINGS_BODIES_DIR}"
+    DEPENDS ${MONOLITH_SETTINGS_BODY_Z64}
+            "${CMAKE_SOURCE_DIR}/src/app/decompress_settings_bodies.py"
+    COMMENT "Decompressing SettingsApp body includes"
+    VERBATIM
+)
+add_custom_target(monolith_settings_bodies DEPENDS "${MONOLITH_SETTINGS_BODIES_DIR}/SettingsApp_body_00.inc")
+
 add_executable(monolith
     src/main.cpp
     src/window/WindowManager.cpp
@@ -54,8 +70,9 @@ add_executable(monolith
 target_include_directories(monolith PRIVATE
     ${SDL2_TTF_INCLUDE_DIRS}
     ${CMAKE_CURRENT_BINARY_DIR}/generated
+    ${CMAKE_CURRENT_BINARY_DIR}/generated/settings
 )
-add_dependencies(monolith monolith_stb_image)
+add_dependencies(monolith monolith_stb_image monolith_settings_bodies)
 
 target_link_libraries(monolith
     PRIVATE
