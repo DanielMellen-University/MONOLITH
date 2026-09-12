@@ -1,5 +1,10 @@
 # Changelog
 
+## 2026-09: Keep session focus on visible windows
+
+- Restoring a minimized final session entry now hands keyboard focus to the topmost visible window.
+- Added focus lifecycle coverage for minimized restored geometry.
+
 ## 2026-09: Keep game overlays readable after text scaling
 
 - Snake and Minesweeper now space overlay lines from the active font height instead of a fixed 18px step.

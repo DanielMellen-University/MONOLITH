@@ -66,6 +66,12 @@ void WindowManager::applyRestoredGeometry(Window* window, int x, int y, int w, i
         const int clientH = window->rect.h - Window::TITLE_BAR_HEIGHT;
         window->app->onResize(window->rect.w, clientH > 0 ? clientH : 0);
     }
+
+    // A session entry is created focused, then its saved minimized state is
+    // applied. Do not leave keyboard focus attached to that hidden window.
+    if (window->minimized && m_focusedWindow == window) {
+        focusTopmostVisibleWindow();
+    }
 }
 
 bool WindowManager::loadSession(const std::string& hostPath) {
