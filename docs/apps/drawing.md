@@ -11,6 +11,7 @@ Drawing files use the `.modr` extension (Monolith Drawing Raster).
 - [Keyboard-First Reference](#keyboard-first-reference)
 - [File Lifecycle](#file-lifecycle)
 - [Toolbar](#toolbar)
+- [Display Scaling](#display-scaling)
 - [Colors](#colors)
 - [Mouse Controls](#mouse-controls)
 - [Prompt Behavior](#prompt-behavior)
@@ -306,6 +307,17 @@ When the window is resized:
 - Resizing a file-backed sketch marks it `[modified]`; save again to persist the new dimensions.
 
 The standard canvas background is RGB `245,245,248`. Eraser uses that same color, so it restores the background rather than revealing transparency.
+
+## Display Scaling
+
+Drawing follows the shared interface text scale from Settings. Changing that scale updates the toolbar and status-bar text without changing the raster itself:
+
+- Existing canvas pixels, dimensions, file binding, dirty state, and undo history stay unchanged.
+- Toolbar labels and status messages use the new interface font metrics on the next render.
+- If Save, Open, or RGB is active, the prompt is remeasured and its cached horizontal offset is reset so the caret remains visible at the new text width.
+- A scale change does not save, reload, resize, or otherwise modify the sketch.
+
+After changing the scale, continue editing the current prompt normally. The prompt may scroll horizontally again as the caret moves through a long path.
 
 ## Colors
 

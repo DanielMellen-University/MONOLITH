@@ -1,5 +1,9 @@
 # Changelog
 
+## 2026-09: Document Drawing display scaling
+
+- Documented how shared interface text scaling affects Drawing prompts and leaves canvas data, history, and file state unchanged.
+
 ## 2026-09: Isolate shell pointer releases
 
 - Taskbar and Start-menu clicks now consume their matching mouse-up instead of forwarding an orphaned release to the focused app.
