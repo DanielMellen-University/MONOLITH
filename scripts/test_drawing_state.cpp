@@ -62,11 +62,13 @@ int main() {
                        monolith::drawing::encodeModr(2, 2, pixels)),
           "write resize drawing");
 
+    check(SDL_Init(SDL_INIT_VIDEO) == 0, "drawing state SDL initialize");
     check(TTF_Init() == 0, "drawing state SDL_ttf initialize");
     TTF_Font* font = TTF_OpenFont("assets/fonts/DejaVuSans.ttf", 14);
     check(font != nullptr, "drawing state loads test font");
     if (!font) {
         TTF_Quit();
+        SDL_Quit();
         std::filesystem::remove_all(hostRoot, ec);
         return 1;
     }
@@ -220,15 +222,36 @@ int main() {
     check(drawing.m_pathPromptBuffer == "/archive/",
           "Save prompt returns to a valid parent after deletion");
 
+    SDL_Surface* surface = SDL_CreateRGBSurfaceWithFormat(
+        0, 320, 320, 32, SDL_PIXELFORMAT_RGBA32);
+    SDL_Renderer* renderer = surface ? SDL_CreateSoftwareRenderer(surface) : nullptr;
+    check(renderer != nullptr, "drawing state creates a software renderer");
+    if (renderer) {
+        const SDL_Rect expectedClip{5, 6, 180, 160};
+        SDL_RenderSetClipRect(renderer, &expectedClip);
+        drawing.render(renderer, {0, 0, 280, 280});
+        SDL_Rect restoredClip{};
+        SDL_RenderGetClipRect(renderer, &restoredClip);
+        check(restoredClip.x == expectedClip.x
+                  && restoredClip.y == expectedClip.y
+                  && restoredClip.w == expectedClip.w
+                  && restoredClip.h == expectedClip.h,
+              "Drawing restores the caller renderer clip after rendering");
+        SDL_DestroyRenderer(renderer);
+    }
+    if (surface) SDL_FreeSurface(surface);
+
     std::filesystem::remove_all(hostRoot, ec);
     if (failures == 0) {
         std::cout << "ALL DRAWING STATE TESTS PASSED\n";
         TTF_CloseFont(font);
         TTF_Quit();
+        SDL_Quit();
         return 0;
     }
     std::cerr << failures << " test(s) failed\n";
     TTF_CloseFont(font);
     TTF_Quit();
+    SDL_Quit();
     return 1;
 }

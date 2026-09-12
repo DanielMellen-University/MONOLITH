@@ -604,6 +604,8 @@ Main implementation files:
 
 Canvas GPU path (`syncTexture`): recreate the streaming texture only when missing or size-changed; upload CPU pixels only while `m_textureDirty` is set by paint, undo, load, or resize.
 
+Drawing status-bar text uses a narrower internal clip. It intersects that clip with the caller's renderer clip and restores the caller clip after the status bar is drawn, so embedded rendering cannot leak into neighboring shell regions.
+
 The Drawing implementation has three boundaries worth preserving when changing it:
 
 1. `DrawingRaster` owns format and pixel rules that can be tested without SDL.

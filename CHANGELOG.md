@@ -1,5 +1,10 @@
 # Changelog
 
+## 2026-09: Preserve Drawing renderer boundaries
+
+- Drawing now intersects its status prompt clip with the caller clip and restores that clip after rendering.
+- Added renderer-clip regression coverage and updated Drawing and architecture documentation.
+
 ## 2026-09: Preserve Text Editor renderer boundaries
 
 - Text Editor now intersects document and status clips with the caller clip and restores that clip after each region.
