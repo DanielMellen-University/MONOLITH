@@ -1,5 +1,10 @@
 # Changelog
 
+## 2026-09: Consolidate Drawing verification documentation
+
+- Expanded the Drawing guide's contributor verification block with the current integration, raster, state, format, and optional smoke commands.
+- Linked the user-facing guide to the maintenance expectations for Drawing prompt, file-format, and shell-routing changes.
+
 ## 2026-09: Keep Settings controls readable after scaling
 
 - Settings now derives section spacing, wallpaper fields, clock and scale controls, and footer geometry from the active interface font instead of fixed text bands.

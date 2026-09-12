@@ -625,4 +625,18 @@ Verification scripts: see [Development Scripts](../development/scripts.md). The 
 ./scripts/verify_drawing_integration.sh
 g++ -std=c++23 scripts/test_drawing_roadmap.cpp src/app/DrawingRaster.cpp -o build/test_drawing_roadmap && ./build/test_drawing_roadmap
 g++ -std=c++23 scripts/test_drawing_state.cpp src/app/DrawingApp.cpp src/app/DrawingRaster.cpp src/fs/Filesystem.cpp $(pkg-config --cflags --libs sdl2 SDL2_ttf) -o build/test_drawing_state && ./build/test_drawing_state
+g++ -std=c++23 scripts/test_modr_format.cpp -o build/test_modr_format && ./build/test_modr_format
 ```
+
+These checks cover shell wiring, the standalone `.modr` raster contract, and
+stateful editor paths without requiring an interactive desktop session. The
+optional smoke script exercises the built application through the headless
+display path:
+
+```bash
+./scripts/headless_drawing_smoke.sh
+```
+
+Keep this guide and [Development Scripts](../development/scripts.md) aligned
+when a Drawing shortcut, prompt rule, file-format invariant, or shell-routing
+behavior changes.
