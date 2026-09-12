@@ -54,6 +54,7 @@ Per-difficulty best times are stored on the host at `~/.monolith/minesweeper_bes
 - Face and difficulty button hitboxes share the same client-space geometry as their drawn controls, including after resize and interface-scale changes
 - Pressed unopened cell darkens briefly
 - The HUD status line clips before the face button, and the footer clips at the window edge, so narrow windows do not cover controls with text
+- The three difficulty buttons compress below their normal width when necessary to stay before the face button instead of overlapping it
 - HUD, footer, and difficulty button geometry grow with the shared interface font, keeping the 90%, 100%, and 115% scale choices aligned without clipping labels
 - Win / lose messages are a **centered vertical stack** on the board (title, time/best or restart hint, optional **NEW BEST!**)
 - Overlay line spacing follows the active interface font so scaled text does not overlap on end-state screens

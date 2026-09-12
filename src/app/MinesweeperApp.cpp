@@ -388,9 +388,14 @@ int MinesweeperApp::footerHeight() const {
 }
 
 SDL_Rect MinesweeperApp::clientDifficultyButtonRect(int index) const {
-    const int btnW = 70;
+    const int startX = 10;
     const int gap = 6;
-    return {10 + index * (btnW + gap), kDifficultyButtonY, btnW, m_difficultyButtonHeight};
+    const int faceX = clientFaceButtonRect().x;
+    const int available = std::max(0, faceX - startX - startX);
+    const int preferredW = 70;
+    const int maxW = std::max(1, (available - gap * 2) / 3);
+    const int btnW = std::min(preferredW, maxW);
+    return {startX + index * (btnW + gap), kDifficultyButtonY, btnW, m_difficultyButtonHeight};
 }
 
 SDL_Rect MinesweeperApp::clientFaceButtonRect() const {

@@ -64,6 +64,12 @@ int main() {
     game.handleEvent(difficultyClick);
     check(game.m_difficulty == MinesweeperApp::Difficulty::Beginner,
           "Minesweeper input uses the same difficulty button geometry as rendering");
+    const SDL_Rect faceAtNarrowWidth = game.clientFaceButtonRect();
+    for (int i = 0; i < 3; ++i) {
+        const SDL_Rect button = game.clientDifficultyButtonRect(i);
+        check(button.x >= 0 && button.x + button.w <= faceAtNarrowWidth.x - 6,
+              "Minesweeper difficulty controls stay before the face button");
+    }
     game.newGame(MinesweeperApp::Difficulty::Expert);
     game.onResize(120, 120);
     int boardX = 0;
@@ -76,6 +82,12 @@ int main() {
               && boardX + boardW <= 120
               && boardY + boardH <= 120 - game.footerHeight(),
           "Minesweeper keeps the complete expert board inside a tiny client area");
+    const SDL_Rect faceAtTinyWidth = game.clientFaceButtonRect();
+    for (int i = 0; i < 3; ++i) {
+        const SDL_Rect button = game.clientDifficultyButtonRect(i);
+        check(button.x >= 0 && button.x + button.w <= faceAtTinyWidth.x - 6,
+              "Minesweeper tiny-client difficulty controls stay contained");
+    }
     game.m_minesPlaced = true;
     game.m_state = MinesweeperApp::State::Playing;
     game.m_focusPaused = false;

@@ -1,5 +1,10 @@
 # Changelog
 
+## 2026-09: Keep Minesweeper controls separated in narrow clients
+
+- Minesweeper difficulty buttons now compress against the available HUD width so they cannot overlap the face/new-game button.
+- Added focused coverage for normal narrow and tiny client widths and updated the game guide.
+
 ## 2026-09: Keep Browser filter controls inside narrow clients
 
 - Filesystem Browser now derives a client-contained filter rectangle and reduces its width when the normal minimum cannot fit.
