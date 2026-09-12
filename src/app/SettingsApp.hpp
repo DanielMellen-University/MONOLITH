@@ -59,6 +59,10 @@ private:
     int scrollAreaHeight() const;
     int computeContentHeight() const;
     void clampScrollOffset();
+    int getLineHeight() const;
+    int getControlSize() const;
+    int getFieldHeight() const;
+    int getFooterHeight() const;
     void syncWallpaperBufferFromShell();
 
     static constexpr int kPresetCount = 6;

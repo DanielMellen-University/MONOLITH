@@ -3,6 +3,7 @@
 #include "../src/fs/Filesystem.hpp"
 
 #include <SDL2/SDL.h>
+#include <SDL2/SDL_ttf.h>
 #include <filesystem>
 #include <iostream>
 #include <string>
@@ -39,8 +40,8 @@ struct TestController final : monolith::app::IWindowController {
 struct TestSettings final : monolith::app::SettingsApp {
     using monolith::app::App::setController;
 
-    TestSettings(monolith::fs::Filesystem* fs)
-        : SettingsApp(nullptr, fs) {}
+    TestSettings(TTF_Font* font, monolith::fs::Filesystem* fs)
+        : SettingsApp(font, fs) {}
 };
 
 void key(TestSettings& settings, SDL_Keycode sym) {
@@ -75,7 +76,16 @@ int main() {
     check(fs.writeFile("/Wallpapers/notes.txt", "not a wallpaper"),
           "create non-BMP completion distractor");
 
-    TestSettings settings(&fs);
+    check(TTF_Init() == 0, "settings state SDL_ttf initialize");
+    TTF_Font* font = TTF_OpenFont("assets/fonts/DejaVuSans.ttf", 14);
+    check(font != nullptr, "settings state loads test font");
+    if (!font) {
+        TTF_Quit();
+        std::filesystem::remove_all(hostRoot, ec);
+        return 1;
+    }
+
+    TestSettings settings(font, &fs);
     TestController controller;
     settings.setController(&controller);
     controller.logicalWidth = 1024;
@@ -143,11 +153,25 @@ int main() {
           "moved wallpaper prompt caret stays on a UTF-8 boundary");
 
     settings.m_wallpaperScrollPx = 42;
+    const int baseLineHeight = settings.getLineHeight();
+    const int baseControlSize = settings.getControlSize();
+    const int baseFieldHeight = settings.getFieldHeight();
+    const int baseFooterHeight = settings.getFooterHeight();
+    const int baseContentHeight = settings.m_contentHeight;
+    check(TTF_SetFontSize(font, 22) == 0, "settings state applies larger test font");
     settings.onUiScaleChanged();
     check(settings.m_wallpaperScrollPx == 0,
           "settings resets pixel prompt scroll after UI scaling");
+    check(settings.getLineHeight() > baseLineHeight
+              && settings.getControlSize() > baseControlSize
+              && settings.getFieldHeight() > baseFieldHeight
+              && settings.getFooterHeight() > baseFooterHeight
+              && settings.m_contentHeight > baseContentHeight,
+          "Settings layout bands grow with the shared interface font");
 
     std::filesystem::remove_all(hostRoot, ec);
+    TTF_CloseFont(font);
+    TTF_Quit();
     if (failures == 0) {
         std::cout << "ALL SETTINGS APP STATE TESTS PASSED\n";
         return 0;

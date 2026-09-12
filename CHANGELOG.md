@@ -1,5 +1,10 @@
 # Changelog
 
+## 2026-09: Keep Settings controls readable after scaling
+
+- Settings now derives section spacing, wallpaper fields, clock and scale controls, and footer geometry from the active interface font instead of fixed text bands.
+- Updated the compressed Settings body sources and added 22pt layout coverage.
+
 ## 2026-09: Keep Drawing input aligned after scaling
 
 - Drawing now maps client pointer coordinates through the displayed canvas rectangle, so preserved raster data remains correctly addressed after interface text scaling changes the canvas height.
