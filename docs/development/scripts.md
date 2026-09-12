@@ -42,7 +42,7 @@ Headless Pong state test:
 g++ -std=c++23 scripts/test_pong_state.cpp src/app/PongLogic.cpp -o build/test_pong_state && ./build/test_pong_state
 ```
 
-Headless Snake state and tiny-client layout test for tail movement, growth collisions, and keeping the board inside its content area:
+Headless Snake state and tiny-client layout test for tail movement, growth collisions, font-scaled HUD geometry, and keeping the board inside its content area:
 
 ```bash
 g++ -std=c++23 scripts/test_snake_state.cpp src/app/SnakeApp.cpp $(pkg-config --cflags --libs sdl2 SDL2_ttf) -o build/test_snake_state && ./build/test_snake_state

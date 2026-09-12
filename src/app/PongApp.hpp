@@ -31,6 +31,7 @@ private:
     void drawCentered(SDL_Renderer* renderer, const char* text, const SDL_Rect& area, SDL_Color color) const;
     void fieldToScreen(const SDL_Rect& contentRect, float fx, float fy, int fw, int fh,
                        SDL_Rect& out) const;
+    int hudHeight() const;
 
     TTF_Font* m_font = nullptr;
     monolith::pong::Game m_game;

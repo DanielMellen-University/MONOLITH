@@ -29,11 +29,24 @@ int main() {
         }
     };
 
-    SnakeApp game(nullptr);
+    check(TTF_Init() == 0, "Snake state SDL_ttf initialize");
+    TTF_Font* font = TTF_OpenFont("assets/fonts/DejaVuSans.ttf", 14);
+    check(font != nullptr, "Snake state loads test font");
+    if (!font) {
+        TTF_Quit();
+        return 1;
+    }
+
+    SnakeApp game(font);
+    const int baseHudHeight = game.hudHeight();
+    check(TTF_SetFontSize(font, 22) == 0, "Snake state scales test font");
+    const int scaledHudHeight = game.hudHeight();
+    check(scaledHudHeight > baseHudHeight,
+          "Snake HUD grows with the shared interface font");
     const SDL_Rect tinyContent{0, 0, 120, 80};
     game.layoutBoard(tinyContent);
     check(game.m_boardX >= tinyContent.x
-              && game.m_boardY >= tinyContent.y
+              && game.m_boardY >= tinyContent.y + scaledHudHeight
               && game.m_boardX + game.m_boardPxW <= tinyContent.x + tinyContent.w
               && game.m_boardY + game.m_boardPxH <= tinyContent.y + tinyContent.h,
           "Snake keeps the complete board inside a tiny client area");
@@ -76,8 +89,12 @@ int main() {
 
     if (failures == 0) {
         std::cout << "ALL SNAKE STATE TESTS PASSED\n";
+        TTF_CloseFont(font);
+        TTF_Quit();
         return 0;
     }
     std::cerr << failures << " test(s) failed\n";
+    TTF_CloseFont(font);
+    TTF_Quit();
     return 1;
 }

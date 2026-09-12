@@ -1,5 +1,10 @@
 # Changelog
 
+## 2026-09: Keep game HUDs aligned after text scaling
+
+- Snake and Pong now derive their HUD height and text position from the active interface font instead of laying out the playfield below a fixed strip.
+- Added scaled-font geometry coverage for Snake and updated the game guides.
+
 ## 2026-09: Document Drawing display scaling
 
 - Documented how shared interface text scaling affects Drawing prompts and leaves canvas data, history, and file state unchanged.

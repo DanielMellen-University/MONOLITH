@@ -44,6 +44,7 @@ private:
     void setDirection(Dir dir);
     bool isOpposite(Dir a, Dir b) const;
     void applySpeedForScore();
+    int hudHeight() const;
     void layoutBoard(const SDL_Rect& contentRect);
     void drawText(SDL_Renderer* renderer, const char* text, int x, int y,
                   SDL_Color color, const SDL_Rect* clip = nullptr) const;

@@ -223,14 +223,20 @@ void SnakeApp::onResize(int clientWidth, int clientHeight) {
     m_clientHeight = clientHeight;
 }
 
+int SnakeApp::hudHeight() const {
+    const int fontHeight = m_font ? TTF_FontHeight(m_font) : 16;
+    return std::max(kHudHeight, fontHeight + 12);
+}
+
 void SnakeApp::layoutBoard(const SDL_Rect& contentRect) {
     const int availW = contentRect.w;
-    const int availH = std::max(1, contentRect.h - kHudHeight);
+    const int hudH = hudHeight();
+    const int availH = std::max(1, contentRect.h - hudH);
     m_cellPx = std::max(1, std::min(availW / kGridW, availH / kGridH));
     m_boardPxW = m_cellPx * kGridW;
     m_boardPxH = m_cellPx * kGridH;
     m_boardX = contentRect.x + (availW - m_boardPxW) / 2;
-    m_boardY = contentRect.y + kHudHeight + (availH - m_boardPxH) / 2;
+    m_boardY = contentRect.y + hudH + (availH - m_boardPxH) / 2;
 }
 
 void SnakeApp::drawText(SDL_Renderer* renderer, const char* text, int x, int y,
@@ -383,10 +389,12 @@ void SnakeApp::handleEvent(const SDL_Event& event) {
 
 void SnakeApp::render(SDL_Renderer* renderer, const SDL_Rect& contentRect) {
     layoutBoard(contentRect);
+    const int hudH = hudHeight();
+    const int fontHeight = m_font ? TTF_FontHeight(m_font) : 16;
 
     // HUD background strip — measured left-to-right layout (no fixed X collisions)
     SDL_SetRenderDrawColor(renderer, 38, 38, 44, 255);
-    SDL_Rect hud{contentRect.x, contentRect.y, contentRect.w, kHudHeight};
+    SDL_Rect hud{contentRect.x, contentRect.y, contentRect.w, hudH};
     SDL_RenderFillRect(renderer, &hud);
 
     const std::string scoreText = "Score: " + std::to_string(m_score);
@@ -397,9 +405,9 @@ void SnakeApp::render(SDL_Renderer* renderer, const SDL_Rect& contentRect) {
     const int padL = 10;
     const int padR = 10;
     const int gap = 16;
-    const int textY = contentRect.y + (kHudHeight - 16) / 2;
+    const int textY = contentRect.y + std::max(0, (hudH - fontHeight) / 2);
     int x = contentRect.x + padL;
-    const SDL_Rect hudClip = {contentRect.x, contentRect.y, contentRect.w, kHudHeight};
+    const SDL_Rect hudClip = {contentRect.x, contentRect.y, contentRect.w, hudH};
 
     x += drawTextReturnWidth(renderer, scoreText.c_str(), x, textY, kHudText, &hudClip) + gap;
     x += drawTextReturnWidth(renderer, bestText.c_str(), x, textY, kBestText, &hudClip) + gap;

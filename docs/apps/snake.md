@@ -43,6 +43,7 @@ The best score is saved on the host at `~/.monolith/snake_highscore.txt` and sho
 - **HUD**: score, best, and length on the left (laid out from measured text widths so labels never collide); controls hint right-aligned when the window is wide enough; all HUD text clips within the strip
 - Pause / game over / win messages are a **centered vertical stack** on the board (title + detail lines)
 - Overlay line spacing follows the active interface font so scaled text does not overlap on end-state screens
+- HUD height follows the active interface font with a stable minimum, keeping the board below the text strip after Settings text scaling
 - Brief flash when food is eaten
 
 The board letterboxes inside the window when resized or maximized. If the client area becomes very small, cells compress so the full board remains inside the window instead of covering the HUD.
