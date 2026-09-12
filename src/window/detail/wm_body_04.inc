@@ -9,7 +9,13 @@
     // --- Left: Start button ---
     int x = logicalToScreenX(8);
     const int startBtnWidth = static_cast<int>(70 * m_contentScale);
-    const int btnHeight = static_cast<int>(22 * m_contentScale);
+    const int minimumButtonHeight = static_cast<int>(22 * m_contentScale);
+    const int fontHeight = m_font ? TTF_FontHeight(m_font) : 16;
+    // Keep every taskbar control tall enough for the active font, but never
+    // let a control escape the taskbar itself on a tightly scaled desktop.
+    const int btnHeight = std::min(
+        taskbarRect.h,
+        std::max(minimumButtonHeight, fontHeight + static_cast<int>(4 * m_contentScale)));
     const int btnY = logicalToScreenY(taskbarY) + (taskbarRect.h - btnHeight) / 2;
 
     SDL_SetRenderDrawColor(renderer, 55, 85, 140, 255);

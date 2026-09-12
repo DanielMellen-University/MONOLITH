@@ -66,6 +66,7 @@ The Window Manager is the most foundational subsystem.
 - The clock tray yields the button strip when the available width is too small for both controls, preventing taskbar status UI from overlapping window-button input.
 - Maximize, restore, and logical desktop resizing keep maximized frames aligned to the usable area, clamp restored frames above the taskbar, and notify the app after the final client geometry is known.
 - Taskbar window labels stay at native text size, and each button measures its UTF-8 title before allocating width, so larger fonts and long titles clip inside their own button without drawing over neighbors.
+- Taskbar buttons and the clock tray also derive their height from the active font, capped by the taskbar band, so scaled labels remain vertically contained.
 - Window title labels stay at native text size and clip before the minimize button, so long file-backed titles do not get horizontally distorted or cover title-bar controls.
 - The taskbar shows a compact local-time clock on the right (12-hour by default; Settings can switch to 24-hour via `DesktopSettings`). The time texture is rebuilt when the minute or format changes; hovering the clock tray shows the full local date in a small tooltip above the bar.
 - Settings can change the shared interface font to 90%, 100%, or 115%. `WindowManager` applies the selected point size to the shared `TTF_Font`, then invalidates title and clock textures so the change appears immediately in existing windows.

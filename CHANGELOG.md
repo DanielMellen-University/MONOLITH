@@ -1,5 +1,10 @@
 # Changelog
 
+## 2026-09: Keep taskbar controls readable after text scaling
+
+- Start, taskbar window buttons, scroll arrows, and the clock tray now share a font-aware control height bounded by the taskbar band.
+- Larger interface text no longer gets vertically clipped inside the shell controls.
+
 ## 2026-09: Keep Minesweeper bands readable after text scaling
 
 - Minesweeper now derives its HUD, difficulty buttons, and footer from the active interface font instead of clipping scaled labels against fixed bands.
