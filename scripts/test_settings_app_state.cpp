@@ -181,6 +181,8 @@ int main() {
     SDL_Renderer* renderer = surface ? SDL_CreateSoftwareRenderer(surface) : nullptr;
     check(renderer != nullptr, "settings state creates a software renderer");
     if (renderer) {
+        const SDL_Rect expectedClip{5, 6, 140, 120};
+        SDL_RenderSetClipRect(renderer, &expectedClip);
         settings.render(renderer, {0, 0, 200, 240});
         auto insideClient = [](const SDL_Rect& rect, int width) {
             return rect.x >= 0 && rect.y >= 0 && rect.w >= 0 && rect.h >= 0
@@ -190,6 +192,13 @@ int main() {
                   && insideClient(settings.m_wallpaperSetRect, 200)
                   && insideClient(settings.m_wallpaperClearRect, 200),
               "Settings wallpaper controls stay inside a narrow client width");
+        SDL_Rect restoredClip{};
+        SDL_RenderGetClipRect(renderer, &restoredClip);
+        check(restoredClip.x == expectedClip.x
+                  && restoredClip.y == expectedClip.y
+                  && restoredClip.w == expectedClip.w
+                  && restoredClip.h == expectedClip.h,
+              "Settings restores the caller renderer clip after rendering");
         SDL_DestroyRenderer(renderer);
     }
     if (surface) SDL_FreeSurface(surface);
