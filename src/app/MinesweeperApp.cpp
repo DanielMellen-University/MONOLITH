@@ -367,6 +367,18 @@ void MinesweeperApp::onResize(int clientWidth, int clientHeight) {
     m_clientHeight = clientHeight;
 }
 
+void MinesweeperApp::onUiScaleChanged() {
+    refreshUiMetrics();
+}
+
+void MinesweeperApp::refreshUiMetrics() {
+    const int fontHeight = m_font ? TTF_FontHeight(m_font) : 14;
+    m_difficultyButtonHeight = std::clamp(
+        fontHeight + 4,
+        kDifficultyButtonMinHeight,
+        kDifficultyButtonMaxHeight);
+}
+
 void MinesweeperApp::clientBoardMetrics(int& boardX, int& boardY, int& cellPx,
                                         int& boardPxW, int& boardPxH) const {
     const int availW = m_clientWidth > 0 ? m_clientWidth : 360;
@@ -399,9 +411,10 @@ void MinesweeperApp::layoutBoard(const SDL_Rect& contentRect) {
     m_boardX = contentRect.x + (availW - m_boardPxW) / 2;
     m_boardY = contentRect.y + kHudHeight + (availH - m_boardPxH) / 2;
 
+    refreshUiMetrics();
     const int btnW = 70;
-    const int btnH = 18;
-    const int btnY = contentRect.y + 30;
+    const int btnH = m_difficultyButtonHeight;
+    const int btnY = contentRect.y + kDifficultyButtonY;
     const int gap = 6;
     const int startX = contentRect.x + 10;
     for (int i = 0; i < 3; ++i) {
@@ -551,8 +564,8 @@ void MinesweeperApp::handleEvent(const SDL_Event& event) {
     // Difficulty buttons in client space
     {
         const int btnW = 70;
-        const int btnH = 18;
-        const int btnY = 30;
+        const int btnH = m_difficultyButtonHeight;
+        const int btnY = kDifficultyButtonY;
         const int gap = 6;
         const int startX = 10;
         for (int i = 0; i < 3; ++i) {

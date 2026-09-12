@@ -25,7 +25,20 @@ int main() {
         }
     };
 
-    MinesweeperApp game(nullptr);
+    check(TTF_Init() == 0, "Minesweeper state SDL_ttf initialize");
+    TTF_Font* font = TTF_OpenFont("assets/fonts/DejaVuSans.ttf", 14);
+    check(font != nullptr, "Minesweeper state loads test font");
+    if (!font) {
+        TTF_Quit();
+        return 1;
+    }
+
+    MinesweeperApp game(font);
+    const int baseButtonHeight = game.m_difficultyButtonHeight;
+    check(TTF_SetFontSize(font, 16) == 0, "Minesweeper state scales test font");
+    game.onUiScaleChanged();
+    check(game.m_difficultyButtonHeight > baseButtonHeight,
+          "difficulty buttons grow with the shared interface font");
     game.newGame(MinesweeperApp::Difficulty::Expert);
     game.onResize(120, 120);
     int boardX = 0;
@@ -59,8 +72,12 @@ int main() {
 
     if (failures == 0) {
         std::cout << "ALL MINESWEEPER STATE TESTS PASSED\n";
+        TTF_CloseFont(font);
+        TTF_Quit();
         return 0;
     }
     std::cerr << failures << " test(s) failed\n";
+    TTF_CloseFont(font);
+    TTF_Quit();
     return 1;
 }

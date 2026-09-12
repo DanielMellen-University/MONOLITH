@@ -23,6 +23,7 @@ public:
     void handleEvent(const SDL_Event& event) override;
     void update() override;
     void onResize(int clientWidth, int clientHeight) override;
+    void onUiScaleChanged() override;
     void onFocusGained() override;
     void onFocusLost() override;
 
@@ -47,6 +48,9 @@ private:
 
     static constexpr int kHudHeight = 56;
     static constexpr int kFooterHeight = 24;
+    static constexpr int kDifficultyButtonY = 30;
+    static constexpr int kDifficultyButtonMinHeight = 18;
+    static constexpr int kDifficultyButtonMaxHeight = kHudHeight - kDifficultyButtonY - 4;
     static constexpr int kMinCellPx = 1;
 
     static const DifficultySpec& specFor(Difficulty d);
@@ -66,6 +70,7 @@ private:
     int flagCount() const;
     int neighborFlagCount(int x, int y) const;
     void layoutBoard(const SDL_Rect& contentRect);
+    void refreshUiMetrics();
     void clientBoardMetrics(int& boardX, int& boardY, int& cellPx, int& boardPxW, int& boardPxH) const;
     bool cellAtClient(int mx, int my, int& outX, int& outY) const;
     void drawText(SDL_Renderer* renderer, const char* text, int x, int y,
@@ -119,6 +124,7 @@ private:
     int m_boardY = 0;
     int m_boardPxW = 0;
     int m_boardPxH = 0;
+    int m_difficultyButtonHeight = kDifficultyButtonMinHeight;
 
     SDL_Rect m_diffBtnRects[3]{};
     SDL_Rect m_faceBtnRect{};

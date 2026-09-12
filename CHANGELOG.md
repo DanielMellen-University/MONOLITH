@@ -1,5 +1,10 @@
 # Changelog
 
+## 2026-09: Keep Minesweeper controls aligned after text scaling
+
+- Difficulty button geometry now follows the shared interface font instead of keeping a fixed 18px height.
+- Rendering and hit testing use the same scaled button bounds, with focused state coverage.
+
 ## 2026-09: Keep Drawing prompts aligned after text scaling
 
 - Drawing now resets its cached path-prompt scroll when the shared interface font changes.
