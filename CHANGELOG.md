@@ -1,5 +1,10 @@
 # Changelog
 
+## 2026-09: Keep Drawing prompts aligned after text scaling
+
+- Drawing now resets its cached path-prompt scroll when the shared interface font changes.
+- Added state coverage for the prompt invalidation hook.
+
 ## 2026-09: Measure taskbar titles at their real width
 
 - Taskbar buttons now size long UTF-8 titles from the active font metrics instead of a character-count estimate.

@@ -153,6 +153,12 @@ int main() {
     check(drawing.m_filePath == "/drawings/alternate.modr" && !drawing.m_dirty,
           "confirming the changed dirty drawing target loads it");
 
+    drawing.beginPathPrompt(monolith::app::DrawingApp::PathPromptMode::Open);
+    drawing.m_pathPromptScrollPx = 42;
+    drawing.onUiScaleChanged();
+    check(drawing.m_pathPromptScrollPx == 0,
+          "scaling resets the Drawing path prompt offset");
+
     drawing.beginPathPrompt(monolith::app::DrawingApp::PathPromptMode::Save);
     drawing.m_pathPromptBuffer = "/drawings/alternate.modr/child.modr";
     drawing.m_pathPromptCursorPos = std::string("/drawings/alternate.modr/").size();

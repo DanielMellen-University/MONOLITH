@@ -1147,6 +1147,12 @@ void DrawingApp::onResize(int clientWidth, int clientHeight) {
     }
 }
 
+void DrawingApp::onUiScaleChanged() {
+    // The path prompt stores its horizontal position in pixels; remeasure it
+    // against the new font on the next render.
+    m_pathPromptScrollPx = 0;
+}
+
 void DrawingApp::render(SDL_Renderer* renderer, const SDL_Rect& contentRect) {
     if (m_clientWidth <= 0 || m_clientHeight <= 0) {
         m_clientWidth = contentRect.w;
