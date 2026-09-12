@@ -529,7 +529,7 @@ void SnakeApp::render(SDL_Renderer* renderer, const SDL_Rect& contentRect) {
         SDL_RenderFillRect(renderer, &boardRect);
         SDL_SetRenderDrawBlendMode(renderer, SDL_BLENDMODE_NONE);
 
-        const int lineH = 18;
+        const int lineH = std::max(18, m_font ? TTF_FontHeight(m_font) : 18);
         const int gap = 4;
         int lines = 1 + (!line2.empty() ? 1 : 0) + (line3 && *line3 ? 1 : 0);
         const int blockH = lines * lineH + (lines - 1) * gap;

@@ -1,5 +1,10 @@
 # Changelog
 
+## 2026-09: Keep game overlays readable after text scaling
+
+- Snake and Minesweeper now space overlay lines from the active font height instead of a fixed 18px step.
+- End-state messages remain separated when the shared interface text scale is increased.
+
 ## 2026-09: Keep Filesystem filter prompts aligned after text scaling
 
 - The active Browser filter now discards its cached pixel offset when the shared interface font changes.

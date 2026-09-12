@@ -803,7 +803,7 @@ void MinesweeperApp::render(SDL_Renderer* renderer, const SDL_Rect& contentRect)
             line2 = "Click or R for new game";
         }
 
-        const int lineH = 18;
+        const int lineH = std::max(18, m_font ? TTF_FontHeight(m_font) : 18);
         const int gap = 4;
         const int lines = 1 + (!line2.empty() ? 1 : 0) + (!line3.empty() ? 1 : 0);
         const int blockH = lines * lineH + (lines - 1) * gap;
