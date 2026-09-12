@@ -314,6 +314,7 @@ Drawing follows the shared interface text scale from Settings. Changing that sca
 
 - Existing canvas pixels, dimensions, file binding, dirty state, and undo history stay unchanged.
 - Toolbar labels and status messages use the new interface font metrics on the next render, and their hit-test bands move with the resized chrome.
+- Pointer coordinates are mapped through the displayed canvas rectangle, so strokes, shapes, fills, and color picking stay aligned with the preserved raster when the available canvas height changes.
 - If Save, Open, or RGB is active, the prompt is remeasured and its cached horizontal offset is reset so the caret remains visible at the new text width.
 - A scale change does not save, reload, resize, or otherwise modify the sketch.
 

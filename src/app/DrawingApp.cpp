@@ -379,9 +379,11 @@ void DrawingApp::drawStroke(int x0, int y0, int x1, int y1) {
 }
 
 bool DrawingApp::isInCanvas(int x, int y) const {
-    return x >= 0 && y >= m_canvasTop
+    const int displayHeight = m_clientHeight - m_canvasTop - m_statusBarHeight;
+    return displayHeight > 0
+        && x >= 0 && y >= m_canvasTop
         && x < m_clientWidth
-        && y < m_clientHeight - m_statusBarHeight;
+        && y < m_canvasTop + displayHeight;
 }
 
 int DrawingApp::getToolbarButtonHeight() const {
@@ -408,8 +410,17 @@ void DrawingApp::updateLayoutMetrics() {
 }
 
 void DrawingApp::canvasPointFromClient(int clientX, int clientY, int& outX, int& outY) const {
-    outX = clientX;
-    outY = clientY - m_canvasTop;
+    const int displayWidth = std::max(1, m_clientWidth);
+    const int displayHeight = std::max(1, m_clientHeight - m_canvasTop - m_statusBarHeight);
+    const int displayY = std::clamp(clientY - m_canvasTop, 0, displayHeight - 1);
+    outX = std::clamp(
+        static_cast<int>((static_cast<long long>(clientX) * m_canvasWidth) / displayWidth),
+        0,
+        std::max(0, m_canvasWidth - 1));
+    outY = std::clamp(
+        static_cast<int>((static_cast<long long>(displayY) * m_canvasHeight) / displayHeight),
+        0,
+        std::max(0, m_canvasHeight - 1));
 }
 
 std::string DrawingApp::defaultSavePath() {

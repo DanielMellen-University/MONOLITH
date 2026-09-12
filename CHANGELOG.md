@@ -1,5 +1,9 @@
 # Changelog
 
+## 2026-09: Keep Drawing input aligned after scaling
+
+- Drawing now maps client pointer coordinates through the displayed canvas rectangle, so preserved raster data remains correctly addressed after interface text scaling changes the canvas height.
+
 ## 2026-09: Keep Terminal input inside tiny clients
 
 - Terminal input-bar geometry is now clamped to the client rectangle, preventing the prompt strip from extending into window chrome when a client is shorter than the normal text layout.

@@ -106,6 +106,23 @@ int main() {
               && drawing.m_undoStack.size() == undoCountBeforeScale
               && !drawing.m_dirty,
           "Drawing text scaling preserves canvas data and history");
+    drawing.onResize(320, 300);
+    const int scaledDisplayHeight = drawing.m_clientHeight
+        - drawing.m_canvasTop - drawing.m_statusBarHeight;
+    int mappedX = 0;
+    int mappedY = 0;
+    drawing.canvasPointFromClient(
+        drawing.m_clientWidth - 1,
+        drawing.m_canvasTop + std::max(0, scaledDisplayHeight - 1),
+        mappedX,
+        mappedY);
+    check(scaledDisplayHeight > 0
+              && mappedX == drawing.m_canvasWidth - 1
+              && mappedY == drawing.m_canvasHeight - 1,
+          "Drawing maps scaled canvas clicks to the preserved raster edge");
+    check(drawing.loadFromPath("/drawings/resize.modr"),
+          "reload Drawing fixture after scaled mapping coverage");
+    check(!drawing.m_dirty, "reloaded Drawing fixture starts clean");
 
     TestController controller;
     drawing.setController(&controller);
