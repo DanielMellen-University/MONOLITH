@@ -131,6 +131,8 @@ void TerminalApp::handleTabCompletion() {
 
     if (matches.empty()) return;
 
+    const std::string inputBeforeCompletion = m_inputBuffer;
+
     auto replacePrefix = [&](const std::string& completion) {
         const std::string encoded = escapeCompletion(completion, context.quote);
         const std::size_t replaceLength = static_cast<std::size_t>(m_inputCursorPos)
@@ -178,6 +180,10 @@ void TerminalApp::handleTabCompletion() {
                 addOutput("  " + m);
             }
         }
+    }
+
+    if (m_inputBuffer != inputBeforeCompletion) {
+        leaveHistoryNavigationOnEdit();
     }
 }
 

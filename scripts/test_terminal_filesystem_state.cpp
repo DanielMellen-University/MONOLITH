@@ -192,6 +192,19 @@ int main() {
     check(terminal.m_inputBuffer == "cat \"/home/monolith/my  file.txt\"",
           "completion after a closed quoted file leaves the command unchanged");
 
+    terminal.m_commandHistory = {"first command", "second command"};
+    terminal.m_inputBuffer = "draft";
+    terminal.m_inputCursorPos = static_cast<int>(terminal.m_inputBuffer.size());
+    key(SDLK_UP);
+    check(terminal.m_inputBuffer == "second command" && terminal.m_historyIndex == 1,
+          "terminal history navigation recalls the newest command");
+    text(" edited");
+    check(terminal.m_inputBuffer == "second command edited" && terminal.m_historyIndex == -1,
+          "editing a recalled command exits history navigation");
+    key(SDLK_DOWN);
+    check(terminal.m_inputBuffer == "second command edited" && terminal.m_historyIndex == -1,
+          "down does not overwrite an edited recalled command");
+
     terminal.m_history.assign(40, "output");
     terminal.onResize(320, 240);
     const int visibleLines = terminal.getMaxVisibleLines({0, 0, 320, 240});

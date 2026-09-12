@@ -14,6 +14,7 @@ Current chunk pointer: [`CURRENT_CHUNK`](CURRENT_CHUNK).
 | 2026-09-12 | fix | Aligned Filesystem Browser list hit testing with the rendered row origin and gaps; added padding and boundary coverage and updated the Browser guide. |
 | 2026-09-12 | fix | Clipped WindowManager app rendering to each client rectangle and restored the renderer clip; added shared render-boundary coverage and updated architecture docs. |
 | 2026-09-12 | fix | Preserved the WindowManager client clip through Terminal, Text Editor, Drawing, and Filesystem Browser text-region helpers. |
+| 2026-09-12 | fix | Made Terminal history navigation exit on edits and completion so Down preserves user changes; added focused coverage and updated the Terminal guide. |
 | 2026-09-12 | fix | Unified Minesweeper rendered and interactive face/difficulty button geometry across resize and interface scaling; added focused hitbox coverage and updated docs. |
 | 2026-09-12 | fix | Clamped Filesystem Browser scrollback after resize and text scaling even without a selected row; added lifecycle coverage and updated the Browser guide. |
 | 2026-09-12 | fix | Clamped Text Editor scrollback after window resizes and removed false visible rows from tiny clients; added focused coverage and updated the editor guide. |

@@ -47,6 +47,10 @@ Type commands at the prompt and press **Enter** to run them. Output appears abov
 | Page Up / Page Down | Scroll output history |
 | Mouse wheel | Scroll output history |
 
+Once a history entry is recalled, typing, Backspace, Delete, or a completion
+that changes the command returns to normal input editing. Pressing Down after
+that keeps the edited command instead of restoring the pre-navigation buffer.
+
 ## Built-in Commands
 
 Run `help` for the full list. Current commands:

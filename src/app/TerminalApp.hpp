@@ -33,6 +33,7 @@ private:
     void processTextInput(const char* text);
     void handleKeyDown(const SDL_Keysym& keysym);
     void handleMouseWheel(const SDL_MouseWheelEvent& e);
+    void leaveHistoryNavigationOnEdit();
 
     // Scrolling helpers
     void scrollHistory(int delta);

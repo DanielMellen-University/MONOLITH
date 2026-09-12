@@ -103,6 +103,11 @@ void TerminalApp::submitInput() {
     m_scrollOffset = 0;   // always jump back to bottom after running a command
 }
 
+void TerminalApp::leaveHistoryNavigationOnEdit() {
+    m_historyIndex = -1;
+    m_savedInputBuffer.clear();
+}
+
 void TerminalApp::executeCommand(const std::string& commandLine) {
     // Build arg list with quoting so paths containing spaces work (see TerminalLexer).
     CommandTokens tokens = tokenizeCommandLine(commandLine);
@@ -503,6 +508,7 @@ void TerminalApp::processTextInput(const char* text) {
     }
 
     if (text && *text) {
+        leaveHistoryNavigationOnEdit();
         m_inputCursorPos = std::clamp(
             m_inputCursorPos,
             0,
@@ -582,6 +588,7 @@ void TerminalApp::handleKeyDown(const SDL_Keysym& keysym) {
 
         case SDLK_BACKSPACE:
             if (m_inputCursorPos > 0) {
+                leaveHistoryNavigationOnEdit();
                 std::size_t cursor = static_cast<std::size_t>(m_inputCursorPos);
                 erasePreviousUtf8Codepoint(m_inputBuffer, cursor);
                 m_inputCursorPos = static_cast<int>(cursor);
@@ -593,6 +600,7 @@ void TerminalApp::handleKeyDown(const SDL_Keysym& keysym) {
                 std::clamp(m_inputCursorPos, 0, static_cast<int>(m_inputBuffer.size())));
             const std::size_t next = utf8NextCodepointStart(m_inputBuffer, cursor);
             if (next > cursor) {
+                leaveHistoryNavigationOnEdit();
                 m_inputBuffer.erase(cursor, next - cursor);
             }
             break;

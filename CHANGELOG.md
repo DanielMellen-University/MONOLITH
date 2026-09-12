@@ -22,6 +22,12 @@
 - Terminal, Text Editor, Drawing, and Filesystem Browser now restore their client clip after drawing clipped text regions instead of disabling it mid-render.
 - The shared WindowManager client-boundary guarantee now remains active through each app's internal text and status rendering passes.
 
+## 2026-09: Keep edited Terminal history entries stable
+
+- Terminal history navigation now exits when the recalled command is edited or changed by completion.
+- Down no longer replaces an edited history entry with the buffer saved before navigation.
+- Added focused coverage and documented the input-mode transition.
+
 ## 2026-09: Keep Settings controls readable after scaling
 
 - Settings now derives section spacing, wallpaper fields, clock and scale controls, and footer geometry from the active interface font instead of fixed text bands.
