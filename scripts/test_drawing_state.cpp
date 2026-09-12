@@ -62,7 +62,16 @@ int main() {
                        monolith::drawing::encodeModr(2, 2, pixels)),
           "write resize drawing");
 
-    TestDrawing drawing(nullptr, &fs);
+    check(TTF_Init() == 0, "drawing state SDL_ttf initialize");
+    TTF_Font* font = TTF_OpenFont("assets/fonts/DejaVuSans.ttf", 14);
+    check(font != nullptr, "drawing state loads test font");
+    if (!font) {
+        TTF_Quit();
+        std::filesystem::remove_all(hostRoot, ec);
+        return 1;
+    }
+
+    TestDrawing drawing(font, &fs);
     bool occupiedSketchNames = true;
     for (int i = 1; i <= 999; ++i) {
         std::string path = "/home/monolith/drawings/sketch";
@@ -78,6 +87,25 @@ int main() {
     check(!drawing.m_dirty, "initial blank resize stays clean");
     check(drawing.loadFromPath("/drawings/resize.modr"), "load resize drawing");
     check(!drawing.m_dirty, "loaded drawing starts clean");
+
+    const int baseToolbarHeight = drawing.m_canvasTop;
+    const int baseStatusBarHeight = drawing.m_statusBarHeight;
+    const int baseCanvasWidth = drawing.m_canvasWidth;
+    const int baseCanvasHeight = drawing.m_canvasHeight;
+    const std::vector<uint8_t> pixelsBeforeScale = drawing.m_pixels;
+    drawing.pushUndoSnapshot();
+    const size_t undoCountBeforeScale = drawing.m_undoStack.size();
+    check(TTF_SetFontSize(font, 22) == 0, "drawing state applies larger test font");
+    drawing.onUiScaleChanged();
+    check(drawing.m_canvasTop > baseToolbarHeight
+              && drawing.m_statusBarHeight > baseStatusBarHeight,
+          "Drawing chrome grows with the shared interface font");
+    check(drawing.m_canvasWidth == baseCanvasWidth
+              && drawing.m_canvasHeight == baseCanvasHeight
+              && drawing.m_pixels == pixelsBeforeScale
+              && drawing.m_undoStack.size() == undoCountBeforeScale
+              && !drawing.m_dirty,
+          "Drawing text scaling preserves canvas data and history");
 
     TestController controller;
     drawing.setController(&controller);
@@ -178,8 +206,12 @@ int main() {
     std::filesystem::remove_all(hostRoot, ec);
     if (failures == 0) {
         std::cout << "ALL DRAWING STATE TESTS PASSED\n";
+        TTF_CloseFont(font);
+        TTF_Quit();
         return 0;
     }
     std::cerr << failures << " test(s) failed\n";
+    TTF_CloseFont(font);
+    TTF_Quit();
     return 1;
 }

@@ -1,5 +1,11 @@
 # Changelog
 
+## 2026-09: Keep Drawing chrome aligned after text scaling
+
+- Drawing toolbar buttons and the status bar now grow from the active interface font, keeping labels and hit areas aligned at larger text sizes.
+- Text scaling preserves the existing canvas, file state, and undo history.
+- Added focused Drawing coverage and updated the canvas and verification documentation.
+
 ## 2026-09: Bound Terminal scrollback to its rendered history area
 
 - Terminal scroll limits now use the rows that actually fit above the input strip instead of an overestimated height with extra scroll allowance.

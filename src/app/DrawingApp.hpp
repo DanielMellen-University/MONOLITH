@@ -83,6 +83,10 @@ private:
     // === UI ===
     void drawToolbar(SDL_Renderer* renderer, const SDL_Rect& contentRect);
     void drawStatusBar(SDL_Renderer* renderer, const SDL_Rect& contentRect);
+    int getToolbarButtonHeight() const;
+    int getToolbarHeight() const;
+    int getStatusBarHeight() const;
+    void updateLayoutMetrics();
     void handleToolbarClick(int x, int y);
     bool isInCanvas(int x, int y) const;
     void canvasPointFromClient(int clientX, int clientY, int& outX, int& outY) const;

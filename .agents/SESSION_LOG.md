@@ -4,6 +4,7 @@ Historical session rows were trimmed during the 7.1 MCP ship to keep AGENTS.md s
 Current chunk pointer: [`CURRENT_CHUNK`](CURRENT_CHUNK).
 
 | 2026-09-12 | fix | Made Filesystem Browser report zero rows and stop rendering the list when undersized chrome leaves no client area; added tiny-client coverage and updated docs. |
+| 2026-09-12 | fix | Made Drawing toolbar and status geometry follow the active font without changing canvas data or undo history; added scaled coverage and updated the Drawing guide. |
 | 2026-09-12 | fix | Bound Terminal scrollback to the rows actually rendered above the input strip, including resize and text-scale clamping; added focused coverage and updated the Terminal guide. |
 | 2026-09-12 | fix | Kept Filesystem Browser status-bar clicks out of list selection and clamped tiny list rendering; added scaled hit-test coverage and updated browser docs. |
 | 2026-09-12 | cleanup | Aligned Filesystem Browser path, toolbar, list, and status geometry with active font metrics; updated row hit testing, scale coverage, and browser docs. |

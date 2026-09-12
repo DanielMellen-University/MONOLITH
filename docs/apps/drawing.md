@@ -296,7 +296,7 @@ Pen and Eraser interpolate between mouse events, so fast drags remain continuous
 
 ## Canvas Behavior
 
-The canvas is sized from the Drawing client area. The toolbar occupies the top 96 pixels and the status bar occupies the bottom 22 pixels; the remaining area is the raster surface. Canvas coordinates are logical pixels, not host-window pixels.
+The canvas is sized from the Drawing client area. At the base interface scale, the toolbar occupies the top 96 pixels and the status bar occupies the bottom 22 pixels; both bands grow from the active font metrics when text scaling is increased. The remaining area is the raster surface. Canvas coordinates are logical pixels, not host-window pixels.
 
 When the window is resized:
 
@@ -313,7 +313,7 @@ The standard canvas background is RGB `245,245,248`. Eraser uses that same color
 Drawing follows the shared interface text scale from Settings. Changing that scale updates the toolbar and status-bar text without changing the raster itself:
 
 - Existing canvas pixels, dimensions, file binding, dirty state, and undo history stay unchanged.
-- Toolbar labels and status messages use the new interface font metrics on the next render.
+- Toolbar labels and status messages use the new interface font metrics on the next render, and their hit-test bands move with the resized chrome.
 - If Save, Open, or RGB is active, the prompt is remeasured and its cached horizontal offset is reset so the caret remains visible at the new text width.
 - A scale change does not save, reload, resize, or otherwise modify the sketch.
 
