@@ -72,7 +72,18 @@ int main() {
     check(fs.createDirectory("/home/monolith/quoted dir"),
           "create directory for quoted completion");
 
-    TestTerminal terminal(nullptr, &fs);
+    check(SDL_Init(SDL_INIT_VIDEO) == 0, "terminal state SDL initialize");
+    check(TTF_Init() == 0, "terminal state SDL_ttf initialize");
+    TTF_Font* font = TTF_OpenFont("assets/fonts/DejaVuSans.ttf", 14);
+    check(font != nullptr, "terminal state loads test font");
+    if (!font) {
+        TTF_Quit();
+        SDL_Quit();
+        std::filesystem::remove_all(hostRoot, ec);
+        return 1;
+    }
+
+    TestTerminal terminal(font, &fs);
     TestController controller;
     terminal.setController(&controller);
     check(terminal.m_commandHistory == std::vector<std::string>{"echo first", "echo second"},
@@ -183,6 +194,70 @@ int main() {
     check(terminal.m_inputBuffer == "cat \"/home/monolith/my  file.txt\"",
           "completion after a closed quoted file leaves the command unchanged");
 
+    terminal.m_commandHistory = {"first command", "second command"};
+    terminal.m_inputBuffer = "draft";
+    terminal.m_inputCursorPos = static_cast<int>(terminal.m_inputBuffer.size());
+    key(SDLK_UP);
+    check(terminal.m_inputBuffer == "second command" && terminal.m_historyIndex == 1,
+          "terminal history navigation recalls the newest command");
+    text(" edited");
+    check(terminal.m_inputBuffer == "second command edited" && terminal.m_historyIndex == -1,
+          "editing a recalled command exits history navigation");
+    key(SDLK_DOWN);
+    check(terminal.m_inputBuffer == "second command edited" && terminal.m_historyIndex == -1,
+          "down does not overwrite an edited recalled command");
+
+    terminal.m_history.assign(40, "output");
+    terminal.onResize(320, 240);
+    const int visibleLines = terminal.getMaxVisibleLines({0, 0, 320, 240});
+    check(visibleLines > 0 && visibleLines < 40,
+          "terminal visible lines match the rendered history area");
+    terminal.scrollHistory(1000);
+    check(terminal.m_scrollOffset == 40 - visibleLines,
+          "terminal scrollback stops at the oldest fully visible output");
+    terminal.onResize(320, 40);
+    check(terminal.getMaxVisibleLines({0, 0, 320, 40}) == 0,
+          "terminal reports no history rows when the input strip fills the client");
+    check(terminal.m_scrollOffset == 40 - visibleLines,
+          "terminal resize preserves a scrollback offset inside tiny client bounds");
+    terminal.onResize(320, 240);
+    terminal.m_scrollOffset = 39;
+    check(TTF_SetFontSize(font, 22) == 0,
+          "terminal state applies a larger test font");
+    terminal.onUiScaleChanged();
+    const int scaledVisibleLines = terminal.getMaxVisibleLines({0, 0, 320, 240});
+    check(terminal.m_scrollOffset == 40 - scaledVisibleLines,
+          "terminal text scaling clamps scrollback to the new history area");
+    const SDL_Rect tinyContent{20, 30, 120, 8};
+    const SDL_Rect tinyInputBar = terminal.getInputBarRect(tinyContent);
+    check(tinyInputBar.x >= tinyContent.x
+              && tinyInputBar.y >= tinyContent.y
+              && tinyInputBar.x + tinyInputBar.w <= tinyContent.x + tinyContent.w
+              && tinyInputBar.y + tinyInputBar.h <= tinyContent.y + tinyContent.h,
+          "terminal input bar stays inside an undersized client area");
+    const SDL_Rect narrowHistory = terminal.getHistoryRect({20, 30, 12, 8});
+    check(narrowHistory.w >= 0 && narrowHistory.h >= 0,
+          "terminal history clip stays non-negative in a narrow client area");
+
+    SDL_Surface* surface = SDL_CreateRGBSurfaceWithFormat(
+        0, 240, 240, 32, SDL_PIXELFORMAT_RGBA32);
+    SDL_Renderer* renderer = surface ? SDL_CreateSoftwareRenderer(surface) : nullptr;
+    check(renderer != nullptr, "terminal state creates a software renderer");
+    if (renderer) {
+        const SDL_Rect expectedClip{5, 6, 140, 120};
+        SDL_RenderSetClipRect(renderer, &expectedClip);
+        terminal.render(renderer, {0, 0, 200, 200});
+        SDL_Rect restoredClip{};
+        SDL_RenderGetClipRect(renderer, &restoredClip);
+        check(restoredClip.x == expectedClip.x
+                  && restoredClip.y == expectedClip.y
+                  && restoredClip.w == expectedClip.w
+                  && restoredClip.h == expectedClip.h,
+              "terminal restores the caller renderer clip after rendering");
+        SDL_DestroyRenderer(renderer);
+    }
+    if (surface) SDL_FreeSurface(surface);
+
     check(fs.createDirectory("/home/monolith/work/nested"),
           "create terminal cwd move source");
     terminal.m_cwd = "/home/monolith/work/nested";
@@ -204,8 +279,13 @@ int main() {
     std::filesystem::remove_all(hostRoot, ec);
     if (failures == 0) {
         std::cout << "ALL TERMINAL FILESYSTEM TESTS PASSED\n";
+        TTF_CloseFont(font);
+        TTF_Quit();
         return 0;
     }
     std::cerr << failures << " test(s) failed\n";
+    TTF_CloseFont(font);
+    TTF_Quit();
+    SDL_Quit();
     return 1;
 }

@@ -21,6 +21,7 @@ public:
     void render(SDL_Renderer* renderer, const SDL_Rect& contentRect) override;
     void handleEvent(const SDL_Event& event) override;
     void onResize(int clientWidth, int clientHeight) override;
+    void onUiScaleChanged() override;
     void onVirtualPathMoved(const std::string& oldPath,
                             const std::string& newPath) override;
     void onVirtualPathRemoved(const std::string& path) override;
@@ -32,6 +33,7 @@ private:
     void processTextInput(const char* text);
     void handleKeyDown(const SDL_Keysym& keysym);
     void handleMouseWheel(const SDL_MouseWheelEvent& e);
+    void leaveHistoryNavigationOnEdit();
 
     // Scrolling helpers
     void scrollHistory(int delta);
@@ -49,6 +51,10 @@ private:
     // Drawing helpers
     int getLineHeight() const;
     int getMaxVisibleLines(const SDL_Rect& contentRect) const;
+    int getMaxScrollOffset() const;
+    SDL_Rect getInputBarRect(const SDL_Rect& contentRect) const;
+    SDL_Rect getHistoryRect(const SDL_Rect& contentRect) const;
+    int getInputLineY(const SDL_Rect& contentRect, const SDL_Rect& inputBar) const;
 
     std::string getInputPrompt() const;  // includes cwd for better UX
 

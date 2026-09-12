@@ -32,6 +32,11 @@ void PongApp::onFocusLost() {
 
 void PongApp::onFocusGained() {}
 
+int PongApp::hudHeight() const {
+    const int fontHeight = m_font ? TTF_FontHeight(m_font) : 16;
+    return std::max(kHudHeight, fontHeight + 12);
+}
+
 void PongApp::update() {
     const Uint32 now = SDL_GetTicks();
     float dt = static_cast<float>(now - m_lastTickMs) / 1000.f;
@@ -158,14 +163,15 @@ void PongApp::drawCentered(SDL_Renderer* renderer, const char* text, const SDL_R
 void PongApp::fieldToScreen(const SDL_Rect& contentRect, float fx, float fy, int fw, int fh,
                             SDL_Rect& out) const {
     const int availW = contentRect.w;
-    const int availH = std::max(1, contentRect.h - kHudHeight);
+    const int hudH = hudHeight();
+    const int availH = std::max(1, contentRect.h - hudH);
     const float scale = std::min(
         static_cast<float>(availW) / static_cast<float>(monolith::pong::Game::kFieldW),
         static_cast<float>(availH) / static_cast<float>(monolith::pong::Game::kFieldH));
     const int boardW = static_cast<int>(monolith::pong::Game::kFieldW * scale);
     const int boardH = static_cast<int>(monolith::pong::Game::kFieldH * scale);
     const int boardX = contentRect.x + (availW - boardW) / 2;
-    const int boardY = contentRect.y + kHudHeight + (availH - boardH) / 2;
+    const int boardY = contentRect.y + hudH + (availH - boardH) / 2;
     out.x = boardX + static_cast<int>(fx * scale);
     out.y = boardY + static_cast<int>(fy * scale);
     out.w = std::max(1, static_cast<int>(static_cast<float>(fw) * scale));
@@ -175,12 +181,15 @@ void PongApp::fieldToScreen(const SDL_Rect& contentRect, float fx, float fy, int
 void PongApp::render(SDL_Renderer* renderer, const SDL_Rect& contentRect) {
     SDL_SetRenderDrawColor(renderer, 18, 20, 28, 255);
     SDL_RenderFillRect(renderer, &contentRect);
+    const int hudH = hudHeight();
+    const int fontHeight = m_font ? TTF_FontHeight(m_font) : 16;
 
     char hud[64];
     std::snprintf(hud, sizeof(hud), "You %d   AI %d   first to %d",
                   m_game.playerScore, m_game.aiScore, monolith::pong::Game::kWinScore);
-    const SDL_Rect hudClip = {contentRect.x, contentRect.y, contentRect.w, kHudHeight};
-    drawText(renderer, hud, contentRect.x + 10, contentRect.y + 8, kHud, &hudClip);
+    const SDL_Rect hudClip = {contentRect.x, contentRect.y, contentRect.w, hudH};
+    drawText(renderer, hud, contentRect.x + 10,
+             contentRect.y + std::max(0, (hudH - fontHeight) / 2), kHud, &hudClip);
 
     SDL_Rect field;
     fieldToScreen(contentRect, 0, 0, monolith::pong::Game::kFieldW, monolith::pong::Game::kFieldH, field);

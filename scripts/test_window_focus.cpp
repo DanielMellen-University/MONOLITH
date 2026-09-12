@@ -1,6 +1,8 @@
 // Headless regression test for focus handoff when the active window is minimized.
 #include "../src/fs/Filesystem.hpp"
+#define private public
 #include "../src/window/WindowManager.hpp"
+#undef private
 
 #include <filesystem>
 #include <iostream>
@@ -19,10 +21,12 @@ public:
 
     void onFocusGained() override { ++focusGained; }
     void onFocusLost() override { ++focusLost; }
+    void onUiScaleChanged() override { ++uiScaleChanges; }
 
     int keyDowns = 0;
     int focusGained = 0;
     int focusLost = 0;
+    int uiScaleChanges = 0;
 };
 
 bool minimizeWindow(monolith::window::WindowManager& wm, monolith::window::Window* window) {
@@ -100,6 +104,26 @@ int main() {
           "restored Drawing geometry is clamped before it becomes visible");
     wm.handleEvent(key);
     check(thirdPtr->keyDowns == 1, "restored Drawing receives keyboard focus");
+
+    auto restored = std::make_unique<FocusProbe>();
+    FocusProbe* restoredPtr = restored.get();
+    auto* restoredWindow = wm.createWindow("Restored", 240, 220, 300, 240,
+                                           std::move(restored));
+    const int restoredFocusLostBefore = restoredPtr->focusLost;
+    wm.applyRestoredGeometry(restoredWindow, 240, 220, 300, 240, true, false);
+    check(restoredWindow->minimized && wm.m_focusedWindow != restoredWindow,
+          "minimized session geometry does not retain keyboard focus");
+    check(restoredPtr->focusLost == restoredFocusLostBefore + 1,
+          "minimized session geometry sends focus-lost notification");
+    check(wm.m_focusedWindow && !wm.m_focusedWindow->minimized,
+          "minimized session geometry hands focus to a visible window");
+
+    check(minimizeWindow(wm, secondWindow),
+          "minimize editor before shared UI scale change");
+    wm.setUiScalePercent(115);
+    check(firstPtr->uiScaleChanges == 1 && secondPtr->uiScaleChanges == 1
+              && thirdPtr->uiScaleChanges == 1,
+          "shared UI scale reaches visible and minimized apps");
 
     std::error_code ec;
     std::filesystem::remove_all(hostRoot, ec);

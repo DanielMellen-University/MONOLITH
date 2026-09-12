@@ -24,6 +24,7 @@ public:
     void render(SDL_Renderer* renderer, const SDL_Rect& contentRect) override;
     void handleEvent(const SDL_Event& event) override;
     void onResize(int clientWidth, int clientHeight) override;
+    void onUiScaleChanged() override;
     void onBoundFileMoved(const std::string& oldPath,
                           const std::string& newPath) override;
     void onVirtualPathChanged(const std::string& changedPath) override;
@@ -82,6 +83,10 @@ private:
     // === UI ===
     void drawToolbar(SDL_Renderer* renderer, const SDL_Rect& contentRect);
     void drawStatusBar(SDL_Renderer* renderer, const SDL_Rect& contentRect);
+    int getToolbarButtonHeight() const;
+    int getToolbarHeight() const;
+    int getStatusBarHeight() const;
+    void updateLayoutMetrics();
     void handleToolbarClick(int x, int y);
     bool isInCanvas(int x, int y) const;
     void canvasPointFromClient(int clientX, int clientY, int& outX, int& outY) const;

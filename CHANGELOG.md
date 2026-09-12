@@ -1,5 +1,239 @@
 # Changelog
 
+## 2026-09: Preserve WindowManager renderer boundaries
+
+- WindowManager now preserves and intersects the caller renderer clip through window frames, taskbar buttons, title labels, and the Alt+Tab overlay.
+- Added full-frame renderer-clip regression coverage and updated the architecture documentation.
+
+## 2026-09: Preserve Drawing renderer boundaries
+
+- Drawing now intersects its status prompt clip with the caller clip and restores that clip after rendering.
+- Added renderer-clip regression coverage and updated Drawing and architecture documentation.
+
+## 2026-09: Preserve Text Editor renderer boundaries
+
+- Text Editor now intersects document and status clips with the caller clip and restores that clip after each region.
+- Added renderer-clip regression coverage and updated Text Editor and architecture documentation.
+
+## 2026-09: Preserve Terminal renderer boundaries
+
+- Terminal now intersects its input and history clips with the caller clip and restores that clip after each region.
+- Added renderer-clip regression coverage and updated Terminal and architecture documentation.
+
+## 2026-09: Preserve Browser renderer boundaries
+
+- Filesystem Browser now captures and restores the caller clip through path, list, and status text regions instead of resetting to an un-intersected content rectangle.
+- Added renderer-clip regression coverage and updated Browser and architecture documentation.
+
+## 2026-09: Preserve Settings renderer boundaries
+
+- Settings now intersects its scroll clip with the caller clip and restores that clip after rendering, including through the wallpaper field's internal text clip.
+- Added renderer-clip regression coverage and updated architecture and Settings documentation.
+
+## 2026-09: Keep Settings wallpaper actions inside narrow clients
+
+- The wallpaper path field now shrinks to preserve the Set and Clear controls inside narrow Settings windows.
+- Added render-level geometry coverage for the responsive wallpaper row and updated the Settings guide.
+
+## 2026-09: Keep zero-height clients valid on tiny desktops
+
+- WindowManager now clamps rendered client height to zero when a desktop is shorter than a window title bar.
+- Added shared shell coverage so apps never receive negative client geometry.
+
+## 2026-09: Keep Minesweeper controls separated in narrow clients
+
+- Minesweeper difficulty buttons now compress against the available HUD width so they cannot overlap the face/new-game button.
+- Added focused coverage for normal narrow and tiny client widths and updated the game guide.
+
+## 2026-09: Keep Browser filter controls inside narrow clients
+
+- Filesystem Browser now derives a client-contained filter rectangle and reduces its width when the normal minimum cannot fit.
+- Added focused narrow-width geometry coverage and updated the Browser guide.
+
+## 2026-09: Keep Terminal history clips valid in narrow clients
+
+- Centralized Terminal history viewport geometry and clamped both dimensions when a client is narrower or shorter than its padding and input strip.
+- Added focused coverage for non-negative history clip bounds and documented the tiny-client behavior.
+
+## 2026-09: Consolidate Drawing verification documentation
+
+- Expanded the Drawing guide's contributor verification block with the current integration, raster, state, format, and optional smoke commands.
+- Linked the user-facing guide to the maintenance expectations for Drawing prompt, file-format, and shell-routing changes.
+
+## 2026-09: Align Browser rows with rendered hit areas
+
+- Filesystem Browser now derives its list origin from the same row geometry used for drawing.
+- Clicks in the list's top padding and inter-row gaps are ignored instead of selecting a neighboring entry.
+- Added focused coverage for row-boundary and padding clicks and updated the Browser guide.
+
+## 2026-09: Contain app rendering inside client areas
+
+- WindowManager now clips every app render to its window client rectangle and restores the renderer clip afterward.
+- Tiny or undersized existing app layouts can no longer paint over title bars or the taskbar.
+- Added WindowManager renderer-clip coverage and documented the shared rendering boundary.
+
+## 2026-09: Preserve client clipping through app helpers
+
+- Terminal, Text Editor, Drawing, and Filesystem Browser now restore their client clip after drawing clipped text regions instead of disabling it mid-render.
+- The shared WindowManager client-boundary guarantee now remains active through each app's internal text and status rendering passes.
+
+## 2026-09: Keep edited Terminal history entries stable
+
+- Terminal history navigation now exits when the recalled command is edited or changed by completion.
+- Down no longer replaces an edited history entry with the buffer saved before navigation.
+- Added focused coverage and documented the input-mode transition.
+
+## 2026-09: Keep Settings controls readable after scaling
+
+- Settings now derives section spacing, wallpaper fields, clock and scale controls, and footer geometry from the active interface font instead of fixed text bands.
+- Updated the compressed Settings body sources and added 22pt layout coverage.
+- The footer is clamped inside undersized Settings clients instead of extending above or below the content area.
+
+## 2026-09: Keep Drawing input aligned after scaling
+
+- Drawing now maps client pointer coordinates through the displayed canvas rectangle, so preserved raster data remains correctly addressed after interface text scaling changes the canvas height.
+
+## 2026-09: Keep Terminal input inside tiny clients
+
+- Terminal input-bar geometry is now clamped to the client rectangle, preventing the prompt strip from extending into window chrome when a client is shorter than the normal text layout.
+
+## 2026-09: Keep Text Editor clicks inside rendered rows
+
+- Text Editor mouse selection now ignores the unused gap below the last complete document row, keeping clicks aligned with rendered content above the status bar.
+
+## 2026-09: Keep Browser hit testing inside rendered rows
+
+- Filesystem Browser now counts only complete rows and rejects mouse clicks in clipped row fragments, keeping selection aligned with what is actually drawn in tiny clients.
+
+## 2026-09: Keep Minesweeper controls aligned after resize and scaling
+
+- Minesweeper now derives rendered and interactive face/difficulty controls from the same client-space rectangles, keeping clicks aligned after resize and interface scaling.
+
+## 2026-09: Clamp Browser scroll after lifecycle changes
+
+- Filesystem Browser now clamps listing scrollback after window resizes and interface text scaling, including when no row is selected.
+- Added focused no-selection coverage and updated the Browser verification guide.
+
+## 2026-09: Keep Text Editor scrollback inside resized clients
+
+- Text Editor now clamps vertical scrollback when a window shrinks and derives visible rows from the actual space above the status bar.
+- Tiny clients no longer claim document rows that cannot be rendered.
+- Added focused resize coverage and updated the editor guide and verification notes.
+
+## 2026-09: Keep Drawing chrome aligned after text scaling
+
+- Drawing toolbar buttons and the status bar now grow from the active interface font, keeping labels and hit areas aligned at larger text sizes.
+- Text scaling preserves the existing canvas, file state, and undo history.
+- Added focused Drawing coverage and updated the canvas and verification documentation.
+
+## 2026-09: Bound Terminal scrollback to its rendered history area
+
+- Terminal scroll limits now use the rows that actually fit above the input strip instead of an overestimated height with extra scroll allowance.
+- Resizing, text scaling, Page Up, Page Down, and mouse-wheel scrolling now clamp to the oldest fully visible output; tiny clients no longer claim or paint unavailable history rows.
+- Added focused Terminal coverage and updated the app guide and verification notes.
+
+## 2026-09: Keep tiny Browser clients inside their chrome
+
+- Filesystem Browser now reports zero visible rows when its path, toolbar, and status bands consume the client area.
+- Rendering no longer paints list rows through the status bar in undersized windows.
+
+## 2026-09: Keep Filesystem Browser status clicks out of the list
+
+- Browser row hit-testing now stops at the scaled status bar, so clicking status feedback cannot select or activate a file.
+- Tiny client areas clamp the rendered list region to a non-negative height.
+
+## 2026-09: Keep Filesystem Browser chrome aligned after text scaling
+
+- The path bar, toolbar buttons, list origin, and status bar now share font-aware geometry with the existing row and context-menu metrics.
+- Mouse row calculations and visible-row counts use the same dynamic bands, with focused scale coverage.
+
+## 2026-09: Keep Text Editor prompts inside the scaled status bar
+
+- Text Editor now derives its status-bar height from the active interface font, keeping prompt text and mouse hit testing aligned at larger scales.
+- Updated the editor guide and verification notes.
+
+## 2026-09: Keep taskbar controls readable after text scaling
+
+- Start, taskbar window buttons, scroll arrows, and the clock tray now share a font-aware control height bounded by the taskbar band.
+- Larger interface text no longer gets vertically clipped inside the shell controls.
+
+## 2026-09: Keep Minesweeper bands readable after text scaling
+
+- Minesweeper now derives its HUD, difficulty buttons, and footer from the active interface font instead of clipping scaled labels against fixed bands.
+- Board layout and hit testing use the same dynamic HUD and footer heights, with focused coverage for scaled controls.
+
+## 2026-09: Keep game HUDs aligned after text scaling
+
+- Snake and Pong now derive their HUD height and text position from the active interface font instead of laying out the playfield below a fixed strip.
+- Added scaled-font geometry coverage for Snake and updated the game guides.
+
+## 2026-09: Document Drawing display scaling
+
+- Documented how shared interface text scaling affects Drawing prompts and leaves canvas data, history, and file state unchanged.
+
+## 2026-09: Isolate shell pointer releases
+
+- Taskbar and Start-menu clicks now consume their matching mouse-up instead of forwarding an orphaned release to the focused app.
+- Added Window Manager mouse-capture coverage for taskbar interactions.
+
+## 2026-09: Keep session focus on visible windows
+
+- Restoring a minimized final session entry now hands keyboard focus to the topmost visible window.
+- Added focus lifecycle coverage for minimized restored geometry.
+
+## 2026-09: Keep game overlays readable after text scaling
+
+- Snake and Minesweeper now space overlay lines from the active font height instead of a fixed 18px step.
+- End-state messages remain separated when the shared interface text scale is increased.
+
+## 2026-09: Keep Filesystem filter prompts aligned after text scaling
+
+- The active Browser filter now discards its cached pixel offset when the shared interface font changes.
+- Added lifecycle coverage alongside the existing context-menu relayout check.
+
+## 2026-09: Keep Minesweeper controls aligned after text scaling
+
+- Difficulty button geometry now follows the shared interface font instead of keeping a fixed 18px height.
+- Rendering and hit testing use the same scaled button bounds, with focused state coverage.
+
+## 2026-09: Keep Drawing prompts aligned after text scaling
+
+- Drawing now resets its cached path-prompt scroll when the shared interface font changes.
+- Added state coverage for the prompt invalidation hook.
+
+## 2026-09: Measure taskbar titles at their real width
+
+- Taskbar buttons now size long UTF-8 titles from the active font metrics instead of a character-count estimate.
+- Larger interface text no longer makes file-backed taskbar labels disproportionately cramped.
+- Added scaled-render coverage for measured taskbar button growth.
+
+## 2026-09: Keep Settings prompts aligned after text scaling
+
+- Settings now resets its cached wallpaper-field scroll when the shared interface font changes.
+- Added state coverage for the prompt invalidation hook.
+
+## 2026-09: Keep app views aligned after text scaling
+
+- UI scale changes now notify every open app, including minimized windows.
+- Terminal and Text Editor rebuild their pixel-based scroll state against the new font metrics instead of retaining stale offsets.
+- Added regression coverage for scale notifications reaching a minimized app.
+
+## 2026-09: Align wallpaper roadmap documentation
+
+- Updated the vision, architecture, and Terminal guides to describe shipped BMP/PNG/JPEG wallpaper support accurately.
+- Reserved future wording for richer wallpaper controls instead of already-shipped image formats.
+
+## 2026-09: Keep wallpaper dispatch warning-free
+
+- Routed Window Manager wallpaper loading directly through `WallpaperImage` instead of a translation macro around `SDL_LoadBMP`.
+- Removed the resulting SDL macro redefinition warning without changing BMP, PNG, or JPEG behavior.
+- Updated WindowManager test commands for generated Settings bodies and the wallpaper loader source.
+
+## 2026-09: Keep Filesystem menus aligned after text scaling
+
+- Open Filesystem context menus now rebuild their cached size and hit targets when Settings changes the shared interface scale.
+- Added an app scale-change hook and focused menu layout coverage.
+
 ## 2026-09: Show live desktop dimensions in Settings
 
 - Settings now reads the current logical desktop size from the WindowManager instead of displaying a hardcoded value.

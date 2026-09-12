@@ -31,7 +31,7 @@ Focusing another window auto-pauses. Resume with Space, P, Enter, or click when 
 
 ## Presentation
 
-The playfield scales to the window. Score is shown in the HUD and clips at the client boundary when the window is narrow. Session restore reopens Pong windows.
+The playfield scales to the window. Score is shown in a font-aware HUD whose height follows the shared interface text scale, keeping the field below the score strip when Settings changes font size. The HUD clips at the client boundary when the window is narrow. Session restore reopens Pong windows.
 
 ## Developer Notes
 

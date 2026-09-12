@@ -3,6 +3,7 @@
 #include "../src/fs/Filesystem.hpp"
 
 #include <SDL2/SDL.h>
+#include <SDL2/SDL_ttf.h>
 #include <cstdio>
 #include <filesystem>
 #include <iostream>
@@ -58,7 +59,18 @@ int main() {
         fs.writeFile("/home/monolith/note_" + std::to_string(i) + ".txt", "note");
     }
 
-    monolith::app::FilesystemApp browser(nullptr, &fs);
+    check(SDL_Init(SDL_INIT_VIDEO) == 0, "browser state SDL initialize");
+    check(TTF_Init() == 0, "browser state SDL_ttf initialize");
+    TTF_Font* font = TTF_OpenFont("assets/fonts/DejaVuSans.ttf", 14);
+    check(font != nullptr, "browser state loads test font");
+    if (!font) {
+        TTF_Quit();
+        SDL_Quit();
+        std::filesystem::remove_all(hostRoot, ec);
+        return 1;
+    }
+
+    monolith::app::FilesystemApp browser(font, &fs);
     browser.onResize(400, 240);
     check(browser.m_entries.size() == 15, "browser loads the complete directory listing");
 
@@ -215,6 +227,119 @@ int main() {
     check(!browser.m_showContextMenu && browser.m_contextMenuItems.empty(),
           "refresh clears a stale context menu target");
 
+    browser.m_clientWidth = 400;
+    browser.m_clientHeight = 240;
+    browser.m_contextMenuItems = {"Open", "Open with Text Editor", "Open with Drawing"};
+    browser.m_contextMenuPos = {220, 180};
+    browser.m_showContextMenu = true;
+    browser.updateContextMenuLayout();
+    const SDL_Rect menuBeforeScale = browser.m_contextMenuRect;
+    check(menuBeforeScale.w > 0 && menuBeforeScale.h > 0,
+          "context menu layout is available before UI scaling");
+    const int pathBarBeforeScale = browser.getPathBarHeight();
+    const int toolbarBeforeScale = browser.getToolbarButtonHeight();
+    const int statusBarBeforeScale = browser.getStatusBarHeight();
+    check(TTF_SetFontSize(font, 20) == 0, "browser state applies larger test font");
+    browser.m_filterScrollPx = 42;
+    browser.onUiScaleChanged();
+    check(browser.m_contextMenuRect.h > menuBeforeScale.h
+              && browser.m_contextMenuRect.w >= menuBeforeScale.w,
+          "open context menu relayouts after UI scale changes");
+    check(browser.m_filterScrollPx == 0,
+          "filter prompt resets its cached offset after UI scale changes");
+    check(browser.getPathBarHeight() > pathBarBeforeScale
+              && browser.getToolbarButtonHeight() > toolbarBeforeScale
+              && browser.getStatusBarHeight() > statusBarBeforeScale,
+          "browser chrome bands grow with the shared interface font");
+    const SDL_Rect narrowFilter = browser.getFilterRect({0, 0, 16, 80});
+    check(narrowFilter.x >= 0 && narrowFilter.w >= 0
+              && narrowFilter.x + narrowFilter.w <= 16,
+          "browser filter control stays inside a narrow client width");
+    check(browser.selectEntryNamed("a.txt", false),
+          "select an item before status-bar hit testing");
+    SDL_MouseButtonEvent statusClick{};
+    statusClick.button = SDL_BUTTON_LEFT;
+    statusClick.clicks = 1;
+    statusClick.x = 10;
+    statusClick.y = browser.m_clientHeight - browser.getStatusBarHeight();
+    browser.handleMouseButton(statusClick);
+    check(browser.m_selectedIndex >= 0
+              && browser.m_entries[static_cast<size_t>(browser.m_selectedIndex)].name == "a.txt",
+          "status-bar clicks do not select a list row");
+    browser.clearMultiSelection();
+    browser.m_selectedIndex = -1;
+    browser.m_scrollOffset = 999;
+    browser.onResize(200, 40);
+    check(browser.getVisibleRowCount({0, 0, 200, 40}) == 0,
+          "tiny browser clients report no visible rows below their chrome");
+    check(browser.m_scrollOffset == static_cast<int>(browser.m_entries.size()) - 1,
+          "browser resize clamps scrollback without a selected row");
+    const int partialClientHeight = browser.getListTop()
+        + browser.getStatusBarHeight() + 6 + browser.getRowHeight() - 1;
+    browser.onResize(200, partialClientHeight);
+    check(browser.getVisibleRowCount({0, 0, 200, partialClientHeight}) == 0,
+          "browser does not count a partially visible row");
+    check(browser.selectEntryNamed("b.txt", false),
+          "select an entry before partial-row hit testing");
+    SDL_MouseButtonEvent partialRowClick{};
+    partialRowClick.button = SDL_BUTTON_LEFT;
+    partialRowClick.clicks = 1;
+    partialRowClick.x = 10;
+    partialRowClick.y = browser.getListTop();
+    browser.handleMouseButton(partialRowClick);
+    check(browser.m_entries[static_cast<size_t>(browser.m_selectedIndex)].name == "b.txt",
+          "browser ignores clicks in a row fragment that is not rendered");
+
+    browser.onResize(400, 240);
+    check(browser.selectEntryNamed("a.txt", false),
+          "select the first row before list padding hit testing");
+    SDL_MouseButtonEvent listGapClick{};
+    listGapClick.button = SDL_BUTTON_LEFT;
+    listGapClick.clicks = 1;
+    listGapClick.x = 10;
+    listGapClick.y = browser.getListTop();
+    browser.handleMouseButton(listGapClick);
+    check(browser.m_entries[static_cast<size_t>(browser.m_selectedIndex)].name == "a.txt",
+          "browser ignores the padding above the first rendered row");
+    listGapClick.y = browser.getListRowTop() + browser.getRowHeight() - 1;
+    browser.handleMouseButton(listGapClick);
+    check(browser.m_entries[static_cast<size_t>(browser.m_selectedIndex)].name == "a.txt",
+          "browser ignores the one-pixel gap between rendered rows");
+    listGapClick.y = browser.getListRowTop() + browser.getRowHeight();
+    browser.handleMouseButton(listGapClick);
+    check(browser.m_entries[static_cast<size_t>(browser.m_selectedIndex)].name == "b.txt",
+          "browser maps the next rendered row to the next entry");
+
+    browser.onResize(400, 240);
+    browser.clearMultiSelection();
+    browser.m_selectedIndex = -1;
+    browser.m_scrollOffset = 999;
+    browser.onUiScaleChanged();
+    const int scaledVisibleRows = std::max(
+        1,
+        browser.getVisibleRowCount({0, 0, browser.m_clientWidth, browser.m_clientHeight}));
+    check(browser.m_scrollOffset == static_cast<int>(browser.m_entries.size()) - scaledVisibleRows,
+          "browser text scaling clamps scrollback to the new listing area");
+
+    SDL_Surface* surface = SDL_CreateRGBSurfaceWithFormat(
+        0, 240, 240, 32, SDL_PIXELFORMAT_RGBA32);
+    SDL_Renderer* renderer = surface ? SDL_CreateSoftwareRenderer(surface) : nullptr;
+    check(renderer != nullptr, "browser state creates a software renderer");
+    if (renderer) {
+        const SDL_Rect expectedClip{5, 6, 140, 120};
+        SDL_RenderSetClipRect(renderer, &expectedClip);
+        browser.render(renderer, {0, 0, 200, 200});
+        SDL_Rect restoredClip{};
+        SDL_RenderGetClipRect(renderer, &restoredClip);
+        check(restoredClip.x == expectedClip.x
+                  && restoredClip.y == expectedClip.y
+                  && restoredClip.w == expectedClip.w
+                  && restoredClip.h == expectedClip.h,
+              "browser restores the caller renderer clip after rendering");
+        SDL_DestroyRenderer(renderer);
+    }
+    if (surface) SDL_FreeSurface(surface);
+
     check(browser.selectEntryNamed("a.txt", false), "select an item before filtered delete");
     browser.requestDeleteSelected();
     key(browser, SDLK_f, KMOD_CTRL);
@@ -301,6 +426,9 @@ int main() {
     check(browser.m_currentPath == "/home/monolith/moved-sub",
           "browser view returns to a valid parent after deletion");
 
+    TTF_CloseFont(font);
+    TTF_Quit();
+    SDL_Quit();
     std::filesystem::remove_all(hostRoot, ec);
     if (failures == 0) {
         std::cout << "ALL FILESYSTEM APP STATE TESTS PASSED\n";

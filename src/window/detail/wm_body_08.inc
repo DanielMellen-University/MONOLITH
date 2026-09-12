@@ -66,6 +66,12 @@ void WindowManager::applyRestoredGeometry(Window* window, int x, int y, int w, i
         const int clientH = window->rect.h - Window::TITLE_BAR_HEIGHT;
         window->app->onResize(window->rect.w, clientH > 0 ? clientH : 0);
     }
+
+    // A session entry is created focused, then its saved minimized state is
+    // applied. Do not leave keyboard focus attached to that hidden window.
+    if (window->minimized && m_focusedWindow == window) {
+        focusTopmostVisibleWindow();
+    }
 }
 
 bool WindowManager::loadSession(const std::string& hostPath) {
@@ -347,7 +353,7 @@ void WindowManager::ensureWallpaperTexture(SDL_Renderer* renderer) {
     }
 
     const std::string hostPath = m_fs->toHostPath(path);
-    SDL_Surface* surface = SDL_LoadBMP(hostPath.c_str());
+    SDL_Surface* surface = loadWallpaperSurface(hostPath);
     if (!surface) {
         // Fail soft: keep solid color background.
         return;
@@ -415,6 +421,11 @@ void WindowManager::setUiScalePercent(int percent) {
 
     m_desktopSettings.setUiScalePercent(percent);
     applyUiScaleFont();
+    for (auto& windowPtr : m_windows) {
+        if (windowPtr && windowPtr->app) {
+            windowPtr->app->onUiScaleChanged();
+        }
+    }
     if (!m_desktopSettingsHostPath.empty()) {
         m_desktopSettings.saveToHostPath(m_desktopSettingsHostPath);
     }

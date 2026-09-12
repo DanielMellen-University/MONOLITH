@@ -47,6 +47,10 @@ Type commands at the prompt and press **Enter** to run them. Output appears abov
 | Page Up / Page Down | Scroll output history |
 | Mouse wheel | Scroll output history |
 
+Once a history entry is recalled, typing, Backspace, Delete, or a completion
+that changes the command returns to normal input editing. Pressing Down after
+that keeps the edited command instead of restoring the pre-navigation buffer.
+
 ## Built-in Commands
 
 Run `help` for the full list. Current commands:
@@ -85,7 +89,7 @@ When the cursor is immediately after a closed quoted token, Tab does nothing. Th
 
 After a successful `mv`, any open Text Editor or Drawing window bound to the source path follows the normalized destination path. Moving a directory also updates bindings for open files beneath it, and any Terminal or Filesystem Browser currently inside that directory follows the new location.
 
-After a successful `mkdir`, `touch`, or `cp`, open Filesystem Browser windows refresh when the new or changed entry belongs directly to the folder they are viewing. If the operation also creates missing parent directories, ancestor Browser windows refresh as well. Creating or overwriting a file by saving a Text Editor document or Drawing sketch uses the same notification path. If the changed path is the active BMP wallpaper, the desktop reloads it on the next render.
+After a successful `mkdir`, `touch`, or `cp`, open Filesystem Browser windows refresh when the new or changed entry belongs directly to the folder they are viewing. If the operation also creates missing parent directories, ancestor Browser windows refresh as well. Creating or overwriting a file by saving a Text Editor document or Drawing sketch uses the same notification path. If the changed path is the active wallpaper image, the desktop reloads it on the next render.
 
 The shared Filesystem Browser clipboard also follows a moved source, so a pending Copy or Cut can still be pasted after another window renames or moves that source.
 
@@ -102,6 +106,12 @@ Command history persists across sessions in:
 History is saved after each submitted command. Command history is capped (oldest entries drop); on-screen scrollback is also capped so long sessions stay responsive.
 
 History loading accepts both Unix and Windows line endings, so recalled commands do not carry a hidden carriage return into command parsing.
+
+Output scrolling is bounded to the history rows that fit above the input strip. Page Up, Page Down, and the mouse wheel cannot scroll beyond the oldest fully visible output, and resizing or changing the interface text scale clamps the saved scroll position to the new history area. If the client is too short to expose a history row, the Terminal leaves the history area empty instead of painting through the input strip.
+
+The input strip remains inside the client rectangle even when a window is resized below its normal text height.
+The history viewport also clamps both width and height to zero for clients smaller than its padding, so narrow windows do not create invalid clip rectangles.
+Terminal intersects its input and history clips with the caller's renderer clip and restores that clip after each region.
 
 ## Argument Quoting
 

@@ -104,6 +104,15 @@ int main() {
     check(firstPtr->wheelEvents == 0 && secondPtr->wheelEvents == 0,
           "wheel routing uses the latest button-up pointer position");
 
+    SDL_Event taskbarDown{};
+    leftButton(taskbarDown, SDL_MOUSEBUTTONDOWN, 50, 680);
+    wm.handleEvent(taskbarDown);
+    SDL_Event taskbarUp{};
+    leftButton(taskbarUp, SDL_MOUSEBUTTONUP, 50, 680);
+    wm.handleEvent(taskbarUp);
+    check(firstPtr->ups == 1 && secondPtr->ups == 0,
+          "taskbar clicks do not leak a mouse-up into a client app");
+
     if (failures == 0) {
         std::cout << "ALL WINDOW MOUSE CAPTURE TESTS PASSED\n";
         return 0;

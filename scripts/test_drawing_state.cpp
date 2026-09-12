@@ -62,7 +62,18 @@ int main() {
                        monolith::drawing::encodeModr(2, 2, pixels)),
           "write resize drawing");
 
-    TestDrawing drawing(nullptr, &fs);
+    check(SDL_Init(SDL_INIT_VIDEO) == 0, "drawing state SDL initialize");
+    check(TTF_Init() == 0, "drawing state SDL_ttf initialize");
+    TTF_Font* font = TTF_OpenFont("assets/fonts/DejaVuSans.ttf", 14);
+    check(font != nullptr, "drawing state loads test font");
+    if (!font) {
+        TTF_Quit();
+        SDL_Quit();
+        std::filesystem::remove_all(hostRoot, ec);
+        return 1;
+    }
+
+    TestDrawing drawing(font, &fs);
     bool occupiedSketchNames = true;
     for (int i = 1; i <= 999; ++i) {
         std::string path = "/home/monolith/drawings/sketch";
@@ -78,6 +89,42 @@ int main() {
     check(!drawing.m_dirty, "initial blank resize stays clean");
     check(drawing.loadFromPath("/drawings/resize.modr"), "load resize drawing");
     check(!drawing.m_dirty, "loaded drawing starts clean");
+
+    const int baseToolbarHeight = drawing.m_canvasTop;
+    const int baseStatusBarHeight = drawing.m_statusBarHeight;
+    const int baseCanvasWidth = drawing.m_canvasWidth;
+    const int baseCanvasHeight = drawing.m_canvasHeight;
+    const std::vector<uint8_t> pixelsBeforeScale = drawing.m_pixels;
+    drawing.pushUndoSnapshot();
+    const size_t undoCountBeforeScale = drawing.m_undoStack.size();
+    check(TTF_SetFontSize(font, 22) == 0, "drawing state applies larger test font");
+    drawing.onUiScaleChanged();
+    check(drawing.m_canvasTop > baseToolbarHeight
+              && drawing.m_statusBarHeight > baseStatusBarHeight,
+          "Drawing chrome grows with the shared interface font");
+    check(drawing.m_canvasWidth == baseCanvasWidth
+              && drawing.m_canvasHeight == baseCanvasHeight
+              && drawing.m_pixels == pixelsBeforeScale
+              && drawing.m_undoStack.size() == undoCountBeforeScale
+              && !drawing.m_dirty,
+          "Drawing text scaling preserves canvas data and history");
+    drawing.onResize(320, 300);
+    const int scaledDisplayHeight = drawing.m_clientHeight
+        - drawing.m_canvasTop - drawing.m_statusBarHeight;
+    int mappedX = 0;
+    int mappedY = 0;
+    drawing.canvasPointFromClient(
+        drawing.m_clientWidth - 1,
+        drawing.m_canvasTop + std::max(0, scaledDisplayHeight - 1),
+        mappedX,
+        mappedY);
+    check(scaledDisplayHeight > 0
+              && mappedX == drawing.m_canvasWidth - 1
+              && mappedY == drawing.m_canvasHeight - 1,
+          "Drawing maps scaled canvas clicks to the preserved raster edge");
+    check(drawing.loadFromPath("/drawings/resize.modr"),
+          "reload Drawing fixture after scaled mapping coverage");
+    check(!drawing.m_dirty, "reloaded Drawing fixture starts clean");
 
     TestController controller;
     drawing.setController(&controller);
@@ -153,6 +200,12 @@ int main() {
     check(drawing.m_filePath == "/drawings/alternate.modr" && !drawing.m_dirty,
           "confirming the changed dirty drawing target loads it");
 
+    drawing.beginPathPrompt(monolith::app::DrawingApp::PathPromptMode::Open);
+    drawing.m_pathPromptScrollPx = 42;
+    drawing.onUiScaleChanged();
+    check(drawing.m_pathPromptScrollPx == 0,
+          "scaling resets the Drawing path prompt offset");
+
     drawing.beginPathPrompt(monolith::app::DrawingApp::PathPromptMode::Save);
     drawing.m_pathPromptBuffer = "/drawings/alternate.modr/child.modr";
     drawing.m_pathPromptCursorPos = std::string("/drawings/alternate.modr/").size();
@@ -169,11 +222,36 @@ int main() {
     check(drawing.m_pathPromptBuffer == "/archive/",
           "Save prompt returns to a valid parent after deletion");
 
+    SDL_Surface* surface = SDL_CreateRGBSurfaceWithFormat(
+        0, 320, 320, 32, SDL_PIXELFORMAT_RGBA32);
+    SDL_Renderer* renderer = surface ? SDL_CreateSoftwareRenderer(surface) : nullptr;
+    check(renderer != nullptr, "drawing state creates a software renderer");
+    if (renderer) {
+        const SDL_Rect expectedClip{5, 6, 180, 160};
+        SDL_RenderSetClipRect(renderer, &expectedClip);
+        drawing.render(renderer, {0, 0, 280, 280});
+        SDL_Rect restoredClip{};
+        SDL_RenderGetClipRect(renderer, &restoredClip);
+        check(restoredClip.x == expectedClip.x
+                  && restoredClip.y == expectedClip.y
+                  && restoredClip.w == expectedClip.w
+                  && restoredClip.h == expectedClip.h,
+              "Drawing restores the caller renderer clip after rendering");
+        SDL_DestroyRenderer(renderer);
+    }
+    if (surface) SDL_FreeSurface(surface);
+
     std::filesystem::remove_all(hostRoot, ec);
     if (failures == 0) {
         std::cout << "ALL DRAWING STATE TESTS PASSED\n";
+        TTF_CloseFont(font);
+        TTF_Quit();
+        SDL_Quit();
         return 0;
     }
     std::cerr << failures << " test(s) failed\n";
+    TTF_CloseFont(font);
+    TTF_Quit();
+    SDL_Quit();
     return 1;
 }

@@ -15,12 +15,37 @@ namespace {
 constexpr int kToolbarPadding = 8;
 constexpr int kToolbarButtonHeight = 22;
 constexpr int kToolbarGap = 6;
+constexpr int kStatusBarHeight = 22;
 constexpr int kSwatchSize = 18;
 constexpr int kSwatchGap = 4;
 constexpr size_t kMaxHistoryStates = 32;
 constexpr uint8_t kCanvasBackgroundR = 245;
 constexpr uint8_t kCanvasBackgroundG = 245;
 constexpr uint8_t kCanvasBackgroundB = 248;
+
+struct RendererClipState {
+    SDL_Rect rect{};
+    bool active = false;
+};
+
+RendererClipState captureRendererClip(SDL_Renderer* renderer) {
+    RendererClipState state;
+    SDL_RenderGetClipRect(renderer, &state.rect);
+    state.active = state.rect.w > 0 && state.rect.h > 0;
+    return state;
+}
+
+void restoreRendererClip(SDL_Renderer* renderer, const RendererClipState& state) {
+    SDL_RenderSetClipRect(renderer, state.active ? &state.rect : nullptr);
+}
+
+SDL_Rect intersectRendererClip(const SDL_Rect& requested, const RendererClipState& state) {
+    SDL_Rect result = requested;
+    if (state.active) {
+        SDL_IntersectRect(&state.rect, &requested, &result);
+    }
+    return result;
+}
 
 bool pointInRect(int x, int y, const SDL_Rect& rect) {
     return x >= rect.x && x < rect.x + rect.w && y >= rect.y && y < rect.y + rect.h;
@@ -378,14 +403,48 @@ void DrawingApp::drawStroke(int x0, int y0, int x1, int y1) {
 }
 
 bool DrawingApp::isInCanvas(int x, int y) const {
-    return x >= 0 && y >= m_canvasTop
+    const int displayHeight = m_clientHeight - m_canvasTop - m_statusBarHeight;
+    return displayHeight > 0
+        && x >= 0 && y >= m_canvasTop
         && x < m_clientWidth
-        && y < m_clientHeight - m_statusBarHeight;
+        && y < m_canvasTop + displayHeight;
+}
+
+int DrawingApp::getToolbarButtonHeight() const {
+    const int fontHeight = m_font ? TTF_FontHeight(m_font) : 0;
+    return std::max(kToolbarButtonHeight, fontHeight + 4);
+}
+
+int DrawingApp::getToolbarHeight() const {
+    const int buttonHeight = getToolbarButtonHeight();
+    return kToolbarPadding
+        + buttonHeight * 3
+        + kToolbarGap * 2
+        + 10;
+}
+
+int DrawingApp::getStatusBarHeight() const {
+    const int fontHeight = m_font ? TTF_FontHeight(m_font) : 0;
+    return std::max(kStatusBarHeight, fontHeight + 8);
+}
+
+void DrawingApp::updateLayoutMetrics() {
+    m_canvasTop = getToolbarHeight();
+    m_statusBarHeight = getStatusBarHeight();
 }
 
 void DrawingApp::canvasPointFromClient(int clientX, int clientY, int& outX, int& outY) const {
-    outX = clientX;
-    outY = clientY - m_canvasTop;
+    const int displayWidth = std::max(1, m_clientWidth);
+    const int displayHeight = std::max(1, m_clientHeight - m_canvasTop - m_statusBarHeight);
+    const int displayY = std::clamp(clientY - m_canvasTop, 0, displayHeight - 1);
+    outX = std::clamp(
+        static_cast<int>((static_cast<long long>(clientX) * m_canvasWidth) / displayWidth),
+        0,
+        std::max(0, m_canvasWidth - 1));
+    outY = std::clamp(
+        static_cast<int>((static_cast<long long>(displayY) * m_canvasHeight) / displayHeight),
+        0,
+        std::max(0, m_canvasHeight - 1));
 }
 
 std::string DrawingApp::defaultSavePath() {
@@ -947,6 +1006,7 @@ void DrawingApp::handleToolbarClick(int x, int y) {
 }
 
 void DrawingApp::drawToolbar(SDL_Renderer* renderer, const SDL_Rect& contentRect) {
+    const int buttonHeight = getToolbarButtonHeight();
     SDL_Rect toolbar = {
         contentRect.x,
         contentRect.y,
@@ -957,12 +1017,12 @@ void DrawingApp::drawToolbar(SDL_Renderer* renderer, const SDL_Rect& contentRect
     SDL_RenderFillRect(renderer, &toolbar);
 
     auto drawButton = [&](SDL_Rect& outRect, const char* label, int width, bool active, int& relX, int relY) {
-        outRect = {relX, relY, width, kToolbarButtonHeight};
+        outRect = {relX, relY, width, buttonHeight};
         SDL_Rect drawRect = {
             contentRect.x + relX,
             contentRect.y + relY,
             width,
-            kToolbarButtonHeight
+            buttonHeight
         };
 
         if (active) {
@@ -1005,7 +1065,7 @@ void DrawingApp::drawToolbar(SDL_Renderer* renderer, const SDL_Rect& contentRect
     drawButton(m_btnRedo, "Redo", 42, false, relX, kToolbarPadding);
 
     relX = kToolbarPadding;
-    const int toolRowY = kToolbarPadding + kToolbarButtonHeight + 6;
+    const int toolRowY = kToolbarPadding + buttonHeight + 6;
     drawButton(m_btnPen, "Pen", 44, m_tool == Tool::Pen, relX, toolRowY);
     drawButton(m_btnEraser, "Eraser", 54, m_tool == Tool::Eraser, relX, toolRowY);
     drawButton(m_btnFill, "Fill", 40, m_tool == Tool::Fill, relX, toolRowY);
@@ -1019,7 +1079,7 @@ void DrawingApp::drawToolbar(SDL_Renderer* renderer, const SDL_Rect& contentRect
     drawButton(m_btnBrushLarge, "L", 24, m_brush == BrushSize::Large, relX, toolRowY);
 
     relX = kToolbarPadding;
-    const int colorRowY = toolRowY + kToolbarButtonHeight + 6;
+    const int colorRowY = toolRowY + buttonHeight + 6;
     drawButton(m_btnRgb, "RGB", 42, m_usingCustomColor, relX, colorRowY);
 
     relX += 6;
@@ -1060,6 +1120,7 @@ void DrawingApp::drawToolbar(SDL_Renderer* renderer, const SDL_Rect& contentRect
 }
 
 void DrawingApp::drawStatusBar(SDL_Renderer* renderer, const SDL_Rect& contentRect) {
+    const RendererClipState previousClip = captureRendererClip(renderer);
     SDL_Rect bar = {
         contentRect.x,
         contentRect.y + contentRect.h - m_statusBarHeight,
@@ -1108,7 +1169,8 @@ void DrawingApp::drawStatusBar(SDL_Renderer* renderer, const SDL_Rect& contentRe
                 visibleWidth,
                 bar.h
             };
-            SDL_RenderSetClipRect(renderer, &clip);
+            const SDL_Rect effectiveClip = intersectRendererClip(clip, previousClip);
+            SDL_RenderSetClipRect(renderer, &effectiveClip);
             SDL_Rect dst = {
                 contentRect.x + 8 - (promptActive ? m_pathPromptScrollPx : 0),
                 bar.y + (bar.h - surf->h) / 2,
@@ -1116,7 +1178,7 @@ void DrawingApp::drawStatusBar(SDL_Renderer* renderer, const SDL_Rect& contentRe
                 surf->h
             };
             SDL_RenderCopy(renderer, tex, nullptr, &dst);
-            SDL_RenderSetClipRect(renderer, nullptr);
+            restoreRendererClip(renderer, previousClip);
             SDL_DestroyTexture(tex);
         }
         SDL_FreeSurface(surf);
@@ -1126,6 +1188,7 @@ void DrawingApp::drawStatusBar(SDL_Renderer* renderer, const SDL_Rect& contentRe
 void DrawingApp::onResize(int clientWidth, int clientHeight) {
     m_clientWidth = clientWidth;
     m_clientHeight = clientHeight;
+    updateLayoutMetrics();
 
     const int canvasW = std::max(1, clientWidth);
     const int canvasH = std::max(1, clientHeight - m_canvasTop - m_statusBarHeight);
@@ -1145,6 +1208,13 @@ void DrawingApp::onResize(int clientWidth, int clientHeight) {
         m_pendingInitialPath.clear();
         loadFromPath(path);
     }
+}
+
+void DrawingApp::onUiScaleChanged() {
+    updateLayoutMetrics();
+    // The path prompt stores its horizontal position in pixels; remeasure it
+    // against the new font on the next render.
+    m_pathPromptScrollPx = 0;
 }
 
 void DrawingApp::render(SDL_Renderer* renderer, const SDL_Rect& contentRect) {

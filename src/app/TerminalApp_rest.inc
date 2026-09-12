@@ -1,11 +1,6 @@
 void TerminalApp::scrollHistory(int delta) {
-    int visible = getMaxVisibleLines({0, 0, m_clientWidth, m_clientHeight});
-    int maxScroll = static_cast<int>(m_history.size()) - visible + 2;
-    if (maxScroll < 0) maxScroll = 0;
-
     m_scrollOffset += delta;
-    if (m_scrollOffset < 0) m_scrollOffset = 0;
-    if (m_scrollOffset > maxScroll) m_scrollOffset = maxScroll;
+    m_scrollOffset = std::clamp(m_scrollOffset, 0, getMaxScrollOffset());
 }
 
 void TerminalApp::handleMouseWheel(const SDL_MouseWheelEvent& e) {
@@ -136,6 +131,8 @@ void TerminalApp::handleTabCompletion() {
 
     if (matches.empty()) return;
 
+    const std::string inputBeforeCompletion = m_inputBuffer;
+
     auto replacePrefix = [&](const std::string& completion) {
         const std::string encoded = escapeCompletion(completion, context.quote);
         const std::size_t replaceLength = static_cast<std::size_t>(m_inputCursorPos)
@@ -183,6 +180,10 @@ void TerminalApp::handleTabCompletion() {
                 addOutput("  " + m);
             }
         }
+    }
+
+    if (m_inputBuffer != inputBeforeCompletion) {
+        leaveHistoryNavigationOnEdit();
     }
 }
 
@@ -262,8 +263,40 @@ int TerminalApp::getLineHeight() const {
 
 int TerminalApp::getMaxVisibleLines(const SDL_Rect& contentRect) const {
     int lh = getLineHeight();
-    if (lh <= 0) return 10;
-    return std::max(3, (contentRect.h - 20) / lh); // small padding
+    if (lh <= 0) return 0;
+    return getHistoryRect(contentRect).h / lh;
+}
+
+int TerminalApp::getMaxScrollOffset() const {
+    const int visible = getMaxVisibleLines({0, 0, m_clientWidth, m_clientHeight});
+    return std::max(0, static_cast<int>(m_history.size()) - visible);
+}
+
+SDL_Rect TerminalApp::getInputBarRect(const SDL_Rect& contentRect) const {
+    const int stripHeight = getLineHeight() + 14;
+    const int clientHeight = std::max(0, contentRect.h);
+    return {
+        contentRect.x + 4,
+        contentRect.y + std::max(0, clientHeight - stripHeight),
+        std::max(0, contentRect.w - 8),
+        std::min(stripHeight, clientHeight)
+    };
+}
+
+SDL_Rect TerminalApp::getHistoryRect(const SDL_Rect& contentRect) const {
+    constexpr int padding = 8;
+    constexpr int historyBottomGap = 4;
+    const int inputStripHeight = getLineHeight() + 14;
+    return {
+        contentRect.x + padding,
+        contentRect.y + padding,
+        std::max(0, contentRect.w - padding * 2),
+        std::max(0, contentRect.h - padding * 2 - inputStripHeight - historyBottomGap)
+    };
+}
+
+int TerminalApp::getInputLineY(const SDL_Rect& contentRect, const SDL_Rect& inputBar) const {
+    return std::max(inputBar.y, contentRect.y + contentRect.h - 6 - getLineHeight());
 }
 
 std::string TerminalApp::resolvePath(const std::string& path) const {
@@ -304,6 +337,8 @@ void TerminalApp::render(SDL_Renderer* renderer, const SDL_Rect& contentRect) {
         return;
     }
 
+    const RendererClipState previousClip = captureRendererClip(renderer);
+
     // Terminal background
     SDL_SetRenderDrawColor(renderer, 18, 18, 22, 255);
     SDL_RenderFillRect(renderer, &contentRect);
@@ -314,32 +349,21 @@ void TerminalApp::render(SDL_Renderer* renderer, const SDL_Rect& contentRect) {
     // === Robust input area reservation (critical for maximized windows) ===
     // We reserve a fixed strip at the very bottom of the content area for the input.
     // This must never be eaten into by history, even when the window is very tall.
-    const int inputStripHeight = lineHeight + 14;   // prompt + padding + breathing room
-    const int inputBottomY = contentRect.y + contentRect.h - 6; // small margin from absolute bottom
-    const int inputLineY = inputBottomY - lineHeight;
+    const SDL_Rect inputBar = getInputBarRect(contentRect);
+    const int inputLineY = getInputLineY(contentRect, inputBar);
 
     // History gets everything above the input strip
-    SDL_Rect historyRect = {
-        contentRect.x + padding,
-        contentRect.y + padding,
-        contentRect.w - padding * 2,
-        contentRect.h - padding * 2 - inputStripHeight - 4
-    };
+    const SDL_Rect historyRect = getHistoryRect(contentRect);
 
     // Draw input background strip (clearly separated)
     SDL_SetRenderDrawColor(renderer, 28, 28, 34, 255);
-    SDL_Rect inputBar = {
-        contentRect.x + 4,
-        inputLineY - 4,
-        contentRect.w - 8,
-        inputStripHeight
-    };
     SDL_RenderFillRect(renderer, &inputBar);
 
     SDL_Color textColor = {200, 205, 210, 255};
 
     // Draw input line (normal or reverse-search mode)
-    SDL_RenderSetClipRect(renderer, &inputBar);
+    const SDL_Rect inputClip = intersectRendererClip(inputBar, previousClip);
+    SDL_RenderSetClipRect(renderer, &inputClip);
     if (m_searchMode) {
         m_searchCursorPos = std::min(m_searchCursorPos, m_searchBuffer.size());
         // Reverse-i-search UI
@@ -446,10 +470,11 @@ void TerminalApp::render(SDL_Renderer* renderer, const SDL_Rect& contentRect) {
             }
         }
     }
-    SDL_RenderSetClipRect(renderer, nullptr);
+    restoreRendererClip(renderer, previousClip);
 
     // Draw history, respecting scroll offset (0 = bottom/newest)
-    SDL_RenderSetClipRect(renderer, &historyRect);
+    const SDL_Rect historyClip = intersectRendererClip(historyRect, previousClip);
+    SDL_RenderSetClipRect(renderer, &historyClip);
     if (!m_history.empty()) {
         int total = static_cast<int>(m_history.size());
         int startIdx = total - 1 - m_scrollOffset;
@@ -479,7 +504,7 @@ void TerminalApp::render(SDL_Renderer* renderer, const SDL_Rect& contentRect) {
             y -= lineHeight;
         }
     }
-    SDL_RenderSetClipRect(renderer, nullptr);
+    restoreRendererClip(renderer, previousClip);
 
     // Note: Cursor for input is drawn earlier in the input strip section above.
     // The old duplicate cursor block that used full-buffer calculation was removed.
@@ -489,9 +514,16 @@ void TerminalApp::onResize(int clientWidth, int clientHeight) {
     m_clientWidth = clientWidth;
     m_clientHeight = clientHeight;
     // Keep scroll within bounds after resize
-    int maxScroll = static_cast<int>(m_history.size()) - getMaxVisibleLines({0,0, m_clientWidth, m_clientHeight}) + 2;
-    if (maxScroll < 0) maxScroll = 0;
-    if (m_scrollOffset > maxScroll) m_scrollOffset = maxScroll;
+    m_scrollOffset = std::clamp(m_scrollOffset, 0, getMaxScrollOffset());
+}
+
+void TerminalApp::onUiScaleChanged() {
+    m_scrollOffset = std::clamp(m_scrollOffset, 0, getMaxScrollOffset());
+
+    // Font metrics changed, so pixel-based horizontal offsets must be measured
+    // again by the next render pass.
+    m_inputHorizontalScrollPx = 0;
+    m_searchHorizontalScrollPx = 0;
 }
 
 } // namespace monolith::app

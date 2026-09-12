@@ -10,6 +10,30 @@ namespace monolith::app {
 
 namespace {
 
+struct RendererClipState {
+    SDL_Rect rect{};
+    bool active = false;
+};
+
+RendererClipState captureRendererClip(SDL_Renderer* renderer) {
+    RendererClipState state;
+    SDL_RenderGetClipRect(renderer, &state.rect);
+    state.active = state.rect.w > 0 && state.rect.h > 0;
+    return state;
+}
+
+void restoreRendererClip(SDL_Renderer* renderer, const RendererClipState& state) {
+    SDL_RenderSetClipRect(renderer, state.active ? &state.rect : nullptr);
+}
+
+SDL_Rect intersectRendererClip(const SDL_Rect& requested, const RendererClipState& state) {
+    SDL_Rect result = requested;
+    if (state.active) {
+        SDL_IntersectRect(&state.rect, &requested, &result);
+    }
+    return result;
+}
+
 std::string commonPrefix(const std::vector<std::string>& values) {
     if (values.empty()) return "";
 
@@ -975,7 +999,8 @@ bool TextEditorApp::clientToDocument(int clientX, int clientY, int& outRow, int&
     if (lineHeight <= 0) return false;
 
     int relY = clientY - kPadding;
-    if (relY < 0) relY = 0;
+    const int visible = getVisibleLineCount({0, 0, m_clientWidth, m_clientHeight});
+    if (visible <= 0 || relY < 0 || relY >= visible * lineHeight) return false;
     int row = m_scrollOffset + relY / lineHeight;
     if (row < 0) row = 0;
     if (row >= static_cast<int>(m_lines.size())) {
@@ -1513,11 +1538,17 @@ int TextEditorApp::getLineHeight() const {
     return TTF_FontHeight(m_font);
 }
 
+int TextEditorApp::getStatusBarHeight() const {
+    const int fontHeight = m_font ? TTF_FontHeight(m_font) : 16;
+    return std::max(kStatusBarHeight, fontHeight + 8);
+}
+
 int TextEditorApp::getVisibleLineCount(const SDL_Rect& contentRect) const {
     int lh = getLineHeight();
-    if (lh <= 0) return 8;
-    const int reserved = kPadding + kStatusBarHeight + 4;
-    return std::max(3, (contentRect.h - reserved) / lh);
+    if (lh <= 0) return 0;
+    const int reserved = kPadding + getStatusBarHeight() + 4;
+    if (contentRect.h <= reserved) return 0;
+    return (contentRect.h - reserved) / lh;
 }
 
 void TextEditorApp::render(SDL_Renderer* renderer, const SDL_Rect& contentRect) {
@@ -1530,11 +1561,14 @@ void TextEditorApp::render(SDL_Renderer* renderer, const SDL_Rect& contentRect) 
         return;
     }
 
+    const RendererClipState previousClip = captureRendererClip(renderer);
+
     // Background
     SDL_SetRenderDrawColor(renderer, 18, 18, 22, 255);
     SDL_RenderFillRect(renderer, &contentRect);
 
     const int lineHeight = getLineHeight();
+    const int statusBarHeight = getStatusBarHeight();
     const int padding = kPadding;
     const int textStartY = contentRect.y + padding;
 
@@ -1547,13 +1581,14 @@ void TextEditorApp::render(SDL_Renderer* renderer, const SDL_Rect& contentRect) 
     const int textStartX = contentRect.x + padding + lineNumWidth;
     const int textRight = contentRect.x + contentRect.w - padding;
     const int textWidth = std::max(0, textRight - textStartX);
-    const int textClipHeight = std::max(0, contentRect.h - kStatusBarHeight);
+    const int textClipHeight = std::max(0, contentRect.h - statusBarHeight);
     const SDL_Rect textClip = {
         textStartX,
         contentRect.y,
         textWidth,
         textClipHeight
     };
+    const SDL_Rect effectiveTextClip = intersectRendererClip(textClip, previousClip);
 
     int selR0 = 0, selC0 = 0, selR1 = 0, selC1 = 0;
     const bool drawSel = hasSelection();
@@ -1585,7 +1620,7 @@ void TextEditorApp::render(SDL_Renderer* renderer, const SDL_Rect& contentRect) 
             SDL_FreeSurface(numSurf);
         }
 
-        SDL_RenderSetClipRect(renderer, &textClip);
+        SDL_RenderSetClipRect(renderer, &effectiveTextClip);
 
         // Selection highlight (behind text)
         if (drawSel && lineIdx >= selR0 && lineIdx <= selR1) {
@@ -1668,7 +1703,7 @@ void TextEditorApp::render(SDL_Renderer* renderer, const SDL_Rect& contentRect) 
             SDL_RenderFillRect(renderer, &cursorRect);
         }
 
-        SDL_RenderSetClipRect(renderer, nullptr);
+        restoreRendererClip(renderer, previousClip);
 
         y += lineHeight;
     }
@@ -1677,9 +1712,9 @@ void TextEditorApp::render(SDL_Renderer* renderer, const SDL_Rect& contentRect) 
     {
         SDL_Rect statusBar = {
             contentRect.x,
-            contentRect.y + contentRect.h - kStatusBarHeight,
+            contentRect.y + contentRect.h - statusBarHeight,
             contentRect.w,
-            kStatusBarHeight
+            statusBarHeight
         };
         SDL_SetRenderDrawColor(renderer, 24, 26, 30, 255);
         SDL_RenderFillRect(renderer, &statusBar);
@@ -1783,16 +1818,17 @@ void TextEditorApp::render(SDL_Renderer* renderer, const SDL_Rect& contentRect) 
                     visibleWidth,
                     statusBar.h
                 };
-                SDL_RenderSetClipRect(renderer, &statusClip);
+                const SDL_Rect effectiveStatusClip = intersectRendererClip(statusClip, previousClip);
+                SDL_RenderSetClipRect(renderer, &effectiveStatusClip);
                 SDL_Rect dst = {
                     contentRect.x + padding
                         - (searchPromptActive ? m_statusHorizontalScrollPx : 0),
-                    statusBar.y + (kStatusBarHeight - surf->h) / 2,
+                    statusBar.y + (statusBarHeight - surf->h) / 2,
                     surf->w,
                     surf->h
                 };
                 SDL_RenderCopy(renderer, tex, nullptr, &dst);
-                SDL_RenderSetClipRect(renderer, nullptr);
+                restoreRendererClip(renderer, previousClip);
                 SDL_DestroyTexture(tex);
             }
             SDL_FreeSurface(surf);
@@ -1832,7 +1868,7 @@ void TextEditorApp::handleEvent(const SDL_Event& event) {
     if (event.type == SDL_MOUSEBUTTONDOWN && event.button.button == SDL_BUTTON_LEFT) {
         if (m_searchMode != SearchMode::None) return;
         // Ignore clicks on status bar strip.
-        if (event.button.y >= m_clientHeight - kStatusBarHeight) return;
+        if (event.button.y >= m_clientHeight - getStatusBarHeight()) return;
 
         int row = 0, col = 0;
         if (!clientToDocument(event.button.x, event.button.y, row, col)) return;
@@ -2141,6 +2177,29 @@ void TextEditorApp::handleEvent(const SDL_Event& event) {
 void TextEditorApp::onResize(int clientWidth, int clientHeight) {
     m_clientWidth = clientWidth;
     m_clientHeight = clientHeight;
+    const int visible = std::max(
+        1,
+        getVisibleLineCount({0, 0, m_clientWidth, m_clientHeight}));
+    const int maxScroll = std::max(
+        0,
+        static_cast<int>(m_lines.size()) - visible);
+    m_scrollOffset = std::clamp(m_scrollOffset, 0, maxScroll);
+    ensureCursorVisible();
+}
+
+void TextEditorApp::onUiScaleChanged() {
+    const int visible = std::max(
+        1,
+        getVisibleLineCount({0, 0, m_clientWidth, m_clientHeight}));
+    const int maxScroll = std::max(
+        0,
+        static_cast<int>(m_lines.size()) - visible);
+    m_scrollOffset = std::clamp(m_scrollOffset, 0, maxScroll);
+
+    // Horizontal positions are measured in pixels and are invalid after the
+    // shared font changes. Cursor visibility will rebuild the needed offset.
+    m_horizontalScrollOffset = 0;
+    m_statusHorizontalScrollPx = 0;
     ensureCursorVisible();
 }
 

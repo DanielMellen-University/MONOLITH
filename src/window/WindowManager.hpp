@@ -190,6 +190,8 @@ private:
     // Client window that received the active left-button press, if any.
     // Its release must be delivered even if focus changes or the pointer leaves it.
     Window* m_mouseCaptureWindow = nullptr;
+    // Shell controls consume both halves of their left-button interaction.
+    bool m_shellMouseCapture = false;
 
     // Font used for window titles (not owned by WindowManager)
     TTF_Font* m_font = nullptr;
@@ -249,7 +251,7 @@ private:
 
     void applyUiScaleFont();
 
-    // Wallpaper image (BMP via SDL_LoadBMP). Cover-scaled over the solid background.
+    // Wallpaper image via WallpaperImage. Cover-scaled over the solid background.
     SDL_Texture* m_wallpaperTexture = nullptr;
     std::string m_wallpaperLoadedPath; // path currently represented by m_wallpaperTexture
     int m_wallpaperTexW = 0;

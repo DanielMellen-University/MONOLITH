@@ -16,7 +16,7 @@ The window has four regions:
 
 1. **Path bar** — shows the current virtual directory
 2. **Toolbar** — Up, New Folder, New File, Delete, Rename, Filter
-3. **List view** — directories (`▶`) and files (`•`), sorted with directories first and names case-insensitively
+3. **List view** — directories (`▶`) and files (`•`), sorted with directories first and names case-insensitively. Selection follows the rendered row bands; the padding above the first row and the one-pixel gaps between rows are not clickable.
 4. **Status bar** — feedback messages for actions
 
 Long paths and status messages stay at the font's native size and clip at their region's edge. The browser does not horizontally squeeze text to fit a narrow window.
@@ -117,6 +117,8 @@ Deleting a file or folder that contains an open Editor or Drawing document does 
 - Rename
 - Delete
 
+An open context menu recalculates its size and hit targets when Settings changes the shared interface text scale, so menu actions remain aligned with their labels.
+
 **Right-click a directory:**
 
 - Open (enter directory)
@@ -146,6 +148,12 @@ Right-clicking an already selected row keeps the current multi-selection, so con
 - The shared virtual clipboard follows a successful rename or move made by another Filesystem Browser or Terminal, including sources nested under a moved directory.
 - Paste skips items whose names already exist in the destination, same-folder sources, and folders pasted into themselves (`isSameOrDescendant`).
 - Backspace in rename and filter prompts removes one UTF-8 codepoint at a time.
+- The path bar, toolbar buttons, list start, and status bar follow the shared interface font with stable minimums, so scaled labels keep their hit targets and the listing below them.
+- The path-bar filter control stays inside the client width; in a very narrow window it shrinks below its normal minimum instead of moving partly off-screen.
+- Internal path, list, and status text clips restore the caller's renderer clip, keeping Browser inside the shell's visible client intersection.
+- The status bar is outside the list hit area; clicking its message does not select or activate a file row.
+- List hit testing only accepts complete rendered rows, so a narrow bottom fragment cannot select an invisible item.
+- If a client area is too short to contain the chrome, Browser reports zero visible rows and does not paint list rows over the status bar.
 - Long names stay at their normal text size and are clipped within the list; while renaming, the visible text follows the caret so edits remain visible at either end of the name.
 
 ## Current Limitations
@@ -153,6 +161,8 @@ Right-clicking an already selected row keeps the current multi-selection, so con
 - Default open supports text + case-insensitive `.modr` only; force open-with can open any file in Editor or Drawing (Drawing rejects non-`.modr` loads).
 - No drag-and-drop.
 - The virtual clipboard is shared across Filesystem instances, but it is not connected to the host OS clipboard. Cut/paste uses non-overwriting moves; successful sources leave the cut clipboard, while a destination conflict leaves that source available for a later retry.
+- The active filter prompt remeasures its caret and horizontal scroll after the shared interface text scale changes.
+- Resizing the window or changing the interface text scale clamps the listing scroll offset to the rows that fit, even when there is no selected entry to keep visible.
 
 ## Developer Notes
 

@@ -9,7 +9,13 @@
     // --- Left: Start button ---
     int x = logicalToScreenX(8);
     const int startBtnWidth = static_cast<int>(70 * m_contentScale);
-    const int btnHeight = static_cast<int>(22 * m_contentScale);
+    const int minimumButtonHeight = static_cast<int>(22 * m_contentScale);
+    const int fontHeight = m_font ? TTF_FontHeight(m_font) : 16;
+    // Keep every taskbar control tall enough for the active font, but never
+    // let a control escape the taskbar itself on a tightly scaled desktop.
+    const int btnHeight = std::min(
+        taskbarRect.h,
+        std::max(minimumButtonHeight, fontHeight + static_cast<int>(4 * m_contentScale)));
     const int btnY = logicalToScreenY(taskbarY) + (taskbarRect.h - btnHeight) / 2;
 
     SDL_SetRenderDrawColor(renderer, 55, 85, 140, 255);
@@ -58,7 +64,20 @@
     int totalButtonsWidth = 0;
     std::vector<int> buttonWidths;
     for (Window* win : buttonOrder) {
-        int bw = std::max(85, static_cast<int>(win->title.length() * 6.5f));
+        int bw = 85;
+        if (m_font) {
+            int textW = 0;
+            int textH = 0;
+            if (TTF_SizeUTF8(m_font, win->title.c_str(), &textW, &textH) == 0) {
+                // Text textures use native screen pixels, so convert the
+                // measured width back to logical pixels before scaling the
+                // taskbar button.
+                const float scale = std::max(0.01f, m_contentScale);
+                bw = std::max(bw, static_cast<int>(std::ceil(textW / scale)) + 10);
+            }
+        } else {
+            bw = std::max(bw, static_cast<int>(win->title.length() * 6.5f));
+        }
         buttonWidths.push_back(bw);
         totalButtonsWidth += bw + 6;
     }
@@ -131,8 +150,9 @@
         std::max(0, areaRightScreen - areaLeftScreen),
         btnHeight
     };
+    const SDL_Rect effectiveButtonClip = intersectRendererClip(buttonClipRect, callerClip);
     if (buttonClipRect.w > 0) {
-        SDL_RenderSetClipRect(renderer, &buttonClipRect);
+        SDL_RenderSetClipRect(renderer, &effectiveButtonClip);
     }
     int currentX = logicalToScreenX(buttonsStartX) - static_cast<int>(m_taskbarScrollOffset * m_contentScale);
 
@@ -184,14 +204,15 @@
                     textClip.x = std::max(textClip.x, buttonClipRect.x);
                     textClip.w = std::max(0, textClipRight - textClip.x);
                     if (textClip.w > 0) {
-                        SDL_RenderSetClipRect(renderer, &textClip);
+                        const SDL_Rect effectiveTextClip = intersectRendererClip(textClip, callerClip);
+                        SDL_RenderSetClipRect(renderer, &effectiveTextClip);
                         SDL_Rect textDst = {
                             btnRect.x + 5,
                             btnY + (btnHeight - s->h) / 2,
                             s->w, s->h
                         };
                         SDL_RenderCopy(renderer, t, nullptr, &textDst);
-                        SDL_RenderSetClipRect(renderer, &buttonClipRect);
+                        SDL_RenderSetClipRect(renderer, &effectiveButtonClip);
                     }
                     SDL_DestroyTexture(t);
                 }
@@ -215,7 +236,7 @@
         currentX += static_cast<int>((bw + 6) * m_contentScale);
     }
     if (buttonClipRect.w > 0) {
-        SDL_RenderSetClipRect(renderer, nullptr);
+        restoreRendererClip(renderer, callerClip);
     }
 
     // --- Right: System clock (local time; texture rebuilt when the minute changes) ---

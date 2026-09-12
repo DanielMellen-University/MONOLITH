@@ -65,16 +65,19 @@ The Window Manager is the most foundational subsystem.
 - On narrow logical desktops, the taskbar button viewport is clamped to non-negative space; scroll arrows are shown only when both controls fit, stale scroll offsets reset after a shrink, and button rendering plus hit rectangles are clipped to the visible viewport.
 - The clock tray yields the button strip when the available width is too small for both controls, preventing taskbar status UI from overlapping window-button input.
 - Maximize, restore, and logical desktop resizing keep maximized frames aligned to the usable area, clamp restored frames above the taskbar, and notify the app after the final client geometry is known.
-- Taskbar window labels stay at native text size and clip inside their own button, so long titles do not get horizontally distorted or draw over neighboring buttons.
+- Taskbar window labels stay at native text size, and each button measures its UTF-8 title before allocating width, so larger fonts and long titles clip inside their own button without drawing over neighbors.
+- Taskbar buttons and the clock tray also derive their height from the active font, capped by the taskbar band, so scaled labels remain vertically contained.
 - Window title labels stay at native text size and clip before the minimize button, so long file-backed titles do not get horizontally distorted or cover title-bar controls.
 - The taskbar shows a compact local-time clock on the right (12-hour by default; Settings can switch to 24-hour via `DesktopSettings`). The time texture is rebuilt when the minute or format changes; hovering the clock tray shows the full local date in a small tooltip above the bar.
 - Settings can change the shared interface font to 90%, 100%, or 115%. `WindowManager` applies the selected point size to the shared `TTF_Font`, then invalidates title and clock textures so the change appears immediately in existing windows.
-- Desktop wallpaper images (BMP via `SDL_LoadBMP`) are optional: Settings stores a virtual FS path; the Window Manager cover-scales the texture over the solid background color before drawing windows. Empty or unloadable paths fall back to solid color only.
+- After a shared font change, `WindowManager` calls `App::onUiScaleChanged()` on every app, including minimized ones, so cached layout and pixel-based scroll state can be rebuilt without pretending the window itself was resized.
+- Desktop wallpaper images (BMP through SDL, PNG/JPEG through `WallpaperImage`) are optional: Settings stores a virtual FS path; the Window Manager cover-scales the texture over the solid background color before drawing windows. Empty or unloadable paths fall back to solid color only.
 - **Session restore**: on exit, open windows (kind, geometry, minimize/maximize, file paths for editors/drawings) are written to `~/.monolith/session.txt`. File paths are quoted so virtual names containing spaces, quotes, or backslashes survive a restart; older unquoted path tokens remain readable. On next launch that file is restored if present; otherwise the demo window set opens.
+- Restoring a minimized final session entry hands keyboard focus to the topmost visible survivor instead of leaving focus attached to the hidden app.
 - **Open-with routing**: `WindowManager::openPath` / `IWindowController::openPath` maps a case-insensitive `.modr` suffix → Drawing and all other files → Text Editor (used by Terminal `open` and the Filesystem Browser default Open).
 - Focusing an already-open file through the editor or Drawing singleton bridge also restores that window from minimized state before bringing it forward.
 - Bringing a minimized window forward re-applies desktop clamping first, so stale session geometry cannot put its title bar under the taskbar or off the desktop.
-- Desktop clamping keeps visible frames above the taskbar, shrinking below the normal minimum when a narrow logical desktop cannot fit a full-size window. If the usable region is shorter than the title bar, the frame stays anchored at a non-negative origin instead of producing negative geometry.
+- Desktop clamping keeps visible frames above the taskbar, shrinking below the normal minimum when a narrow logical desktop cannot fit a full-size window. If the usable region is shorter than the title bar, the frame stays anchored at a non-negative origin and rendering passes apps a zero-height client instead of negative geometry.
 - When a logical desktop resize or interactive resize changes a visible window's frame, the Window Manager sends `App::onResize` with the final client dimensions after all clamping. Apps never have to infer shell geometry changes from stale render rectangles.
 - The Alt+Tab title overlay converts measured text from screen pixels to logical width before sizing its box, then clips the native-size label inside that box.
 - No snapping or automatic tiling.
@@ -134,6 +137,7 @@ The Window Manager broadcasts virtual path creation, change, move, and removal e
 
 - The entire environment is rendered inside a single SDL2 window (currently fixed at 1280 × 720 logical pixels).
 - The Window Manager is responsible for compositing window frames and delegating content drawing to apps.
+- Rendering is clipped to the caller's renderer clip for the full WindowManager frame, then each app is additionally clipped to its window's client rectangle, so tiny or undersized app layouts cannot paint into title bars or the taskbar. Apps and shell overlays that use narrower internal clips must intersect and restore the caller clip; Browser, Settings, Terminal, Text Editor, Drawing, title bars, taskbar buttons, and Alt+Tab follow this rule explicitly. Client rectangles may be zero-sized on an undersized desktop, but are never negative.
 - Rendering uses SDL2's accelerated renderer with VSYNC; apps draw text via SDL_ttf and primitives via SDL draw calls.
 
 ### 4. Input System
@@ -143,6 +147,7 @@ The Window Manager broadcasts virtual path creation, change, move, and removal e
 - The Window Manager performs hit testing to determine which window (and which part of the window) should receive the event.
 - Screen-space mouse events are converted to logical desktop pixels once at the shell boundary before window hit testing, drag/resize math, or client-area forwarding.
 - A client that receives a left-button press keeps receiving matching motion and release events until that button is released, even if the pointer leaves the window or focus changes. This keeps drag interactions such as Drawing strokes from getting stuck.
+- Taskbar and Start-menu left-button presses use a separate shell capture, so their release is consumed by the shell and never appears as an orphaned client mouse-up.
 - The shell records the latest pointer position from motion and button events, so wheel routing does not reuse a stale position after a release outside a client.
 - Window frame interactions (dragging, resizing, buttons) are handled by the Window Manager.
 - Client area events are forwarded to the active application.
@@ -211,7 +216,7 @@ The language is not expected to create or manage its own windows in the early ph
 ## Next Areas to Explore
 
 - Custom language interpreter and host bindings (Phase 2)
-- IDE, richer wallpaper formats (beyond BMP), and more Settings preferences
+- IDE, richer wallpaper controls, and more Settings preferences
 - Richer open-with table (more types beyond `.modr` / text)
 - Deeper app integration and additional native apps/games
 

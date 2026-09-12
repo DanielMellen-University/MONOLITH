@@ -21,6 +21,7 @@ public:
     void render(SDL_Renderer* renderer, const SDL_Rect& contentRect) override;
     void handleEvent(const SDL_Event& event) override;
     void onResize(int clientWidth, int clientHeight) override;
+    void onUiScaleChanged() override;
     void onVirtualPathMoved(const std::string& oldPath,
                             const std::string& newPath) override;
     void onVirtualPathRemoved(const std::string& path) override;
@@ -58,6 +59,11 @@ private:
     int scrollAreaHeight() const;
     int computeContentHeight() const;
     void clampScrollOffset();
+    int getLineHeight() const;
+    int getControlSize() const;
+    int getFieldHeight() const;
+    int getFooterHeight() const;
+    SDL_Rect getFooterRect(const SDL_Rect& contentRect) const;
     void syncWallpaperBufferFromShell();
 
     static constexpr int kPresetCount = 6;

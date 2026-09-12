@@ -32,6 +32,7 @@ If an initial path is missing or unreadable, the failed window falls back to the
 - A `*` in the status bar indicates unsaved changes.
 - Open/save results and errors appear in the status bar (e.g. `Saved: note.txt`, `Open failed: …`).
 - The status bar keeps the keyboard discovery hints visible after those feedback messages, including `Ctrl+F find` and `Ctrl+H replace`.
+- The status bar height follows the shared interface font with a stable minimum, so find, replace, and path prompts remain vertically contained after Settings text scaling.
 - Failed reads are reported as open errors instead of being treated as empty documents.
 - Closing the window or opening another file while dirty asks once via the status bar; confirm the same action again to discard, or save first (Ctrl+S).
 - A failed save clears any pending discard confirmation, so closing or opening again always asks before discarding the still-dirty buffer.
@@ -116,7 +117,10 @@ Path prompts support Left/Right/Home/End, UTF-8-safe Backspace/Delete, and inser
 - Highlighting is per-line only (no multiline strings or block comments).
 - No multiple buffers/tabs.
 - Long lines remain editable without wrapping; horizontal scrolling moves the text viewport in pixel increments while preserving document columns.
+- Resizing clamps vertical scrollback to the lines that fit in the new editor area. If the client is too short to fit a document row above the status bar, the editor leaves the document area empty instead of claiming rows that cannot be rendered.
+- Mouse selection starts only on complete rendered rows; the unused gap above the status bar is not treated as document content.
 - Syntax-highlighted spans at the viewport edge are clipped without scaling, so text measurements and cursor geometry stay consistent.
+- Document rows and the status prompt intersect their internal clips with the caller clip and restore it after rendering, so editor content stays inside the shell's visible client intersection.
 - Combining characters / complex scripts are treated as separate codepoints for cursor motion.
 - Clipboard uses the host OS clipboard (SDL), not a Monolith-only buffer.
 - Find/replace is case-sensitive and single-line only (no regex).

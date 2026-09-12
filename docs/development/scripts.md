@@ -30,7 +30,7 @@ Headless test of Terminal quoting, UTF-8-safe command inputs, and quoted or esca
 g++ -std=c++23 scripts/test_terminal_lexer.cpp src/app/TerminalLexer.cpp -o build/test_terminal_lexer && ./build/test_terminal_lexer
 ```
 
-Headless Terminal filesystem command test for empty directories, regular files, missing paths, and root completion:
+Headless Terminal filesystem command test for empty directories, regular files, missing paths, root completion, scrollback bounds, and undersized input-bar containment:
 
 ```bash
 g++ -std=c++23 scripts/test_terminal_filesystem_state.cpp src/app/TerminalApp.cpp src/app/TerminalLexer.cpp src/fs/Filesystem.cpp $(pkg-config --cflags --libs sdl2 SDL2_ttf) -o build/test_terminal_filesystem_state && ./build/test_terminal_filesystem_state
@@ -42,13 +42,13 @@ Headless Pong state test:
 g++ -std=c++23 scripts/test_pong_state.cpp src/app/PongLogic.cpp -o build/test_pong_state && ./build/test_pong_state
 ```
 
-Headless Snake state and tiny-client layout test for tail movement, growth collisions, and keeping the board inside its content area:
+Headless Snake state and tiny-client layout test for tail movement, growth collisions, font-scaled HUD geometry, and keeping the board inside its content area:
 
 ```bash
 g++ -std=c++23 scripts/test_snake_state.cpp src/app/SnakeApp.cpp $(pkg-config --cflags --libs sdl2 SDL2_ttf) -o build/test_snake_state && ./build/test_snake_state
 ```
 
-Headless Minesweeper state and tiny-client layout test for precise focus pause/resume timing and keeping the Expert board inside its content area:
+Headless Minesweeper state and tiny-client layout test for scaled HUD controls, shared control hitboxes, precise focus pause/resume timing, and keeping the Expert board inside its content area:
 
 ```bash
 g++ -std=c++23 scripts/test_minesweeper_state.cpp src/app/MinesweeperApp.cpp $(pkg-config --cflags --libs sdl2 SDL2_ttf) -o build/test_minesweeper_state && ./build/test_minesweeper_state
@@ -62,7 +62,7 @@ Headless test of shipped `Filesystem` initialization, multi-item copy/paste, `/`
 g++ -std=c++23 scripts/test_fs_roadmap.cpp src/fs/Filesystem.cpp -o build/test_fs_roadmap && ./build/test_fs_roadmap
 ```
 
-Headless Filesystem Browser state test for filtering, multi-selection restoration, scroll clamping, delete confirmation, and partial cut/paste:
+Headless Filesystem Browser state test for filtering, multi-selection restoration, scaled chrome bands, status-bar hit testing, complete-row hit testing in tiny clients, resize and scale scroll clamping, delete confirmation, and partial cut/paste:
 
 ```bash
 g++ -std=c++23 scripts/test_filesystem_app_state.cpp src/app/FilesystemApp.cpp src/fs/Filesystem.cpp $(pkg-config --cflags --libs sdl2 SDL2_ttf) -o build/test_filesystem_app_state && ./build/test_filesystem_app_state
@@ -76,7 +76,7 @@ Headless test of shipped line/rect raster, custom RGB parse, eyedropper pixel re
 g++ -std=c++23 scripts/test_drawing_roadmap.cpp src/app/DrawingRaster.cpp -o build/test_drawing_roadmap && ./build/test_drawing_roadmap
 ```
 
-Headless Drawing state test for clean loads, resize dirty tracking, and history reset:
+Headless Drawing state test for clean loads, resize dirty tracking, history reset, font-scaled chrome, and scaled canvas pointer mapping:
 
 ```bash
 g++ -std=c++23 scripts/test_drawing_state.cpp src/app/DrawingApp.cpp src/app/DrawingRaster.cpp src/fs/Filesystem.cpp $(pkg-config --cflags --libs sdl2 SDL2_ttf) -o build/test_drawing_state && ./build/test_drawing_state
@@ -90,7 +90,7 @@ Headless test of desktop preference save/load, UI scale persistence, legacy file
 g++ -std=c++23 scripts/test_desktop_settings.cpp src/settings/DesktopSettings.cpp -o build/test_desktop_settings && ./build/test_desktop_settings
 ```
 
-Headless Settings app test for wallpaper directory/BMP filename completion and shell binding:
+Headless Settings app test for wallpaper directory/image filename completion, shell binding, font-scaled layout metrics, and tiny-client footer containment:
 
 ```bash
 g++ -std=c++23 scripts/test_settings_app_state.cpp src/app/SettingsApp.cpp src/fs/Filesystem.cpp $(pkg-config --cflags --libs sdl2 SDL2_ttf) -o build/test_settings_app_state && ./build/test_settings_app_state
@@ -114,7 +114,7 @@ Headless test of shared UTF-8 codepoint editing helpers used by Text Editor, Ter
 g++ -std=c++23 scripts/test_utf8.cpp -o build/test_utf8 && ./build/test_utf8
 ```
 
-Headless Text Editor state test for Save As collisions and failed-write recovery:
+Headless Text Editor state test for Save As collisions, failed-write recovery, font-scaled status geometry, complete-row mouse hit testing, and resize scroll bounds:
 
 ```bash
 g++ -std=c++23 scripts/test_text_editor_state.cpp src/app/TextEditorApp.cpp src/fs/Filesystem.cpp $(pkg-config --cflags --libs sdl2 SDL2_ttf) -o build/test_text_editor_state && ./build/test_text_editor_state
@@ -123,31 +123,32 @@ g++ -std=c++23 scripts/test_text_editor_state.cpp src/app/TextEditorApp.cpp src/
 Headless WindowManager test that failed Editor and Drawing opens do not reserve stale file singletons and can be retried:
 
 ```bash
-g++ -std=c++23 scripts/test_window_file_open.cpp src/window/WindowManager.cpp src/app/*.cpp src/fs/Filesystem.cpp src/settings/DesktopSettings.cpp $(pkg-config --cflags --libs sdl2 SDL2_ttf) -o build/test_window_file_open && ./build/test_window_file_open
+cmake --build build --target monolith_settings_bodies monolith_stb_image
+g++ -std=c++23 -Ibuild/generated -Ibuild/generated/settings scripts/test_window_file_open.cpp src/window/WindowManager.cpp src/window/WallpaperImage.cpp src/app/*.cpp src/fs/Filesystem.cpp src/settings/DesktopSettings.cpp $(pkg-config --cflags --libs sdl2 SDL2_ttf) -o build/test_window_file_open && ./build/test_window_file_open
 ```
 
-Headless test of scaled WindowManager hit testing, drag math, resize edges, client coordinates, and narrow or undersized desktop geometry:
+Headless test of scaled WindowManager hit testing, drag math, resize edges, client coordinates, renderer client clipping, and narrow or undersized desktop geometry:
 
 ```bash
-g++ -std=c++23 scripts/test_window_coordinates.cpp src/window/WindowManager.cpp src/app/*.cpp src/fs/Filesystem.cpp src/settings/DesktopSettings.cpp $(pkg-config --cflags --libs sdl2 SDL2_ttf) -o build/test_window_coordinates && ./build/test_window_coordinates
+g++ -std=c++23 -Ibuild/generated -Ibuild/generated/settings scripts/test_window_coordinates.cpp src/window/WindowManager.cpp src/window/WallpaperImage.cpp src/app/*.cpp src/fs/Filesystem.cpp src/settings/DesktopSettings.cpp $(pkg-config --cflags --libs sdl2 SDL2_ttf) -o build/test_window_coordinates && ./build/test_window_coordinates
 ```
 
 Headless test of WindowManager client mouse capture across focus changes and pointer exit:
 
 ```bash
-g++ -std=c++23 scripts/test_window_mouse_capture.cpp src/window/WindowManager.cpp src/app/*.cpp src/fs/Filesystem.cpp src/settings/DesktopSettings.cpp $(pkg-config --cflags --libs sdl2 SDL2_ttf) -o build/test_window_mouse_capture && ./build/test_window_mouse_capture
+g++ -std=c++23 -Ibuild/generated -Ibuild/generated/settings scripts/test_window_mouse_capture.cpp src/window/WindowManager.cpp src/window/WallpaperImage.cpp src/app/*.cpp src/fs/Filesystem.cpp src/settings/DesktopSettings.cpp $(pkg-config --cflags --libs sdl2 SDL2_ttf) -o build/test_window_mouse_capture && ./build/test_window_mouse_capture
 ```
 
 Headless test of keyboard focus handoff when the active window is minimized and when a minimized file singleton is reopened:
 
 ```bash
-g++ -std=c++23 scripts/test_window_focus.cpp src/window/WindowManager.cpp src/app/*.cpp src/fs/Filesystem.cpp src/settings/DesktopSettings.cpp $(pkg-config --cflags --libs sdl2 SDL2_ttf) -o build/test_window_focus && ./build/test_window_focus
+g++ -std=c++23 -Ibuild/generated -Ibuild/generated/settings scripts/test_window_focus.cpp src/window/WindowManager.cpp src/window/WallpaperImage.cpp src/app/*.cpp src/fs/Filesystem.cpp src/settings/DesktopSettings.cpp $(pkg-config --cflags --libs sdl2 SDL2_ttf) -o build/test_window_focus && ./build/test_window_focus
 ```
 
 Headless test that Shut Down honors app dirty-document guards before allowing the shell to exit:
 
 ```bash
-g++ -std=c++23 scripts/test_window_quit.cpp src/window/WindowManager.cpp src/app/*.cpp src/fs/Filesystem.cpp src/settings/DesktopSettings.cpp $(pkg-config --cflags --libs sdl2 SDL2_ttf) -o build/test_window_quit && ./build/test_window_quit
+g++ -std=c++23 -Ibuild/generated -Ibuild/generated/settings scripts/test_window_quit.cpp src/window/WindowManager.cpp src/window/WallpaperImage.cpp src/app/*.cpp src/fs/Filesystem.cpp src/settings/DesktopSettings.cpp $(pkg-config --cflags --libs sdl2 SDL2_ttf) -o build/test_window_quit && ./build/test_window_quit
 ```
 
 ## `.modr` Format Roundtrip

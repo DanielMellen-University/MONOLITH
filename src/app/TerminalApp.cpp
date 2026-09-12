@@ -12,6 +12,30 @@ namespace monolith::app {
 
 namespace {
 
+struct RendererClipState {
+    SDL_Rect rect{};
+    bool active = false;
+};
+
+RendererClipState captureRendererClip(SDL_Renderer* renderer) {
+    RendererClipState state;
+    SDL_RenderGetClipRect(renderer, &state.rect);
+    state.active = state.rect.w > 0 && state.rect.h > 0;
+    return state;
+}
+
+void restoreRendererClip(SDL_Renderer* renderer, const RendererClipState& state) {
+    SDL_RenderSetClipRect(renderer, state.active ? &state.rect : nullptr);
+}
+
+SDL_Rect intersectRendererClip(const SDL_Rect& requested, const RendererClipState& state) {
+    SDL_Rect result = requested;
+    if (state.active) {
+        SDL_IntersectRect(&state.rect, &requested, &result);
+    }
+    return result;
+}
+
 std::string normalizeLineEndings(const std::string& text) {
     std::string normalized;
     normalized.reserve(text.size());
@@ -101,6 +125,11 @@ void TerminalApp::submitInput() {
         addOutput(""); // blank line for empty input
     }
     m_scrollOffset = 0;   // always jump back to bottom after running a command
+}
+
+void TerminalApp::leaveHistoryNavigationOnEdit() {
+    m_historyIndex = -1;
+    m_savedInputBuffer.clear();
 }
 
 void TerminalApp::executeCommand(const std::string& commandLine) {
@@ -503,6 +532,7 @@ void TerminalApp::processTextInput(const char* text) {
     }
 
     if (text && *text) {
+        leaveHistoryNavigationOnEdit();
         m_inputCursorPos = std::clamp(
             m_inputCursorPos,
             0,
@@ -582,6 +612,7 @@ void TerminalApp::handleKeyDown(const SDL_Keysym& keysym) {
 
         case SDLK_BACKSPACE:
             if (m_inputCursorPos > 0) {
+                leaveHistoryNavigationOnEdit();
                 std::size_t cursor = static_cast<std::size_t>(m_inputCursorPos);
                 erasePreviousUtf8Codepoint(m_inputBuffer, cursor);
                 m_inputCursorPos = static_cast<int>(cursor);
@@ -593,6 +624,7 @@ void TerminalApp::handleKeyDown(const SDL_Keysym& keysym) {
                 std::clamp(m_inputCursorPos, 0, static_cast<int>(m_inputBuffer.size())));
             const std::size_t next = utf8NextCodepointStart(m_inputBuffer, cursor);
             if (next > cursor) {
+                leaveHistoryNavigationOnEdit();
                 m_inputBuffer.erase(cursor, next - cursor);
             }
             break;

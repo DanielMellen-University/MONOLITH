@@ -3,6 +3,7 @@
 #include "../src/fs/Filesystem.hpp"
 
 #include <SDL2/SDL.h>
+#include <SDL2/SDL_ttf.h>
 #include <filesystem>
 #include <iostream>
 #include <string>
@@ -39,8 +40,8 @@ struct TestController final : monolith::app::IWindowController {
 struct TestSettings final : monolith::app::SettingsApp {
     using monolith::app::App::setController;
 
-    TestSettings(monolith::fs::Filesystem* fs)
-        : SettingsApp(nullptr, fs) {}
+    TestSettings(TTF_Font* font, monolith::fs::Filesystem* fs)
+        : SettingsApp(font, fs) {}
 };
 
 void key(TestSettings& settings, SDL_Keycode sym) {
@@ -75,7 +76,18 @@ int main() {
     check(fs.writeFile("/Wallpapers/notes.txt", "not a wallpaper"),
           "create non-BMP completion distractor");
 
-    TestSettings settings(&fs);
+    check(SDL_Init(SDL_INIT_VIDEO) == 0, "settings state SDL initialize");
+    check(TTF_Init() == 0, "settings state SDL_ttf initialize");
+    TTF_Font* font = TTF_OpenFont("assets/fonts/DejaVuSans.ttf", 14);
+    check(font != nullptr, "settings state loads test font");
+    if (!font) {
+        TTF_Quit();
+        SDL_Quit();
+        std::filesystem::remove_all(hostRoot, ec);
+        return 1;
+    }
+
+    TestSettings settings(font, &fs);
     TestController controller;
     settings.setController(&controller);
     controller.logicalWidth = 1024;
@@ -142,7 +154,59 @@ int main() {
               && settings.m_wallpaperCursorPos == 1,
           "moved wallpaper prompt caret stays on a UTF-8 boundary");
 
+    settings.m_wallpaperScrollPx = 42;
+    const int baseLineHeight = settings.getLineHeight();
+    const int baseControlSize = settings.getControlSize();
+    const int baseFieldHeight = settings.getFieldHeight();
+    const int baseFooterHeight = settings.getFooterHeight();
+    const int baseContentHeight = settings.m_contentHeight;
+    check(TTF_SetFontSize(font, 22) == 0, "settings state applies larger test font");
+    settings.onUiScaleChanged();
+    check(settings.m_wallpaperScrollPx == 0,
+          "settings resets pixel prompt scroll after UI scaling");
+    check(settings.getLineHeight() > baseLineHeight
+              && settings.getControlSize() > baseControlSize
+              && settings.getFieldHeight() > baseFieldHeight
+              && settings.getFooterHeight() > baseFooterHeight
+              && settings.m_contentHeight > baseContentHeight,
+          "Settings layout bands grow with the shared interface font");
+    const SDL_Rect tinyContent{10, 20, 200, 8};
+    const SDL_Rect tinyFooter = settings.getFooterRect(tinyContent);
+    check(tinyFooter.y >= tinyContent.y
+              && tinyFooter.y + tinyFooter.h <= tinyContent.y + tinyContent.h,
+          "Settings footer stays inside an undersized client area");
+
+    SDL_Surface* surface = SDL_CreateRGBSurfaceWithFormat(
+        0, 240, 260, 32, SDL_PIXELFORMAT_RGBA32);
+    SDL_Renderer* renderer = surface ? SDL_CreateSoftwareRenderer(surface) : nullptr;
+    check(renderer != nullptr, "settings state creates a software renderer");
+    if (renderer) {
+        const SDL_Rect expectedClip{5, 6, 140, 120};
+        SDL_RenderSetClipRect(renderer, &expectedClip);
+        settings.render(renderer, {0, 0, 200, 240});
+        auto insideClient = [](const SDL_Rect& rect, int width) {
+            return rect.x >= 0 && rect.y >= 0 && rect.w >= 0 && rect.h >= 0
+                && rect.x + rect.w <= width;
+        };
+        check(insideClient(settings.m_wallpaperFieldRect, 200)
+                  && insideClient(settings.m_wallpaperSetRect, 200)
+                  && insideClient(settings.m_wallpaperClearRect, 200),
+              "Settings wallpaper controls stay inside a narrow client width");
+        SDL_Rect restoredClip{};
+        SDL_RenderGetClipRect(renderer, &restoredClip);
+        check(restoredClip.x == expectedClip.x
+                  && restoredClip.y == expectedClip.y
+                  && restoredClip.w == expectedClip.w
+                  && restoredClip.h == expectedClip.h,
+              "Settings restores the caller renderer clip after rendering");
+        SDL_DestroyRenderer(renderer);
+    }
+    if (surface) SDL_FreeSurface(surface);
+
     std::filesystem::remove_all(hostRoot, ec);
+    TTF_CloseFont(font);
+    TTF_Quit();
+    SDL_Quit();
     if (failures == 0) {
         std::cout << "ALL SETTINGS APP STATE TESTS PASSED\n";
         return 0;

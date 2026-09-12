@@ -25,7 +25,51 @@ int main() {
         }
     };
 
-    MinesweeperApp game(nullptr);
+    check(TTF_Init() == 0, "Minesweeper state SDL_ttf initialize");
+    TTF_Font* font = TTF_OpenFont("assets/fonts/DejaVuSans.ttf", 14);
+    check(font != nullptr, "Minesweeper state loads test font");
+    if (!font) {
+        TTF_Quit();
+        return 1;
+    }
+
+    MinesweeperApp game(font);
+    const int baseButtonHeight = game.m_difficultyButtonHeight;
+    const int baseHudHeight = game.hudHeight();
+    const int baseFooterHeight = game.footerHeight();
+    check(TTF_SetFontSize(font, 16) == 0, "Minesweeper state scales test font");
+    game.onUiScaleChanged();
+    check(game.m_difficultyButtonHeight > baseButtonHeight,
+          "difficulty buttons grow with the shared interface font");
+    check(game.hudHeight() >= game.m_difficultyButtonHeight + MinesweeperApp::kDifficultyButtonY + 4,
+          "Minesweeper HUD grows with scaled difficulty controls");
+    check(game.footerHeight() >= baseFooterHeight,
+          "Minesweeper footer keeps a stable readable height");
+    game.onResize(260, 220);
+    const SDL_Rect windowContent{40, 30, 260, 220};
+    game.layoutBoard(windowContent);
+    const SDL_Rect faceRect = game.clientFaceButtonRect();
+    check(game.m_faceBtnRect.x == windowContent.x + faceRect.x
+              && game.m_faceBtnRect.y == windowContent.y + faceRect.y
+              && game.m_faceBtnRect.w == faceRect.w
+              && game.m_faceBtnRect.h == faceRect.h,
+          "Minesweeper draws the face button from its client hitbox");
+    game.newGame(MinesweeperApp::Difficulty::Expert);
+    SDL_Event difficultyClick{};
+    difficultyClick.type = SDL_MOUSEBUTTONDOWN;
+    difficultyClick.button.button = SDL_BUTTON_LEFT;
+    const SDL_Rect beginner = game.clientDifficultyButtonRect(0);
+    difficultyClick.button.x = beginner.x + beginner.w / 2;
+    difficultyClick.button.y = beginner.y + beginner.h / 2;
+    game.handleEvent(difficultyClick);
+    check(game.m_difficulty == MinesweeperApp::Difficulty::Beginner,
+          "Minesweeper input uses the same difficulty button geometry as rendering");
+    const SDL_Rect faceAtNarrowWidth = game.clientFaceButtonRect();
+    for (int i = 0; i < 3; ++i) {
+        const SDL_Rect button = game.clientDifficultyButtonRect(i);
+        check(button.x >= 0 && button.x + button.w <= faceAtNarrowWidth.x - 6,
+              "Minesweeper difficulty controls stay before the face button");
+    }
     game.newGame(MinesweeperApp::Difficulty::Expert);
     game.onResize(120, 120);
     int boardX = 0;
@@ -34,10 +78,16 @@ int main() {
     int boardW = 0;
     int boardH = 0;
     game.clientBoardMetrics(boardX, boardY, cellPx, boardW, boardH);
-    check(cellPx >= 1 && boardX >= 0 && boardY >= MinesweeperApp::kHudHeight
+    check(cellPx >= 1 && boardX >= 0 && boardY >= game.hudHeight()
               && boardX + boardW <= 120
-              && boardY + boardH <= 120 - MinesweeperApp::kFooterHeight,
+              && boardY + boardH <= 120 - game.footerHeight(),
           "Minesweeper keeps the complete expert board inside a tiny client area");
+    const SDL_Rect faceAtTinyWidth = game.clientFaceButtonRect();
+    for (int i = 0; i < 3; ++i) {
+        const SDL_Rect button = game.clientDifficultyButtonRect(i);
+        check(button.x >= 0 && button.x + button.w <= faceAtTinyWidth.x - 6,
+              "Minesweeper tiny-client difficulty controls stay contained");
+    }
     game.m_minesPlaced = true;
     game.m_state = MinesweeperApp::State::Playing;
     game.m_focusPaused = false;
@@ -59,8 +109,12 @@ int main() {
 
     if (failures == 0) {
         std::cout << "ALL MINESWEEPER STATE TESTS PASSED\n";
+        TTF_CloseFont(font);
+        TTF_Quit();
         return 0;
     }
     std::cerr << failures << " test(s) failed\n";
+    TTF_CloseFont(font);
+    TTF_Quit();
     return 1;
 }

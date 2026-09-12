@@ -23,6 +23,7 @@ public:
     void render(SDL_Renderer* renderer, const SDL_Rect& contentRect) override;
     void handleEvent(const SDL_Event& event) override;
     void onResize(int clientWidth, int clientHeight) override;
+    void onUiScaleChanged() override;
     void onVirtualPathMoved(const std::string& oldPath,
                             const std::string& newPath) override;
     void onVirtualPathCreated(const std::string& path) override;
@@ -80,6 +81,13 @@ private:
 
     // === Rendering helpers ===
     int getRowHeight() const;
+    int getPathBarHeight() const;
+    int getToolbarY() const;
+    int getToolbarButtonHeight() const;
+    int getListTop() const;
+    int getListRowTop() const;
+    int getStatusBarHeight() const;
+    SDL_Rect getFilterRect(const SDL_Rect& contentRect) const;
     void drawPathBar(SDL_Renderer* r, const SDL_Rect& contentRect, int& outTopY);
     void drawList(SDL_Renderer* r, const SDL_Rect& contentRect, int topY);
     void drawToolbar(SDL_Renderer* r, const SDL_Rect& contentRect);

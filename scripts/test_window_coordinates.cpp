@@ -1,4 +1,5 @@
 #include <SDL2/SDL.h>
+#include <SDL2/SDL_ttf.h>
 
 #define private public
 #include "../src/window/WindowManager.hpp"
@@ -12,7 +13,10 @@ namespace {
 
 class ProbeApp final : public monolith::app::App {
 public:
-    void render(SDL_Renderer*, const SDL_Rect&) override {}
+    void render(SDL_Renderer* renderer, const SDL_Rect& contentRect) override {
+        SDL_RenderGetClipRect(renderer, &renderClip);
+        renderRect = contentRect;
+    }
 
     void handleEvent(const SDL_Event& event) override {
         if (event.type == SDL_MOUSEBUTTONDOWN) {
@@ -34,6 +38,8 @@ public:
     int lastResizeWidth = 0;
     int lastResizeHeight = 0;
     int resizeCalls = 0;
+    SDL_Rect renderClip{0, 0, 0, 0};
+    SDL_Rect renderRect{0, 0, 0, 0};
 };
 
 } // namespace
@@ -53,6 +59,7 @@ int main() {
         setenv("SDL_VIDEODRIVER", "dummy", 1);
     }
     check(SDL_Init(SDL_INIT_VIDEO) == 0, "SDL initializes for taskbar geometry checks");
+    check(TTF_Init() == 0, "SDL_ttf initializes for taskbar text measurement checks");
     SDL_Surface* surface = SDL_CreateRGBSurfaceWithFormat(
         0, 1280, 720, 32, SDL_PIXELFORMAT_RGBA32);
     SDL_Renderer* renderer = surface ? SDL_CreateSoftwareRenderer(surface) : nullptr;
@@ -62,6 +69,10 @@ int main() {
     monolith::window::WindowManager wm;
     wm.setLogicalDesktopSize(1000, 700);
     wm.setContentScale(2.0f);
+
+    TTF_Font* font = TTF_OpenFont("assets/fonts/DejaVuSans.ttf", 14);
+    check(font != nullptr, "taskbar geometry test loads the shared font");
+    wm.setFont(font);
 
     auto probe = std::make_unique<ProbeApp>();
     ProbeApp* probePtr = probe.get();
@@ -127,6 +138,29 @@ int main() {
 
     wm.setContentScale(1.0f);
     wm.setLogicalDesktopSize(500, 400);
+    wm.render(renderer);
+    check(probePtr->renderClip.x == probePtr->renderRect.x
+              && probePtr->renderClip.y == probePtr->renderRect.y
+              && probePtr->renderClip.w == probePtr->renderRect.w
+              && probePtr->renderClip.h == probePtr->renderRect.h,
+          "WindowManager clips app rendering to the client rectangle");
+    SDL_Rect clipAfterRender{};
+    SDL_RenderGetClipRect(renderer, &clipAfterRender);
+    check(clipAfterRender.w == 0 && clipAfterRender.h == 0,
+          "WindowManager restores the renderer clip after app rendering");
+
+    const SDL_Rect expectedFrameClip{7, 9, 180, 120};
+    SDL_RenderSetClipRect(renderer, &expectedFrameClip);
+    wm.render(renderer);
+    SDL_Rect clipAfterClippedFrame{};
+    SDL_RenderGetClipRect(renderer, &clipAfterClippedFrame);
+    check(clipAfterClippedFrame.x == expectedFrameClip.x
+              && clipAfterClippedFrame.y == expectedFrameClip.y
+              && clipAfterClippedFrame.w == expectedFrameClip.w
+              && clipAfterClippedFrame.h == expectedFrameClip.h,
+          "WindowManager preserves the caller renderer clip across the full frame");
+    SDL_RenderSetClipRect(renderer, nullptr);
+
     window->rect = {100, 100, 300, 200};
     const int resizeCallsBeforeEdgeDrag = probePtr->resizeCalls;
     wm.m_resizingWindow = window;
@@ -186,6 +220,12 @@ int main() {
     check(window->rect.y == 0
               && window->rect.h <= undersizedUsable.h,
           "undersized logical desktops keep frame geometry non-negative");
+    wm.render(renderer);
+    check(probePtr->renderRect.h >= 0
+              && probePtr->renderClip.h >= 0
+              && probePtr->renderRect.h == 0
+              && probePtr->renderClip.h == 0,
+          "WindowManager never passes a negative client height to apps");
 
     auto rectInside = [](const SDL_Rect& rect, int width, int height) {
         return rect.x >= 0 && rect.y >= 0 && rect.w >= 0 && rect.h >= 0
@@ -195,6 +235,11 @@ int main() {
 
     if (renderer) {
         wm.setContentScale(1.0f);
+        wm.setLogicalDesktopSize(1000, 700);
+        auto longTitleApp = std::make_unique<ProbeApp>();
+        auto* longTitleWindow = wm.createWindow(
+            "Editor - an unusually long document title.txt", 420, 100, 300, 240,
+            std::move(longTitleApp));
         wm.setLogicalDesktopSize(120, 120);
         SDL_SetRenderDrawColor(renderer, 0, 0, 0, 255);
         SDL_RenderClear(renderer);
@@ -242,8 +287,28 @@ int main() {
               "taskbar scrolling is disabled when arrow controls cannot fit");
         check(wm.m_taskbarScrollOffset == 0,
               "shrinking the desktop resets an unusable taskbar scroll offset");
+
+        wm.setLogicalDesktopSize(1000, 700);
+        SDL_SetRenderDrawColor(renderer, 0, 0, 0, 255);
+        SDL_RenderClear(renderer);
+        wm.render(renderer);
+        auto findTaskbarWidth = [&]() {
+            for (const auto& entry : wm.m_taskbarEntries) {
+                if (entry.window == longTitleWindow) return entry.rect.w;
+            }
+            return 0;
+        };
+        const int normalFontButtonWidth = findTaskbarWidth();
+        wm.setUiScalePercent(115);
+        SDL_SetRenderDrawColor(renderer, 0, 0, 0, 255);
+        SDL_RenderClear(renderer);
+        wm.render(renderer);
+        check(findTaskbarWidth() > normalFontButtonWidth,
+              "taskbar buttons grow with measured UI text width");
     }
 
+    if (font) TTF_CloseFont(font);
+    TTF_Quit();
     if (renderer) SDL_DestroyRenderer(renderer);
     if (surface) SDL_FreeSurface(surface);
     if (rgbaFormat) SDL_FreeFormat(rgbaFormat);

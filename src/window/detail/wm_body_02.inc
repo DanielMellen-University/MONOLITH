@@ -151,6 +151,8 @@ void WindowManager::update() {
 }
 
 void WindowManager::render(SDL_Renderer* renderer) {
+    const RendererClipState callerClip = captureRendererClip(renderer);
+
     // Solid color is cleared by main; paint wallpaper image (if any) under windows.
     renderWallpaper(renderer);
 
@@ -167,15 +169,25 @@ void WindowManager::render(SDL_Renderer* renderer) {
         const int scaledW = static_cast<int>(win.rect.w * m_contentScale);
         const int scaledH = static_cast<int>(win.rect.h * m_contentScale);
         const int scaledTitleH = static_cast<int>(Window::TITLE_BAR_HEIGHT * m_contentScale);
+        const int scaledClientH = std::max(0, scaledH - scaledTitleH);
 
         // === Window background (content area) ===
         SDL_SetRenderDrawColor(renderer, 45, 45, 50, 255);
-        SDL_Rect contentRect = {screenX, screenY + scaledTitleH, scaledW, scaledH - scaledTitleH};
+        SDL_Rect contentRect = {screenX, screenY + scaledTitleH, scaledW, scaledClientH};
         SDL_RenderFillRect(renderer, &contentRect);
 
         // Delegate to the app (if present) so it can draw its own content
         if (win.app) {
+            SDL_Rect previousClip{};
+            SDL_RenderGetClipRect(renderer, &previousClip);
+            const bool hadPreviousClip = previousClip.w > 0 && previousClip.h > 0;
+            SDL_Rect appClip = contentRect;
+            if (hadPreviousClip) {
+                SDL_IntersectRect(&previousClip, &contentRect, &appClip);
+            }
+            SDL_RenderSetClipRect(renderer, &appClip);
             win.app->render(renderer, contentRect);
+            SDL_RenderSetClipRect(renderer, hadPreviousClip ? &previousClip : nullptr);
         }
 
         // === Title bar ===
@@ -233,9 +245,10 @@ void WindowManager::render(SDL_Renderer* renderer) {
 
                 if (titleWidth > 0) {
                     SDL_Rect titleClip = {titleLeft, screenY, titleWidth, scaledTitleH};
-                    SDL_RenderSetClipRect(renderer, &titleClip);
+                    const SDL_Rect effectiveTitleClip = intersectRendererClip(titleClip, callerClip);
+                    SDL_RenderSetClipRect(renderer, &effectiveTitleClip);
                     SDL_RenderCopy(renderer, cache.texture, nullptr, &dstRect);
-                    SDL_RenderSetClipRect(renderer, nullptr);
+                    restoreRendererClip(renderer, callerClip);
                 }
             }
         }

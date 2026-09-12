@@ -11,6 +11,7 @@ Drawing files use the `.modr` extension (Monolith Drawing Raster).
 - [Keyboard-First Reference](#keyboard-first-reference)
 - [File Lifecycle](#file-lifecycle)
 - [Toolbar](#toolbar)
+- [Display Scaling](#display-scaling)
 - [Colors](#colors)
 - [Mouse Controls](#mouse-controls)
 - [Prompt Behavior](#prompt-behavior)
@@ -295,7 +296,7 @@ Pen and Eraser interpolate between mouse events, so fast drags remain continuous
 
 ## Canvas Behavior
 
-The canvas is sized from the Drawing client area. The toolbar occupies the top 96 pixels and the status bar occupies the bottom 22 pixels; the remaining area is the raster surface. Canvas coordinates are logical pixels, not host-window pixels.
+The canvas is sized from the Drawing client area. At the base interface scale, the toolbar occupies the top 96 pixels and the status bar occupies the bottom 22 pixels; both bands grow from the active font metrics when text scaling is increased. The remaining area is the raster surface. Canvas coordinates are logical pixels, not host-window pixels.
 
 When the window is resized:
 
@@ -306,6 +307,18 @@ When the window is resized:
 - Resizing a file-backed sketch marks it `[modified]`; save again to persist the new dimensions.
 
 The standard canvas background is RGB `245,245,248`. Eraser uses that same color, so it restores the background rather than revealing transparency.
+
+## Display Scaling
+
+Drawing follows the shared interface text scale from Settings. Changing that scale updates the toolbar and status-bar text without changing the raster itself:
+
+- Existing canvas pixels, dimensions, file binding, dirty state, and undo history stay unchanged.
+- Toolbar labels and status messages use the new interface font metrics on the next render, and their hit-test bands move with the resized chrome.
+- Pointer coordinates are mapped through the displayed canvas rectangle, so strokes, shapes, fills, and color picking stay aligned with the preserved raster when the available canvas height changes.
+- If Save, Open, or RGB is active, the prompt is remeasured and its cached horizontal offset is reset so the caret remains visible at the new text width.
+- A scale change does not save, reload, resize, or otherwise modify the sketch.
+
+After changing the scale, continue editing the current prompt normally. The prompt may scroll horizontally again as the caret moves through a long path.
 
 ## Colors
 
@@ -591,6 +604,8 @@ Main implementation files:
 
 Canvas GPU path (`syncTexture`): recreate the streaming texture only when missing or size-changed; upload CPU pixels only while `m_textureDirty` is set by paint, undo, load, or resize.
 
+Drawing status-bar text uses a narrower internal clip. It intersects that clip with the caller's renderer clip and restores the caller clip after the status bar is drawn, so embedded rendering cannot leak into neighboring shell regions.
+
 The Drawing implementation has three boundaries worth preserving when changing it:
 
 1. `DrawingRaster` owns format and pixel rules that can be tested without SDL.
@@ -612,4 +627,18 @@ Verification scripts: see [Development Scripts](../development/scripts.md). The 
 ./scripts/verify_drawing_integration.sh
 g++ -std=c++23 scripts/test_drawing_roadmap.cpp src/app/DrawingRaster.cpp -o build/test_drawing_roadmap && ./build/test_drawing_roadmap
 g++ -std=c++23 scripts/test_drawing_state.cpp src/app/DrawingApp.cpp src/app/DrawingRaster.cpp src/fs/Filesystem.cpp $(pkg-config --cflags --libs sdl2 SDL2_ttf) -o build/test_drawing_state && ./build/test_drawing_state
+g++ -std=c++23 scripts/test_modr_format.cpp -o build/test_modr_format && ./build/test_modr_format
 ```
+
+These checks cover shell wiring, the standalone `.modr` raster contract, and
+stateful editor paths without requiring an interactive desktop session. The
+optional smoke script exercises the built application through the headless
+display path:
+
+```bash
+./scripts/headless_drawing_smoke.sh
+```
+
+Keep this guide and [Development Scripts](../development/scripts.md) aligned
+when a Drawing shortcut, prompt rule, file-format invariant, or shell-routing
+behavior changes.
