@@ -42,6 +42,22 @@ add_custom_command(
 )
 add_custom_target(monolith_settings_bodies DEPENDS "${MONOLITH_SETTINGS_BODIES_DIR}/SettingsApp_body_00.inc")
 
+# Decompress main.cpp body includes (MCP-friendly compressed fragments).
+set(MONOLITH_MAIN_BODIES_DIR "${CMAKE_CURRENT_BINARY_DIR}/generated/main")
+file(GLOB MONOLITH_MAIN_BODY_Z64
+    "${CMAKE_SOURCE_DIR}/src/main_body_*.inc.z64")
+add_custom_command(
+    OUTPUT "${MONOLITH_MAIN_BODIES_DIR}/main_body_a.inc"
+    COMMAND ${CMAKE_COMMAND} -E make_directory "${MONOLITH_MAIN_BODIES_DIR}"
+    COMMAND python3 "${CMAKE_SOURCE_DIR}/src/decompress_main_bodies.py"
+            "${MONOLITH_MAIN_BODIES_DIR}"
+    DEPENDS ${MONOLITH_MAIN_BODY_Z64}
+            "${CMAKE_SOURCE_DIR}/src/decompress_main_bodies.py"
+    COMMENT "Decompressing main body includes"
+    VERBATIM
+)
+add_custom_target(monolith_main_bodies DEPENDS "${MONOLITH_MAIN_BODIES_DIR}/main_body_a.inc")
+
 add_executable(monolith
     src/main.cpp
     src/window/WindowManager.cpp
@@ -69,10 +85,12 @@ add_executable(monolith
 
 target_include_directories(monolith PRIVATE
     ${SDL2_TTF_INCLUDE_DIRS}
+    ${CMAKE_SOURCE_DIR}/src
     ${CMAKE_CURRENT_BINARY_DIR}/generated
     ${CMAKE_CURRENT_BINARY_DIR}/generated/settings
+    ${CMAKE_CURRENT_BINARY_DIR}/generated/main
 )
-add_dependencies(monolith monolith_stb_image monolith_settings_bodies)
+add_dependencies(monolith monolith_stb_image monolith_settings_bodies monolith_main_bodies)
 
 target_link_libraries(monolith
     PRIVATE
