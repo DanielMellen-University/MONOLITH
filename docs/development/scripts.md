@@ -127,7 +127,7 @@ cmake --build build --target monolith_settings_bodies monolith_stb_image
 g++ -std=c++23 -Ibuild/generated -Ibuild/generated/settings scripts/test_window_file_open.cpp src/window/WindowManager.cpp src/window/WallpaperImage.cpp src/app/*.cpp src/fs/Filesystem.cpp src/settings/DesktopSettings.cpp $(pkg-config --cflags --libs sdl2 SDL2_ttf) -o build/test_window_file_open && ./build/test_window_file_open
 ```
 
-Headless test of scaled WindowManager hit testing, drag math, resize edges, client coordinates, and narrow or undersized desktop geometry:
+Headless test of scaled WindowManager hit testing, drag math, resize edges, client coordinates, renderer client clipping, and narrow or undersized desktop geometry:
 
 ```bash
 g++ -std=c++23 -Ibuild/generated -Ibuild/generated/settings scripts/test_window_coordinates.cpp src/window/WindowManager.cpp src/window/WallpaperImage.cpp src/app/*.cpp src/fs/Filesystem.cpp src/settings/DesktopSettings.cpp $(pkg-config --cflags --libs sdl2 SDL2_ttf) -o build/test_window_coordinates && ./build/test_window_coordinates

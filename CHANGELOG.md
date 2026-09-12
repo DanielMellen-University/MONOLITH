@@ -11,6 +11,12 @@
 - Clicks in the list's top padding and inter-row gaps are ignored instead of selecting a neighboring entry.
 - Added focused coverage for row-boundary and padding clicks and updated the Browser guide.
 
+## 2026-09: Contain app rendering inside client areas
+
+- WindowManager now clips every app render to its window client rectangle and restores the renderer clip afterward.
+- Tiny or undersized existing app layouts can no longer paint over title bars or the taskbar.
+- Added WindowManager renderer-clip coverage and documented the shared rendering boundary.
+
 ## 2026-09: Keep Settings controls readable after scaling
 
 - Settings now derives section spacing, wallpaper fields, clock and scale controls, and footer geometry from the active interface font instead of fixed text bands.

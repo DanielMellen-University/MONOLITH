@@ -13,7 +13,10 @@ namespace {
 
 class ProbeApp final : public monolith::app::App {
 public:
-    void render(SDL_Renderer*, const SDL_Rect&) override {}
+    void render(SDL_Renderer* renderer, const SDL_Rect& contentRect) override {
+        SDL_RenderGetClipRect(renderer, &renderClip);
+        renderRect = contentRect;
+    }
 
     void handleEvent(const SDL_Event& event) override {
         if (event.type == SDL_MOUSEBUTTONDOWN) {
@@ -35,6 +38,8 @@ public:
     int lastResizeWidth = 0;
     int lastResizeHeight = 0;
     int resizeCalls = 0;
+    SDL_Rect renderClip{0, 0, 0, 0};
+    SDL_Rect renderRect{0, 0, 0, 0};
 };
 
 } // namespace
@@ -133,6 +138,17 @@ int main() {
 
     wm.setContentScale(1.0f);
     wm.setLogicalDesktopSize(500, 400);
+    wm.render(renderer);
+    check(probePtr->renderClip.x == probePtr->renderRect.x
+              && probePtr->renderClip.y == probePtr->renderRect.y
+              && probePtr->renderClip.w == probePtr->renderRect.w
+              && probePtr->renderClip.h == probePtr->renderRect.h,
+          "WindowManager clips app rendering to the client rectangle");
+    SDL_Rect clipAfterRender{};
+    SDL_RenderGetClipRect(renderer, &clipAfterRender);
+    check(clipAfterRender.w == 0 && clipAfterRender.h == 0,
+          "WindowManager restores the renderer clip after app rendering");
+
     window->rect = {100, 100, 300, 200};
     const int resizeCallsBeforeEdgeDrag = probePtr->resizeCalls;
     wm.m_resizingWindow = window;
