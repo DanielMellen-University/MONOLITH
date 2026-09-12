@@ -1,5 +1,9 @@
 # Changelog
 
+## 2026-09: Keep Text Editor clicks inside rendered rows
+
+- Text Editor mouse selection now ignores the unused gap below the last complete document row, keeping clicks aligned with rendered content above the status bar.
+
 ## 2026-09: Keep Browser hit testing inside rendered rows
 
 - Filesystem Browser now counts only complete rows and rejects mouse clicks in clipped row fragments, keeping selection aligned with what is actually drawn in tiny clients.

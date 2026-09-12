@@ -975,7 +975,8 @@ bool TextEditorApp::clientToDocument(int clientX, int clientY, int& outRow, int&
     if (lineHeight <= 0) return false;
 
     int relY = clientY - kPadding;
-    if (relY < 0) relY = 0;
+    const int visible = getVisibleLineCount({0, 0, m_clientWidth, m_clientHeight});
+    if (visible <= 0 || relY < 0 || relY >= visible * lineHeight) return false;
     int row = m_scrollOffset + relY / lineHeight;
     if (row < 0) row = 0;
     if (row >= static_cast<int>(m_lines.size())) {

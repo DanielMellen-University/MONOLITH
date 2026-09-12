@@ -104,6 +104,21 @@ int main() {
               "Text Editor resize clamps vertical scrollback to the visible lines");
         check(scaleEditor.getVisibleLineCount({0, 0, 320, 40}) == 0,
               "Text Editor reports no rows when the status bar fills a tiny client");
+        scaleEditor.m_cursorRow = 0;
+        scaleEditor.m_scrollOffset = 0;
+        scaleEditor.m_selectingWithMouse = false;
+        const int visibleForGapTest = scaleEditor.getVisibleLineCount({0, 0, 320, 80});
+        const int gapY = TestEditor::kPadding
+            + visibleForGapTest * scaleEditor.getLineHeight();
+        SDL_Event gapEvent{};
+        gapEvent.type = SDL_MOUSEBUTTONDOWN;
+        gapEvent.button.button = SDL_BUTTON_LEFT;
+        gapEvent.button.clicks = 1;
+        gapEvent.button.x = TestEditor::kPadding + TestEditor::kLineNumWidth + 4;
+        gapEvent.button.y = gapY;
+        scaleEditor.handleEvent(gapEvent);
+        check(!scaleEditor.m_selectingWithMouse && scaleEditor.m_cursorRow == 0,
+              "Text Editor ignores clicks in the gap below the last rendered row");
     }
     check(fs.writeFile("/old.txt", "original"), "write original editor file");
     check(fs.writeFile("/empty.txt", ""), "write empty editor file");
