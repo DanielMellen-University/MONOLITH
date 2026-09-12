@@ -213,6 +213,13 @@ int main() {
     const int scaledVisibleLines = terminal.getMaxVisibleLines({0, 0, 320, 240});
     check(terminal.m_scrollOffset == 40 - scaledVisibleLines,
           "terminal text scaling clamps scrollback to the new history area");
+    const SDL_Rect tinyContent{20, 30, 120, 8};
+    const SDL_Rect tinyInputBar = terminal.getInputBarRect(tinyContent);
+    check(tinyInputBar.x >= tinyContent.x
+              && tinyInputBar.y >= tinyContent.y
+              && tinyInputBar.x + tinyInputBar.w <= tinyContent.x + tinyContent.w
+              && tinyInputBar.y + tinyInputBar.h <= tinyContent.y + tinyContent.h,
+          "terminal input bar stays inside an undersized client area");
 
     check(fs.createDirectory("/home/monolith/work/nested"),
           "create terminal cwd move source");

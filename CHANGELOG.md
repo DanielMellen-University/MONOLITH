@@ -1,5 +1,9 @@
 # Changelog
 
+## 2026-09: Keep Terminal input inside tiny clients
+
+- Terminal input-bar geometry is now clamped to the client rectangle, preventing the prompt strip from extending into window chrome when a client is shorter than the normal text layout.
+
 ## 2026-09: Keep Text Editor clicks inside rendered rows
 
 - Text Editor mouse selection now ignores the unused gap below the last complete document row, keeping clicks aligned with rendered content above the status bar.

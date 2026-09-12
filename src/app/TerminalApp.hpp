@@ -51,6 +51,8 @@ private:
     int getLineHeight() const;
     int getMaxVisibleLines(const SDL_Rect& contentRect) const;
     int getMaxScrollOffset() const;
+    SDL_Rect getInputBarRect(const SDL_Rect& contentRect) const;
+    int getInputLineY(const SDL_Rect& contentRect, const SDL_Rect& inputBar) const;
 
     std::string getInputPrompt() const;  // includes cwd for better UX
 

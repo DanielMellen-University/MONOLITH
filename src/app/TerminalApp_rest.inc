@@ -276,6 +276,21 @@ int TerminalApp::getMaxScrollOffset() const {
     return std::max(0, static_cast<int>(m_history.size()) - visible);
 }
 
+SDL_Rect TerminalApp::getInputBarRect(const SDL_Rect& contentRect) const {
+    const int stripHeight = getLineHeight() + 14;
+    const int clientHeight = std::max(0, contentRect.h);
+    return {
+        contentRect.x + 4,
+        contentRect.y + std::max(0, clientHeight - stripHeight),
+        std::max(0, contentRect.w - 8),
+        std::min(stripHeight, clientHeight)
+    };
+}
+
+int TerminalApp::getInputLineY(const SDL_Rect& contentRect, const SDL_Rect& inputBar) const {
+    return std::max(inputBar.y, contentRect.y + contentRect.h - 6 - getLineHeight());
+}
+
 std::string TerminalApp::resolvePath(const std::string& path) const {
     if (!m_fs) return path;
 
@@ -325,8 +340,8 @@ void TerminalApp::render(SDL_Renderer* renderer, const SDL_Rect& contentRect) {
     // We reserve a fixed strip at the very bottom of the content area for the input.
     // This must never be eaten into by history, even when the window is very tall.
     const int inputStripHeight = lineHeight + 14;   // prompt + padding + breathing room
-    const int inputBottomY = contentRect.y + contentRect.h - 6; // small margin from absolute bottom
-    const int inputLineY = inputBottomY - lineHeight;
+    const SDL_Rect inputBar = getInputBarRect(contentRect);
+    const int inputLineY = getInputLineY(contentRect, inputBar);
 
     // History gets everything above the input strip
     SDL_Rect historyRect = {
@@ -338,12 +353,6 @@ void TerminalApp::render(SDL_Renderer* renderer, const SDL_Rect& contentRect) {
 
     // Draw input background strip (clearly separated)
     SDL_SetRenderDrawColor(renderer, 28, 28, 34, 255);
-    SDL_Rect inputBar = {
-        contentRect.x + 4,
-        inputLineY - 4,
-        contentRect.w - 8,
-        inputStripHeight
-    };
     SDL_RenderFillRect(renderer, &inputBar);
 
     SDL_Color textColor = {200, 205, 210, 255};
