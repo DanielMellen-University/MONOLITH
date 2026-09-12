@@ -168,6 +168,11 @@ int main() {
               && settings.getFooterHeight() > baseFooterHeight
               && settings.m_contentHeight > baseContentHeight,
           "Settings layout bands grow with the shared interface font");
+    const SDL_Rect tinyContent{10, 20, 200, 8};
+    const SDL_Rect tinyFooter = settings.getFooterRect(tinyContent);
+    check(tinyFooter.y >= tinyContent.y
+              && tinyFooter.y + tinyFooter.h <= tinyContent.y + tinyContent.h,
+          "Settings footer stays inside an undersized client area");
 
     std::filesystem::remove_all(hostRoot, ec);
     TTF_CloseFont(font);

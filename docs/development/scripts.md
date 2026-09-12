@@ -90,7 +90,7 @@ Headless test of desktop preference save/load, UI scale persistence, legacy file
 g++ -std=c++23 scripts/test_desktop_settings.cpp src/settings/DesktopSettings.cpp -o build/test_desktop_settings && ./build/test_desktop_settings
 ```
 
-Headless Settings app test for wallpaper directory/image filename completion, shell binding, and font-scaled layout metrics:
+Headless Settings app test for wallpaper directory/image filename completion, shell binding, font-scaled layout metrics, and tiny-client footer containment:
 
 ```bash
 g++ -std=c++23 scripts/test_settings_app_state.cpp src/app/SettingsApp.cpp src/fs/Filesystem.cpp $(pkg-config --cflags --libs sdl2 SDL2_ttf) -o build/test_settings_app_state && ./build/test_settings_app_state

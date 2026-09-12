@@ -4,6 +4,7 @@
 
 - Settings now derives section spacing, wallpaper fields, clock and scale controls, and footer geometry from the active interface font instead of fixed text bands.
 - Updated the compressed Settings body sources and added 22pt layout coverage.
+- The footer is clamped inside undersized Settings clients instead of extending above or below the content area.
 
 ## 2026-09: Keep Drawing input aligned after scaling
 

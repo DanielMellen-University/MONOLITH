@@ -31,6 +31,17 @@ int SettingsApp::getFooterHeight() const {
     return std::max(28, getLineHeight() + 8);
 }
 
+SDL_Rect SettingsApp::getFooterRect(const SDL_Rect& contentRect) const {
+    const int clientHeight = std::max(0, contentRect.h);
+    const int footerHeight = std::min(getFooterHeight(), clientHeight);
+    return {
+        contentRect.x,
+        contentRect.y + clientHeight - footerHeight,
+        std::max(0, contentRect.w),
+        footerHeight
+    };
+}
+
 void SettingsApp::onUiScaleChanged() {
     // The wallpaper prompt stores its horizontal position in pixels; discard
     // that stale offset so the next render measures it with the new font.

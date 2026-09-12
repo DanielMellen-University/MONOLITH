@@ -63,6 +63,7 @@ private:
     int getControlSize() const;
     int getFieldHeight() const;
     int getFooterHeight() const;
+    SDL_Rect getFooterRect(const SDL_Rect& contentRect) const;
     void syncWallpaperBufferFromShell();
 
     static constexpr int kPresetCount = 6;
