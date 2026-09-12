@@ -268,7 +268,24 @@ int main() {
           "tiny browser clients report no visible rows below their chrome");
     check(browser.m_scrollOffset == static_cast<int>(browser.m_entries.size()) - 1,
           "browser resize clamps scrollback without a selected row");
+    const int partialClientHeight = browser.getListTop()
+        + browser.getStatusBarHeight() + 6 + browser.getRowHeight() - 1;
+    browser.onResize(200, partialClientHeight);
+    check(browser.getVisibleRowCount({0, 0, 200, partialClientHeight}) == 0,
+          "browser does not count a partially visible row");
+    check(browser.selectEntryNamed("b.txt", false),
+          "select an entry before partial-row hit testing");
+    SDL_MouseButtonEvent partialRowClick{};
+    partialRowClick.button = SDL_BUTTON_LEFT;
+    partialRowClick.clicks = 1;
+    partialRowClick.x = 10;
+    partialRowClick.y = browser.getListTop();
+    browser.handleMouseButton(partialRowClick);
+    check(browser.m_entries[static_cast<size_t>(browser.m_selectedIndex)].name == "b.txt",
+          "browser ignores clicks in a row fragment that is not rendered");
     browser.onResize(400, 240);
+    browser.clearMultiSelection();
+    browser.m_selectedIndex = -1;
     browser.m_scrollOffset = 999;
     browser.onUiScaleChanged();
     const int scaledVisibleRows = std::max(

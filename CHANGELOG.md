@@ -1,5 +1,9 @@
 # Changelog
 
+## 2026-09: Keep Browser hit testing inside rendered rows
+
+- Filesystem Browser now counts only complete rows and rejects mouse clicks in clipped row fragments, keeping selection aligned with what is actually drawn in tiny clients.
+
 ## 2026-09: Keep Minesweeper controls aligned after resize and scaling
 
 - Minesweeper now derives rendered and interactive face/difficulty controls from the same client-space rectangles, keeping clicks aligned after resize and interface scaling.
