@@ -149,6 +149,18 @@ int main() {
     check(clipAfterRender.w == 0 && clipAfterRender.h == 0,
           "WindowManager restores the renderer clip after app rendering");
 
+    const SDL_Rect expectedFrameClip{7, 9, 180, 120};
+    SDL_RenderSetClipRect(renderer, &expectedFrameClip);
+    wm.render(renderer);
+    SDL_Rect clipAfterClippedFrame{};
+    SDL_RenderGetClipRect(renderer, &clipAfterClippedFrame);
+    check(clipAfterClippedFrame.x == expectedFrameClip.x
+              && clipAfterClippedFrame.y == expectedFrameClip.y
+              && clipAfterClippedFrame.w == expectedFrameClip.w
+              && clipAfterClippedFrame.h == expectedFrameClip.h,
+          "WindowManager preserves the caller renderer clip across the full frame");
+    SDL_RenderSetClipRect(renderer, nullptr);
+
     window->rect = {100, 100, 300, 200};
     const int resizeCallsBeforeEdgeDrag = probePtr->resizeCalls;
     wm.m_resizingWindow = window;

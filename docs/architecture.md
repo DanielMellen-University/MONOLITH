@@ -137,7 +137,7 @@ The Window Manager broadcasts virtual path creation, change, move, and removal e
 
 - The entire environment is rendered inside a single SDL2 window (currently fixed at 1280 × 720 logical pixels).
 - The Window Manager is responsible for compositing window frames and delegating content drawing to apps.
-- App rendering is clipped to the window's client rectangle at the shell boundary, so tiny or undersized app layouts cannot paint into title bars or the taskbar. Apps that use narrower internal clips must intersect and restore the caller clip; Browser, Settings, Terminal, Text Editor, and Drawing follow this rule explicitly. Client rectangles may be zero-sized on an undersized desktop, but are never negative.
+- Rendering is clipped to the caller's renderer clip for the full WindowManager frame, then each app is additionally clipped to its window's client rectangle, so tiny or undersized app layouts cannot paint into title bars or the taskbar. Apps and shell overlays that use narrower internal clips must intersect and restore the caller clip; Browser, Settings, Terminal, Text Editor, Drawing, title bars, taskbar buttons, and Alt+Tab follow this rule explicitly. Client rectangles may be zero-sized on an undersized desktop, but are never negative.
 - Rendering uses SDL2's accelerated renderer with VSYNC; apps draw text via SDL_ttf and primitives via SDL draw calls.
 
 ### 4. Input System

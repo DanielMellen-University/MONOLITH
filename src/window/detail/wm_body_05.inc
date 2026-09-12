@@ -70,14 +70,17 @@
                     s->w,
                     s->h
                 };
-                SDL_RenderSetClipRect(renderer, &box);
+                const SDL_Rect effectiveBoxClip = intersectRendererClip(box, callerClip);
+                SDL_RenderSetClipRect(renderer, &effectiveBoxClip);
                 SDL_RenderCopy(renderer, t, nullptr, &dst);
-                SDL_RenderSetClipRect(renderer, nullptr);
+                restoreRendererClip(renderer, callerClip);
                 SDL_DestroyTexture(t);
             }
             SDL_FreeSurface(s);
         }
     }
+
+    restoreRendererClip(renderer, callerClip);
 }
 
 Window* WindowManager::getWindowAt(int mouseX, int mouseY) {

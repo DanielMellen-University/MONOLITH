@@ -151,6 +151,8 @@ void WindowManager::update() {
 }
 
 void WindowManager::render(SDL_Renderer* renderer) {
+    const RendererClipState callerClip = captureRendererClip(renderer);
+
     // Solid color is cleared by main; paint wallpaper image (if any) under windows.
     renderWallpaper(renderer);
 
@@ -243,9 +245,10 @@ void WindowManager::render(SDL_Renderer* renderer) {
 
                 if (titleWidth > 0) {
                     SDL_Rect titleClip = {titleLeft, screenY, titleWidth, scaledTitleH};
-                    SDL_RenderSetClipRect(renderer, &titleClip);
+                    const SDL_Rect effectiveTitleClip = intersectRendererClip(titleClip, callerClip);
+                    SDL_RenderSetClipRect(renderer, &effectiveTitleClip);
                     SDL_RenderCopy(renderer, cache.texture, nullptr, &dstRect);
-                    SDL_RenderSetClipRect(renderer, nullptr);
+                    restoreRendererClip(renderer, callerClip);
                 }
             }
         }

@@ -150,8 +150,9 @@
         std::max(0, areaRightScreen - areaLeftScreen),
         btnHeight
     };
+    const SDL_Rect effectiveButtonClip = intersectRendererClip(buttonClipRect, callerClip);
     if (buttonClipRect.w > 0) {
-        SDL_RenderSetClipRect(renderer, &buttonClipRect);
+        SDL_RenderSetClipRect(renderer, &effectiveButtonClip);
     }
     int currentX = logicalToScreenX(buttonsStartX) - static_cast<int>(m_taskbarScrollOffset * m_contentScale);
 
@@ -203,14 +204,15 @@
                     textClip.x = std::max(textClip.x, buttonClipRect.x);
                     textClip.w = std::max(0, textClipRight - textClip.x);
                     if (textClip.w > 0) {
-                        SDL_RenderSetClipRect(renderer, &textClip);
+                        const SDL_Rect effectiveTextClip = intersectRendererClip(textClip, callerClip);
+                        SDL_RenderSetClipRect(renderer, &effectiveTextClip);
                         SDL_Rect textDst = {
                             btnRect.x + 5,
                             btnY + (btnHeight - s->h) / 2,
                             s->w, s->h
                         };
                         SDL_RenderCopy(renderer, t, nullptr, &textDst);
-                        SDL_RenderSetClipRect(renderer, &buttonClipRect);
+                        SDL_RenderSetClipRect(renderer, &effectiveButtonClip);
                     }
                     SDL_DestroyTexture(t);
                 }
@@ -234,7 +236,7 @@
         currentX += static_cast<int>((bw + 6) * m_contentScale);
     }
     if (buttonClipRect.w > 0) {
-        SDL_RenderSetClipRect(renderer, nullptr);
+        restoreRendererClip(renderer, callerClip);
     }
 
     // --- Right: System clock (local time; texture rebuilt when the minute changes) ---

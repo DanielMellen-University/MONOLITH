@@ -1,5 +1,10 @@
 # Changelog
 
+## 2026-09: Preserve WindowManager renderer boundaries
+
+- WindowManager now preserves and intersects the caller renderer clip through window frames, taskbar buttons, title labels, and the Alt+Tab overlay.
+- Added full-frame renderer-clip regression coverage and updated the architecture documentation.
+
 ## 2026-09: Preserve Drawing renderer boundaries
 
 - Drawing now intersects its status prompt clip with the caller clip and restores that clip after rendering.
