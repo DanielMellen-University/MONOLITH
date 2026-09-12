@@ -79,6 +79,21 @@ int main() {
 
     monolith::fs::Filesystem fs(hostRoot.string());
     check(fs.initialize(), "editor state filesystem initialize");
+    const bool ttfReady = TTF_Init() == 0;
+    check(ttfReady, "editor state SDL_ttf initialize");
+    TTF_Font* scaleFont = ttfReady
+        ? TTF_OpenFont("assets/fonts/DejaVuSans.ttf", 14)
+        : nullptr;
+    check(scaleFont != nullptr, "editor state loads test font");
+    if (scaleFont) {
+        TestEditor scaleEditor(scaleFont, &fs, "/old.txt");
+        const int baseStatusBarHeight = scaleEditor.getStatusBarHeight();
+        check(TTF_SetFontSize(scaleFont, 22) == 0,
+              "Text Editor state scales test font");
+        scaleEditor.onUiScaleChanged();
+        check(scaleEditor.getStatusBarHeight() > baseStatusBarHeight,
+              "Text Editor status bar grows with the shared interface font");
+    }
     check(fs.writeFile("/old.txt", "original"), "write original editor file");
     check(fs.writeFile("/empty.txt", ""), "write empty editor file");
     check(fs.writeFile("/windows.txt", "first\r\nsecond\r\n"),
@@ -253,6 +268,8 @@ int main() {
           "Save As prompt returns to a valid parent after deletion");
 
     std::filesystem::remove_all(hostRoot, ec);
+    if (scaleFont) TTF_CloseFont(scaleFont);
+    if (ttfReady) TTF_Quit();
     if (failures == 0) {
         std::cout << "ALL TEXT EDITOR STATE TESTS PASSED\n";
         return 0;

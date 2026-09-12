@@ -129,6 +129,7 @@ private:
 
     // === Rendering helpers ===
     int getLineHeight() const;
+    int getStatusBarHeight() const;
     int getVisibleLineCount(const SDL_Rect& contentRect) const;
 
     TTF_Font* m_font = nullptr;

@@ -1,5 +1,10 @@
 # Changelog
 
+## 2026-09: Keep Text Editor prompts inside the scaled status bar
+
+- Text Editor now derives its status-bar height from the active interface font, keeping prompt text and mouse hit testing aligned at larger scales.
+- Updated the editor guide and verification notes.
+
 ## 2026-09: Keep taskbar controls readable after text scaling
 
 - Start, taskbar window buttons, scroll arrows, and the clock tray now share a font-aware control height bounded by the taskbar band.

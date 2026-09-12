@@ -114,7 +114,7 @@ Headless test of shared UTF-8 codepoint editing helpers used by Text Editor, Ter
 g++ -std=c++23 scripts/test_utf8.cpp -o build/test_utf8 && ./build/test_utf8
 ```
 
-Headless Text Editor state test for Save As collisions and failed-write recovery:
+Headless Text Editor state test for Save As collisions, failed-write recovery, and font-scaled status geometry:
 
 ```bash
 g++ -std=c++23 scripts/test_text_editor_state.cpp src/app/TextEditorApp.cpp src/fs/Filesystem.cpp $(pkg-config --cflags --libs sdl2 SDL2_ttf) -o build/test_text_editor_state && ./build/test_text_editor_state

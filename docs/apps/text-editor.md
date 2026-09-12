@@ -32,6 +32,7 @@ If an initial path is missing or unreadable, the failed window falls back to the
 - A `*` in the status bar indicates unsaved changes.
 - Open/save results and errors appear in the status bar (e.g. `Saved: note.txt`, `Open failed: …`).
 - The status bar keeps the keyboard discovery hints visible after those feedback messages, including `Ctrl+F find` and `Ctrl+H replace`.
+- The status bar height follows the shared interface font with a stable minimum, so find, replace, and path prompts remain vertically contained after Settings text scaling.
 - Failed reads are reported as open errors instead of being treated as empty documents.
 - Closing the window or opening another file while dirty asks once via the status bar; confirm the same action again to discard, or save first (Ctrl+S).
 - A failed save clears any pending discard confirmation, so closing or opening again always asks before discarding the still-dirty buffer.
