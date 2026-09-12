@@ -72,11 +72,13 @@ int main() {
     check(fs.createDirectory("/home/monolith/quoted dir"),
           "create directory for quoted completion");
 
+    check(SDL_Init(SDL_INIT_VIDEO) == 0, "terminal state SDL initialize");
     check(TTF_Init() == 0, "terminal state SDL_ttf initialize");
     TTF_Font* font = TTF_OpenFont("assets/fonts/DejaVuSans.ttf", 14);
     check(font != nullptr, "terminal state loads test font");
     if (!font) {
         TTF_Quit();
+        SDL_Quit();
         std::filesystem::remove_all(hostRoot, ec);
         return 1;
     }
@@ -237,6 +239,25 @@ int main() {
     check(narrowHistory.w >= 0 && narrowHistory.h >= 0,
           "terminal history clip stays non-negative in a narrow client area");
 
+    SDL_Surface* surface = SDL_CreateRGBSurfaceWithFormat(
+        0, 240, 240, 32, SDL_PIXELFORMAT_RGBA32);
+    SDL_Renderer* renderer = surface ? SDL_CreateSoftwareRenderer(surface) : nullptr;
+    check(renderer != nullptr, "terminal state creates a software renderer");
+    if (renderer) {
+        const SDL_Rect expectedClip{5, 6, 140, 120};
+        SDL_RenderSetClipRect(renderer, &expectedClip);
+        terminal.render(renderer, {0, 0, 200, 200});
+        SDL_Rect restoredClip{};
+        SDL_RenderGetClipRect(renderer, &restoredClip);
+        check(restoredClip.x == expectedClip.x
+                  && restoredClip.y == expectedClip.y
+                  && restoredClip.w == expectedClip.w
+                  && restoredClip.h == expectedClip.h,
+              "terminal restores the caller renderer clip after rendering");
+        SDL_DestroyRenderer(renderer);
+    }
+    if (surface) SDL_FreeSurface(surface);
+
     check(fs.createDirectory("/home/monolith/work/nested"),
           "create terminal cwd move source");
     terminal.m_cwd = "/home/monolith/work/nested";
@@ -265,5 +286,6 @@ int main() {
     std::cerr << failures << " test(s) failed\n";
     TTF_CloseFont(font);
     TTF_Quit();
+    SDL_Quit();
     return 1;
 }

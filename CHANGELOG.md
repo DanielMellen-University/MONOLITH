@@ -1,5 +1,10 @@
 # Changelog
 
+## 2026-09: Preserve Terminal renderer boundaries
+
+- Terminal now intersects its input and history clips with the caller clip and restores that clip after each region.
+- Added renderer-clip regression coverage and updated Terminal and architecture documentation.
+
 ## 2026-09: Preserve Browser renderer boundaries
 
 - Filesystem Browser now captures and restores the caller clip through path, list, and status text regions instead of resetting to an un-intersected content rectangle.

@@ -337,6 +337,8 @@ void TerminalApp::render(SDL_Renderer* renderer, const SDL_Rect& contentRect) {
         return;
     }
 
+    const RendererClipState previousClip = captureRendererClip(renderer);
+
     // Terminal background
     SDL_SetRenderDrawColor(renderer, 18, 18, 22, 255);
     SDL_RenderFillRect(renderer, &contentRect);
@@ -360,7 +362,8 @@ void TerminalApp::render(SDL_Renderer* renderer, const SDL_Rect& contentRect) {
     SDL_Color textColor = {200, 205, 210, 255};
 
     // Draw input line (normal or reverse-search mode)
-    SDL_RenderSetClipRect(renderer, &inputBar);
+    const SDL_Rect inputClip = intersectRendererClip(inputBar, previousClip);
+    SDL_RenderSetClipRect(renderer, &inputClip);
     if (m_searchMode) {
         m_searchCursorPos = std::min(m_searchCursorPos, m_searchBuffer.size());
         // Reverse-i-search UI
@@ -467,10 +470,11 @@ void TerminalApp::render(SDL_Renderer* renderer, const SDL_Rect& contentRect) {
             }
         }
     }
-    SDL_RenderSetClipRect(renderer, &contentRect);
+    restoreRendererClip(renderer, previousClip);
 
     // Draw history, respecting scroll offset (0 = bottom/newest)
-    SDL_RenderSetClipRect(renderer, &historyRect);
+    const SDL_Rect historyClip = intersectRendererClip(historyRect, previousClip);
+    SDL_RenderSetClipRect(renderer, &historyClip);
     if (!m_history.empty()) {
         int total = static_cast<int>(m_history.size());
         int startIdx = total - 1 - m_scrollOffset;
@@ -500,7 +504,7 @@ void TerminalApp::render(SDL_Renderer* renderer, const SDL_Rect& contentRect) {
             y -= lineHeight;
         }
     }
-    SDL_RenderSetClipRect(renderer, &contentRect);
+    restoreRendererClip(renderer, previousClip);
 
     // Note: Cursor for input is drawn earlier in the input strip section above.
     // The old duplicate cursor block that used full-buffer calculation was removed.

@@ -111,6 +111,7 @@ Output scrolling is bounded to the history rows that fit above the input strip. 
 
 The input strip remains inside the client rectangle even when a window is resized below its normal text height.
 The history viewport also clamps both width and height to zero for clients smaller than its padding, so narrow windows do not create invalid clip rectangles.
+Terminal intersects its input and history clips with the caller's renderer clip and restores that clip after each region.
 
 ## Argument Quoting
 
