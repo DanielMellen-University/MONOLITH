@@ -1,5 +1,9 @@
 # Changelog
 
+## 2026-09: Keep Minesweeper controls aligned after resize and scaling
+
+- Minesweeper now derives rendered and interactive face/difficulty controls from the same client-space rectangles, keeping clicks aligned after resize and interface scaling.
+
 ## 2026-09: Clamp Browser scroll after lifecycle changes
 
 - Filesystem Browser now clamps listing scrollback after window resizes and interface text scaling, including when no row is selected.

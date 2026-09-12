@@ -45,6 +45,25 @@ int main() {
           "Minesweeper HUD grows with scaled difficulty controls");
     check(game.footerHeight() >= baseFooterHeight,
           "Minesweeper footer keeps a stable readable height");
+    game.onResize(260, 220);
+    const SDL_Rect windowContent{40, 30, 260, 220};
+    game.layoutBoard(windowContent);
+    const SDL_Rect faceRect = game.clientFaceButtonRect();
+    check(game.m_faceBtnRect.x == windowContent.x + faceRect.x
+              && game.m_faceBtnRect.y == windowContent.y + faceRect.y
+              && game.m_faceBtnRect.w == faceRect.w
+              && game.m_faceBtnRect.h == faceRect.h,
+          "Minesweeper draws the face button from its client hitbox");
+    game.newGame(MinesweeperApp::Difficulty::Expert);
+    SDL_Event difficultyClick{};
+    difficultyClick.type = SDL_MOUSEBUTTONDOWN;
+    difficultyClick.button.button = SDL_BUTTON_LEFT;
+    const SDL_Rect beginner = game.clientDifficultyButtonRect(0);
+    difficultyClick.button.x = beginner.x + beginner.w / 2;
+    difficultyClick.button.y = beginner.y + beginner.h / 2;
+    game.handleEvent(difficultyClick);
+    check(game.m_difficulty == MinesweeperApp::Difficulty::Beginner,
+          "Minesweeper input uses the same difficulty button geometry as rendering");
     game.newGame(MinesweeperApp::Difficulty::Expert);
     game.onResize(120, 120);
     int boardX = 0;

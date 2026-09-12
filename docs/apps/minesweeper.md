@@ -51,6 +51,7 @@ Per-difficulty best times are stored on the host at `~/.monolith/minesweeper_bes
 ## Presentation
 
 - Face button reflects play / press / win / lose
+- Face and difficulty button hitboxes share the same client-space geometry as their drawn controls, including after resize and interface-scale changes
 - Pressed unopened cell darkens briefly
 - The HUD status line clips before the face button, and the footer clips at the window edge, so narrow windows do not cover controls with text
 - HUD, footer, and difficulty button geometry grow with the shared interface font, keeping the 90%, 100%, and 115% scale choices aligned without clipping labels

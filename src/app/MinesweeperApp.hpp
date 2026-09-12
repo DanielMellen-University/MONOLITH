@@ -72,6 +72,8 @@ private:
     void refreshUiMetrics();
     int hudHeight() const;
     int footerHeight() const;
+    SDL_Rect clientDifficultyButtonRect(int index) const;
+    SDL_Rect clientFaceButtonRect() const;
     void clientBoardMetrics(int& boardX, int& boardY, int& cellPx, int& boardPxW, int& boardPxH) const;
     bool cellAtClient(int mx, int my, int& outX, int& outY) const;
     void drawText(SDL_Renderer* renderer, const char* text, int x, int y,

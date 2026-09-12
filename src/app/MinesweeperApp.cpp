@@ -387,6 +387,20 @@ int MinesweeperApp::footerHeight() const {
     return std::max(kFooterHeight, fontHeight + 8);
 }
 
+SDL_Rect MinesweeperApp::clientDifficultyButtonRect(int index) const {
+    const int btnW = 70;
+    const int gap = 6;
+    return {10 + index * (btnW + gap), kDifficultyButtonY, btnW, m_difficultyButtonHeight};
+}
+
+SDL_Rect MinesweeperApp::clientFaceButtonRect() const {
+    const int fontHeight = m_font ? TTF_FontHeight(m_font) : 14;
+    const int btnW = std::max(32, fontHeight + 8);
+    const int btnH = std::max(40, fontHeight + 14);
+    const int clientW = m_clientWidth > 0 ? m_clientWidth : 360;
+    return {std::max(0, clientW - 10 - btnW), 8, btnW, btnH};
+}
+
 void MinesweeperApp::clientBoardMetrics(int& boardX, int& boardY, int& cellPx,
                                         int& boardPxW, int& boardPxH) const {
     const int availW = m_clientWidth > 0 ? m_clientWidth : 360;
@@ -424,21 +438,23 @@ void MinesweeperApp::layoutBoard(const SDL_Rect& contentRect) {
     m_boardY = contentRect.y + hudH + (availH - m_boardPxH) / 2;
 
     refreshUiMetrics();
-    const int btnW = 70;
-    const int btnH = m_difficultyButtonHeight;
-    const int btnY = contentRect.y + kDifficultyButtonY;
-    const int gap = 6;
-    const int startX = contentRect.x + 10;
     for (int i = 0; i < 3; ++i) {
-        m_diffBtnRects[i] = {startX + i * (btnW + gap), btnY, btnW, btnH};
+        const SDL_Rect clientRect = clientDifficultyButtonRect(i);
+        m_diffBtnRects[i] = {
+            contentRect.x + clientRect.x,
+            contentRect.y + clientRect.y,
+            clientRect.w,
+            clientRect.h
+        };
     }
 
     // Face / new-game button on the right side of the HUD
+    const SDL_Rect clientFaceRect = clientFaceButtonRect();
     m_faceBtnRect = {
-        contentRect.x + contentRect.w - 42,
-        contentRect.y + 8,
-        32,
-        40
+        contentRect.x + clientFaceRect.x,
+        contentRect.y + clientFaceRect.y,
+        clientFaceRect.w,
+        clientFaceRect.h
     };
 }
 
@@ -565,9 +581,9 @@ void MinesweeperApp::handleEvent(const SDL_Event& event) {
 
     // Face / new game button (client space)
     {
-        const int faceX = (m_clientWidth > 0 ? m_clientWidth : 360) - 42;
-        const int faceY = 8;
-        if (mx >= faceX && mx < faceX + 32 && my >= faceY && my < faceY + 40) {
+        const SDL_Rect face = clientFaceButtonRect();
+        const SDL_Point point{mx, my};
+        if (SDL_PointInRect(&point, &face)) {
             newGame(m_difficulty);
             return;
         }
@@ -575,14 +591,10 @@ void MinesweeperApp::handleEvent(const SDL_Event& event) {
 
     // Difficulty buttons in client space
     {
-        const int btnW = 70;
-        const int btnH = m_difficultyButtonHeight;
-        const int btnY = kDifficultyButtonY;
-        const int gap = 6;
-        const int startX = 10;
+        const SDL_Point point{mx, my};
         for (int i = 0; i < 3; ++i) {
-            SDL_Rect btn{startX + i * (btnW + gap), btnY, btnW, btnH};
-            if (mx >= btn.x && mx < btn.x + btn.w && my >= btn.y && my < btn.y + btn.h) {
+            const SDL_Rect btn = clientDifficultyButtonRect(i);
+            if (SDL_PointInRect(&point, &btn)) {
                 if (i == 0) newGame(Difficulty::Beginner);
                 else if (i == 1) newGame(Difficulty::Intermediate);
                 else newGame(Difficulty::Expert);
