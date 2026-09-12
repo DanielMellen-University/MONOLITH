@@ -1631,6 +1631,9 @@ void FilesystemApp::onResize(int clientWidth, int clientHeight) {
 }
 
 void FilesystemApp::onUiScaleChanged() {
+    // The filter prompt stores its horizontal position in pixels; remeasure it
+    // against the new font on the next render.
+    m_filterScrollPx = 0;
     if (m_showContextMenu) {
         updateContextMenuLayout();
     }

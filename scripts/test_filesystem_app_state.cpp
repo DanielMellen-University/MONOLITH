@@ -235,10 +235,13 @@ int main() {
     check(menuBeforeScale.w > 0 && menuBeforeScale.h > 0,
           "context menu layout is available before UI scaling");
     check(TTF_SetFontSize(font, 20) == 0, "browser state applies larger test font");
+    browser.m_filterScrollPx = 42;
     browser.onUiScaleChanged();
     check(browser.m_contextMenuRect.h > menuBeforeScale.h
               && browser.m_contextMenuRect.w >= menuBeforeScale.w,
           "open context menu relayouts after UI scale changes");
+    check(browser.m_filterScrollPx == 0,
+          "filter prompt resets its cached offset after UI scale changes");
 
     check(browser.selectEntryNamed("a.txt", false), "select an item before filtered delete");
     browser.requestDeleteSelected();

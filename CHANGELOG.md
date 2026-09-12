@@ -1,5 +1,10 @@
 # Changelog
 
+## 2026-09: Keep Filesystem filter prompts aligned after text scaling
+
+- The active Browser filter now discards its cached pixel offset when the shared interface font changes.
+- Added lifecycle coverage alongside the existing context-menu relayout check.
+
 ## 2026-09: Keep Minesweeper controls aligned after text scaling
 
 - Difficulty button geometry now follows the shared interface font instead of keeping a fixed 18px height.
