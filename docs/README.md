@@ -27,6 +27,7 @@ Documentation hub for the Monolith project. Start with the [root README](../READ
 | Snake | [apps/snake.md](apps/snake.md) |
 | Minesweeper | [apps/minesweeper.md](apps/minesweeper.md) |
 | Pong | [apps/pong.md](apps/pong.md) |
+| Breakout | [apps/breakout.md](apps/breakout.md) |
 
 ## Development
 
@@ -45,5 +46,5 @@ Documentation hub for the Monolith project. Start with the [root README](../READ
 
 ## For Contributors & Agents
 
-- [AGENTS.md](../.agents/AGENTS.md) — project rules, chunk playbook, commit workflow
-- [CHANGELOG.md](../CHANGELOG.md) — short current-state summary (history in git)
+- [AGENTS.md](../.agents/AGENTS.md) - project rules, chunk playbook, commit workflow
+- [CHANGELOG.md](../CHANGELOG.md) - short current-state summary (history in git)

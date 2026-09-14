@@ -1,0 +1,150 @@
+constexpr int kTaskbarHeight = 28;
+constexpr int kWindowButtonSize = 16;
+constexpr int kWindowButtonSpacing = 6;
+constexpr int kWindowButtonRightPadding = 10;
+constexpr int kMinimumVisibleButtonSpace = 80;
+constexpr int kBaseFontPointSize = 14;
+}
+
+WindowManager::WindowManager() = default;
+
+WindowManager::~WindowManager() {
+    for (auto& [id, entry] : m_titleCache) {
+        (void)id;
+        if (entry.texture) {
+            SDL_DestroyTexture(entry.texture);
+            entry.texture = nullptr;
+        }
+
+    }
+    m_titleCache.clear();
+    destroyClockTextures();
+    destroyWallpaperTexture();
+}
+
+void WindowManager::destroyClockTextures() {
+    if (m_clockTexture) {
+        SDL_DestroyTexture(m_clockTexture);
+        m_clockTexture = nullptr;
+    }
+    m_clockText.clear();
+    m_clockTexW = 0;
+    m_clockTexH = 0;
+    if (m_clockDateTexture) {
+        SDL_DestroyTexture(m_clockDateTexture);
+        m_clockDateTexture = nullptr;
+    }
+    m_clockDateText.clear();
+    m_clockDateTexW = 0;
+    m_clockDateTexH = 0;
+}
+
+Window* WindowManager::createWindow(const std::string& title, int x, int y, int w, int h,
+                                        std::unique_ptr<monolith::app::App> app,
+                                        const std::string& appBase,
+                                        int instanceNumber) {
+    auto window = std::make_unique<Window>();
+    window->id = m_nextId++;
+    window->title = title;
+    window->rect.x = x;
+    window->rect.y = y;
+    window->rect.w = w;
+    window->rect.h = h;
+    window->app = std::move(app);
+
+    // Record instance tracking metadata (if provided by a launcher via claimNext...).
+    // This is what allows closeWindow to release the slot for reuse.
+    if (!appBase.empty() && instanceNumber > 0) {
+        window->appBaseTitle = appBase;
+        window->appInstanceNumber = instanceNumber;
+    }
+
+    Window* ptr = window.get();
+    m_windows.push_back(std::move(window));
+    clampSingleWindow(*ptr);
+
+    // Attach controller to the app (if any) so it can request window operations
+    if (ptr->app) {
+        ptr->app->setController(createControllerFor(ptr));
+
+        // Initial size notification
+        const int clientH = ptr->rect.h - Window::TITLE_BAR_HEIGHT;
+        ptr->app->onResize(ptr->rect.w, clientH > 0 ? clientH : 0);
+    }
+
+    bringToFront(ptr);
+    return ptr;
+}
+
+void WindowManager::handleEvent(const SDL_Event& event) {
+    if (event.type == SDL_QUIT) {
+        // Route the host window close through the same dirty-document guard as
+        // the Start menu Shut Down action.
+        requestQuit();
+        return;
+    }
+
+    if (tryHandleShellHotkeys(event)) {
+        return;
+    }
+
+    if (event.type == SDL_MOUSEMOTION) {
+        m_mouseX = event.motion.x;
+        m_mouseY = event.motion.y;
+
+        // While a client owns the left-button press, keep sending motion to it even
+        // outside its content area so drag tools can finish cleanly on release.
+        Window* motionWindow = (m_mouseDown && m_mouseCaptureWindow)
+            ? m_mouseCaptureWindow
+            : m_focusedWindow;
+        const bool capturedMotion = motionWindow && motionWindow == m_mouseCaptureWindow;
+        if (motionWindow && motionWindow->app && !motionWindow->minimized
+            && (capturedMotion || !m_showStartMenu)) {
+            const int logicalX = screenToLogicalX(m_mouseX);
+            const int logicalY = screenToLogicalY(m_mouseY);
+            if (capturedMotion || isInContentArea(*motionWindow, logicalX, logicalY)) {
+                SDL_Event clientEvent = event;
+                translateMouseEventToClient(*motionWindow, clientEvent);
+                motionWindow->app->handleEvent(clientEvent);
+            }
+        }
+    }
+
+    const int logicalMouseX = screenToLogicalX(m_mouseX);
+    const int logicalMouseY = screenToLogicalY(m_mouseY);
+
+    // Forward keyboard events (text input, key down/up) to the focused window's app.
+    // Suppress while Start menu is open so the menu (mouse-driven) owns the interaction.
+    if (m_focusedWindow && !m_focusedWindow->minimized && m_focusedWindow->app && !m_showStartMenu &&
+        (event.type == SDL_KEYDOWN || event.type == SDL_KEYUP || event.type == SDL_TEXTINPUT)) {
+        m_focusedWindow->app->handleEvent(event);
+        // Do not return — WM doesn't consume keyboard yet, but apps get first crack
+    }
+
+    // === Global UI first: Taskbar + Start Menu (must be checked even if click misses all windows) ===
+    if (event.type == SDL_MOUSEBUTTONDOWN && event.button.button == SDL_BUTTON_LEFT) {
+        m_shellMouseCapture = false;
+        if (!m_mouseDown) {
+            m_mouseCaptureWindow = nullptr;
+        }
+        m_mouseDown = true;
+        m_mouseX = event.button.x;
+        m_mouseY = event.button.y;
+
+        const SDL_Rect taskbarScreenRect = logicalRectToScreen(getTaskbarRect());
+        const int taskbarScreenY = taskbarScreenRect.y;
+        const int taskbarScreenBottom = taskbarScreenRect.y + taskbarScreenRect.h;
+
+        // Start Menu popup lives *above* the taskbar, so we must check it for *any* click
+        // when it is open (not just clicks whose Y is inside the taskbar strip).
+        if (m_showStartMenu) {
+            // Clicking the Start button itself while menu is open should toggle it closed.
+            int startBtnScreenWidth = static_cast<int>(70 * m_contentScale);
+            int startBtnScreenX = logicalToScreenX(8);
+            if (m_mouseX >= startBtnScreenX && m_mouseX < startBtnScreenX + startBtnScreenWidth &&
+                m_mouseY >= taskbarScreenY && m_mouseY < taskbarScreenBottom) {
+                m_shellMouseCapture = true;
+                m_showStartMenu = !m_showStartMenu;
+                return;
+            }
+

@@ -47,8 +47,9 @@ Monolith is meant to contain several distinct apps and subsystems. Implemented a
 | Shipped | Snake | [apps/snake.md](apps/snake.md) |
 | Shipped | Minesweeper | [apps/minesweeper.md](apps/minesweeper.md) |
 | Shipped | Pong | [apps/pong.md](apps/pong.md) |
+| Shipped | Breakout | [apps/breakout.md](apps/breakout.md) |
 | Shipped (partial) | Wallpaper images (BMP/PNG/JPEG via Settings; solid color fallback) | [apps/settings.md](apps/settings.md) |
-| Planned | IDE | — |
+| Planned | IDE | - |
 
 New apps can be added over time, either as native features or written in the custom language.
 
@@ -95,16 +96,16 @@ The project will be built in phases, roughly in this order:
    - Basic graphics and sound support in the language
 
 3. **More Apps** *(partially complete)*
-   - ~~Drawing program~~ — shipped
-   - ~~Settings panel~~ — shipped
-   - Desktop background color — shipped via Settings
+   - ~~Drawing program~~ - shipped
+   - ~~Settings panel~~ - shipped
+   - Desktop background color - shipped via Settings
    - Wallpaper images (BMP/PNG/JPEG) - shipped (partial; richer appearance controls still planned)
-   - Simple IDE experience for the language — planned
-   - Richer appearance options — planned
+   - Simple IDE experience for the language - planned
+   - Richer appearance options - planned
 
 4. **Growth** *(ongoing)*
-   - ~~Games~~ — Snake, Minesweeper, and Pong shipped
-   - Session restore, open-with routing, editor find/replace, FS multi-select — shipped (see [CHANGELOG](../CHANGELOG.md))
+   - ~~Games~~ - Snake, Minesweeper, Pong, and Breakout shipped
+   - Session restore, open-with routing, editor find/replace, FS multi-select - shipped (see [CHANGELOG](../CHANGELOG.md))
    - Deeper integration between apps
    - Richer wallpaper controls, richer Settings, custom language / IDE - still planned
    - Whatever feels worth adding over time
