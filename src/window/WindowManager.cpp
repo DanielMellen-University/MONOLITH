@@ -11,6 +11,7 @@
 #include "../app/SnakeApp.hpp"
 #include "../app/MinesweeperApp.hpp"
 #include "../app/PongApp.hpp"
+#include "../app/BreakoutApp.hpp"
 #include <algorithm>
 #include <cctype>
 #include <cstdio>
@@ -55,4 +56,5 @@ SDL_Rect intersectRendererClip(const SDL_Rect& requested, const RendererClipStat
 #include "detail/wm_body_06.inc"
 #include "detail/wm_body_07.inc"
 #include "detail/wm_body_08.inc"
+#include "detail/wm_body_08b.inc"
 #include "detail/wm_body_09.inc"
