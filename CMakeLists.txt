@@ -75,6 +75,8 @@ add_executable(monolith
     src/app/MinesweeperApp.cpp
     src/app/PongApp.cpp
     src/app/PongLogic.cpp
+    src/app/BreakoutApp.cpp
+    src/app/BreakoutLogic.cpp
 
     # Filesystem
     src/fs/Filesystem.cpp
