@@ -1,6 +1,6 @@
 # Development Scripts
 
-Headless verification scripts for Monolith. These run without a full interactive desktop session and are useful for local sanity checks. There is no automated CI pipeline in-repo yet; treat “CI” as optional future use.
+Headless verification scripts for Monolith. These run without a full interactive desktop session and are useful for local sanity checks. There is no automated CI pipeline in-repo yet; treat "CI" as optional future use.
 
 ## Drawing Integration Check
 
@@ -14,13 +14,13 @@ Verifies `launchDrawing` declarations, Start menu entry, and related integration
 
 ## Games Integration Check
 
-Static checks that Snake, Minesweeper, and Pong are wired into the shell:
+Static checks that Snake, Minesweeper, Pong, and Breakout are wired into the shell:
 
 ```bash
 ./scripts/verify_games_integration.sh
 ```
 
-Verifies launchers, Start menu actions (including Pong), `App::update()` dispatch, CMake entries, and docs hub links.
+Verifies launchers, Start menu actions (including Breakout), `App::update()` dispatch, CMake entries, and docs hub links.
 
 ## Terminal Lexer Check
 
@@ -40,6 +40,12 @@ Headless Pong state test:
 
 ```bash
 g++ -std=c++23 scripts/test_pong_state.cpp src/app/PongLogic.cpp -o build/test_pong_state && ./build/test_pong_state
+```
+
+Headless Breakout state test:
+
+```bash
+g++ -std=c++23 scripts/test_breakout_state.cpp src/app/BreakoutLogic.cpp -o build/test_breakout_state && ./build/test_breakout_state
 ```
 
 Headless Snake state and tiny-client layout test for tail movement, growth collisions, font-scaled HUD geometry, and keeping the board inside its content area:
