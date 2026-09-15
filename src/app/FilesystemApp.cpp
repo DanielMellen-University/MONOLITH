@@ -105,7 +105,7 @@ void FilesystemApp::onVirtualPathChanged(const std::string& path) {
 
     const std::string changed = m_fs->normalize(path);
     const std::string current = m_fs->normalize(m_currentPath);
-    if (parentVirtualPath(changed) != current) return;
+    if (changed != current && parentVirtualPath(changed) != current) return;
 
     refreshEntries();
     setStatus("Listing updated");

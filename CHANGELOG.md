@@ -1,5 +1,10 @@
 # Changelog
 
+## 2026-09: Refresh changed Browser directories
+
+- Filesystem Browser now refreshes the directory it is currently viewing when that directory itself receives an external change event.
+- Added regression coverage for a new child appearing during a directory-level update.
+
 ## 2026-09: Report recursive copy changes
 
 - Terminal `cp -r` now broadcasts every corresponding path when merging into an existing directory tree, keeping open listings and bound documents synchronized with nested overwrites.

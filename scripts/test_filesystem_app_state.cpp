@@ -123,6 +123,22 @@ int main() {
               && browser.m_statusMessage == "Listing updated",
           "external child changes refresh the current browser listing");
 
+    check(fs.createDirectory("/home/monolith/changed-dir"),
+          "create directory-level change source");
+    check(fs.writeFile("/home/monolith/changed-dir/existing.txt", "existing"),
+          "write directory-level change seed");
+    browser.setCurrentPath("/home/monolith/changed-dir");
+    check(fs.writeFile("/home/monolith/changed-dir/new.txt", "new"),
+          "write a new child for a directory-level change");
+    browser.onVirtualPathChanged("/home/monolith/changed-dir");
+    check(browser.selectEntryNamed("new.txt", false)
+              && browser.m_statusMessage == "Listing updated",
+          "a changed current directory refreshes its own listing");
+    check(fs.removeRecursive("/home/monolith/changed-dir"),
+          "remove directory-level change source");
+    browser.setCurrentPath("/home/monolith");
+    browser.onVirtualPathRemoved("/home/monolith/changed-dir");
+
     check(fs.remove("/home/monolith/c.txt"),
           "remove a direct child outside the browser");
     browser.onVirtualPathRemoved("/home/monolith/c.txt");
