@@ -3,6 +3,7 @@
 #include "WallpaperImage.hpp"
 #include "SessionFormat.hpp"
 #include "../app/App.hpp"
+#include "../detail/AtomicFile.hpp"
 #include "../app/FilePath.hpp"
 #include "../app/TerminalApp.hpp"
 #include "../app/TextEditorApp.hpp"

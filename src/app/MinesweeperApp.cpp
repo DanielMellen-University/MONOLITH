@@ -1,5 +1,7 @@
 #include "MinesweeperApp.hpp"
 
+#include "../detail/AtomicFile.hpp"
+
 #include <algorithm>
 #include <cstdlib>
 #include <ctime>
@@ -57,17 +59,14 @@ void MinesweeperApp::loadBestTimes() {
 }
 
 void MinesweeperApp::saveBestTimes() const {
-    const std::string path = bestTimesHostPath();
-    std::error_code ec;
-    std::filesystem::path p(path);
-    if (p.has_parent_path()) {
-        std::filesystem::create_directories(p.parent_path(), ec);
-    }
-    std::ofstream out(path, std::ios::trunc);
-    if (!out) return;
-    if (m_bestBeginner > 0) out << "beginner " << m_bestBeginner << '\n';
-    if (m_bestIntermediate > 0) out << "intermediate " << m_bestIntermediate << '\n';
-    if (m_bestExpert > 0) out << "expert " << m_bestExpert << '\n';
+    monolith::detail::writeTextAtomically(
+        bestTimesHostPath(),
+        [this](std::ostream& out) {
+            if (m_bestBeginner > 0) out << "beginner " << m_bestBeginner << '\n';
+            if (m_bestIntermediate > 0) out << "intermediate " << m_bestIntermediate << '\n';
+            if (m_bestExpert > 0) out << "expert " << m_bestExpert << '\n';
+        },
+        true);
 }
 
 int MinesweeperApp::bestTimeFor(Difficulty d) const {

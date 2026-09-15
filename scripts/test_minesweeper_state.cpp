@@ -4,7 +4,13 @@
 #include <SDL2/SDL_ttf.h>
 
 #include <cstdint>
+#include <cstdlib>
+#include <filesystem>
+#include <fstream>
 #include <iostream>
+#include <iterator>
+#include <string>
+#include <unistd.h>
 
 #include "../src/app/App.hpp"
 
@@ -33,7 +39,52 @@ int main() {
         return 1;
     }
 
+    const char* originalHomeValue = std::getenv("HOME");
+    const bool hadOriginalHome = originalHomeValue != nullptr;
+    const std::string originalHome = originalHomeValue ? originalHomeValue : "";
+    const std::filesystem::path testHome =
+        std::filesystem::temp_directory_path()
+        / ("monolith-minesweeper-state-"
+           + std::to_string(static_cast<long long>(getpid())));
+    std::error_code cleanupError;
+    std::filesystem::remove_all(testHome, cleanupError);
+    const bool homeReady = std::filesystem::create_directories(testHome);
+    const bool homeConfigured = homeReady && setenv("HOME", testHome.c_str(), 1) == 0;
+    check(homeConfigured,
+          "Minesweeper state isolates host best-time persistence");
+    if (!homeConfigured) {
+        std::filesystem::remove_all(testHome, cleanupError);
+        TTF_CloseFont(font);
+        TTF_Quit();
+        return 1;
+    }
+
     MinesweeperApp game(font);
+    const std::filesystem::path bestPath =
+        testHome / ".monolith/minesweeper_best.txt";
+    game.m_bestBeginner = 12;
+    game.m_bestExpert = 48;
+    game.saveBestTimes();
+    std::ifstream bestFile(bestPath);
+    const std::string bestText(std::istreambuf_iterator<char>(bestFile), {});
+    check(bestText == "beginner 12\nexpert 48\n",
+          "Minesweeper saves complete best-time records");
+    check(!std::filesystem::exists(bestPath.string() + ".tmp"),
+          "Minesweeper removes the temporary best-time record after replacement");
+
+    MinesweeperApp reloaded(font);
+    check(reloaded.m_bestBeginner == 12 && reloaded.m_bestExpert == 48,
+          "Minesweeper reloads the replaced best times");
+
+    std::filesystem::remove(bestPath, cleanupError);
+    check(std::filesystem::create_directory(bestPath),
+          "create blocked Minesweeper best-time target");
+    game.m_bestBeginner = 21;
+    game.saveBestTimes();
+    check(std::filesystem::is_directory(bestPath)
+              && !std::filesystem::exists(bestPath.string() + ".tmp"),
+          "failed Minesweeper replacement preserves the target and cleans up");
+
     const int baseButtonHeight = game.m_difficultyButtonHeight;
     const int baseHudHeight = game.hudHeight();
     const int baseFooterHeight = game.footerHeight();
@@ -106,6 +157,13 @@ int main() {
     check(!game.m_focusPaused, "focus gain resumes the timer");
     check(resumedElapsed >= pausedMs && resumedElapsed < pausedMs + 100u,
           "resume preserves the sub-second timer remainder");
+
+    std::filesystem::remove_all(testHome, cleanupError);
+    if (hadOriginalHome) {
+        setenv("HOME", originalHome.c_str(), 1);
+    } else {
+        unsetenv("HOME");
+    }
 
     if (failures == 0) {
         std::cout << "ALL MINESWEEPER STATE TESTS PASSED\n";

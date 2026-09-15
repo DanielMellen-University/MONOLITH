@@ -46,7 +46,7 @@ Changing difficulty immediately starts a new game.
 
 ## Best times
 
-Per-difficulty best times are stored on the host at `~/.monolith/minesweeper_best.txt` and shown in the HUD. A new record shows **NEW BEST!** on the win overlay.
+Per-difficulty best times are stored on the host at `~/.monolith/minesweeper_best.txt` and shown in the HUD. The record is written through a temporary sibling and replaced only after the complete text record succeeds, so a failed save preserves the previous times. A new record shows **NEW BEST!** on the win overlay.
 
 ## Presentation
 

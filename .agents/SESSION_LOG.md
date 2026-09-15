@@ -1,5 +1,7 @@
 # Session log
 
+| 2026-09-15 | fix | Unified Settings, session, Snake, and Minesweeper host text snapshots behind one atomic writer; added score reload and failed-replacement coverage and updated the persistence documentation. |
+
 | 2026-09-15 | fix | Made virtual regular-file writes atomic with temporary siblings, retained existing permission bits, preserved in-root file symlink traversal, and kept outside-root links rejected; added focused filesystem coverage and updated the filesystem contracts. |
 
 | 2026-09-15 | fix | Protected desktop settings with validated temporary writes and atomic replacement, preserving the prior configuration when replacement fails; added focused persistence coverage and aligned Settings and architecture documentation. |

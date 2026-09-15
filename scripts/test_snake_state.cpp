@@ -5,10 +5,15 @@
 #include <SDL2/SDL_ttf.h>
 
 #include <cstdint>
+#include <cstdlib>
 #include <deque>
+#include <filesystem>
+#include <fstream>
 #include <iostream>
+#include <iterator>
 #include <string>
 #include <utility>
+#include <unistd.h>
 
 #include "../src/app/App.hpp"
 
@@ -37,7 +42,47 @@ int main() {
         return 1;
     }
 
+    const char* originalHomeValue = std::getenv("HOME");
+    const bool hadOriginalHome = originalHomeValue != nullptr;
+    const std::string originalHome = originalHomeValue ? originalHomeValue : "";
+    const std::filesystem::path testHome =
+        std::filesystem::temp_directory_path()
+        / ("monolith-snake-state-" + std::to_string(static_cast<long long>(getpid())));
+    std::error_code cleanupError;
+    std::filesystem::remove_all(testHome, cleanupError);
+    const bool homeReady = std::filesystem::create_directories(testHome);
+    const bool homeConfigured = homeReady && setenv("HOME", testHome.c_str(), 1) == 0;
+    check(homeConfigured,
+          "Snake state isolates host score persistence");
+    if (!homeConfigured) {
+        std::filesystem::remove_all(testHome, cleanupError);
+        TTF_CloseFont(font);
+        TTF_Quit();
+        return 1;
+    }
+
     SnakeApp game(font);
+    const std::filesystem::path scorePath = testHome / ".monolith/snake_highscore.txt";
+    game.m_highScore = 17;
+    game.saveHighScore();
+    std::ifstream scoreFile(scorePath);
+    const std::string scoreText(std::istreambuf_iterator<char>(scoreFile), {});
+    check(scoreText == "17\n", "Snake saves a complete high-score record");
+    check(!std::filesystem::exists(scorePath.string() + ".tmp"),
+          "Snake removes the temporary score record after replacement");
+
+    SnakeApp reloaded(font);
+    check(reloaded.m_highScore == 17, "Snake reloads the replaced high score");
+
+    std::filesystem::remove(scorePath, cleanupError);
+    check(std::filesystem::create_directory(scorePath),
+          "create blocked Snake score target");
+    game.m_highScore = 23;
+    game.saveHighScore();
+    check(std::filesystem::is_directory(scorePath)
+              && !std::filesystem::exists(scorePath.string() + ".tmp"),
+          "failed Snake score replacement preserves the target and cleans up");
+
     const int baseHudHeight = game.hudHeight();
     check(TTF_SetFontSize(font, 22) == 0, "Snake state scales test font");
     const int scaledHudHeight = game.hudHeight();
@@ -86,6 +131,13 @@ int main() {
           "moving into the tail while eating is a collision");
     check(game.m_body.size() == 4 && game.m_body.front() == std::make_pair(2, 1),
           "food collision leaves the body unchanged");
+
+    std::filesystem::remove_all(testHome, cleanupError);
+    if (hadOriginalHome) {
+        setenv("HOME", originalHome.c_str(), 1);
+    } else {
+        unsetenv("HOME");
+    }
 
     if (failures == 0) {
         std::cout << "ALL SNAKE STATE TESTS PASSED\n";

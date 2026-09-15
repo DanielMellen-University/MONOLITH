@@ -1,5 +1,10 @@
 # Changelog
 
+## 2026-09: Unify host text persistence
+
+- Settings, session restore, Snake scores, and Minesweeper best times now share one temporary-sibling text writer, so complete records replace the target atomically and failed replacements clean up without truncating the previous state.
+- Added game persistence coverage for parent-directory creation, reloads, temporary-file cleanup, and blocked targets.
+
 ## 2026-09: Make virtual file writes atomic
 
 - Filesystem writes now replace regular files only after the complete byte stream succeeds, preserving existing permission bits and preventing failed Editor, Drawing, Terminal, or seed writes from truncating the prior file.

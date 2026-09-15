@@ -1,5 +1,7 @@
 #include "SnakeApp.hpp"
 
+#include "../detail/AtomicFile.hpp"
+
 #include <algorithm>
 #include <cstdlib>
 #include <ctime>
@@ -36,15 +38,10 @@ void SnakeApp::loadHighScore() {
 }
 
 void SnakeApp::saveHighScore() const {
-    const std::string path = highScoreHostPath();
-    std::error_code ec;
-    std::filesystem::path p(path);
-    if (p.has_parent_path()) {
-        std::filesystem::create_directories(p.parent_path(), ec);
-    }
-    std::ofstream out(path, std::ios::trunc);
-    if (!out) return;
-    out << m_highScore << '\n';
+    monolith::detail::writeTextAtomically(
+        highScoreHostPath(),
+        [this](std::ostream& out) { out << m_highScore << '\n'; },
+        true);
 }
 
 void SnakeApp::maybeUpdateHighScore() {

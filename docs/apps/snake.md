@@ -35,7 +35,7 @@ Focusing another window or opening the Start menu auto-pauses the game. Resume w
 
 ## High score
 
-The best score is saved on the host at `~/.monolith/snake_highscore.txt` and shown in the HUD. Beating it shows **NEW BEST!** on the end screen.
+The best score is saved on the host at `~/.monolith/snake_highscore.txt` and shown in the HUD. The record is written through a temporary sibling and replaced only after the complete text record succeeds, so a failed save preserves the previous score. Beating it shows **NEW BEST!** on the end screen.
 
 ## Presentation
 

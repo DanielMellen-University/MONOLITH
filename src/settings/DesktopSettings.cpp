@@ -1,6 +1,7 @@
 #include "DesktopSettings.hpp"
 
-#include <filesystem>
+#include "../detail/AtomicFile.hpp"
+
 #include <fstream>
 #include <sstream>
 #include <utility>
@@ -116,42 +117,17 @@ bool DesktopSettings::loadFromHostPath(const std::string& hostPath) {
 }
 
 bool DesktopSettings::saveToHostPath(const std::string& hostPath) const {
-    if (hostPath.empty()) return false;
-
-    const std::filesystem::path targetPath(hostPath);
-    const std::filesystem::path tempPath = targetPath.string() + ".tmp";
-    std::ofstream out(tempPath, std::ios::trunc);
-    if (!out) return false;
-
-    out << "desktop_background="
-        << static_cast<int>(m_desktopBackground.r) << ','
-        << static_cast<int>(m_desktopBackground.g) << ','
-        << static_cast<int>(m_desktopBackground.b) << '\n';
-    out << "wallpaper_path=" << m_wallpaperPath << '\n';
-    out << "clock_24_hour=" << (m_clock24Hour ? "1" : "0") << '\n';
-    out << "ui_scale_percent=" << m_uiScalePercent << '\n';
-    out.flush();
-    if (!out) {
-        out.close();
-        std::error_code cleanupError;
-        std::filesystem::remove(tempPath, cleanupError);
-        return false;
-    }
-    out.close();
-    if (!out) {
-        std::error_code cleanupError;
-        std::filesystem::remove(tempPath, cleanupError);
-        return false;
-    }
-
-    std::error_code renameError;
-    std::filesystem::rename(tempPath, targetPath, renameError);
-    if (renameError) {
-        std::error_code cleanupError;
-        std::filesystem::remove(tempPath, cleanupError);
-        return false;
-    }
-    return true;
+    return monolith::detail::writeTextAtomically(
+        hostPath,
+        [this](std::ostream& out) {
+            out << "desktop_background="
+                << static_cast<int>(m_desktopBackground.r) << ','
+                << static_cast<int>(m_desktopBackground.g) << ','
+                << static_cast<int>(m_desktopBackground.b) << '\n';
+            out << "wallpaper_path=" << m_wallpaperPath << '\n';
+            out << "clock_24_hour=" << (m_clock24Hour ? "1" : "0") << '\n';
+            out << "ui_scale_percent=" << m_uiScalePercent << '\n';
+        });
 }
 
 } // namespace monolith::settings

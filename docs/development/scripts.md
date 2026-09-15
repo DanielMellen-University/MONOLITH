@@ -48,13 +48,13 @@ Headless Breakout state test:
 g++ -std=c++23 scripts/test_breakout_state.cpp src/app/BreakoutLogic.cpp -o build/test_breakout_state && ./build/test_breakout_state
 ```
 
-Headless Snake state and tiny-client layout test for tail movement, growth collisions, font-scaled HUD geometry, and keeping the board inside its content area:
+Headless Snake state and tiny-client layout test for score persistence, tail movement, growth collisions, font-scaled HUD geometry, and keeping the board inside its content area:
 
 ```bash
 g++ -std=c++23 scripts/test_snake_state.cpp src/app/SnakeApp.cpp $(pkg-config --cflags --libs sdl2 SDL2_ttf) -o build/test_snake_state && ./build/test_snake_state
 ```
 
-Headless Minesweeper state and tiny-client layout test for scaled HUD controls, shared control hitboxes, precise focus pause/resume timing, and keeping the Expert board inside its content area:
+Headless Minesweeper state and tiny-client layout test for best-time persistence, scaled HUD controls, shared control hitboxes, precise focus pause/resume timing, and keeping the Expert board inside its content area:
 
 ```bash
 g++ -std=c++23 scripts/test_minesweeper_state.cpp src/app/MinesweeperApp.cpp $(pkg-config --cflags --libs sdl2 SDL2_ttf) -o build/test_minesweeper_state && ./build/test_minesweeper_state

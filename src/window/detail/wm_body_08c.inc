@@ -1,83 +1,58 @@
 
 bool WindowManager::saveSession(const std::string& hostPath) const {
-    if (hostPath.empty()) return false;
+    return monolith::detail::writeTextAtomically(
+        hostPath,
+        [this](std::ostream& out) {
+            out << "session_v1\n";
+            out << "# kind x y w h minimized maximized quoted-path\n";
 
-    const std::filesystem::path targetPath(hostPath);
-    const std::filesystem::path tempPath = targetPath.string() + ".tmp";
-    std::ofstream out(tempPath, std::ios::trunc);
-    if (!out) return false;
+            for (const auto& winPtr : m_windows) {
+                if (!winPtr) continue;
+                const Window& w = *winPtr;
 
-    out << "session_v1\n";
-    out << "# kind x y w h minimized maximized quoted-path\n";
+                std::string kind;
+                std::string path = "-";
 
-    for (const auto& winPtr : m_windows) {
-        if (!winPtr) continue;
-        const Window& w = *winPtr;
+                if (!w.editedFilePath.empty()) {
+                    kind = "editor";
+                    path = w.editedFilePath;
+                } else if (!w.drawingFilePath.empty()) {
+                    kind = "drawing";
+                    path = w.drawingFilePath;
+                } else if (w.appBaseTitle == "Terminal") {
+                    kind = "terminal";
+                } else if (w.appBaseTitle == "Filesystem") {
+                    kind = "filesystem";
+                } else if (w.appBaseTitle == "Settings") {
+                    kind = "settings";
+                } else if (w.appBaseTitle == "Snake") {
+                    kind = "snake";
+                } else if (w.appBaseTitle == "Minesweeper") {
+                    kind = "minesweeper";
+                } else if (w.appBaseTitle == "Pong") {
+                    kind = "pong";
+                } else if (w.appBaseTitle == "Breakout") {
+                    kind = "breakout";
+                } else if (w.appBaseTitle == "Editor") {
+                    kind = "editor";
+                } else if (w.appBaseTitle == "Drawing") {
+                    kind = "drawing";
+                } else {
+                    continue; // unknown / placeholder windows are not restored
+                }
 
-        std::string kind;
-        std::string path = "-";
+                // Prefer pre-maximize geometry when maximized so restore is faithful.
+                SDL_Rect r = w.maximized ? w.previousRect : w.rect;
+                if (r.w <= 0 || r.h <= 0) r = w.rect;
 
-        if (!w.editedFilePath.empty()) {
-            kind = "editor";
-            path = w.editedFilePath;
-        } else if (!w.drawingFilePath.empty()) {
-            kind = "drawing";
-            path = w.drawingFilePath;
-        } else if (w.appBaseTitle == "Terminal") {
-            kind = "terminal";
-        } else if (w.appBaseTitle == "Filesystem") {
-            kind = "filesystem";
-        } else if (w.appBaseTitle == "Settings") {
-            kind = "settings";
-        } else if (w.appBaseTitle == "Snake") {
-            kind = "snake";
-        } else if (w.appBaseTitle == "Minesweeper") {
-            kind = "minesweeper";
-        } else if (w.appBaseTitle == "Pong") {
-            kind = "pong";
-        } else if (w.appBaseTitle == "Breakout") {
-            kind = "breakout";
-        } else if (w.appBaseTitle == "Editor") {
-            kind = "editor";
-        } else if (w.appBaseTitle == "Drawing") {
-            kind = "drawing";
-        } else {
-            continue; // unknown / placeholder windows are not restored
-        }
-
-        // Prefer pre-maximize geometry when maximized so restore is faithful.
-        SDL_Rect r = w.maximized ? w.previousRect : w.rect;
-        if (r.w <= 0 || r.h <= 0) r = w.rect;
-
-        out << kind << ' '
-            << r.x << ' ' << r.y << ' ' << r.w << ' ' << r.h << ' '
-            << (w.minimized ? 1 : 0) << ' '
-            << (w.maximized ? 1 : 0) << ' ';
-        monolith::window::session::writePath(out, path);
-        out << '\n';
-    }
-    out.flush();
-    if (!out) {
-        out.close();
-        std::error_code cleanupError;
-        std::filesystem::remove(tempPath, cleanupError);
-        return false;
-    }
-    out.close();
-    if (!out) {
-        std::error_code cleanupError;
-        std::filesystem::remove(tempPath, cleanupError);
-        return false;
-    }
-
-    std::error_code renameError;
-    std::filesystem::rename(tempPath, targetPath, renameError);
-    if (renameError) {
-        std::error_code cleanupError;
-        std::filesystem::remove(tempPath, cleanupError);
-        return false;
-    }
-    return true;
+                out << kind << ' '
+                    << r.x << ' ' << r.y << ' ' << r.w << ' ' << r.h << ' '
+                    << (w.minimized ? 1 : 0) << ' '
+                    << (w.maximized ? 1 : 0) << ' ';
+                monolith::window::session::writePath(out, path);
+                out << '\n';
+            }
+        });
 }
 
 void WindowManager::requestQuit() {
