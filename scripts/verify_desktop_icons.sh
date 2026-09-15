@@ -1,0 +1,32 @@
+#!/usr/bin/env bash
+# Static integration checks for desktop icons (7.3). No SDL/display required.
+set -euo pipefail
+
+ROOT="$(cd "$(dirname "$0")/.." && pwd)"
+cd "$ROOT"
+
+fail() { echo "FAIL: $1" >&2; exit 1; }
+ok() { echo "ok: $1"; }
+
+[[ -f src/window/DesktopIcons.hpp ]] || fail "DesktopIcons.hpp missing"
+[[ -f src/window/detail/wm_desktop_icons.inc ]] || fail "wm_desktop_icons.inc missing"
+
+grep -q 'layoutDesktopIcons' src/window/DesktopIcons.hpp || fail "layoutDesktopIcons missing"
+grep -q 'hitTestDesktopIcon' src/window/DesktopIcons.hpp || fail "hitTestDesktopIcon missing"
+grep -q 'isDesktopIconDoubleClick' src/window/DesktopIcons.hpp || fail "isDesktopIconDoubleClick missing"
+grep -q 'kDefaultDesktopIcons' src/window/DesktopIcons.hpp || fail "default icon table missing"
+
+grep -q 'DesktopIcons.hpp' src/window/WindowManager.cpp || fail "DesktopIcons.hpp not included in WM"
+grep -q 'wm_desktop_icons.inc' src/window/WindowManager.cpp || fail "wm_desktop_icons.inc not included in WM"
+grep -q 'renderDesktopIcons' src/window/WindowManager_private.inc || fail "renderDesktopIcons not declared"
+grep -q 'tryHandleDesktopIconClick' src/window/WindowManager_private.inc || fail "tryHandleDesktopIconClick not declared"
+grep -Rq 'renderDesktopIcons' src/window/detail || fail "renderDesktopIcons not called from render path"
+grep -Rq 'tryHandleDesktopIconClick' src/window/detail || fail "tryHandleDesktopIconClick not wired into input"
+
+grep -q 'DesktopIconAction::Terminal' src/window/DesktopIcons.hpp || fail "Terminal icon missing"
+grep -q 'DesktopIconAction::Filesystem' src/window/DesktopIcons.hpp || fail "Filesystem icon missing"
+grep -q 'DesktopIconAction::TextEditor' src/window/DesktopIcons.hpp || fail "Editor icon missing"
+grep -q 'DesktopIconAction::Drawing' src/window/DesktopIcons.hpp || fail "Drawing icon missing"
+grep -q 'DesktopIconAction::Settings' src/window/DesktopIcons.hpp || fail "Settings icon missing"
+
+ok "all desktop icon static integration checks passed"
