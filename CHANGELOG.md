@@ -1,5 +1,10 @@
 # Changelog
 
+## 2026-09: Recover pointer state after host focus loss
+
+- SDL host-window focus loss now ends an active client drag with a matching synthetic release and clears shell/frame capture state.
+- Focus callbacks now follow host focus loss and gain, with regression coverage for Drawing-style pointer capture behavior.
+
 ## 2026-09: Release bare app slots after Save As
 
 - Saving an untitled Editor or Drawing now removes its old numbered bare-app reservation, so file-backed windows no longer distort later instance titles.

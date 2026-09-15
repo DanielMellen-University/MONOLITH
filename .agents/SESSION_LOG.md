@@ -1,5 +1,7 @@
 # Session log
 
+| 2026-09-15 | fix | Recovered client and shell pointer state across host SDL focus loss, synthesized the missing client release, and covered host focus callbacks in the mouse-capture test. |
+
 | 2026-09-15 | fix | Released bare Editor and Drawing instance reservations when Save As/Save makes a window file-backed; compacted remaining titles and added WindowManager coverage plus app documentation. |
 
 | 2026-09-15 | fix | Prevented orphaned client mouse releases after empty-desktop and window-frame clicks; added capture regression coverage and updated architecture/changelog docs. |

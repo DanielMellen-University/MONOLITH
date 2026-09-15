@@ -9,6 +9,9 @@ class CaptureApp final : public monolith::app::App {
 public:
     void render(SDL_Renderer*, const SDL_Rect&) override {}
 
+    void onFocusGained() override { ++focusGained; }
+    void onFocusLost() override { ++focusLost; }
+
     void handleEvent(const SDL_Event& event) override {
         if (event.type == SDL_MOUSEBUTTONDOWN) {
             ++downs;
@@ -31,6 +34,8 @@ public:
     int ups = 0;
     int motions = 0;
     int wheelEvents = 0;
+    int focusGained = 0;
+    int focusLost = 0;
     int downX = -1;
     int downY = -1;
     int upX = -1;
@@ -152,6 +157,32 @@ int main() {
     SDL_Event frameDragUp{};
     leftButton(frameDragUp, SDL_MOUSEBUTTONUP, 200, 150);
     wm.handleEvent(frameDragUp);
+
+    const int firstFocusGainedBeforeHostLoss = firstPtr->focusGained;
+    const int firstFocusLostBeforeHostLoss = firstPtr->focusLost;
+    SDL_Event clientDownAfterFrame{};
+    leftButton(clientDownAfterFrame, SDL_MOUSEBUTTONDOWN,
+               firstWindow->rect.x + 12,
+               firstWindow->rect.y + monolith::window::Window::TITLE_BAR_HEIGHT + 12);
+    wm.handleEvent(clientDownAfterFrame);
+    const int firstUpsBeforeHostLoss = firstPtr->ups;
+    SDL_Event focusLost{};
+    focusLost.type = SDL_WINDOWEVENT;
+    focusLost.window.event = SDL_WINDOWEVENT_FOCUS_LOST;
+    focusLost.window.windowID = 1;
+    wm.handleEvent(focusLost);
+    check(firstPtr->ups == firstUpsBeforeHostLoss + 1,
+          "host focus loss synthesizes the captured client release");
+    check(firstPtr->focusLost == firstFocusLostBeforeHostLoss + 1,
+          "host focus loss notifies the focused client");
+
+    SDL_Event focusGained{};
+    focusGained.type = SDL_WINDOWEVENT;
+    focusGained.window.event = SDL_WINDOWEVENT_FOCUS_GAINED;
+    focusGained.window.windowID = 1;
+    wm.handleEvent(focusGained);
+    check(firstPtr->focusGained == firstFocusGainedBeforeHostLoss + 1,
+          "host focus gain notifies the focused client");
 
     const int closeX = firstWindow->rect.x + firstWindow->rect.w - 10 - 16 + 4;
     const int closeY = firstWindow->rect.y + (monolith::window::Window::TITLE_BAR_HEIGHT - 16) / 2 + 4;

@@ -84,6 +84,53 @@ void WindowManager::handleEvent(const SDL_Event& event) {
         return;
     }
 
+    if (event.type == SDL_WINDOWEVENT) {
+        if (event.window.event == SDL_WINDOWEVENT_FOCUS_LOST) {
+            if (!m_hostFocused) return;
+            m_hostFocused = false;
+
+            // SDL may not deliver the matching mouse-up after the host window
+            // loses focus. End the client gesture explicitly so Drawing and
+            // other drag-based apps cannot remain armed forever.
+            Window* capturedWindow = m_mouseCaptureWindow;
+            if (capturedWindow && capturedWindow->app) {
+                SDL_Event release{};
+                release.type = SDL_MOUSEBUTTONUP;
+                release.button.button = SDL_BUTTON_LEFT;
+                release.button.windowID = event.window.windowID;
+                release.button.x = m_mouseX;
+                release.button.y = m_mouseY;
+                translateMouseEventToClient(*capturedWindow, release);
+                capturedWindow->app->handleEvent(release);
+            }
+
+            if (m_draggedWindow) {
+                m_draggedWindow->beingDragged = false;
+                m_draggedWindow = nullptr;
+            }
+            m_resizingWindow = nullptr;
+            m_resizeDirection = ResizeDirection::None;
+            m_mouseCaptureWindow = nullptr;
+            m_shellMouseCapture = false;
+            m_mouseDown = false;
+
+            if (m_focusedWindow && m_focusedWindow->app && !m_focusedWindow->minimized) {
+                m_focusedWindow->app->onFocusLost();
+            }
+            endAltTabCycle();
+            return;
+        }
+
+        if (event.window.event == SDL_WINDOWEVENT_FOCUS_GAINED) {
+            if (m_hostFocused) return;
+            m_hostFocused = true;
+            if (m_focusedWindow && m_focusedWindow->app && !m_focusedWindow->minimized) {
+                m_focusedWindow->app->onFocusGained();
+            }
+            return;
+        }
+    }
+
     if (tryHandleShellHotkeys(event)) {
         return;
     }

@@ -21,6 +21,7 @@ private:
     Window* m_mouseCaptureWindow = nullptr;
     // Shell controls consume both halves of their left-button interaction.
     bool m_shellMouseCapture = false;
+    bool m_hostFocused = true;
 
     // Font used for window titles (not owned by WindowManager)
     TTF_Font* m_font = nullptr;
