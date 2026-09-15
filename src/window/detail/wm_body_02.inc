@@ -7,9 +7,10 @@
         }
     }
 
-    // Enter activates the selected desktop icon when the Start menu is closed.
+    // Enter activates a selected desktop icon only when no visible window owns focus.
     if (event.type == SDL_KEYDOWN
         && !m_showStartMenu
+        && (!m_focusedWindow || m_focusedWindow->minimized)
         && (event.key.keysym.sym == SDLK_RETURN || event.key.keysym.sym == SDLK_KP_ENTER)
         && m_desktopIconSelected >= 0) {
         const SDL_Rect usable = getUsableDesktopRect();
