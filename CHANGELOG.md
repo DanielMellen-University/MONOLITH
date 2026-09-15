@@ -1,5 +1,11 @@
 # Changelog
 
+## 2026-09: Make virtual file writes atomic
+
+- Filesystem writes now replace regular files only after the complete byte stream succeeds, preserving existing permission bits and preventing failed Editor, Drawing, Terminal, or seed writes from truncating the prior file.
+- In-root file symlinks continue to update their targets, while outside-root symlinks remain rejected.
+- Added regression coverage for successful overwrite, failed replacement cleanup, and in-root symlink writes.
+
 ## 2026-09: Protect desktop settings snapshots
 
 - Desktop preferences now write to a temporary sibling and replace the live settings file atomically after the complete stream succeeds, so a failed preference save cannot leave a truncated configuration.

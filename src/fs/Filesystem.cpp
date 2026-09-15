@@ -399,14 +399,73 @@ bool Filesystem::writeFile(const std::string& virtualPath, const std::string& co
     try {
         const std::string hostPathString = toHostPath(virtualPath);
         if (hostPathString.empty()) return false;
+
         stdfs::path hostPath(hostPathString);
         stdfs::create_directories(hostPath.parent_path());
 
-        std::ofstream file(hostPath, std::ios::binary | std::ios::trunc);
+        // Keep writes to an existing file atomic. Resolve a file symlink first
+        // so replacing it updates the target instead of deleting the link.
+        stdfs::path writePath = hostPath;
+        if (isSymlinkPath(hostPath)) {
+            std::error_code resolveEc;
+            writePath = stdfs::weakly_canonical(hostPath, resolveEc);
+            if (resolveEc || !isWithinHostRoot(writePath.string())) return false;
+        }
+
+        std::error_code statusEc;
+        const auto existingStatus = stdfs::status(writePath, statusEc);
+        const bool existing = !statusEc
+            && existingStatus.type() != stdfs::file_type::not_found;
+        if (existing && !stdfs::is_regular_file(existingStatus)) return false;
+        if (existing) {
+            const auto writable = existingStatus.permissions() & (
+                stdfs::perms::owner_write
+                | stdfs::perms::group_write
+                | stdfs::perms::others_write);
+            if (writable == stdfs::perms::none) return false;
+        }
+
+        const stdfs::path tempPath = writePath.string() + ".tmp";
+        std::ofstream file(tempPath, std::ios::binary | std::ios::trunc);
         if (!file) return false;
 
         file.write(content.data(), static_cast<std::streamsize>(content.size()));
-        return file.good();
+        file.flush();
+        if (!file) {
+            file.close();
+            std::error_code cleanupError;
+            stdfs::remove(tempPath, cleanupError);
+            return false;
+        }
+        file.close();
+        if (!file) {
+            std::error_code cleanupError;
+            stdfs::remove(tempPath, cleanupError);
+            return false;
+        }
+
+        if (existing) {
+            std::error_code permissionsError;
+            stdfs::permissions(
+                tempPath,
+                existingStatus.permissions(),
+                stdfs::perm_options::replace,
+                permissionsError);
+            if (permissionsError) {
+                std::error_code cleanupError;
+                stdfs::remove(tempPath, cleanupError);
+                return false;
+            }
+        }
+
+        std::error_code renameError;
+        stdfs::rename(tempPath, writePath, renameError);
+        if (renameError) {
+            std::error_code cleanupError;
+            stdfs::remove(tempPath, cleanupError);
+            return false;
+        }
+        return true;
     } catch (const std::exception& e) {
         std::cerr << "writeFile failed: " << e.what() << std::endl;
         return false;

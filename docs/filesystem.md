@@ -33,6 +33,8 @@ For example, `/home/monolith/welcome.txt` is stored at:
 
 The host root is created on startup if it does not exist. Startup rejects a host path that exists but is not a directory. The Settings app displays the actual host path.
 
+Regular file writes use a temporary sibling and atomic replacement after the complete byte stream succeeds. Existing permission bits are retained, and an in-root file symlink is updated through its target instead of being replaced.
+
 Related host files (not inside the virtual tree):
 
 | Host path | Purpose |

@@ -102,6 +102,9 @@ int main() {
     if (!ec) {
         check(!fs.copyRecursive("/internal-link", "/copied-link"),
               "copy rejects a symlink source instead of traversing it");
+        check(fs.writeFile("/internal-link/new.txt", "through link")
+                  && fs.readFile("/symlink-target/new.txt") == "through link",
+              "atomic writes preserve in-root symlink traversal");
         check(fs.removeRecursive("/internal-link"),
               "recursive remove deletes the symlink itself");
         check(!fs.exists("/internal-link") && fs.isFile("/symlink-target/keep.txt")
@@ -162,6 +165,28 @@ int main() {
     check(fs.writeFile("/src/alpha.txt", "lower"), "write /src/alpha.txt");
     check(fs.writeFile("/src/other.dat", "zzz"), "write /src/other.dat");
     check(fs.writeFile("/src/empty.txt", ""), "write empty file");
+    check(fs.writeFile("/src/atomic.txt", "before"),
+          "write initial atomic file");
+    const auto atomicPermissions = stdfs::perms::owner_read
+        | stdfs::perms::owner_write
+        | stdfs::perms::group_read;
+    stdfs::permissions(hostRoot / "src/atomic.txt", atomicPermissions,
+                       stdfs::perm_options::replace, ec);
+    check(!ec, "set atomic file permission fixture");
+    check(fs.writeFile("/src/atomic.txt", "after")
+              && fs.readFile("/src/atomic.txt") == "after"
+              && (stdfs::status(hostRoot / "src/atomic.txt").permissions()
+                  == atomicPermissions)
+              && !stdfs::exists(hostRoot / "src/atomic.txt.tmp"),
+          "overwrite file atomically while retaining permission bits");
+    const stdfs::path blockedWritePath = hostRoot / "src/blocked-write.txt";
+    stdfs::remove_all(blockedWritePath, ec);
+    check(stdfs::create_directory(blockedWritePath),
+          "create blocked write target");
+    check(!fs.writeFile("/src/blocked-write.txt", "should fail")
+              && stdfs::is_directory(blockedWritePath)
+              && !stdfs::exists(blockedWritePath.string() + ".tmp"),
+          "failed atomic write preserves the target and cleans up");
     check(fs.isFile("/src/empty.txt") && fs.readFile("/src/empty.txt").empty(),
           "read empty file without failure");
     std::string explicitRead;
