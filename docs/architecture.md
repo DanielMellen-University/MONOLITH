@@ -29,7 +29,7 @@ The core experience is built around **overlapping windows** with traditional des
 ├──────────────────────────────────────────────────────────────┤
 │  Built-in Apps (native)                                      │
 │  - Terminal, Filesystem, Editor, Drawing, Settings,          │
-│    Snake, Minesweeper, Pong                                  │
+│    Snake, Minesweeper, Pong, Breakout                         │
 ├──────────────────────────────────────────────────────────────┤
 │  Basic Filesystem                                            │
 │  - Hierarchical, persisted under ~/.monolith/fs/             │
@@ -123,9 +123,9 @@ The Window Manager handles the frame, decorations, and top-level input routing.
 
 ### Desktop Shell & App Coordination
 
-The Window Manager also acts as a small "desktop shell". It provides launcher methods (`launchTerminal()`, `launchTextEditor(path)`, `launchFilesystem()`, `launchDrawing()`, `launchSettings()`, `launchSnake()`, `launchMinesweeper()`, `launchPong()`) used by the Start Menu and by apps.
+The Window Manager also acts as a small "desktop shell". It provides launcher methods (`launchTerminal()`, `launchTextEditor(path)`, `launchFilesystem()`, `launchDrawing()`, `launchSettings()`, `launchSnake()`, `launchMinesweeper()`, `launchPong()`, `launchBreakout()`) used by the Start Menu and by apps.
 
-The Start menu keeps most apps as top-level entries. Games that clearly form a group (**Snake**, **Minesweeper**, **Pong**) sit under a non-clickable **Games** category header with a slight indent; only categories that make sense are introduced this way.
+The Start menu keeps most apps as top-level entries. Games that clearly form a group (**Snake**, **Minesweeper**, **Pong**, **Breakout**) sit under a non-clickable **Games** category header with a slight indent; only categories that make sense are introduced this way.
 
 Each frame, `WindowManager::update()` calls `App::update()` on every non-minimized window's app. Most apps leave this as a no-op; games use it for fixed-rate ticks and timers.
 
@@ -135,7 +135,7 @@ The Window Manager broadcasts virtual path creation, change, move, and removal e
 
 ### 3. Rendering
 
-- The entire environment is rendered inside a single SDL2 window (currently fixed at 1280 × 720 logical pixels).
+- The entire environment is rendered inside a single SDL2 window. The shell uses a runtime logical desktop size (1280 × 720 by default) and maps it to the host window; apps receive the resulting client geometry through `onResize`.
 - The Window Manager is responsible for compositing window frames and delegating content drawing to apps.
 - Rendering is clipped to the caller's renderer clip for the full WindowManager frame, then each app is additionally clipped to its window's client rectangle, so tiny or undersized app layouts cannot paint into title bars or the taskbar. Apps and shell overlays that use narrower internal clips must intersect and restore the caller clip; Browser, Settings, Terminal, Text Editor, Drawing, title bars, taskbar buttons, and Alt+Tab follow this rule explicitly. Client rectangles may be zero-sized on an undersized desktop, but are never negative.
 - Rendering uses SDL2's accelerated renderer with VSYNC; apps draw text via SDL_ttf and primitives via SDL draw calls.
@@ -172,6 +172,7 @@ Native C++ apps render into window client areas and are launched via shell metho
 | Snake | [apps/snake.md](apps/snake.md) | `SnakeApp` |
 | Minesweeper | [apps/minesweeper.md](apps/minesweeper.md) | `MinesweeperApp` |
 | Pong | [apps/pong.md](apps/pong.md) | `PongApp` |
+| Breakout | [apps/breakout.md](apps/breakout.md) | `BreakoutApp` |
 
 **Shell coordination:** Apps use `IWindowController` for close, titles, open/openPath, file bindings, shared virtual filesystem clipboard, desktop color, wallpaper path, clock format, and interface text scale. Settings persists these preferences to `~/.monolith/desktop_settings.txt`. Session layout persists to `~/.monolith/session.txt` via `WindowManager::saveSession` / `loadSession` (wired from `main`).
 

@@ -1,5 +1,9 @@
 # Changelog
 
+## 2026-09: Align architecture documentation with the shipped shell
+
+- Updated the architecture guide to include Breakout and describe the runtime logical desktop size used by the current Window Manager.
+
 ## 2026-09: Protect the virtual filesystem root
 
 - Non-recursive `Filesystem::remove` now rejects `/` just like recursive removal and rename, preserving Monolith's root directory invariant.

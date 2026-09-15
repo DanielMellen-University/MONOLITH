@@ -1,5 +1,7 @@
 # Session log
 
+| 2026-09-15 | docs | Aligned the architecture guide with shipped Breakout launchers and runtime logical desktop sizing; updated the public changelog. |
+
 | 2026-09-15 | fix | Hardened non-recursive filesystem removal against deleting the virtual root; added root-preservation coverage and updated filesystem documentation. |
 
 | 2026-09-15 | fix | Corrected desktop-icon row counting so the first tile and label render at the exact usable-height boundary; added exact-fit layout coverage and updated the 7.3 note. |
