@@ -5,6 +5,11 @@
 - Window-frame and empty-desktop clicks no longer fall through as `SDL_MOUSEBUTTONUP` events to whichever app is focused afterward.
 - Added Window Manager mouse-capture coverage for empty desktop and close-button interactions.
 
+## 2026-09: Keep shell motion out of client apps
+
+- Taskbar, empty-desktop, and window-frame drags no longer forward pointer motion to the focused client unless that client owns the active press.
+- Added regression coverage for shell and frame motion routing.
+
 ## 2026-09: Align architecture documentation with the shipped shell
 
 - Updated the architecture guide to include Breakout and describe the runtime logical desktop size used by the current Window Manager.

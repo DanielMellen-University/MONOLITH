@@ -148,6 +148,7 @@ The Window Manager broadcasts virtual path creation, change, move, and removal e
 - Screen-space mouse events are converted to logical desktop pixels once at the shell boundary before window hit testing, drag/resize math, or client-area forwarding.
 - A client that receives a left-button press keeps receiving matching motion and release events until that button is released, even if the pointer leaves the window or focus changes. A press handled by the desktop or a window frame is never followed by a synthetic client release. This keeps drag interactions such as Drawing strokes from getting stuck without leaking releases into another app.
 - Taskbar and Start-menu left-button presses use a separate shell capture, so their release is consumed by the shell and never appears as an orphaned client mouse-up.
+- Shell and window-frame presses also suppress client motion until a client owns a press; dragging a title bar or moving across the desktop cannot inject hover motion into an app.
 - The shell records the latest pointer position from motion and button events, so wheel routing does not reuse a stale position after a release outside a client.
 - Window frame interactions (dragging, resizing, buttons) are handled by the Window Manager.
 - Client area events are forwarded to the active application.

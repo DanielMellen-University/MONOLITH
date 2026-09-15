@@ -107,20 +107,51 @@ int main() {
     SDL_Event taskbarDown{};
     leftButton(taskbarDown, SDL_MOUSEBUTTONDOWN, 50, 680);
     wm.handleEvent(taskbarDown);
+    SDL_Event taskbarMotion{};
+    taskbarMotion.type = SDL_MOUSEMOTION;
+    taskbarMotion.motion.x = 520;
+    taskbarMotion.motion.y = 150;
+    const int motionsBeforeTaskbarCapture = secondPtr->motions;
+    wm.handleEvent(taskbarMotion);
     SDL_Event taskbarUp{};
     leftButton(taskbarUp, SDL_MOUSEBUTTONUP, 50, 680);
     wm.handleEvent(taskbarUp);
     check(firstPtr->ups == 1 && secondPtr->ups == 0,
           "taskbar clicks do not leak a mouse-up into a client app");
+    check(secondPtr->motions == motionsBeforeTaskbarCapture,
+          "taskbar clicks do not leak motion into a client app");
 
     SDL_Event desktopDown{};
     leftButton(desktopDown, SDL_MOUSEBUTTONDOWN, 900, 650);
     wm.handleEvent(desktopDown);
+    SDL_Event desktopMotion{};
+    desktopMotion.type = SDL_MOUSEMOTION;
+    desktopMotion.motion.x = 520;
+    desktopMotion.motion.y = 150;
+    const int motionsBeforeDesktopCapture = secondPtr->motions;
+    wm.handleEvent(desktopMotion);
     SDL_Event desktopUp{};
     leftButton(desktopUp, SDL_MOUSEBUTTONUP, 900, 650);
     wm.handleEvent(desktopUp);
     check(secondPtr->ups == 0,
           "empty-desktop clicks do not leak a mouse-up into the focused client");
+    check(secondPtr->motions == motionsBeforeDesktopCapture,
+          "empty-desktop clicks do not leak motion into the focused client");
+
+    SDL_Event frameDragDown{};
+    leftButton(frameDragDown, SDL_MOUSEBUTTONDOWN, 150, 110);
+    wm.handleEvent(frameDragDown);
+    SDL_Event frameMotion{};
+    frameMotion.type = SDL_MOUSEMOTION;
+    frameMotion.motion.x = 200;
+    frameMotion.motion.y = 150;
+    const int motionsBeforeFrameDrag = firstPtr->motions;
+    wm.handleEvent(frameMotion);
+    check(firstPtr->motions == motionsBeforeFrameDrag,
+          "window-frame drags do not leak motion into the client");
+    SDL_Event frameDragUp{};
+    leftButton(frameDragUp, SDL_MOUSEBUTTONUP, 200, 150);
+    wm.handleEvent(frameDragUp);
 
     const int closeX = firstWindow->rect.x + firstWindow->rect.w - 10 - 16 + 4;
     const int closeY = firstWindow->rect.y + (monolith::window::Window::TITLE_BAR_HEIGHT - 16) / 2 + 4;

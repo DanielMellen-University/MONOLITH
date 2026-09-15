@@ -94,9 +94,15 @@ void WindowManager::handleEvent(const SDL_Event& event) {
 
         // While a client owns the left-button press, keep sending motion to it even
         // outside its content area so drag tools can finish cleanly on release.
-        Window* motionWindow = (m_mouseDown && m_mouseCaptureWindow)
-            ? m_mouseCaptureWindow
-            : m_focusedWindow;
+        // A shell or frame press has no client owner, so it must not fall through
+        // to whichever focused app happens to be underneath the pointer.
+        Window* motionWindow = nullptr;
+        if (m_mouseDown && m_mouseCaptureWindow) {
+            motionWindow = m_mouseCaptureWindow;
+        } else if (!m_mouseDown && !m_shellMouseCapture
+                   && !m_draggedWindow && !m_resizingWindow) {
+            motionWindow = m_focusedWindow;
+        }
         const bool capturedMotion = motionWindow && motionWindow == m_mouseCaptureWindow;
         if (motionWindow && motionWindow->app && !motionWindow->minimized
             && (capturedMotion || !m_showStartMenu)) {
