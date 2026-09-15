@@ -1,5 +1,7 @@
 # Session log
 
+| 2026-09-15 | fix | Corrected desktop-icon row counting so the first tile and label render at the exact usable-height boundary; added exact-fit layout coverage and updated the 7.3 note. |
+
 | 2026-09-15 | fix | Made desktop-icon double-click timing wrap-safe across SDL's 32-bit tick counter; added a boundary regression case and updated the 7.3 behavior note. |
 
 | 2026-09-15 | fix | Cleared desktop-icon selection and double-click history across Start menu, taskbar, Alt+Tab, and icon activation paths; added shell event coverage and updated the 7.3 behavior note. |

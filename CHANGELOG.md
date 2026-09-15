@@ -1,5 +1,10 @@
 # Changelog
 
+## 2026-09: Keep the first desktop icon row reachable
+
+- Corrected narrow-desktop icon layout so the first icon is rendered when its tile and label exactly fit above the taskbar.
+- Added exact-fit and one-pixel-short layout coverage.
+
 ## 2026-09: Handle desktop-icon timer wraparound
 
 - Desktop-icon double-click detection now handles SDL's wrapping 32-bit tick counter without dropping a valid click pair.

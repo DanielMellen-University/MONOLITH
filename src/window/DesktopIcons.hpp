@@ -63,8 +63,11 @@ inline std::vector<DesktopIconPlacement> layoutDesktopIcons(
     if (usableWidth <= 0 || usableHeight <= 0) return out;
 
     const int cellW = kDesktopIconTile + 8;
-    const int maxRows = std::max(
-        0, (usableHeight - kDesktopIconMargin) / kDesktopIconCellH);
+    const int iconH = kDesktopIconTile + kDesktopIconLabelBand;
+    const int remainingAfterFirst = usableHeight - kDesktopIconMargin - iconH;
+    const int maxRows = remainingAfterFirst < 0
+        ? 0
+        : 1 + remainingAfterFirst / kDesktopIconCellH;
     const int count = std::min(kDesktopIconCount, maxRows);
     out.reserve(static_cast<size_t>(count));
 

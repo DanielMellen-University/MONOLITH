@@ -43,6 +43,13 @@ int main() {
               "short-desktop icons never extend past usable height");
     }
 
+    const int oneIconHeight = kDesktopIconMargin
+        + kDesktopIconTile + kDesktopIconLabelBand;
+    check(layoutDesktopIcons(200, oneIconHeight).size() == 1,
+          "desktop renders one icon when the first row exactly fits");
+    check(layoutDesktopIcons(200, oneIconHeight - 1).empty(),
+          "desktop omits the first icon when its row is one pixel too tall");
+
     check(isDesktopIconDoubleClick(2, 1000, 2, 1300),
           "same-icon click within the window counts as a double-click");
     check(!isDesktopIconDoubleClick(2, 1000, 2, 1600),
