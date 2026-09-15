@@ -1,5 +1,7 @@
 # Session log
 
+| 2026-09-15 | fix | Made Filesystem remove operations unlink symlink entries without following them, including hidden direct outside-root links; added target-preservation coverage and documented the safety contract. |
+
 | 2026-09-15 | fix | Made Text Editor Tab completion report `No path matches.` instead of failing silently, added focused prompt coverage, and aligned the editor guide with the feedback contract. |
 
 | 2026-09-15 | fix | Aligned Minesweeper with the other app keyboard contracts by accepting keypad Enter for a new game, added focused reset coverage, and recorded the shortcut behavior. |

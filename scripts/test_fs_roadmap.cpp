@@ -77,6 +77,22 @@ int main() {
                   return entry.name == "escape";
               }) == typedRootEntries.end(),
               "typed directory listing hides outside symlink");
+        check(fs.remove("/escape"),
+              "remove unlinks a direct outside symlink entry");
+        check(!stdfs::exists(escapeLink)
+                  && stdfs::is_regular_file(outsideRoot / "secret.txt"),
+              "removing an outside symlink preserves its target");
+    }
+
+    const stdfs::path recursiveEscapeLink = hostRoot / "recursive-escape";
+    stdfs::create_directory_symlink(outsideRoot, recursiveEscapeLink, ec);
+    check(!ec, "create direct outside symlink for recursive removal");
+    if (!ec) {
+        check(fs.removeRecursive("/recursive-escape"),
+              "recursive remove unlinks a direct outside symlink entry");
+        check(!stdfs::exists(recursiveEscapeLink)
+                  && stdfs::is_regular_file(outsideRoot / "secret.txt"),
+              "recursive symlink removal preserves its target");
     }
 
     check(fs.createDirectory("/outside-link-container"),
@@ -100,6 +116,16 @@ int main() {
     stdfs::create_directory_symlink(hostRoot / "symlink-target", internalLink, ec);
     check(!ec, "create in-root symlink");
     if (!ec) {
+        const stdfs::path internalFileLink = hostRoot / "internal-file-link";
+        stdfs::create_symlink(hostRoot / "symlink-target/keep.txt", internalFileLink, ec);
+        check(!ec, "create in-root file symlink");
+        if (!ec) {
+            check(fs.remove("/internal-file-link"),
+                  "remove unlinks an in-root file symlink entry");
+            check(!stdfs::exists(internalFileLink) && fs.isFile("/symlink-target/keep.txt")
+                      && fs.readFile("/symlink-target/keep.txt") == "keep me",
+                  "removing an in-root file symlink preserves its target");
+        }
         check(!fs.copyRecursive("/internal-link", "/copied-link"),
               "copy rejects a symlink source instead of traversing it");
         check(fs.writeFile("/internal-link/new.txt", "through link")

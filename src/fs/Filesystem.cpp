@@ -165,6 +165,15 @@ bool Filesystem::remove(const std::string& virtualPath) {
     try {
         const std::string path = normalize(virtualPath);
         if (path == "/") return false;
+
+        // Removing a symlink must unlink the directory entry, never follow it
+        // and delete the target file or directory instead.
+        const stdfs::path rawHostPath = stdfs::path(m_hostRoot) / path.substr(1);
+        if (isSymlinkPath(rawHostPath)) {
+            std::error_code symlinkError;
+            return stdfs::remove(rawHostPath, symlinkError) && !symlinkError;
+        }
+
         const std::string hostPath = toHostPath(path);
         if (hostPath.empty()) return false;
         return stdfs::remove(hostPath);
@@ -179,13 +188,15 @@ bool Filesystem::removeRecursive(const std::string& virtualPath) {
         return false; // never delete the virtual root
     }
 
+    const stdfs::path rawHostPath = stdfs::path(m_hostRoot) / path.substr(1);
+    if (isSymlinkPath(rawHostPath)) {
+        std::error_code symlinkError;
+        return stdfs::remove(rawHostPath, symlinkError) && !symlinkError;
+    }
+
     const std::string hostPathString = toHostPath(path);
     if (hostPathString.empty()) return false;
     const stdfs::path hostPath(hostPathString);
-    if (isSymlinkPath(hostPath)) {
-        std::error_code ec;
-        return stdfs::remove(hostPath, ec) && !ec;
-    }
 
     if (isFile(path)) {
         return remove(path);

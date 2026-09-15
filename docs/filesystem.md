@@ -69,8 +69,8 @@ Implementation: `src/fs/Filesystem.hpp`, `src/fs/Filesystem.cpp`.
 
 | Method | Behavior |
 |--------|----------|
-| `remove(path)` | Removes one file or empty directory. Refuses virtual root `/`. |
-| `removeRecursive(path)` | Deletes a file or whole directory tree (children first). Refuses virtual root `/`. |
+| `remove(path)` | Removes one file or empty directory. Symlink entries are unlinked without touching their targets. Refuses virtual root `/`. |
+| `removeRecursive(path)` | Deletes a file or whole directory tree (children first); a symlink entry is unlinked without traversing it. Refuses virtual root `/`. |
 | `copyRecursive(src, dst)` | Copies a file or tree; creates destination directories as needed and removes a newly created destination if a child copy fails. Fails if `dst` is the same as or under `src`. |
 | `copyItemsInto(srcs, destDir)` | Copies each source into `destDir` under its basename (uses `copyRecursive`). Skips existing names, self-copy, and invalid names. Returns the count copied. |
 | `moveItemsInto(srcs, destDir)` | Moves each source into `destDir` under its basename. Uses non-overwriting rename, so existing destination names leave their original sources untouched. Returns the count moved. |
@@ -101,7 +101,7 @@ Terminal (`cp -r` / `rm -r`) and the Filesystem Browser (delete, cut/paste) both
 ## Current Limitations
 
 - No permissions, ownership, or metadata layer; symlinks remain host filesystem entries.
-- Symlink targets that resolve outside the host root are rejected and omitted from virtual directory listings. Recursive removal still unlinks a hidden outside symlink entry itself so its containing directory can be deleted without touching the target. Symlinks that remain inside the root are still host filesystem entries, not a separate metadata layer.
+- Symlink targets that resolve outside the host root are rejected and omitted from virtual directory listings. Removing a symlink entry, including a hidden outside symlink, unlinks the entry itself without touching the target. Symlinks that remain inside the root are still host filesystem entries, not a separate metadata layer.
 - Recursive copy rejects a symlink source instead of traversing it. Recursive remove deletes a symlink entry itself and never walks through that link into its target tree.
 - A failed recursive copy does not leave a partial newly created destination tree behind; an existing destination is not rolled back.
 - Rename treats a dangling symlink as an existing destination, so a move cannot silently replace any directory entry that is already present.

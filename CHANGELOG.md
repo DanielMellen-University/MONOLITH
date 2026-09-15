@@ -1,5 +1,11 @@
 # Changelog
 
+## 2026-09: Unlink filesystem symlinks safely
+
+- `remove` and `removeRecursive` now delete symlink entries themselves instead of resolving an in-root link and deleting its target file or directory.
+- Direct outside-root symlink entries can be removed safely without exposing or modifying their targets.
+- Added regression coverage for in-root file links and direct outside-root links.
+
 ## 2026-09: Report empty Editor completions
 
 - Text Editor path prompts now report `No path matches.` when Tab completion finds no eligible entry, matching Drawing and Terminal feedback.
