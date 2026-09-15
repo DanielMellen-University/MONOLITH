@@ -115,7 +115,8 @@ void WindowManager::handleEvent(const SDL_Event& event) {
             m_mouseDown = false;
             m_shellKeyUpsPending.clear();
 
-            if (m_focusedWindow && m_focusedWindow->app && !m_focusedWindow->minimized) {
+            if (m_focusedWindow && m_focusedWindow->app && !m_focusedWindow->minimized
+                && !m_showStartMenu) {
                 m_focusedWindow->app->onFocusLost();
             }
             endAltTabCycle();
@@ -125,7 +126,8 @@ void WindowManager::handleEvent(const SDL_Event& event) {
         if (event.window.event == SDL_WINDOWEVENT_FOCUS_GAINED) {
             if (m_hostFocused) return;
             m_hostFocused = true;
-            if (m_focusedWindow && m_focusedWindow->app && !m_focusedWindow->minimized) {
+            if (m_focusedWindow && m_focusedWindow->app && !m_focusedWindow->minimized
+                && !m_showStartMenu) {
                 m_focusedWindow->app->onFocusGained();
             }
             return;
@@ -199,6 +201,6 @@ void WindowManager::handleEvent(const SDL_Event& event) {
             if (m_mouseX >= startBtnScreenX && m_mouseX < startBtnScreenX + startBtnScreenWidth &&
                 m_mouseY >= taskbarScreenY && m_mouseY < taskbarScreenBottom) {
                 m_shellMouseCapture = true;
-                m_showStartMenu = !m_showStartMenu;
+                setStartMenuVisible(!m_showStartMenu);
                 return;
             }

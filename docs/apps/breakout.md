@@ -20,7 +20,7 @@ Open **Breakout** from the Start menu under **Games**. Multiple independent game
 | R | Restart |
 | Enter | Resume if paused; restart after win or game over |
 
-Focusing another window auto-pauses. Resume with Space, P, Enter, or click when you return.
+Focusing another window or opening the Start menu auto-pauses. Resume with Space, P, Enter, or click when you return.
 
 ## Rules
 

@@ -145,6 +145,7 @@ The Window Manager broadcasts virtual path creation, change, move, and removal e
 
 - All input enters through the main SDL2 event loop.
 - **Shell hotkeys** are handled first (and not forwarded to apps): **Alt+Tab** / **Alt+Shift+Tab** cycles focused windows (minimized ones restore; the shell consumes the matching Tab and Alt releases after the title overlay closes); **Ctrl+Escape** toggles the Start menu and consumes the matching Escape release.
+- The Start menu is modal: opening it sends `onFocusLost` to the previously focused visible app and suppresses client keyboard input, while closing it restores `onFocusGained` only when that same app still owns focus. Host focus loss while the menu is open does not resume the app until host focus returns.
 - The Window Manager performs hit testing to determine which window (and which part of the window) should receive the event.
 - Screen-space mouse events are converted to logical desktop pixels once at the shell boundary before window hit testing, drag/resize math, or client-area forwarding.
 - A client that receives a left-button press keeps receiving matching motion and release events until that button is released, even if the pointer leaves the window or focus changes. A press handled by the desktop or a window frame is never followed by a synthetic client release. This keeps drag interactions such as Drawing strokes from getting stuck without leaking releases into another app.

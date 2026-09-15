@@ -78,6 +78,28 @@ void WindowManager::endAltTabCycle() {
     m_altTabOrder.clear();
 }
 
+void WindowManager::setStartMenuVisible(bool visible) {
+    if (m_showStartMenu == visible) return;
+
+    if (visible) {
+        m_showStartMenu = true;
+        m_startMenuSuspendedWindow = nullptr;
+        if (m_focusedWindow && m_focusedWindow->app && !m_focusedWindow->minimized) {
+            m_startMenuSuspendedWindow = m_focusedWindow;
+            m_startMenuSuspendedWindow->app->onFocusLost();
+        }
+        return;
+    }
+
+    Window* suspendedWindow = m_startMenuSuspendedWindow;
+    m_startMenuSuspendedWindow = nullptr;
+    m_showStartMenu = false;
+    if (m_hostFocused && suspendedWindow && suspendedWindow == m_focusedWindow
+        && suspendedWindow->app && !suspendedWindow->minimized) {
+        suspendedWindow->app->onFocusGained();
+    }
+}
+
 void WindowManager::cycleFocus(int direction) {
     if (m_windows.empty()) return;
 
@@ -127,16 +149,16 @@ bool WindowManager::tryHandleShellHotkeys(const SDL_Event& event) {
     const bool ctrl = (key.mod & KMOD_CTRL) != 0;
 
     if (alt && key.sym == SDLK_TAB) {
+        setStartMenuVisible(false);
         const int dir = (key.mod & KMOD_SHIFT) ? -1 : 1;
         cycleFocus(dir);
         m_shellKeyUpsPending.insert(SDLK_TAB);
         clearDesktopIconSelection();
-        m_showStartMenu = false;
         return true;
     }
 
     if (ctrl && key.sym == SDLK_ESCAPE) {
-        m_showStartMenu = !m_showStartMenu;
+        setStartMenuVisible(!m_showStartMenu);
         m_shellKeyUpsPending.insert(SDLK_ESCAPE);
         clearDesktopIconSelection();
         m_startMenuHoverIndex = -1;

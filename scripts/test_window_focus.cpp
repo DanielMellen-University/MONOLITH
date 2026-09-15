@@ -68,6 +68,43 @@ int main() {
 
     check(secondPtr->focusGained == 1, "newest window receives focus");
 
+    const int focusLostBeforeStartMenu = secondPtr->focusLost;
+    const int focusGainedBeforeStartMenu = secondPtr->focusGained;
+    SDL_Event openStartMenu{};
+    openStartMenu.type = SDL_KEYDOWN;
+    openStartMenu.key.keysym.sym = SDLK_ESCAPE;
+    openStartMenu.key.keysym.mod = KMOD_CTRL;
+    wm.handleEvent(openStartMenu);
+    check(wm.m_showStartMenu && secondPtr->focusLost == focusLostBeforeStartMenu + 1,
+          "opening the Start menu suspends the focused app");
+    SDL_Event startMenuEscapeRelease{};
+    startMenuEscapeRelease.type = SDL_KEYUP;
+    startMenuEscapeRelease.key.keysym.sym = SDLK_ESCAPE;
+    startMenuEscapeRelease.key.keysym.mod = KMOD_CTRL;
+    wm.handleEvent(startMenuEscapeRelease);
+
+    SDL_Event hostFocusLost{};
+    hostFocusLost.type = SDL_WINDOWEVENT;
+    hostFocusLost.window.event = SDL_WINDOWEVENT_FOCUS_LOST;
+    hostFocusLost.window.windowID = 1;
+    wm.handleEvent(hostFocusLost);
+    check(secondPtr->focusLost == focusLostBeforeStartMenu + 1,
+          "host focus loss does not double-suspend the app behind Start");
+    wm.handleEvent(openStartMenu);
+    check(!wm.m_showStartMenu && secondPtr->focusGained == focusGainedBeforeStartMenu,
+          "closing Start while the host is unfocused keeps the app suspended");
+    wm.handleEvent(startMenuEscapeRelease);
+
+    SDL_Event hostFocusGained{};
+    hostFocusGained.type = SDL_WINDOWEVENT;
+    hostFocusGained.window.event = SDL_WINDOWEVENT_FOCUS_GAINED;
+    hostFocusGained.window.windowID = 1;
+    wm.handleEvent(hostFocusGained);
+    check(secondPtr->focusGained == focusGainedBeforeStartMenu + 1,
+          "host focus gain resumes the app after Start closes");
+
+    const int secondFocusLostBeforeMinimize = secondPtr->focusLost;
+    const int firstFocusGainedBeforeMinimize = firstPtr->focusGained;
     check(minimizeWindow(wm, secondWindow),
           "minimize title button is handled");
     check(secondWindow->minimized, "active window becomes minimized");
@@ -78,8 +115,10 @@ int main() {
     wm.handleEvent(key);
     check(firstPtr->keyDowns == 1, "keyboard focus moves to visible survivor");
     check(secondPtr->keyDowns == 0, "minimized window receives no hidden key input");
-    check(secondPtr->focusLost == 1, "minimized window receives focus-lost notification");
-    check(firstPtr->focusGained == 2, "visible survivor receives focus-gained notification");
+    check(secondPtr->focusLost == secondFocusLostBeforeMinimize + 1,
+          "minimized window receives focus-lost notification");
+    check(firstPtr->focusGained == firstFocusGainedBeforeMinimize + 1,
+          "visible survivor receives focus-gained notification");
 
     check(wm.focusEditorForFile("/docs/note.txt"),
           "file bridge finds the existing editor");

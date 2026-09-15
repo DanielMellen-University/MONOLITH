@@ -1,5 +1,10 @@
 # Changelog
 
+## 2026-09: Make the Start menu a modal focus boundary
+
+- Opening Start now pauses and suspends the previously focused visible app instead of only hiding its keyboard events; closing Start restores that app only when it still owns focus.
+- Host focus changes while Start is open no longer resume the app behind the menu, preventing stuck game controls and background updates.
+
 ## 2026-09: Keep shell hotkey releases out of clients
 
 - The Window Manager now consumes the `Tab` and `Escape` releases paired with shell-owned `Alt+Tab` and `Ctrl+Escape` keydowns, preventing half-delivered gestures in client apps.

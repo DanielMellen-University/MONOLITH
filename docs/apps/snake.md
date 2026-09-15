@@ -22,7 +22,7 @@ Open **Snake** from the Start menu under **Games**. Multiple independent games a
 
 Direction cannot reverse 180° in one step (no instant suicide). Up to two rapid turns can be queued so quick corners are not lost between steps.
 
-Focusing another window auto-pauses the game. Resume with Space, P, Enter, or click when you return.
+Focusing another window or opening the Start menu auto-pauses the game. Resume with Space, P, Enter, or click when you return.
 
 ## Rules
 

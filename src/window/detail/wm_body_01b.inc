@@ -3,8 +3,8 @@
                 SDL_Point p = {m_mouseX, m_mouseY};
                 if (SDL_PointInRect(&p, &item.rect)) {
                     m_shellMouseCapture = true;
+                    setStartMenuVisible(false);
 #include "wm_start_menu_actions.inc"
-                    m_showStartMenu = false;
                     return;
                 }
             }
@@ -18,7 +18,7 @@
 
             // Click was completely outside the menu → close it (but do not return yet,
             // so the click can still be processed by windows or other UI below).
-            m_showStartMenu = false;
+            setStartMenuVisible(false);
         }
 
         if (m_mouseY >= taskbarScreenY && m_mouseY < taskbarScreenBottom) {
@@ -29,7 +29,7 @@
             int startBtnScreenX = logicalToScreenX(8);
 
             if (m_mouseX >= startBtnScreenX && m_mouseX < startBtnScreenX + startBtnScreenWidth) {
-                m_showStartMenu = !m_showStartMenu;
+                setStartMenuVisible(!m_showStartMenu);
                 return;
             }
 
@@ -39,13 +39,13 @@
                 SDL_Point p = {m_mouseX, m_mouseY};
                 if (SDL_PointInRect(&p, &m_taskbarLeftArrowRect)) {
                     m_taskbarScrollOffset = std::max(0, m_taskbarScrollOffset - 120);
-                    m_showStartMenu = false;
+                    setStartMenuVisible(false);
                     return;
                 }
                 if (SDL_PointInRect(&p, &m_taskbarRightArrowRect)) {
                     // Soft upper bound; drawing clamps which buttons stay visible.
                     m_taskbarScrollOffset += 120;
-                    m_showStartMenu = false;
+                    setStartMenuVisible(false);
                     return;
                 }
             }
@@ -66,12 +66,12 @@
                             bringToFront(entry.window);
                         }
                     }
-                    m_showStartMenu = false;
+                    setStartMenuVisible(false);
                     return;
                 }
             }
 
-            m_showStartMenu = false;
+            setStartMenuVisible(false);
             return;
         }
     }

@@ -41,7 +41,7 @@ Changing difficulty immediately starts a new game.
 - Win when all non-mine cells are revealed (remaining mines are auto-flagged).
 - Lose when a mine is revealed; all mines are shown, the hit mine is highlighted, and incorrect flags are marked with **X**.
 - Timer starts on the first reveal and freezes on win/lose (displayed up to 999s).
-- Timer **pauses while the Minesweeper window is unfocused** (HUD shows **PAUSED**) and resumes from the exact elapsed time when you focus it again — same idea as Snake.
+- Timer **pauses while the Minesweeper window is unfocused or the Start menu is open** (HUD shows **PAUSED**) and resumes from the exact elapsed time when you focus it again; this matches Snake.
 - HUD shows remaining mines (total − flags), timer, best time for the difficulty, and difficulty name.
 
 ## Best times
