@@ -74,7 +74,7 @@ Implementation: `src/fs/Filesystem.hpp`, `src/fs/Filesystem.cpp`.
 | `copyRecursive(src, dst)` | Copies a file or tree; creates destination directories as needed and removes a newly created destination if a child copy fails. Fails if `dst` is the same as or under `src`. |
 | `copyItemsInto(srcs, destDir)` | Copies each source into `destDir` under its basename (uses `copyRecursive`). Skips existing names, self-copy, and invalid names. Returns the count copied. |
 | `moveItemsInto(srcs, destDir)` | Moves each source into `destDir` under its basename. Uses non-overwriting rename, so existing destination names leave their original sources untouched. Returns the count moved. |
-| `rename(old, new)` | Renames or moves one entry without overwriting. Existing regular entries and dangling symlinks both block the destination. Rejects the virtual root and destinations that are the source or inside its subtree. |
+| `rename(old, new)` | Renames or moves one entry without overwriting. Existing regular entries and dangling symlinks both block the destination. Symlink sources move as entries without moving their targets. Rejects the virtual root and destinations that are the source or inside its subtree. |
 | `renameEntry(dir, old, new)` | Renames one entry in `dir`. Rejects names that fail `isValidEntryName` (including `/`). |
 | `filterEntries(entries, query)` | Case-insensitive substring filter on entry names. Empty query returns all. |
 | `isSameOrDescendant(a, p)` | True when `p` is `a` or a path under `a` (after normalize). |

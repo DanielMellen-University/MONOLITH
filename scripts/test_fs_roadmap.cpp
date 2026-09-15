@@ -136,6 +136,21 @@ int main() {
         check(!fs.exists("/internal-link") && fs.isFile("/symlink-target/keep.txt")
                   && fs.readFile("/symlink-target/keep.txt") == "keep me",
               "recursive symlink removal preserves the target tree");
+
+        const stdfs::path renameLink = hostRoot / "rename-file-link";
+        stdfs::create_symlink(hostRoot / "symlink-target/keep.txt", renameLink, ec);
+        check(!ec, "create symlink source for rename");
+        if (!ec) {
+            check(fs.rename("/rename-file-link", "/renamed-file-link"),
+                  "rename moves a symlink entry instead of its target");
+            const stdfs::path renamedLink = hostRoot / "renamed-file-link";
+            check(!stdfs::exists(renameLink) && stdfs::is_symlink(renamedLink)
+                      && fs.isFile("/symlink-target/keep.txt")
+                      && fs.readFile("/symlink-target/keep.txt") == "keep me",
+                  "renaming a symlink preserves its target file");
+            check(fs.remove("/renamed-file-link"),
+                  "remove renamed symlink source fixture");
+        }
     }
 
     check(fs.createDirectory("/partial-src"), "create partial-copy source");

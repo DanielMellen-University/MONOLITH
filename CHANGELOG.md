@@ -4,6 +4,7 @@
 
 - `remove` and `removeRecursive` now delete symlink entries themselves instead of resolving an in-root link and deleting its target file or directory.
 - Direct outside-root symlink entries can be removed safely without exposing or modifying their targets.
+- Rename now moves an in-root symlink entry without moving the target it references.
 - Added regression coverage for in-root file links and direct outside-root links.
 
 ## 2026-09: Report empty Editor completions
