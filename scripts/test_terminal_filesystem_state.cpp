@@ -152,6 +152,27 @@ int main() {
               && controller.changedPaths.back() == "/home/monolith/copied.txt",
           "cp notifies the shell about an overwritten file");
 
+    check(fs.createDirectory("/home/monolith/tree-source/nested"),
+          "create recursive copy source tree");
+    check(fs.writeFile("/home/monolith/tree-source/nested/file.txt", "new content"),
+          "write recursive copy source child");
+    check(fs.createDirectory("/home/monolith/tree-dest/tree-source/nested"),
+          "create recursive copy destination tree");
+    check(fs.writeFile("/home/monolith/tree-dest/tree-source/nested/file.txt", "old content"),
+          "write recursive copy destination child");
+    controller.changedPaths.clear();
+    terminal.executeCommand(
+        "cp -r /home/monolith/tree-source /home/monolith/tree-dest");
+    check(fs.readFile("/home/monolith/tree-dest/tree-source/nested/file.txt")
+              == "new content",
+          "recursive cp overwrites the nested destination file");
+    check(controller.changedPaths
+              == std::vector<std::string>{
+                  "/home/monolith/tree-dest/tree-source",
+                  "/home/monolith/tree-dest/tree-source/nested",
+                  "/home/monolith/tree-dest/tree-source/nested/file.txt"},
+          "recursive cp notifies every changed path in an existing tree");
+
     terminal.m_history.clear();
     terminal.executeCommand("cat /home/monolith/line-endings.txt");
     check(terminal.m_history == std::vector<std::string>{"first", "second", "third", ""},

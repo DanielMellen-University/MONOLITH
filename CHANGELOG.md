@@ -1,5 +1,10 @@
 # Changelog
 
+## 2026-09: Report recursive copy changes
+
+- Terminal `cp -r` now broadcasts every corresponding path when merging into an existing directory tree, keeping open listings and bound documents synchronized with nested overwrites.
+- Added regression coverage for nested recursive-copy notifications.
+
 ## 2026-09: Recover pointer state after host focus loss
 
 - SDL host-window focus loss now ends an active client drag with a matching synthetic release and clears shell/frame capture state.

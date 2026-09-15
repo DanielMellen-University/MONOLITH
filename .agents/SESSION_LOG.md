@@ -1,5 +1,7 @@
 # Session log
 
+| 2026-09-15 | fix | Made Terminal recursive copies into existing trees broadcast every changed destination path, preventing stale nested app state; added focused filesystem notification coverage and updated Terminal/architecture docs. |
+
 | 2026-09-15 | fix | Recovered client and shell pointer state across host SDL focus loss, synthesized the missing client release, and covered host focus callbacks in the mouse-capture test. |
 
 | 2026-09-15 | fix | Released bare Editor and Drawing instance reservations when Save As/Save makes a window file-backed; compacted remaining titles and added WindowManager coverage plus app documentation. |

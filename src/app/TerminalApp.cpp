@@ -28,6 +28,24 @@ void restoreRendererClip(SDL_Renderer* renderer, const RendererClipState& state)
     SDL_RenderSetClipRect(renderer, state.active ? &state.rect : nullptr);
 }
 
+void notifyChangedTree(IWindowController* controller,
+                       monolith::fs::Filesystem* fs,
+                       const std::string& sourcePath,
+                       const std::string& destinationPath) {
+    if (!controller || !fs) return;
+
+    controller->notifyVirtualPathChanged(destinationPath);
+    if (!fs->isDirectory(sourcePath)) return;
+
+    for (const auto& entry : fs->listEntries(sourcePath)) {
+        notifyChangedTree(
+            controller,
+            fs,
+            fs->join(sourcePath, entry.name),
+            fs->join(destinationPath, entry.name));
+    }
+}
+
 SDL_Rect intersectRendererClip(const SDL_Rect& requested, const RendererClipState& state) {
     SDL_Rect result = requested;
     if (state.active) {
@@ -309,7 +327,10 @@ void TerminalApp::executeCommand(const std::string& commandLine) {
                             addOutput("cp: cannot create '" + dst + "'");
                         } else if (auto* ctrl = getController()) {
                             if (destinationExisted) {
-                                ctrl->notifyVirtualPathChanged(dstPath);
+                                // Recursive copies merge into an existing tree;
+                                // notify every corresponding path so open apps
+                                // below that tree do not keep stale buffers.
+                                notifyChangedTree(ctrl, m_fs, srcPath, dstPath);
                             } else {
                                 ctrl->notifyVirtualPathCreated(dstPath);
                             }
