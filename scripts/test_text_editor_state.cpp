@@ -304,6 +304,11 @@ int main() {
           "undo history stays within its 50-state cap");
 
     TestEditor promptEditor(nullptr, &fs, "/new.txt");
+    prepareOpen(promptEditor, "/does-not-exist");
+    promptEditor.completePathPrompt();
+    check(promptEditor.m_statusMessage == "No path matches.",
+          "path completion reports when the editor has no matches");
+
     prepareSaveAs(promptEditor, "/new.txt/child.txt");
     promptEditor.m_pathPromptCursorPos = std::string("/new.txt/").size();
     promptEditor.onBoundFileMoved("/new.txt", "/docs/../renamed.txt");

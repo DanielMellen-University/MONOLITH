@@ -691,7 +691,10 @@ void TextEditorApp::completePathPrompt() {
         matches.push_back(std::move(completion));
     }
 
-    if (matches.empty()) return;
+    if (matches.empty()) {
+        setStatus("No path matches.");
+        return;
+    }
 
     auto applyCompletion = [&](const std::string& completion) {
         const std::string replacement = completion.substr(nameStart);

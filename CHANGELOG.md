@@ -1,5 +1,10 @@
 # Changelog
 
+## 2026-09: Report empty Editor completions
+
+- Text Editor path prompts now report `No path matches.` when Tab completion finds no eligible entry, matching Drawing and Terminal feedback.
+- Added focused state coverage for the no-match completion path.
+
 ## 2026-09: Align Minesweeper Enter controls
 
 - Minesweeper now accepts keypad Enter anywhere the documented Enter shortcut starts a new game.
