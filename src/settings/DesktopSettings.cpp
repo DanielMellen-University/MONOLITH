@@ -1,5 +1,6 @@
 #include "DesktopSettings.hpp"
 
+#include <filesystem>
 #include <fstream>
 #include <sstream>
 #include <utility>
@@ -115,7 +116,11 @@ bool DesktopSettings::loadFromHostPath(const std::string& hostPath) {
 }
 
 bool DesktopSettings::saveToHostPath(const std::string& hostPath) const {
-    std::ofstream out(hostPath, std::ios::trunc);
+    if (hostPath.empty()) return false;
+
+    const std::filesystem::path targetPath(hostPath);
+    const std::filesystem::path tempPath = targetPath.string() + ".tmp";
+    std::ofstream out(tempPath, std::ios::trunc);
     if (!out) return false;
 
     out << "desktop_background="
@@ -125,7 +130,28 @@ bool DesktopSettings::saveToHostPath(const std::string& hostPath) const {
     out << "wallpaper_path=" << m_wallpaperPath << '\n';
     out << "clock_24_hour=" << (m_clock24Hour ? "1" : "0") << '\n';
     out << "ui_scale_percent=" << m_uiScalePercent << '\n';
-    return static_cast<bool>(out);
+    out.flush();
+    if (!out) {
+        out.close();
+        std::error_code cleanupError;
+        std::filesystem::remove(tempPath, cleanupError);
+        return false;
+    }
+    out.close();
+    if (!out) {
+        std::error_code cleanupError;
+        std::filesystem::remove(tempPath, cleanupError);
+        return false;
+    }
+
+    std::error_code renameError;
+    std::filesystem::rename(tempPath, targetPath, renameError);
+    if (renameError) {
+        std::error_code cleanupError;
+        std::filesystem::remove(tempPath, cleanupError);
+        return false;
+    }
+    return true;
 }
 
 } // namespace monolith::settings

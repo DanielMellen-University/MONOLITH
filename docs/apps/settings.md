@@ -50,7 +50,7 @@ The **APPEARANCE** section at the top lets you change live desktop preferences.
 - Settings preserves the shell's renderer clip while applying its scroll-area clip, so a partially visible window cannot paint outside its client intersection.
 - The footer is clamped inside the client rectangle when a Settings window is shorter than the scaled footer band.
 
-Scroll with the mouse wheel or Page Up/Down if the window is resized smaller. Background, wallpaper path, clock, and interface text choices are saved to `~/.monolith/desktop_settings.txt` and restored on the next launch. Malformed or unsupported persisted values are ignored so defaults remain intact; omitted values in a valid legacy file use their defaults.
+Scroll with the mouse wheel or Page Up/Down if the window is resized smaller. Background, wallpaper path, clock, and interface text choices are saved to `~/.monolith/desktop_settings.txt` through a temporary sibling and atomically replaced after the complete write, then restored on the next launch. Malformed or unsupported persisted values are ignored so defaults remain intact; omitted values in a valid legacy file use their defaults.
 
 The settings file accepts both Unix and Windows line endings, so copying it between systems does not add a hidden carriage return to a wallpaper path or other value.
 

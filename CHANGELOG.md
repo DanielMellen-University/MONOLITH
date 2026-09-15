@@ -1,5 +1,10 @@
 # Changelog
 
+## 2026-09: Protect desktop settings snapshots
+
+- Desktop preferences now write to a temporary sibling and replace the live settings file atomically after the complete stream succeeds, so a failed preference save cannot leave a truncated configuration.
+- Added regression coverage for successful replacement and failed replacement cleanup.
+
 ## 2026-09: Protect session snapshots during shutdown
 
 - Session restore data is now written to a temporary sibling and atomically replaces the live snapshot only after the full stream succeeds, so an interrupted shutdown cannot leave a truncated session file.

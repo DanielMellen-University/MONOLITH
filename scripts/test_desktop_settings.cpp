@@ -31,6 +31,8 @@ int main() {
     saved.setClock24Hour(true);
     saved.setUiScalePercent(115);
     check(saved.saveToHostPath(path.string()), "save settings with UI scale");
+    check(!std::filesystem::exists(path.string() + ".tmp"),
+          "successful settings save removes its temporary snapshot");
 
     DesktopSettings loaded;
     check(loaded.loadFromHostPath(path.string()), "load settings file");
@@ -40,6 +42,17 @@ int main() {
     check(loaded.wallpaperPath() == "/Wallpapers/sample.bmp", "wallpaper round-trip");
     check(loaded.clock24Hour(), "clock format round-trip");
     check(loaded.uiScalePercent() == 115, "UI scale round-trip");
+
+    const std::filesystem::path blockedPath =
+        std::filesystem::temp_directory_path() / "monolith-desktop-settings-blocked";
+    std::filesystem::remove_all(blockedPath, ec);
+    check(std::filesystem::create_directory(blockedPath),
+          "create blocked settings target");
+    check(!saved.saveToHostPath(blockedPath.string()),
+          "settings save reports a failed atomic replacement");
+    check(std::filesystem::is_directory(blockedPath)
+              && !std::filesystem::exists(blockedPath.string() + ".tmp"),
+          "failed settings replacement preserves the target and cleans up");
 
     {
         std::ofstream legacy(path, std::ios::trunc);
@@ -111,6 +124,7 @@ int main() {
           "CRLF settings preserve every persisted value");
 
     std::filesystem::remove(path, ec);
+    std::filesystem::remove_all(blockedPath, ec);
     if (failures == 0) {
         std::cout << "ALL DESKTOP SETTINGS TESTS PASSED\n";
         return 0;

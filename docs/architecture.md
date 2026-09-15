@@ -178,7 +178,7 @@ Native C++ apps render into window client areas and are launched via shell metho
 | Pong | [apps/pong.md](apps/pong.md) | `PongApp` |
 | Breakout | [apps/breakout.md](apps/breakout.md) | `BreakoutApp` |
 
-**Shell coordination:** Apps use `IWindowController` for close, titles, open/openPath, file bindings, shared virtual filesystem clipboard, desktop color, wallpaper path, clock format, and interface text scale. Settings persists these preferences to `~/.monolith/desktop_settings.txt`. Session layout persists to `~/.monolith/session.txt` via `WindowManager::saveSession` / `loadSession` (wired from `main`).
+**Shell coordination:** Apps use `IWindowController` for close, titles, open/openPath, file bindings, shared virtual filesystem clipboard, desktop color, wallpaper path, clock format, and interface text scale. Settings persists these preferences to `~/.monolith/desktop_settings.txt` through an atomic temporary-sibling replacement. Session layout persists to `~/.monolith/session.txt` via `WindowManager::saveSession` / `loadSession` (wired from `main`), with the same replacement guarantee.
 
 **Input note:** The Window Manager captures the client that receives `SDL_MOUSEBUTTONDOWN` and forwards matching motion and `SDL_MOUSEBUTTONUP` events to that same client, so drag interactions (e.g. Drawing strokes) end cleanly when the mouse leaves or focus changes.
 
