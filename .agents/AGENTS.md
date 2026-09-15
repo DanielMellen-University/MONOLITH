@@ -30,10 +30,11 @@ The human funds token budget and lives in the desktop. You:
 
 ## Current state snapshot
 
-**CURRENT_CHUNK:** `7.3` (Desktop icons)
+**CURRENT_CHUNK:** `7.4` (App registry)
 
 | When | Kind | Note |
 |------|------|------|
+| 2026-09-15 | 7.3 | Desktop icons under wallpaper; windows win hit-testing; CURRENT_CHUNK now 7.4 |
 | 2026-09-14 | 7.2 | Breakout under Start -> Games; CURRENT_CHUNK now 7.3 |
 | 2026-09-11 | 7.1 | PNG/JPEG wallpaper via pinned stb_image; Settings/WM accept .bmp/.png/.jpg/.jpeg; CURRENT_CHUNK now 7.2 |
 
@@ -41,12 +42,12 @@ Older recent-work rows: [`SESSION_LOG.md`](SESSION_LOG.md).
 
 ## Priority order for "next / continue"
 
-1. **7.3** (Desktop icons)
-2. **7.4** only if requested
+1. **7.4** only if requested (or when adding many apps)
+2. Soft polish / debt on shell when 7.4 is not needed
 3. **5.x** language only after they unpark it
 4. **6.x** IDE only after a `run` loop exists
 
-**Cut order if scope tight:** 7.3 -> 7.4 -> 7.2. Never cut core shell work for another game.
+**Cut order if scope tight:** 7.4 -> shell polish. Never cut core shell work for another game.
 
 ## Phase 4 - Living-inside-it
 
@@ -75,7 +76,7 @@ Older recent-work rows: [`SESSION_LOG.md`](SESSION_LOG.md).
 |----|--------|--------|-----------------------------|
 | 7.1 | PNG/JPEG wallpaper | done | stb_image build-time fetch; BMP via SDL_LoadBMP; PNG/JPEG via WallpaperImage |
 | 7.2 | Fourth game (Breakout) | done | Same Start -> Games pattern + `verify_games_integration.sh` |
-| 7.3 | Desktop icons | pending | Optional; do not fight overlapping windows |
+| 7.3 | Desktop icons | done | Left-column icons under wallpaper; windows win hit-testing; see `docs/notes/7.3-desktop-icons.md` |
 | 7.4 | App registry | pending | Data-driven Start menu; only when adding lots of apps |
 
 ## Commit voice

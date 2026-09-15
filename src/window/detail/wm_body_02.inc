@@ -7,6 +7,20 @@
         }
     }
 
+    // Enter activates a selected desktop icon only when no visible window owns focus.
+    if (event.type == SDL_KEYDOWN
+        && !m_showStartMenu
+        && (!m_focusedWindow || m_focusedWindow->minimized)
+        && (event.key.keysym.sym == SDLK_RETURN || event.key.keysym.sym == SDLK_KP_ENTER)
+        && m_desktopIconSelected >= 0) {
+        const SDL_Rect usable = getUsableDesktopRect();
+        const auto icons = layoutDesktopIcons(usable.w, usable.h);
+        if (m_desktopIconSelected < static_cast<int>(icons.size())) {
+            activateDesktopIcon(icons[static_cast<size_t>(m_desktopIconSelected)].action);
+            return;
+        }
+    }
+
     // === Normal internal window interaction ===
     if (event.type == SDL_MOUSEBUTTONDOWN && event.button.button == SDL_BUTTON_LEFT) {
         m_mouseDown = true;
@@ -16,8 +30,13 @@
         const int eventLogicalY = screenToLogicalY(m_mouseY);
 
         Window* clicked = getWindowAt(m_mouseX, m_mouseY);
-        if (!clicked) return;
+        if (!clicked) {
+            // Empty desktop: icons only win when no window is under the pointer.
+            tryHandleDesktopIconClick(eventLogicalX, eventLogicalY);
+            return;
+        }
 
+        clearDesktopIconSelection();
         bringToFront(clicked);
 
         // === Priority 1: Title bar buttons ===
@@ -69,6 +88,7 @@
 
         Window* clicked = getWindowAt(m_mouseX, m_mouseY);
         if (clicked) {
+            clearDesktopIconSelection();
             bringToFront(clicked);
 
             if (isInContentArea(*clicked, eventLogicalX, eventLogicalY)) {
@@ -155,6 +175,8 @@ void WindowManager::render(SDL_Renderer* renderer) {
 
     // Solid color is cleared by main; paint wallpaper image (if any) under windows.
     renderWallpaper(renderer);
+    // Desktop icons sit on the wallpaper layer and never fight overlapping windows.
+    renderDesktopIcons(renderer);
 
     // Draw from back to front so the focused window (last in vector) is drawn last and appears on top
     for (auto it = m_windows.begin(); it != m_windows.end(); ++it) {
