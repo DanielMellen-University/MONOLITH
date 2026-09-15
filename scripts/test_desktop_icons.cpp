@@ -49,6 +49,8 @@ int main() {
           "late second click is not a double-click");
     check(!isDesktopIconDoubleClick(1, 1000, 2, 1100),
           "different icons are not a double-click");
+    check(isDesktopIconDoubleClick(2, 0xfffffff0u, 2, 0x00000050u),
+          "double-click timing survives SDL tick wraparound");
 
     if (failures == 0) {
         std::cout << "ALL DESKTOP ICON TESTS PASSED\n";

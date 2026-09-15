@@ -1,5 +1,10 @@
 # Changelog
 
+## 2026-09: Handle desktop-icon timer wraparound
+
+- Desktop-icon double-click detection now handles SDL's wrapping 32-bit tick counter without dropping a valid click pair.
+- Added a wraparound regression case to the desktop-icon test.
+
 ## 2026-09: Clear desktop-icon state across shell actions
 
 - Start menu, taskbar, and Alt+Tab interactions now clear pending desktop-icon selection and double-click history, and launching an icon clears it as well.

@@ -105,8 +105,8 @@ inline bool isDesktopIconDoubleClick(
     int currentIndex, Uint32 currentTicks) {
     if (previousIndex < 0 || currentIndex < 0) return false;
     if (previousIndex != currentIndex) return false;
-    if (currentTicks < previousTicks) return false;
-    return (currentTicks - previousTicks) <= kDesktopIconDoubleClickMs;
+    return static_cast<Uint32>(currentTicks - previousTicks)
+        <= kDesktopIconDoubleClickMs;
 }
 
 } // namespace monolith::window
