@@ -99,7 +99,7 @@ g++ -std=c++23 scripts/test_desktop_settings.cpp src/settings/DesktopSettings.cp
 Headless Settings app test for wallpaper directory/image filename completion, shell binding, font-scaled layout metrics, and tiny-client footer containment:
 
 ```bash
-g++ -std=c++23 scripts/test_settings_app_state.cpp src/app/SettingsApp.cpp src/fs/Filesystem.cpp $(pkg-config --cflags --libs sdl2 SDL2_ttf) -o build/test_settings_app_state && ./build/test_settings_app_state
+g++ -std=c++23 -Ibuild/generated/settings scripts/test_settings_app_state.cpp src/app/SettingsApp.cpp src/fs/Filesystem.cpp $(pkg-config --cflags --libs sdl2 SDL2_ttf) -o build/test_settings_app_state && ./build/test_settings_app_state
 ```
 
 Headless test of quoted session paths, including spaces and legacy unquoted paths:

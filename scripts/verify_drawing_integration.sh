@@ -15,7 +15,12 @@ grep -q 'launchDrawing' src/window/WindowManager.hpp || fail "launchDrawing not 
 grep -R -q 'launchDrawing' src/window || fail "launchDrawing not implemented"
 grep -R -q 'DrawingApp' src/window || fail "DrawingApp not included in WM"
 grep -q 'DrawingApp.cpp' CMakeLists.txt || fail "DrawingApp.cpp not in CMakeLists"
-grep -q 'drawings' src/main.cpp || fail "drawings dir seed missing in main.cpp"
+main_body_dir="$(mktemp -d)"
+trap 'rm -rf "$main_body_dir"' EXIT
+python3 src/decompress_main_bodies.py "$main_body_dir" >/dev/null \
+  || fail "main body fragments could not be decompressed"
+grep -R -q 'drawings' "$main_body_dir" \
+  || fail "drawings dir seed missing in main body fragments"
 grep -R -q '{"Drawing", 4, 0}' src/window || fail "Start menu Drawing entry missing"
 grep -R -q 'SDL_MOUSEBUTTONUP' src/window || fail "mouse-up forwarding missing"
 

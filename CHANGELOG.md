@@ -1,5 +1,10 @@
 # Changelog
 
+## 2026-09: Keep verification scripts runnable
+
+- Restored executable mode for the desktop-icon and games integration checks.
+- Updated the Drawing integration check for compressed main-body sources and documented the generated Settings include path.
+
 ## 2026-09: Preserve WindowManager renderer boundaries
 
 - WindowManager now preserves and intersects the caller renderer clip through window frames, taskbar buttons, title labels, and the Alt+Tab overlay.

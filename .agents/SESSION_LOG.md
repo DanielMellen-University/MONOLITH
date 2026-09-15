@@ -1,5 +1,7 @@
 # Session log
 
+| 2026-09-15 | fix | Repaired verification script executability, taught the Drawing check to inspect compressed main bodies, and fixed the documented Settings test include path; the full documented headless suite passed. |
+
 | 2026-09-12 | fix | Preserved the caller renderer clip through the WindowManager frame, title labels, taskbar buttons, and Alt+Tab overlay; added full-frame coverage and updated architecture docs. |
 
 | 2026-09-12 | fix | Preserved the caller renderer clip through Drawing status rendering; added frame-level clip coverage and updated Drawing and architecture docs. |
