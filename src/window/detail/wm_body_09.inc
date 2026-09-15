@@ -10,6 +10,10 @@ void WindowManager::associateEditorWithFile(Window* window, const std::string& v
         return;
     }
 
+    // A bare editor can become file-backed through Save As. File-backed
+    // editors are intentionally outside the bare Editor instance pool.
+    untrackAppInstance(window);
+
     if (!window->editedFilePath.empty() && window->editedFilePath != normalized) {
         auto prev = m_fileEditors.find(window->editedFilePath);
         if (prev != m_fileEditors.end() && prev->second == window) {
@@ -50,6 +54,10 @@ void WindowManager::associateDrawingWithFile(Window* window, const std::string& 
         bringToFront(existing->second);
         return;
     }
+
+    // A bare sketch can become file-backed through Save. File-backed
+    // Drawings are intentionally outside the bare Drawing instance pool.
+    untrackAppInstance(window);
 
     if (!window->drawingFilePath.empty() && window->drawingFilePath != normalized) {
         auto prev = m_fileDrawings.find(window->drawingFilePath);

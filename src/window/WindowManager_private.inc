@@ -68,7 +68,7 @@ private:
 
     // Tracks active instance numbers per app base type ("Terminal", "Filesystem", etc.)
     // for the dynamic titling system. Populated by claimNextAppInstanceTitle and
-    // released in closeWindow (using the annotation stored on each Window).
+    // released when a tracked window closes or becomes file-backed.
     std::unordered_map<std::string, std::set<int>> m_activeAppInstances;
 
     // Resources for creating real apps from the shell (Start Menu launchers)
@@ -166,6 +166,10 @@ private:
     // This makes numbers "adjust dynamically" so there are never gaps while
     // windows are open (e.g. closing "Settings" turns the old "Settings 2" into "Settings").
     void compactAppInstances(const std::string& base);
+
+    // Release a bare-app reservation when an untitled Editor or Drawing becomes
+    // file-backed, then compact the remaining bare windows.
+    void untrackAppInstance(Window* window);
 
     // After a launcher creates a window, apply restored geometry (session load).
     void applyRestoredGeometry(Window* window, int x, int y, int w, int h,

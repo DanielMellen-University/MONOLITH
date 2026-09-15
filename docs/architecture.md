@@ -103,6 +103,7 @@ The WM provides first-class support for opening many instances of the same nativ
   - The active set is rebuilt from the compacted numbers.
 - Result: among currently open windows there are never gaps or duplicates for a given type. Closing a lower number causes higher ones to "slide down" (e.g. "Settings" + "Settings 2"; close the first → the second becomes "Settings").
 - File-backed editors use content-derived titles ("Editor - foo") and are deliberately excluded from the bare "Editor" numbering pool (they are already unique and protected by the `m_fileEditors` singleton + `associateEditorWithFile`).
+- Saving a bare Editor or Drawing as a file releases its old bare-app instance reservation and compacts the remaining bare windows, so file-backed titles never consume numbered bare-app slots.
 - Direct `createWindow` calls (rare fallback paths) can opt out of tracking.
 
 Launchers are the canonical place that request instance titles. The mechanism is intentionally centralized in the desktop shell (`WindowManager`) so new app types get correct behavior for free.

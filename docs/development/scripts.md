@@ -126,7 +126,7 @@ Headless Text Editor state test for Save As collisions, failed-write recovery, f
 g++ -std=c++23 scripts/test_text_editor_state.cpp src/app/TextEditorApp.cpp src/fs/Filesystem.cpp $(pkg-config --cflags --libs sdl2 SDL2_ttf) -o build/test_text_editor_state && ./build/test_text_editor_state
 ```
 
-Headless WindowManager test that failed Editor and Drawing opens do not reserve stale file singletons and can be retried:
+Headless WindowManager test that failed Editor and Drawing opens do not reserve stale file singletons, can be retried, and release bare-app instance slots when they become file-backed:
 
 ```bash
 cmake --build build --target monolith_settings_bodies monolith_stb_image

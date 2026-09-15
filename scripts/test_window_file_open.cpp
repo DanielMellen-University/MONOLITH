@@ -247,6 +247,41 @@ int main() {
               "wallpaper cache is invalidated when its file changes");
     }
 
+    {
+        monolith::window::WindowManager numberingWm;
+        numberingWm.setAppResources(font, &fs);
+
+        auto [editorTitle, editorInstance]
+            = numberingWm.claimNextAppInstanceTitle("Editor");
+        auto firstEditor = numberingWm.createWindow(
+            editorTitle, 0, 0, 240, 160, nullptr, "Editor", editorInstance);
+        auto [secondEditorTitle, secondEditorInstance]
+            = numberingWm.claimNextAppInstanceTitle("Editor");
+        auto secondEditor = numberingWm.createWindow(
+            secondEditorTitle, 20, 20, 240, 160, nullptr,
+            "Editor", secondEditorInstance);
+        numberingWm.associateEditorWithFile(firstEditor, "/docs/saved.txt");
+        check(firstEditor->appBaseTitle.empty() && firstEditor->appInstanceNumber == 0,
+              "saving a bare editor releases its instance reservation");
+        check(secondEditor->title == "Editor" && secondEditor->appInstanceNumber == 1,
+              "remaining bare editors compact after one becomes file-backed");
+
+        auto [drawingTitle, drawingInstance]
+            = numberingWm.claimNextAppInstanceTitle("Drawing");
+        auto firstDrawing = numberingWm.createWindow(
+            drawingTitle, 40, 40, 240, 160, nullptr, "Drawing", drawingInstance);
+        auto [secondDrawingTitle, secondDrawingInstance]
+            = numberingWm.claimNextAppInstanceTitle("Drawing");
+        auto secondDrawing = numberingWm.createWindow(
+            secondDrawingTitle, 60, 60, 240, 160, nullptr,
+            "Drawing", secondDrawingInstance);
+        numberingWm.associateDrawingWithFile(firstDrawing, "/drawings/saved.modr");
+        check(firstDrawing->appBaseTitle.empty() && firstDrawing->appInstanceNumber == 0,
+              "saving a bare drawing releases its instance reservation");
+        check(secondDrawing->title == "Drawing" && secondDrawing->appInstanceNumber == 1,
+              "remaining bare drawings compact after one becomes file-backed");
+    }
+
     TTF_CloseFont(font);
     TTF_Quit();
 

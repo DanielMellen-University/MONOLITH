@@ -1,5 +1,10 @@
 # Changelog
 
+## 2026-09: Release bare app slots after Save As
+
+- Saving an untitled Editor or Drawing now removes its old numbered bare-app reservation, so file-backed windows no longer distort later instance titles.
+- Remaining bare Editor and Drawing windows compact immediately after that transition, with regression coverage for both app types.
+
 ## 2026-09: Prevent orphaned client mouse releases
 
 - Window-frame and empty-desktop clicks no longer fall through as `SDL_MOUSEBUTTONUP` events to whichever app is focused afterward.

@@ -15,6 +15,8 @@ File-backed editors are singletons per path — opening the same file again focu
 
 If an initial path is missing or unreadable, the failed window falls back to the normal bare `Editor` title, remains an untitled editor, and does not reserve that path. Creating or repairing the file and opening it again retries the load normally.
 
+Saving a bare editor with Save As turns it into a file-backed editor and releases its old bare `Editor` instance number; other bare editors compact their titles immediately.
+
 ## Editing
 
 - Type to insert characters at the cursor (UTF-8 text input; cursor movement and backspace/delete stay on complete codepoint boundaries).

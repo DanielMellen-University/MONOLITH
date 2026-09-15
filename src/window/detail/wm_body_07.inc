@@ -124,6 +124,25 @@ void WindowManager::compactAppInstances(const std::string& base) {
     }
 }
 
+void WindowManager::untrackAppInstance(Window* window) {
+    if (!window || window->appBaseTitle.empty() || window->appInstanceNumber <= 0) {
+        return;
+    }
+
+    const std::string base = window->appBaseTitle;
+    auto active = m_activeAppInstances.find(base);
+    if (active != m_activeAppInstances.end()) {
+        active->second.erase(window->appInstanceNumber);
+        if (active->second.empty()) {
+            m_activeAppInstances.erase(active);
+        }
+    }
+
+    window->appBaseTitle.clear();
+    window->appInstanceNumber = 0;
+    compactAppInstances(base);
+}
+
 void WindowManager::setAppResources(TTF_Font* font, monolith::fs::Filesystem* fs) {
     m_appFont = font;
     m_fs = fs;
