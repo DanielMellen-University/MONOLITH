@@ -1,5 +1,10 @@
 # Changelog
 
+## 2026-09: Align Snake Enter controls
+
+- Snake now accepts keypad Enter anywhere the documented Enter shortcut resumes or restarts a match, matching Pong and Breakout.
+- Added focused input coverage for resuming a paused game with keypad Enter.
+
 ## 2026-09: Unify host text persistence
 
 - Settings, session restore, Snake scores, and Minesweeper best times now share one temporary-sibling text writer, so complete records replace the target atomically and failed replacements clean up without truncating the previous state.

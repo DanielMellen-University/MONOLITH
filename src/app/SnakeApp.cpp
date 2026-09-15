@@ -370,6 +370,7 @@ void SnakeApp::handleEvent(const SDL_Event& event) {
             resetGame();
             break;
         case SDLK_RETURN:
+        case SDLK_KP_ENTER:
             if (m_state == State::GameOver || m_state == State::Won || m_paused) {
                 if (m_paused && m_state == State::Playing) {
                     m_paused = false;

@@ -132,6 +132,14 @@ int main() {
     check(game.m_body.size() == 4 && game.m_body.front() == std::make_pair(2, 1),
           "food collision leaves the body unchanged");
 
+    game.m_state = SnakeApp::State::Playing;
+    game.m_paused = true;
+    SDL_Event keypadEnter{};
+    keypadEnter.type = SDL_KEYDOWN;
+    keypadEnter.key.keysym.sym = SDLK_KP_ENTER;
+    game.handleEvent(keypadEnter);
+    check(!game.m_paused, "keypad Enter resumes a paused Snake game");
+
     std::filesystem::remove_all(testHome, cleanupError);
     if (hadOriginalHome) {
         setenv("HOME", originalHome.c_str(), 1);
