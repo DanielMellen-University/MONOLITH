@@ -1,5 +1,10 @@
 # Changelog
 
+## 2026-09: Align Minesweeper Enter controls
+
+- Minesweeper now accepts keypad Enter anywhere the documented Enter shortcut starts a new game.
+- Added focused input coverage for resetting a board with keypad Enter.
+
 ## 2026-09: Align Snake Enter controls
 
 - Snake now accepts keypad Enter anywhere the documented Enter shortcut resumes or restarts a match, matching Pong and Breakout.

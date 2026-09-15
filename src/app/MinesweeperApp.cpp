@@ -552,6 +552,7 @@ void MinesweeperApp::handleEvent(const SDL_Event& event) {
         switch (key) {
             case SDLK_r:
             case SDLK_RETURN:
+            case SDLK_KP_ENTER:
                 newGame(m_difficulty);
                 break;
             case SDLK_1:

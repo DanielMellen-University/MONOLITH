@@ -1,5 +1,7 @@
 # Session log
 
+| 2026-09-15 | fix | Aligned Minesweeper with the other app keyboard contracts by accepting keypad Enter for a new game, added focused reset coverage, and recorded the shortcut behavior. |
+
 | 2026-09-15 | fix | Aligned Snake with the other games by accepting keypad Enter for resume/restart, added focused input coverage, and recorded the keyboard contract. |
 
 | 2026-09-15 | fix | Unified Settings, session, Snake, and Minesweeper host text snapshots behind one atomic writer, retained existing regular-file permissions, added score reload and failed-replacement coverage, and updated the persistence documentation. |

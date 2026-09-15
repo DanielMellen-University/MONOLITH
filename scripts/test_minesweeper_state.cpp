@@ -158,6 +158,13 @@ int main() {
     check(resumedElapsed >= pausedMs && resumedElapsed < pausedMs + 100u,
           "resume preserves the sub-second timer remainder");
 
+    SDL_Event keypadEnter{};
+    keypadEnter.type = SDL_KEYDOWN;
+    keypadEnter.key.keysym.sym = SDLK_KP_ENTER;
+    game.handleEvent(keypadEnter);
+    check(game.m_state == MinesweeperApp::State::Ready && !game.m_minesPlaced,
+          "keypad Enter starts a new Minesweeper game");
+
     std::filesystem::remove_all(testHome, cleanupError);
     if (hadOriginalHome) {
         setenv("HOME", originalHome.c_str(), 1);
