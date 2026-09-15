@@ -163,7 +163,11 @@ bool Filesystem::createDirectory(const std::string& virtualPath) {
 
 bool Filesystem::remove(const std::string& virtualPath) {
     try {
-        return stdfs::remove(toHostPath(virtualPath));
+        const std::string path = normalize(virtualPath);
+        if (path == "/") return false;
+        const std::string hostPath = toHostPath(path);
+        if (hostPath.empty()) return false;
+        return stdfs::remove(hostPath);
     } catch (...) {
         return false;
     }

@@ -38,6 +38,8 @@ int main() {
 
     Filesystem fs(hostRoot.string());
     check(fs.initialize(), "filesystem initialize");
+    check(!fs.remove("/"), "non-recursive remove rejects the virtual root");
+    check(fs.isDirectory("/"), "virtual root remains after a rejected remove");
 
     const stdfs::path outsideRoot = stdfs::temp_directory_path()
         / ("monolith-fs-outside-" + std::to_string(getpid()));

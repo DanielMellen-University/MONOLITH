@@ -65,6 +65,7 @@ Implementation: `src/fs/Filesystem.hpp`, `src/fs/Filesystem.cpp`.
 
 | Method | Behavior |
 |--------|----------|
+| `remove(path)` | Removes one file or empty directory. Refuses virtual root `/`. |
 | `removeRecursive(path)` | Deletes a file or whole directory tree (children first). Refuses virtual root `/`. |
 | `copyRecursive(src, dst)` | Copies a file or tree; creates destination directories as needed and removes a newly created destination if a child copy fails. Fails if `dst` is the same as or under `src`. |
 | `copyItemsInto(srcs, destDir)` | Copies each source into `destDir` under its basename (uses `copyRecursive`). Skips existing names, self-copy, and invalid names. Returns the count copied. |

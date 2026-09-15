@@ -1,5 +1,10 @@
 # Changelog
 
+## 2026-09: Protect the virtual filesystem root
+
+- Non-recursive `Filesystem::remove` now rejects `/` just like recursive removal and rename, preserving Monolith's root directory invariant.
+- Added regression coverage and documented the root guard.
+
 ## 2026-09: Keep the first desktop icon row reachable
 
 - Corrected narrow-desktop icon layout so the first icon is rendered when its tile and label exactly fit above the taskbar.
