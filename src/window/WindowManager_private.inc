@@ -111,6 +111,15 @@ private:
     void ensureWallpaperTexture(SDL_Renderer* renderer);
     void renderWallpaper(SDL_Renderer* renderer);
 
+    // Desktop icons (drawn under windows; clickable only on empty desktop).
+    int m_desktopIconSelected = -1;
+    int m_desktopIconLastClickIndex = -1;
+    Uint32 m_desktopIconLastClickTicks = 0;
+    void renderDesktopIcons(SDL_Renderer* renderer);
+    bool tryHandleDesktopIconClick(int logicalX, int logicalY);
+    void activateDesktopIcon(DesktopIconAction action);
+    void clearDesktopIconSelection();
+
     struct StartMenuItem {
         SDL_Rect rect;  // in screen coordinates
         // 0=Terminal, 1=Text Editor, 2=Filesystem, 3=Settings, 4=Drawing,

@@ -1,6 +1,7 @@
 #pragma once
 
 #include "Window.hpp"
+#include "DesktopIcons.hpp"
 #include <SDL2/SDL.h>
 #include <cstdint>
 #include <SDL2/SDL_ttf.h>
@@ -33,6 +34,7 @@ enum class ResizeDirection {
  * - Managing z-order (drawing order + focus)
  * - Handling window-level input (dragging, clicking title bar, etc.)
  * - Rendering window frames and title bars
+ * - Drawing optional desktop icons behind windows
  *
  * Individual applications will later render *into* the client area of a window.
  */

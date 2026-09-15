@@ -1,4 +1,5 @@
 #include "WindowManager.hpp"
+#include "DesktopIcons.hpp"
 #include "WallpaperImage.hpp"
 #include "SessionFormat.hpp"
 #include "../app/App.hpp"
@@ -57,4 +58,5 @@ SDL_Rect intersectRendererClip(const SDL_Rect& requested, const RendererClipStat
 #include "detail/wm_body_07.inc"
 #include "detail/wm_body_08.inc"
 #include "detail/wm_body_08b.inc"
+#include "detail/wm_desktop_icons.inc"
 #include "detail/wm_body_09.inc"
