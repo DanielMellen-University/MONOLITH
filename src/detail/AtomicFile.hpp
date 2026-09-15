@@ -21,9 +21,34 @@ bool writeTextAtomically(const std::filesystem::path& targetPath,
         if (parentError) return false;
     }
 
+    std::filesystem::perms existingPermissions = std::filesystem::perms::unknown;
+    bool preservePermissions = false;
+    std::error_code statusError;
+    const auto existingStatus = std::filesystem::status(targetPath, statusError);
+    if (!statusError && std::filesystem::is_regular_file(existingStatus)) {
+        existingPermissions = existingStatus.permissions();
+        preservePermissions = true;
+    } else if (statusError
+               && statusError != std::make_error_code(std::errc::no_such_file_or_directory)) {
+        return false;
+    }
+
     const std::filesystem::path tempPath = targetPath.string() + ".tmp";
     std::ofstream out(tempPath, std::ios::trunc);
     if (!out) return false;
+
+    if (preservePermissions) {
+        std::error_code permissionError;
+        std::filesystem::permissions(
+            tempPath, existingPermissions, std::filesystem::perm_options::replace,
+            permissionError);
+        if (permissionError) {
+            out.close();
+            std::error_code cleanupError;
+            std::filesystem::remove(tempPath, cleanupError);
+            return false;
+        }
+    }
 
     std::forward<Writer>(writer)(out);
     out.flush();

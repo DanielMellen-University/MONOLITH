@@ -44,7 +44,7 @@ Related host files (not inside the virtual tree):
 | `~/.monolith/snake_highscore.txt` | Snake high score (games host file) |
 | `~/.monolith/minesweeper_best.txt` | Minesweeper best times (game host file) |
 
-All Monolith text snapshots, including game records, use the same temporary-sibling replacement path. A failed stream or replacement leaves the previous host record intact and removes the temporary file.
+All Monolith text snapshots, including game records, use the same temporary-sibling replacement path. A failed stream or replacement leaves the previous host record intact and removes the temporary file. Replacing an existing regular snapshot also retains its permission bits; a new snapshot uses the host process's normal creation mode.
 
 ## API Overview
 

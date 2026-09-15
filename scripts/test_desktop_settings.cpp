@@ -43,6 +43,17 @@ int main() {
     check(loaded.clock24Hour(), "clock format round-trip");
     check(loaded.uiScalePercent() == 115, "UI scale round-trip");
 
+    const auto restrictivePermissions = std::filesystem::perms::owner_read
+        | std::filesystem::perms::owner_write;
+    std::filesystem::permissions(
+        path, restrictivePermissions, std::filesystem::perm_options::replace, ec);
+    check(!ec, "set restrictive settings permissions");
+    saved.setUiScalePercent(100);
+    check(saved.saveToHostPath(path.string()),
+          "replace settings while preserving permissions");
+    check(std::filesystem::status(path).permissions() == restrictivePermissions,
+          "settings replacement retains existing permissions");
+
     const std::filesystem::path blockedPath =
         std::filesystem::temp_directory_path() / "monolith-desktop-settings-blocked";
     std::filesystem::remove_all(blockedPath, ec);
