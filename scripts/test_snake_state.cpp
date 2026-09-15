@@ -16,6 +16,7 @@
 #include <unistd.h>
 
 #include "../src/app/App.hpp"
+#include "../src/detail/TickMath.hpp"
 
 #define private public
 #include "../src/app/SnakeApp.hpp"
@@ -139,6 +140,13 @@ int main() {
     keypadEnter.key.keysym.sym = SDLK_KP_ENTER;
     game.handleEvent(keypadEnter);
     check(!game.m_paused, "keypad Enter resumes a paused Snake game");
+
+    check(monolith::detail::tickDeadlinePending(0xfffffff0u, 0x00000050u),
+          "Snake flash deadline remains active across tick wraparound");
+    check(!monolith::detail::tickDeadlinePending(0x00000060u, 0x00000050u),
+          "Snake flash deadline expires after tick wraparound");
+    check(!monolith::detail::tickDeadlinePending(0x00000050u, 0x00000050u),
+          "Snake flash deadline is inactive at its exact expiry");
 
     std::filesystem::remove_all(testHome, cleanupError);
     if (hadOriginalHome) {

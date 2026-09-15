@@ -1,6 +1,7 @@
 #include "SnakeApp.hpp"
 
 #include "../detail/AtomicFile.hpp"
+#include "../detail/TickMath.hpp"
 
 #include <algorithm>
 #include <cstdlib>
@@ -444,7 +445,8 @@ void SnakeApp::render(SDL_Renderer* renderer, const SDL_Rect& contentRect) {
 
     // Food (with brief flash after eating via larger highlight)
     {
-        const bool flash = SDL_GetTicks() < m_eatFlashUntilMs;
+        const bool flash = monolith::detail::tickDeadlinePending(
+            SDL_GetTicks(), m_eatFlashUntilMs);
         const int inset = m_cellPx >= 3
             ? std::max(1, m_cellPx / (flash ? 5 : 6))
             : 0;

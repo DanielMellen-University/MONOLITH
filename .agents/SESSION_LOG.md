@@ -1,5 +1,7 @@
 # Session log
 
+| 2026-09-15 | fix | Made Snake's food flash deadline wrap-safe across the 32-bit SDL tick counter, added active/expired boundary coverage, and documented the effect contract. |
+
 | 2026-09-15 | fix | Made Filesystem remove operations unlink symlink entries without following them and made rename move in-root symlink entries without moving their targets, including hidden direct outside-root links; added target-preservation coverage and documented the safety contract. |
 
 | 2026-09-15 | fix | Made Text Editor Tab completion report `No path matches.` instead of failing silently, added focused prompt coverage, and aligned the editor guide with the feedback contract. |

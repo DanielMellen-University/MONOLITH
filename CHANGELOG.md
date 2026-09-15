@@ -1,5 +1,10 @@
 # Changelog
 
+## 2026-09: Keep Snake effects correct across tick wraparound
+
+- Snake's food flash now uses wrap-safe SDL tick deadline arithmetic, so the brief visual effect remains correct when the 32-bit tick counter rolls over.
+- Added focused coverage for active, expired, and exact-expiry deadlines around the wrap boundary.
+
 ## 2026-09: Unlink filesystem symlinks safely
 
 - `remove` and `removeRecursive` now delete symlink entries themselves instead of resolving an in-root link and deleting its target file or directory.
