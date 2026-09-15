@@ -88,6 +88,42 @@ int main() {
               && wm.m_desktopIconLastClickTicks == 0,
           "clearing an icon selection also clears double-click history");
 
+    wm.m_desktopIconSelected = 1;
+    wm.m_desktopIconLastClickIndex = 1;
+    wm.m_desktopIconLastClickTicks = 1000;
+    SDL_Event ctrlEscape{};
+    ctrlEscape.type = SDL_KEYDOWN;
+    ctrlEscape.key.keysym.sym = SDLK_ESCAPE;
+    ctrlEscape.key.keysym.mod = KMOD_CTRL;
+    wm.handleEvent(ctrlEscape);
+    check(wm.m_desktopIconSelected == -1
+              && wm.m_desktopIconLastClickIndex == -1
+              && wm.m_desktopIconLastClickTicks == 0,
+          "opening the Start menu clears desktop-icon click history");
+    wm.handleEvent(ctrlEscape);
+
+    wm.setLogicalDesktopSize(500, 400);
+    wm.render(renderer);
+    wm.m_desktopIconSelected = 1;
+    wm.m_desktopIconLastClickIndex = 1;
+    wm.m_desktopIconLastClickTicks = 1000;
+    const SDL_Rect taskbarScreen = wm.logicalRectToScreen(wm.getTaskbarRect());
+    SDL_Event taskbarClick{};
+    taskbarClick.type = SDL_MOUSEBUTTONDOWN;
+    taskbarClick.button.button = SDL_BUTTON_LEFT;
+    taskbarClick.button.x = taskbarScreen.x + 20;
+    taskbarClick.button.y = taskbarScreen.y + 1;
+    wm.handleEvent(taskbarClick);
+    check(wm.m_desktopIconSelected == -1
+              && wm.m_desktopIconLastClickIndex == -1
+              && wm.m_desktopIconLastClickTicks == 0,
+          "taskbar clicks clear desktop-icon click history");
+    SDL_Event taskbarRelease = taskbarClick;
+    taskbarRelease.type = SDL_MOUSEBUTTONUP;
+    wm.handleEvent(taskbarRelease);
+    wm.m_showStartMenu = false;
+    wm.setLogicalDesktopSize(1000, 700);
+
     check(wm.getWindowAt(220, 280) == window,
           "scaled hit testing finds a window without prior motion");
     check(wm.getWindowAt(800, 280) == nullptr,

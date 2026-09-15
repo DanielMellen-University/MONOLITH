@@ -22,6 +22,7 @@
         }
 
         if (m_mouseY >= taskbarScreenY && m_mouseY < taskbarScreenBottom) {
+            clearDesktopIconSelection();
             m_shellMouseCapture = true;
             // Start button (when menu was not open, or after we handled the open case above)
             int startBtnScreenWidth = static_cast<int>(70 * m_contentScale);

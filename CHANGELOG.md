@@ -1,5 +1,10 @@
 # Changelog
 
+## 2026-09: Clear desktop-icon state across shell actions
+
+- Start menu, taskbar, and Alt+Tab interactions now clear pending desktop-icon selection and double-click history, and launching an icon clears it as well.
+- Added event-level regression coverage for Start and taskbar interactions.
+
 ## 2026-09: Reset stale desktop-icon click state
 
 - WindowManager now clears pending desktop-icon double-click history whenever icon selection is cleared, preventing an intervening window click from causing a false launch.

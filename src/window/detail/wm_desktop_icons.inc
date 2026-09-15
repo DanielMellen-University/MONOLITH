@@ -13,6 +13,7 @@ void WindowManager::activateDesktopIcon(DesktopIconAction action) {
         case DesktopIconAction::Drawing: launchDrawing(); break;
         default: break;
     }
+    clearDesktopIconSelection();
 }
 
 bool WindowManager::tryHandleDesktopIconClick(int logicalX, int logicalY) {
@@ -36,8 +37,6 @@ bool WindowManager::tryHandleDesktopIconClick(int logicalX, int logicalY) {
 
     if (dbl) {
         activateDesktopIcon(icons[static_cast<size_t>(hit)].action);
-        m_desktopIconLastClickIndex = -1;
-        m_desktopIconLastClickTicks = 0;
     }
     return true;
 }

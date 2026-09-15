@@ -1,5 +1,7 @@
 # Session log
 
+| 2026-09-15 | fix | Cleared desktop-icon selection and double-click history across Start menu, taskbar, Alt+Tab, and icon activation paths; added shell event coverage and updated the 7.3 behavior note. |
+
 | 2026-09-15 | fix | Cleared desktop-icon double-click history with selection state so unrelated window clicks cannot trigger a false launch; added WindowManager regression coverage and updated the 7.3 behavior note. |
 
 | 2026-09-15 | fix | Repaired verification script executability, taught the Drawing check to inspect compressed main bodies, and fixed the documented Settings test include path; the full documented headless suite passed. |

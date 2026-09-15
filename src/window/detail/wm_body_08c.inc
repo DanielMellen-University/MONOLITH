@@ -121,12 +121,14 @@ bool WindowManager::tryHandleShellHotkeys(const SDL_Event& event) {
     if (alt && key.sym == SDLK_TAB) {
         const int dir = (key.mod & KMOD_SHIFT) ? -1 : 1;
         cycleFocus(dir);
+        clearDesktopIconSelection();
         m_showStartMenu = false;
         return true;
     }
 
     if (ctrl && key.sym == SDLK_ESCAPE) {
         m_showStartMenu = !m_showStartMenu;
+        clearDesktopIconSelection();
         m_startMenuHoverIndex = -1;
         endAltTabCycle();
         return true;
@@ -138,4 +140,3 @@ bool WindowManager::tryHandleShellHotkeys(const SDL_Event& event) {
 bool WindowManager::shouldQuit() const {
     return m_quitRequested;
 }
-
