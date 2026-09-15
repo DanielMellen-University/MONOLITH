@@ -130,6 +130,30 @@ int main() {
         check(failedSessionText.find("\neditor ") != std::string::npos,
               "failed editor window remains eligible for session restore");
 
+        const auto atomicSessionPath = hostRoot / "atomic-session.txt";
+        {
+            std::ofstream existingSession(atomicSessionPath);
+            existingSession << "old session\n";
+        }
+        check(wm.saveSession(atomicSessionPath.string()),
+              "session save replaces an existing snapshot");
+        std::ifstream atomicSession(atomicSessionPath);
+        const std::string atomicSessionText(
+            std::istreambuf_iterator<char>(atomicSession), {});
+        check(atomicSessionText.starts_with("session_v1\n"),
+              "replaced session snapshot is complete");
+        check(!std::filesystem::exists(atomicSessionPath.string() + ".tmp"),
+              "successful session save removes its temporary snapshot");
+
+        const auto blockedSessionPath = hostRoot / "blocked-session";
+        check(std::filesystem::create_directory(blockedSessionPath),
+              "create blocked session target");
+        check(!wm.saveSession(blockedSessionPath.string()),
+              "session save reports a failed atomic replacement");
+        check(std::filesystem::is_directory(blockedSessionPath)
+                  && !std::filesystem::exists(blockedSessionPath.string() + ".tmp"),
+              "failed session replacement preserves the target and cleans up");
+
         check(fs.writeFile("/docs/retry.txt", "ready"), "create editor file after failed open");
         wm.openPath("/docs/retry.txt");
         check(wm.focusEditorForFile("/docs/retry.txt"),

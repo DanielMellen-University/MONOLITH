@@ -1,5 +1,7 @@
 # Session log
 
+| 2026-09-15 | fix | Protected session snapshots with validated temporary writes and atomic replacement, preserving the previous file when replacement fails; added focused save/cleanup coverage and documented the persistence contract. |
+
 | 2026-09-15 | fix | Made the Start menu a modal focus boundary: active apps pause while it is open, held game controls are cleared through focus loss, and host focus changes cannot resume apps behind the menu; added focused coverage and updated architecture notes. |
 
 | 2026-09-15 | fix | Kept `Tab` and `Escape` releases paired with shell-consumed `Alt+Tab` and `Ctrl+Escape` keydowns, added focused input coverage, and documented the complete gesture boundary. |

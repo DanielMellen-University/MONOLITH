@@ -1,6 +1,10 @@
 
 bool WindowManager::saveSession(const std::string& hostPath) const {
-    std::ofstream out(hostPath, std::ios::trunc);
+    if (hostPath.empty()) return false;
+
+    const std::filesystem::path targetPath(hostPath);
+    const std::filesystem::path tempPath = targetPath.string() + ".tmp";
+    std::ofstream out(tempPath, std::ios::trunc);
     if (!out) return false;
 
     out << "session_v1\n";
@@ -52,7 +56,28 @@ bool WindowManager::saveSession(const std::string& hostPath) const {
         monolith::window::session::writePath(out, path);
         out << '\n';
     }
-    return static_cast<bool>(out);
+    out.flush();
+    if (!out) {
+        out.close();
+        std::error_code cleanupError;
+        std::filesystem::remove(tempPath, cleanupError);
+        return false;
+    }
+    out.close();
+    if (!out) {
+        std::error_code cleanupError;
+        std::filesystem::remove(tempPath, cleanupError);
+        return false;
+    }
+
+    std::error_code renameError;
+    std::filesystem::rename(tempPath, targetPath, renameError);
+    if (renameError) {
+        std::error_code cleanupError;
+        std::filesystem::remove(tempPath, cleanupError);
+        return false;
+    }
+    return true;
 }
 
 void WindowManager::requestQuit() {

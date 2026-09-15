@@ -1,5 +1,10 @@
 # Changelog
 
+## 2026-09: Protect session snapshots during shutdown
+
+- Session restore data is now written to a temporary sibling and atomically replaces the live snapshot only after the full stream succeeds, so an interrupted shutdown cannot leave a truncated session file.
+- Added regression coverage for successful replacement and failed replacement cleanup.
+
 ## 2026-09: Make the Start menu a modal focus boundary
 
 - Opening Start now pauses and suspends the previously focused visible app instead of only hiding its keyboard events; closing Start restores that app only when it still owns focus.
