@@ -76,9 +76,12 @@ void FilesystemApp::onVirtualPathMoved(const std::string& oldPath,
     // A file or direct child folder can move through the directory currently
     // being viewed without moving the browser itself. Refresh that listing so
     // stale rows do not remain after an external rename or move.
+    const bool isCurrentFolderRename = parentVirtualPath(oldNormalized) == current
+        && parentVirtualPath(newNormalized) == current;
     if (parentVirtualPath(oldNormalized) == current
         || parentVirtualPath(newNormalized) == current) {
-        refreshEntries();
+        refreshEntries(isCurrentFolderRename ? oldNormalized : "",
+                       isCurrentFolderRename ? newNormalized : "");
         setStatus("Listing updated");
     }
 }
@@ -181,7 +184,8 @@ void FilesystemApp::goUp() {
     setCurrentPath(parent);
 }
 
-void FilesystemApp::refreshEntries() {
+void FilesystemApp::refreshEntries(const std::string& movedFrom,
+                                   const std::string& movedTo) {
     // A refresh can follow an external rename, move, or delete. Do not leave
     // a menu target pointing at an index from the previous listing.
     if (m_showContextMenu) {
@@ -189,11 +193,31 @@ void FilesystemApp::refreshEntries() {
     }
 
     using SelectionIdentity = std::pair<std::string, bool>;
+    SelectionIdentity movedFromIdentity;
+    SelectionIdentity movedToIdentity;
+    bool remapSelection = false;
+    if (!movedFrom.empty() && !movedTo.empty()) {
+        const std::string fromName = entryBaseName(movedFrom);
+        for (const auto& entry : m_entries) {
+            if (entry.name == fromName) {
+                movedFromIdentity = {entry.name, entry.isDirectory};
+                movedToIdentity = {entryBaseName(movedTo), entry.isDirectory};
+                remapSelection = true;
+                break;
+            }
+        }
+    }
+    const auto remapIdentity = [&](SelectionIdentity identity) {
+        if (remapSelection && identity == movedFromIdentity) {
+            return movedToIdentity;
+        }
+        return identity;
+    };
     std::set<SelectionIdentity> selectedIdentities;
     for (const int index : selectedIndicesSorted()) {
         if (index >= 0 && index < static_cast<int>(m_entries.size())) {
             const auto& entry = m_entries[static_cast<size_t>(index)];
-            selectedIdentities.emplace(entry.name, entry.isDirectory);
+            selectedIdentities.emplace(remapIdentity({entry.name, entry.isDirectory}));
         }
     }
 
@@ -202,7 +226,7 @@ void FilesystemApp::refreshEntries() {
     SelectionIdentity primaryIdentity;
     if (hadPrimarySelection) {
         const auto& entry = m_entries[static_cast<size_t>(m_selectedIndex)];
-        primaryIdentity = {entry.name, entry.isDirectory};
+        primaryIdentity = remapIdentity({entry.name, entry.isDirectory});
     }
 
     const bool hadAnchor = m_anchorIndex >= 0
@@ -210,7 +234,7 @@ void FilesystemApp::refreshEntries() {
     SelectionIdentity anchorIdentity;
     if (hadAnchor) {
         const auto& entry = m_entries[static_cast<size_t>(m_anchorIndex)];
-        anchorIdentity = {entry.name, entry.isDirectory};
+        anchorIdentity = remapIdentity({entry.name, entry.isDirectory});
     }
 
     m_entries.clear();

@@ -34,7 +34,8 @@ private:
     // === Navigation ===
     void setCurrentPath(const std::string& virtualPath);
     void goUp();
-    void refreshEntries();
+    void refreshEntries(const std::string& movedFrom = {},
+                        const std::string& movedTo = {});
     void activateEntry(size_t index);           // double-click / enter behavior
     void openFileEntry(const std::string& name, const char* forceApp = nullptr);
     // forceApp: nullptr = default routing, "editor", or "drawing"

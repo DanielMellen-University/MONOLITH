@@ -89,10 +89,21 @@ int main() {
 
     check(fs.rename("/home/monolith/a.txt", "/home/monolith/renamed-a.txt"),
           "rename a direct child outside the browser");
+    check(browser.selectEntryNamed("a.txt", false),
+          "select a browser row before an external rename");
     browser.onVirtualPathMoved("/home/monolith/a.txt", "/home/monolith/renamed-a.txt");
-    check(browser.selectEntryNamed("renamed-a.txt", false)
-              && !browser.selectEntryNamed("a.txt", false),
+    bool renamedEntryVisible = false;
+    bool oldEntryVisible = false;
+    for (const auto& entry : browser.m_entries) {
+        renamedEntryVisible |= entry.name == "renamed-a.txt" && !entry.isDirectory;
+        oldEntryVisible |= entry.name == "a.txt" && !entry.isDirectory;
+    }
+    check(renamedEntryVisible && !oldEntryVisible,
           "external child rename refreshes the current browser listing");
+    check(browser.m_selectedIndex >= 0
+              && browser.m_entries[static_cast<size_t>(browser.m_selectedIndex)].name
+                  == "renamed-a.txt",
+          "external child rename preserves the primary selection");
     check(fs.rename("/home/monolith/renamed-a.txt", "/home/monolith/a.txt"),
           "restore the renamed browser test entry");
     browser.onVirtualPathMoved("/home/monolith/renamed-a.txt", "/home/monolith/a.txt");

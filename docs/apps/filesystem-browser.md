@@ -36,6 +36,7 @@ Long paths and status messages stay at the font's native size and clip at their 
 - Primary selection is drawn slightly brighter than other selected rows.
 - Delete, Copy, and Cut apply to the whole multi-selection. Rename still requires a single item.
 - Refreshing or filtering keeps every selected entry that is still visible by name and type, along with the Shift-selection anchor when that entry survives. If the primary or anchor entry disappears, a surviving selected entry becomes the fallback anchor. If no selected entries remain, selection clears and the list scrolls back inside the available results.
+- When an external rename changes a direct child in the folder being viewed, the browser remaps the selected row and Shift-selection anchor to the new name when that entry was selected.
 
 ### Properties
 
@@ -143,6 +144,7 @@ Right-clicking an already selected row keeps the current multi-selection, so con
 - Successful cut + paste moves notify open Text Editor and Drawing windows, so bound paths follow files and directories into their new location.
 - A browser currently viewing a moved directory follows it and refreshes the listing at the new path.
 - External renames, moves, and deletions of a file or direct child folder refresh the folder currently being viewed, so rows do not remain after their backing entries change.
+- A selected direct child remains selected across an external rename in the current folder, including its primary selection and Shift-selection anchor.
 - External creations from Terminal, Text Editor, Drawing, or another Filesystem Browser refresh the folder currently being viewed, including ancestor folders when a write also creates missing parents, so new rows appear without pressing Refresh.
 - External changes to an existing direct child use the same refresh path, keeping listings current after an overwrite.
 - A change event for the directory currently being viewed refreshes that directory too, which keeps the open listing current after recursive tree merges.

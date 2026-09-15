@@ -1,5 +1,10 @@
 # Changelog
 
+## 2026-09: Preserve Browser selection across external renames
+
+- Filesystem Browser now keeps a selected direct child, including its primary selection and Shift-selection anchor, when another app renames that child in the visible folder.
+- Added regression coverage for selection preservation during an externally reported rename.
+
 ## 2026-09: Refresh changed Browser directories
 
 - Filesystem Browser now refreshes the directory it is currently viewing when that directory itself receives an external change event.
