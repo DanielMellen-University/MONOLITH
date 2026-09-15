@@ -113,6 +113,7 @@ void WindowManager::handleEvent(const SDL_Event& event) {
             m_mouseCaptureWindow = nullptr;
             m_shellMouseCapture = false;
             m_mouseDown = false;
+            m_shellKeyUpsPending.clear();
 
             if (m_focusedWindow && m_focusedWindow->app && !m_focusedWindow->minimized) {
                 m_focusedWindow->app->onFocusLost();

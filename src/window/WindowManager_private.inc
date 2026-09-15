@@ -180,6 +180,8 @@ private:
     void cycleFocus(int direction);
     void endAltTabCycle();
 
+    // Key releases paired with shell-consumed keydowns stay out of clients.
+    std::set<SDL_Keycode> m_shellKeyUpsPending;
     bool m_altTabCycling = false;
     int m_altTabIndex = 0;
     std::vector<Window*> m_altTabOrder;

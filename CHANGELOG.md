@@ -1,5 +1,10 @@
 # Changelog
 
+## 2026-09: Keep shell hotkey releases out of clients
+
+- The Window Manager now consumes the `Tab` and `Escape` releases paired with shell-owned `Alt+Tab` and `Ctrl+Escape` keydowns, preventing half-delivered gestures in client apps.
+- Added focused regression coverage for both shell hotkey release paths.
+
 ## 2026-09: Keep Alt+Tab key state inside the shell
 
 - The Window Manager now consumes the Alt release that ends an Alt+Tab cycle instead of forwarding it to the focused app.

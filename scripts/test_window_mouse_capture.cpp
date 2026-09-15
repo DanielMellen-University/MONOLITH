@@ -200,12 +200,38 @@ int main() {
           "window-frame clicks do not leak a mouse-up after focus changes");
 
     const int keyUpsBeforeAltRelease = secondPtr->keyUps;
+    SDL_Event altTab{};
+    altTab.type = SDL_KEYDOWN;
+    altTab.key.keysym.sym = SDLK_TAB;
+    altTab.key.keysym.mod = KMOD_ALT;
+    wm.handleEvent(altTab);
+    SDL_Event tabRelease{};
+    tabRelease.type = SDL_KEYUP;
+    tabRelease.key.keysym.sym = SDLK_TAB;
+    tabRelease.key.keysym.mod = KMOD_ALT;
+    wm.handleEvent(tabRelease);
+    check(secondPtr->keyUps == keyUpsBeforeAltRelease,
+          "shell-owned Tab release does not reach the focused client");
+
     SDL_Event altRelease{};
     altRelease.type = SDL_KEYUP;
     altRelease.key.keysym.sym = SDLK_LALT;
     wm.handleEvent(altRelease);
     check(secondPtr->keyUps == keyUpsBeforeAltRelease,
           "shell-owned Alt release does not reach the focused client");
+
+    SDL_Event ctrlEscape{};
+    ctrlEscape.type = SDL_KEYDOWN;
+    ctrlEscape.key.keysym.sym = SDLK_ESCAPE;
+    ctrlEscape.key.keysym.mod = KMOD_CTRL;
+    wm.handleEvent(ctrlEscape);
+    SDL_Event escapeRelease{};
+    escapeRelease.type = SDL_KEYUP;
+    escapeRelease.key.keysym.sym = SDLK_ESCAPE;
+    escapeRelease.key.keysym.mod = KMOD_CTRL;
+    wm.handleEvent(escapeRelease);
+    check(secondPtr->keyUps == keyUpsBeforeAltRelease,
+          "shell-owned Escape release does not reach the focused client");
 
     if (failures == 0) {
         std::cout << "ALL WINDOW MOUSE CAPTURE TESTS PASSED\n";

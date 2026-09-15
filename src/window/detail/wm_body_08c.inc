@@ -106,6 +106,11 @@ void WindowManager::cycleFocus(int direction) {
 bool WindowManager::tryHandleShellHotkeys(const SDL_Event& event) {
     if (event.type == SDL_KEYUP) {
         const SDL_Keycode sym = event.key.keysym.sym;
+        const auto pending = m_shellKeyUpsPending.find(sym);
+        if (pending != m_shellKeyUpsPending.end()) {
+            m_shellKeyUpsPending.erase(pending);
+            return true;
+        }
         if (sym == SDLK_LALT || sym == SDLK_RALT) {
             endAltTabCycle();
             // Alt is the shell-owned modifier for Alt+Tab. Consume its
@@ -124,6 +129,7 @@ bool WindowManager::tryHandleShellHotkeys(const SDL_Event& event) {
     if (alt && key.sym == SDLK_TAB) {
         const int dir = (key.mod & KMOD_SHIFT) ? -1 : 1;
         cycleFocus(dir);
+        m_shellKeyUpsPending.insert(SDLK_TAB);
         clearDesktopIconSelection();
         m_showStartMenu = false;
         return true;
@@ -131,6 +137,7 @@ bool WindowManager::tryHandleShellHotkeys(const SDL_Event& event) {
 
     if (ctrl && key.sym == SDLK_ESCAPE) {
         m_showStartMenu = !m_showStartMenu;
+        m_shellKeyUpsPending.insert(SDLK_ESCAPE);
         clearDesktopIconSelection();
         m_startMenuHoverIndex = -1;
         endAltTabCycle();
