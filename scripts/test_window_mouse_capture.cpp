@@ -65,7 +65,7 @@ int main() {
 
     auto first = std::make_unique<CaptureApp>();
     CaptureApp* firstPtr = first.get();
-    wm.createWindow("First", 100, 100, 300, 240, std::move(first));
+    auto* firstWindow = wm.createWindow("First", 100, 100, 300, 240, std::move(first));
 
     auto second = std::make_unique<CaptureApp>();
     CaptureApp* secondPtr = second.get();
@@ -112,6 +112,27 @@ int main() {
     wm.handleEvent(taskbarUp);
     check(firstPtr->ups == 1 && secondPtr->ups == 0,
           "taskbar clicks do not leak a mouse-up into a client app");
+
+    SDL_Event desktopDown{};
+    leftButton(desktopDown, SDL_MOUSEBUTTONDOWN, 900, 650);
+    wm.handleEvent(desktopDown);
+    SDL_Event desktopUp{};
+    leftButton(desktopUp, SDL_MOUSEBUTTONUP, 900, 650);
+    wm.handleEvent(desktopUp);
+    check(secondPtr->ups == 0,
+          "empty-desktop clicks do not leak a mouse-up into the focused client");
+
+    const int closeX = firstWindow->rect.x + firstWindow->rect.w - 10 - 16 + 4;
+    const int closeY = firstWindow->rect.y + (monolith::window::Window::TITLE_BAR_HEIGHT - 16) / 2 + 4;
+    SDL_Event frameDown{};
+    leftButton(frameDown, SDL_MOUSEBUTTONDOWN, closeX, closeY);
+    wm.handleEvent(frameDown);
+    const int secondUpsBeforeFrameRelease = secondPtr->ups;
+    SDL_Event frameUp{};
+    leftButton(frameUp, SDL_MOUSEBUTTONUP, closeX, closeY);
+    wm.handleEvent(frameUp);
+    check(secondPtr->ups == secondUpsBeforeFrameRelease,
+          "window-frame clicks do not leak a mouse-up after focus changes");
 
     if (failures == 0) {
         std::cout << "ALL WINDOW MOUSE CAPTURE TESTS PASSED\n";

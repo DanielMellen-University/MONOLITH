@@ -1,5 +1,10 @@
 # Changelog
 
+## 2026-09: Prevent orphaned client mouse releases
+
+- Window-frame and empty-desktop clicks no longer fall through as `SDL_MOUSEBUTTONUP` events to whichever app is focused afterward.
+- Added Window Manager mouse-capture coverage for empty desktop and close-button interactions.
+
 ## 2026-09: Align architecture documentation with the shipped shell
 
 - Updated the architecture guide to include Breakout and describe the runtime logical desktop size used by the current Window Manager.

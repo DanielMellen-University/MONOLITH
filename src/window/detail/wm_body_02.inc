@@ -125,10 +125,6 @@
             SDL_Event clientEvent = event;
             translateMouseEventToClient(*releaseWindow, clientEvent);
             releaseWindow->app->handleEvent(clientEvent);
-        } else if (m_focusedWindow && m_focusedWindow->app && !m_focusedWindow->minimized && !m_showStartMenu) {
-            SDL_Event clientEvent = event;
-            translateMouseEventToClient(*m_focusedWindow, clientEvent);
-            m_focusedWindow->app->handleEvent(clientEvent);
         }
     }
 }
