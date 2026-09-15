@@ -79,6 +79,15 @@ int main() {
     monolith::window::Window* window = wm.createWindow(
         "Probe", 100, 100, 300, 240, std::move(probe));
 
+    wm.m_desktopIconSelected = 2;
+    wm.m_desktopIconLastClickIndex = 2;
+    wm.m_desktopIconLastClickTicks = 1000;
+    wm.clearDesktopIconSelection();
+    check(wm.m_desktopIconSelected == -1
+              && wm.m_desktopIconLastClickIndex == -1
+              && wm.m_desktopIconLastClickTicks == 0,
+          "clearing an icon selection also clears double-click history");
+
     check(wm.getWindowAt(220, 280) == window,
           "scaled hit testing finds a window without prior motion");
     check(wm.getWindowAt(800, 280) == nullptr,

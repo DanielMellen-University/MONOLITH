@@ -1,5 +1,10 @@
 # Changelog
 
+## 2026-09: Reset stale desktop-icon click state
+
+- WindowManager now clears pending desktop-icon double-click history whenever icon selection is cleared, preventing an intervening window click from causing a false launch.
+- Added regression coverage and updated the desktop-icon behavior note.
+
 ## 2026-09: Keep verification scripts runnable
 
 - Restored executable mode for the desktop-icon and games integration checks.

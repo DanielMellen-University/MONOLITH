@@ -1,5 +1,7 @@
 void WindowManager::clearDesktopIconSelection() {
     m_desktopIconSelected = -1;
+    m_desktopIconLastClickIndex = -1;
+    m_desktopIconLastClickTicks = 0;
 }
 
 void WindowManager::activateDesktopIcon(DesktopIconAction action) {
@@ -23,8 +25,6 @@ bool WindowManager::tryHandleDesktopIconClick(int logicalX, int logicalY) {
 
     if (hit < 0) {
         clearDesktopIconSelection();
-        m_desktopIconLastClickIndex = -1;
-        m_desktopIconLastClickTicks = 0;
         return false;
     }
 
