@@ -1,5 +1,10 @@
 # Changelog
 
+## 2026-09: Keep Alt+Tab key state inside the shell
+
+- The Window Manager now consumes the Alt release that ends an Alt+Tab cycle instead of forwarding it to the focused app.
+- Added mouse-capture regression coverage for the shell-owned key release.
+
 ## 2026-09: Preserve Browser selection across external renames
 
 - Filesystem Browser now keeps a selected direct child, including its primary selection and Shift-selection anchor, when another app renames that child in the visible folder.

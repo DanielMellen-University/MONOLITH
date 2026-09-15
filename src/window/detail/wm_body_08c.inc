@@ -108,6 +108,9 @@ bool WindowManager::tryHandleShellHotkeys(const SDL_Event& event) {
         const SDL_Keycode sym = event.key.keysym.sym;
         if (sym == SDLK_LALT || sym == SDLK_RALT) {
             endAltTabCycle();
+            // Alt is the shell-owned modifier for Alt+Tab. Consume its
+            // release too so the complete gesture stays outside client apps.
+            return true;
         }
         return false;
     }

@@ -1,5 +1,7 @@
 # Session log
 
+| 2026-09-15 | fix | Kept the Alt+Tab modifier release inside WindowManager so shell-owned key state cannot leak into clients; added focused input regression coverage and documented the contract. |
+
 | 2026-09-15 | fix | Preserved Filesystem Browser primary selection and Shift-selection anchors across external renames in the visible folder; added focused regression coverage and updated Browser/architecture docs. |
 
 | 2026-09-15 | fix | Refreshed a Filesystem Browser when its current directory is the changed path, covering directory-level external updates and documenting the recursive-tree behavior. |

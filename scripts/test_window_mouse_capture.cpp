@@ -27,6 +27,8 @@ public:
             motionY = event.motion.y;
         } else if (event.type == SDL_MOUSEWHEEL) {
             ++wheelEvents;
+        } else if (event.type == SDL_KEYUP) {
+            ++keyUps;
         }
     }
 
@@ -34,6 +36,7 @@ public:
     int ups = 0;
     int motions = 0;
     int wheelEvents = 0;
+    int keyUps = 0;
     int focusGained = 0;
     int focusLost = 0;
     int downX = -1;
@@ -195,6 +198,14 @@ int main() {
     wm.handleEvent(frameUp);
     check(secondPtr->ups == secondUpsBeforeFrameRelease,
           "window-frame clicks do not leak a mouse-up after focus changes");
+
+    const int keyUpsBeforeAltRelease = secondPtr->keyUps;
+    SDL_Event altRelease{};
+    altRelease.type = SDL_KEYUP;
+    altRelease.key.keysym.sym = SDLK_LALT;
+    wm.handleEvent(altRelease);
+    check(secondPtr->keyUps == keyUpsBeforeAltRelease,
+          "shell-owned Alt release does not reach the focused client");
 
     if (failures == 0) {
         std::cout << "ALL WINDOW MOUSE CAPTURE TESTS PASSED\n";
