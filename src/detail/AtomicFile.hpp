@@ -23,12 +23,13 @@ inline bool isSafeAtomicTempPath(const std::filesystem::path& tempPath) {
         || std::filesystem::is_regular_file(status);
 }
 
-// Write text to a sibling temporary file, then replace the target only after
-// the complete stream has succeeded.
+// Write to a sibling temporary file, then replace the target only after the
+// complete stream has succeeded.
 template <typename Writer>
-bool writeTextAtomically(const std::filesystem::path& targetPath,
-                         Writer&& writer,
-                         bool createParentDirectories = false) {
+bool writeAtomically(const std::filesystem::path& targetPath,
+                     Writer&& writer,
+                     bool createParentDirectories = false,
+                     std::ios_base::openmode openMode = std::ios_base::out) {
     if (targetPath.empty()) return false;
 
     if (createParentDirectories && targetPath.has_parent_path()) {
@@ -52,7 +53,7 @@ bool writeTextAtomically(const std::filesystem::path& targetPath,
     const std::filesystem::path tempPath = targetPath.string() + ".tmp";
     if (!isSafeAtomicTempPath(tempPath)) return false;
 
-    std::ofstream out(tempPath, std::ios::trunc);
+    std::ofstream out(tempPath, openMode | std::ios_base::trunc);
     if (!out) return false;
 
     if (preservePermissions) {
@@ -104,6 +105,17 @@ bool writeTextAtomically(const std::filesystem::path& targetPath,
         return false;
     }
     return true;
+}
+
+template <typename Writer>
+bool writeTextAtomically(const std::filesystem::path& targetPath,
+                         Writer&& writer,
+                         bool createParentDirectories = false) {
+    return writeAtomically(
+        targetPath,
+        std::forward<Writer>(writer),
+        createParentDirectories,
+        std::ios_base::out);
 }
 
 } // namespace monolith::detail

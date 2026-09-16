@@ -1,5 +1,10 @@
 # Changelog
 
+## 2026-09: Share virtual and host atomic writes
+
+- Virtual filesystem writes now use the same binary-capable atomic writer as settings, sessions, and game records, removing a duplicated replacement path while preserving permission, symlink, and failure cleanup behavior.
+- Added regression coverage for embedded NUL bytes in virtual files.
+
 ## 2026-09: Clean up failed atomic serializers
 
 - Shared host snapshots now convert serializer exceptions into a failed save and remove the temporary sibling, preserving the boolean persistence contract.

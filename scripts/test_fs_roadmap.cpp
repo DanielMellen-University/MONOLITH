@@ -206,6 +206,10 @@ int main() {
     check(fs.writeFile("/src/alpha.txt", "lower"), "write /src/alpha.txt");
     check(fs.writeFile("/src/other.dat", "zzz"), "write /src/other.dat");
     check(fs.writeFile("/src/empty.txt", ""), "write empty file");
+    const std::string binaryContent("a\0b", 3);
+    check(fs.writeFile("/src/binary.bin", binaryContent)
+              && fs.readFile("/src/binary.bin") == binaryContent,
+          "atomic virtual writes preserve embedded NUL bytes");
     check(fs.writeFile("/src/atomic.txt", "before"),
           "write initial atomic file");
     const auto atomicPermissions = stdfs::perms::owner_read

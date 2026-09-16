@@ -420,7 +420,6 @@ bool Filesystem::writeFile(const std::string& virtualPath, const std::string& co
         if (hostPathString.empty()) return false;
 
         stdfs::path hostPath(hostPathString);
-        stdfs::create_directories(hostPath.parent_path());
 
         // Keep writes to an existing file atomic. Resolve a file symlink first
         // so replacing it updates the target instead of deleting the link.
@@ -444,55 +443,13 @@ bool Filesystem::writeFile(const std::string& virtualPath, const std::string& co
             if (writable == stdfs::perms::none) return false;
         }
 
-        const stdfs::path tempPath = writePath.string() + ".tmp";
-        if (!monolith::detail::isSafeAtomicTempPath(tempPath)) return false;
-
-        std::ofstream file(tempPath, std::ios::binary | std::ios::trunc);
-        if (!file) return false;
-
-        file.write(content.data(), static_cast<std::streamsize>(content.size()));
-        file.flush();
-        if (!file) {
-            file.close();
-            std::error_code cleanupError;
-            stdfs::remove(tempPath, cleanupError);
-            return false;
-        }
-        file.close();
-        if (!file) {
-            std::error_code cleanupError;
-            stdfs::remove(tempPath, cleanupError);
-            return false;
-        }
-
-        if (!monolith::detail::isSafeAtomicTempPath(tempPath)) {
-            std::error_code cleanupError;
-            stdfs::remove(tempPath, cleanupError);
-            return false;
-        }
-
-        if (existing) {
-            std::error_code permissionsError;
-            stdfs::permissions(
-                tempPath,
-                existingStatus.permissions(),
-                stdfs::perm_options::replace,
-                permissionsError);
-            if (permissionsError) {
-                std::error_code cleanupError;
-                stdfs::remove(tempPath, cleanupError);
-                return false;
-            }
-        }
-
-        std::error_code renameError;
-        stdfs::rename(tempPath, writePath, renameError);
-        if (renameError) {
-            std::error_code cleanupError;
-            stdfs::remove(tempPath, cleanupError);
-            return false;
-        }
-        return true;
+        return monolith::detail::writeAtomically(
+            writePath,
+            [&content](std::ostream& out) {
+                out.write(content.data(), static_cast<std::streamsize>(content.size()));
+            },
+            true,
+            std::ios_base::out | std::ios_base::binary);
     } catch (const std::exception& e) {
         std::cerr << "writeFile failed: " << e.what() << std::endl;
         return false;

@@ -1,5 +1,7 @@
 # Session log
 
+| 2026-09-15 | refactor | Consolidated virtual filesystem writes onto the shared binary-capable atomic writer and covered embedded NUL preservation. |
+
 | 2026-09-15 | fix | Made shared atomic host snapshots clean up and report failure when a serializer throws, with focused persistence coverage. |
 
 | 2026-09-15 | fix | Intersected every Filesystem Browser text subregion with the caller renderer clip and added pixel-level containment coverage. |
