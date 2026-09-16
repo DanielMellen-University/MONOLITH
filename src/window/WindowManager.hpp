@@ -3,6 +3,7 @@
 #include "Window.hpp"
 #include "DesktopIcons.hpp"
 #include <SDL2/SDL.h>
+#include <cmath>
 #include <cstdint>
 #include <SDL2/SDL_ttf.h>
 #include <memory>
@@ -170,8 +171,13 @@ public:
     void clearFilesystemClipboard();
 
     // Coordinate conversion helpers (screen <-> logical desktop space)
-    int screenToLogicalX(int screenX) const { return static_cast<int>(screenX / m_contentScale); }
-    int screenToLogicalY(int screenY) const { return static_cast<int>((screenY - m_headerOffset) / m_contentScale); }
+    int screenToLogicalX(int screenX) const {
+        return static_cast<int>(std::floor(static_cast<float>(screenX) / m_contentScale));
+    }
+    int screenToLogicalY(int screenY) const {
+        return static_cast<int>(std::floor(
+            static_cast<float>(screenY - m_headerOffset) / m_contentScale));
+    }
 
     int logicalToScreenX(int logicalX) const { return static_cast<int>(logicalX * m_contentScale); }
     int logicalToScreenY(int logicalY) const { return static_cast<int>(logicalY * m_contentScale + m_headerOffset); }

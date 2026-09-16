@@ -93,6 +93,14 @@ int main() {
     wm.setLogicalDesktopSize(1000, 700);
     wm.setContentScale(2.0f);
 
+    wm.setHeaderOffset(20);
+    check(wm.screenToLogicalX(-1) == -1
+              && wm.screenToLogicalY(19) == -1
+              && wm.screenToLogicalY(20) == 0
+              && wm.screenToLogicalY(21) == 0,
+          "screen coordinates above a scaled desktop stay outside logical row zero");
+    wm.setHeaderOffset(0);
+
     TTF_Font* font = TTF_OpenFont("assets/fonts/DejaVuSans.ttf", 14);
     check(font != nullptr, "taskbar geometry test loads the shared font");
     wm.setFont(font);

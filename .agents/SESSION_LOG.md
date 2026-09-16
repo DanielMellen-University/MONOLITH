@@ -197,6 +197,8 @@
 Historical session rows were trimmed during the 7.1 MCP ship to keep AGENTS.md small.
 Current chunk pointer: [`CURRENT_CHUNK`](CURRENT_CHUNK).
 
+| 2026-09-16 | fix | Floored screen-to-logical pointer conversion at negative and header-offset boundaries so outside clicks cannot map onto logical row or column zero; added coordinate regression coverage and updated architecture/changelog docs. |
+
 | 2026-09-12 | fix | Made Filesystem Browser report zero rows and stop rendering the list when undersized chrome leaves no client area; added tiny-client coverage and updated docs. |
 | 2026-09-12 | fix | Restricted Filesystem Browser selection and context-menu hit testing to complete rendered rows; added partial-row coverage and updated docs. |
 | 2026-09-12 | fix | Restricted Text Editor mouse selection to complete rendered rows above the status bar; added gap-click coverage and updated docs. |

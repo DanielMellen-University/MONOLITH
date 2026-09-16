@@ -1,5 +1,10 @@
 # Changelog
 
+## 2026-09: Keep outside pointer coordinates outside the desktop
+
+- Floored scaled screen-to-logical pointer conversion so positions just above a host header or left of the desktop cannot hit an edge window.
+- Added regression coverage for negative and header-offset coordinate boundaries.
+
 ## 2026-09: Preserve direct Browser renames
 
 - Cleared inline rename state before broadcasting a successful rename, preventing the originating Browser's synchronous refresh from canceling the operation or losing its new selection and status message.
