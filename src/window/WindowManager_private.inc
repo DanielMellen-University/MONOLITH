@@ -141,6 +141,12 @@ private:
     // Bring a window to the front of the z-order
     void bringToFront(Window* window);
 
+    // App callbacks can close or replace a window while shell code is still
+    // handling the original event. Compare identity without dereferencing a
+    // possibly stale pointer before continuing the operation.
+    bool isLiveWindow(const Window* window) const;
+    bool isLiveWindow(const Window* window, int expectedId) const;
+
     // Move keyboard focus to the topmost non-minimized survivor, or clear it
     // when every window is minimized.
     void focusTopmostVisibleWindow();

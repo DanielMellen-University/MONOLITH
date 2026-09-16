@@ -1,5 +1,10 @@
 # Changelog
 
+## 2026-09: Guard shell input after app callbacks
+
+- WindowManager now verifies window identity after initial sizing, resize callbacks, and focus-triggering input activation, preventing a self-closing app from leaving the shell to dereference a stale event target.
+- Extended lifecycle coverage for click activation and callback-triggered target removal.
+
 ## 2026-09: Stabilize focus callback handoff
 
 - WindowManager now publishes focus before lifecycle callbacks and verifies the target remains live, so an app can close itself from `onFocusGained()` without leaving a dangling focused window.

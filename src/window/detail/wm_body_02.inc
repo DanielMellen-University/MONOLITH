@@ -37,7 +37,9 @@
         }
 
         clearDesktopIconSelection();
+        const int clickedId = clicked->id;
         bringToFront(clicked);
+        if (!isLiveWindow(clicked, clickedId)) return;
 
         // === Priority 1: Title bar buttons ===
         if (isInTitleBar(*clicked, eventLogicalX, eventLogicalY)) {
@@ -89,7 +91,9 @@
         Window* clicked = getWindowAt(m_mouseX, m_mouseY);
         if (clicked) {
             clearDesktopIconSelection();
+            const int clickedId = clicked->id;
             bringToFront(clicked);
+            if (!isLiveWindow(clicked, clickedId)) return;
 
             if (isInContentArea(*clicked, eventLogicalX, eventLogicalY)) {
                 if (clicked->app) {

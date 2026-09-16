@@ -60,6 +60,7 @@ Window* WindowManager::createWindow(const std::string& title, int x, int y, int 
     }
 
     Window* ptr = window.get();
+    const int windowId = ptr->id;
     m_windows.push_back(std::move(window));
     clampSingleWindow(*ptr);
 
@@ -72,8 +73,12 @@ Window* WindowManager::createWindow(const std::string& title, int x, int y, int 
         ptr->app->onResize(ptr->rect.w, clientH > 0 ? clientH : 0);
     }
 
+    // The initial callback can request a controller close. Do not pass the
+    // destroyed address into the focus path or return it to the caller.
+    if (!isLiveWindow(ptr, windowId)) return nullptr;
+
     bringToFront(ptr);
-    return ptr;
+    return isLiveWindow(ptr, windowId) ? ptr : nullptr;
 }
 
 void WindowManager::handleEvent(const SDL_Event& event) {

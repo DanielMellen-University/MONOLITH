@@ -101,10 +101,31 @@ Window* WindowManager::getWindowAt(int mouseX, int mouseY) {
     return nullptr;
 }
 
+bool WindowManager::isLiveWindow(const Window* window) const {
+    if (!window) return false;
+    return std::find_if(
+        m_windows.begin(),
+        m_windows.end(),
+        [window](const auto& candidate) {
+            return candidate.get() == window;
+        }) != m_windows.end();
+}
+
+bool WindowManager::isLiveWindow(const Window* window, int expectedId) const {
+    if (!window) return false;
+    return std::find_if(
+        m_windows.begin(),
+        m_windows.end(),
+        [window, expectedId](const auto& candidate) {
+            return candidate.get() == window && candidate->id == expectedId;
+        }) != m_windows.end();
+}
+
 void WindowManager::bringToFront(Window* window) {
-    if (!window) return;
+    if (!isLiveWindow(window)) return;
 
     const SDL_Rect before = window->rect;
+    const int windowId = window->id;
 
     // Any operation that explicitly focuses a window, including the
     // file-singleton bridges, must restore it if it was minimized.
@@ -114,6 +135,10 @@ void WindowManager::bringToFront(Window* window) {
     // visible so its title bar stays above the taskbar.
     clampSingleWindow(*window);
     notifyAppResizeIfGeometryChanged(*window, before);
+
+    // Resize callbacks may close the target or replace its storage before the
+    // z-order operation resumes.
+    if (!isLiveWindow(window, windowId)) return;
 
     // Move the window to the end of the vector (drawn last = on top)
     auto it = std::find_if(m_windows.begin(), m_windows.end(),
@@ -137,17 +162,8 @@ void WindowManager::bringToFront(Window* window) {
             previousFocused->app->onFocusLost();
         }
 
-        const auto newFocusedIsLive = [&]() {
-            return std::find_if(
-                m_windows.begin(),
-                m_windows.end(),
-                [newFocused, newFocusedId](const auto& candidate) {
-                    return candidate.get() == newFocused
-                        && candidate->id == newFocusedId;
-                }) != m_windows.end();
-        };
         if (focusChanged && m_focusedWindow == newFocused
-            && newFocusedIsLive() && newFocused->app) {
+            && isLiveWindow(newFocused, newFocusedId) && newFocused->app) {
             newFocused->app->onFocusGained();
         }
 
