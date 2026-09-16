@@ -1,5 +1,10 @@
 # Changelog
 
+## 2026-09: Keep session geometry attached to its launcher
+
+- Applied restored geometry to the window ID created for each session entry instead of assuming the newest vector element is the launched window.
+- Preserved correct session restore behavior when app creation callbacks open additional windows.
+
 ## 2026-09: Create parents for direct filesystem copies
 
 - Made `Filesystem::copyRecursive` create missing destination parent directories for direct file copies, matching its documented tree-copy behavior.

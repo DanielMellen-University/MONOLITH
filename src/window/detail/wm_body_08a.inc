@@ -124,7 +124,10 @@ bool WindowManager::loadSession(const std::string& hostPath) {
             continue;
         }
 
-        const size_t before = m_windows.size();
+        // Keep the ID that the launcher will assign to this session entry.
+        // App callbacks during creation may open another window, so the last
+        // vector element is not necessarily the window being restored.
+        const int launchedWindowId = m_nextId;
         if (kind == "terminal") {
             launchTerminal();
         } else if (kind == "filesystem") {
@@ -147,8 +150,14 @@ bool WindowManager::loadSession(const std::string& hostPath) {
             continue;
         }
 
-        if (m_windows.size() > before) {
-            Window* restoredWindow = m_windows.back().get();
+        Window* restoredWindow = nullptr;
+        for (const auto& windowPtr : m_windows) {
+            if (windowPtr && windowPtr->id == launchedWindowId) {
+                restoredWindow = windowPtr.get();
+                break;
+            }
+        }
+        if (restoredWindow) {
             const bool boundSuccessfully =
                 (!expectsEditorFile && !expectsDrawingFile)
                 || (expectsEditorFile && !restoredWindow->editedFilePath.empty())
