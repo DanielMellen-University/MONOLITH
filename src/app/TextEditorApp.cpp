@@ -109,6 +109,8 @@ TextEditorApp::TextEditorApp(TTF_Font* font, monolith::fs::Filesystem* fs, const
         m_cursorCol = 0;
     }
 
+    m_savedLines = m_lines;
+
     refreshSyntaxMode();
 }
 
@@ -311,6 +313,7 @@ bool TextEditorApp::loadInitialFile(const std::string& virtualPath) {
         m_lines = { "" };
     }
     m_filePath = normalized;
+    m_savedLines = m_lines;
     m_cursorRow = 0;
     m_cursorCol = 0;
     m_scrollOffset = 0;
@@ -347,6 +350,7 @@ bool TextEditorApp::saveCurrentFile() {
     const bool wasExisting = m_fs->exists(m_filePath);
     bool ok = m_fs->writeFile(m_filePath, oss.str());
     if (ok) {
+        m_savedLines = m_lines;
         m_dirty = false;
         clearDiscardArm();
         if (auto* ctrl = getController()) {
@@ -2240,11 +2244,15 @@ void TextEditorApp::applyEditorState(const EditorState& state) {
     m_lines = state.lines;
     m_cursorRow = state.cursorRow;
     m_cursorCol = state.cursorCol;
-    m_dirty = true;
+    refreshDirtyState();
     clearDiscardArm();
     clearSelection();
     clampCursor();
     ensureCursorVisible();
+}
+
+void TextEditorApp::refreshDirtyState() {
+    m_dirty = m_lines != m_savedLines;
 }
 
 void TextEditorApp::undo() {

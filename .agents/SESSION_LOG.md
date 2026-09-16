@@ -272,3 +272,4 @@ Current chunk pointer: [`CURRENT_CHUNK`](CURRENT_CHUNK).
 | 2026-09-12 | cleanup | Isolated taskbar and Start-menu pointer releases from client apps and covered the shell capture path. |
 | 2026-09-16 | fix | Capped Pong vertical ball speed after paddle deflection so repeated edge hits cannot make the ball skip past paddles; added focused coverage and updated the Pong guide. |
 | 2026-09-16 | fix | Made blank Terminal command/path slots active Tab-completion targets after whitespace; added lexer and filesystem-backed coverage and updated the Terminal guide. |
+| 2026-09-16 | fix | Made Text Editor dirty state compare against the last loaded or saved content so undo/redo clears and restores the marker accurately; added focused coverage and updated the editor guide. |

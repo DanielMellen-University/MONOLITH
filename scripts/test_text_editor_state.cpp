@@ -282,6 +282,24 @@ int main() {
               && editor.m_lines == std::vector<std::string>{"third"},
           "confirming the changed dirty open target loads it");
 
+    TestEditor undoEditor(nullptr, &fs, "/old.txt");
+    undoEditor.m_cursorRow = 0;
+    undoEditor.m_cursorCol = 0;
+    undoEditor.insertText("X");
+    check(undoEditor.m_dirty && undoEditor.m_lines == std::vector<std::string>{"Xoriginal"},
+          "editing a loaded document marks it dirty");
+    undoEditor.undo();
+    check(!undoEditor.m_dirty && undoEditor.m_lines == std::vector<std::string>{"original"},
+          "undoing back to the loaded document clears the dirty state");
+    undoEditor.redo();
+    check(undoEditor.m_dirty && undoEditor.m_lines == std::vector<std::string>{"Xoriginal"},
+          "redoing an undone edit restores the dirty state");
+    check(undoEditor.saveCurrentFile(), "save the editor dirty-state baseline");
+    undoEditor.insertText("!");
+    undoEditor.undo();
+    check(!undoEditor.m_dirty && undoEditor.m_lines == std::vector<std::string>{"Xoriginal"},
+          "undoing after save compares against the new saved content");
+
     editor.m_lines = {"aa"};
     editor.m_cursorRow = 0;
     editor.m_cursorCol = 0;

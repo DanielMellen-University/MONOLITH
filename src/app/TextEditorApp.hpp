@@ -101,6 +101,7 @@ private:
     void undo();
     void redo();
     void applyEditorState(const EditorState& state);
+    void refreshDirtyState();
 
     // === Find / Replace ===
     enum class SearchMode { None, Find, Replace };
@@ -141,6 +142,7 @@ private:
     monolith::fs::Filesystem* m_fs = nullptr;
 
     std::vector<std::string> m_lines;
+    std::vector<std::string> m_savedLines;
     int m_cursorRow = 0;
     int m_cursorCol = 0;
     int m_scrollOffset = 0;   // index of the first visible line

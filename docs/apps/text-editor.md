@@ -33,7 +33,7 @@ If a bound file's parent directory is deleted, the editor keeps the document buf
 - Empty files open as one editable blank line. A file that ends with a newline keeps its final blank line.
 - Files opened with CRLF or lone-CR line endings are normalized to LF in the editor. Saving writes the document with LF separators.
 - Syntax highlighting colors comments, strings, signed and unsigned numbers, and (for code files) keywords.
-- A `*` in the status bar indicates unsaved changes.
+- A `*` in the status bar indicates that the buffer differs from the last loaded or saved content; undoing back to that content clears the marker.
 - Open/save results and errors appear in the status bar (e.g. `Saved: note.txt`, `Open failed: …`).
 - The status bar keeps the keyboard discovery hints visible after those feedback messages, including `Ctrl+F find` and `Ctrl+H replace`.
 - The status bar height follows the shared interface font with a stable minimum, so find, replace, and path prompts remain vertically contained after Settings text scaling.

@@ -1,5 +1,10 @@
 # Changelog
 
+## 2026-09: Keep the Text Editor dirty marker truthful
+
+- Track the last loaded or saved document content so undo and redo update the dirty state instead of always leaving the editor marked unsaved.
+- Added coverage for undoing to loaded content, redoing the edit, and undoing back to a post-save baseline.
+
 ## 2026-09: Complete blank Terminal tokens
 
 - Let Tab completion treat the empty token after whitespace as an active command or path slot, so commands such as `cd ` can complete from the current working directory.
