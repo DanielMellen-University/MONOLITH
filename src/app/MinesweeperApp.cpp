@@ -380,10 +380,16 @@ int MinesweeperApp::footerHeight() const {
 }
 
 SDL_Rect MinesweeperApp::clientDifficultyButtonRect(int index) const {
+    if (index < 0 || index >= 3) return {0, kDifficultyButtonY, 0, m_difficultyButtonHeight};
+
     const int startX = 10;
     const int gap = 6;
     const int faceX = clientFaceButtonRect().x;
     const int available = std::max(0, faceX - startX - startX);
+    const int minimumTotal = gap * 2 + 3;
+    if (available < minimumTotal) {
+        return {0, kDifficultyButtonY, 0, m_difficultyButtonHeight};
+    }
     const int preferredW = 70;
     const int maxW = std::max(1, (available - gap * 2) / 3);
     const int btnW = std::min(preferredW, maxW);
@@ -392,9 +398,10 @@ SDL_Rect MinesweeperApp::clientDifficultyButtonRect(int index) const {
 
 SDL_Rect MinesweeperApp::clientFaceButtonRect() const {
     const int fontHeight = m_font ? TTF_FontHeight(m_font) : 14;
-    const int btnW = std::max(32, fontHeight + 8);
+    const int preferredW = std::max(32, fontHeight + 8);
     const int btnH = std::max(40, fontHeight + 14);
     const int clientW = m_clientWidth > 0 ? m_clientWidth : 360;
+    const int btnW = std::min(preferredW, std::max(0, clientW - 10));
     return {std::max(0, clientW - 10 - btnW), 8, btnW, btnH};
 }
 
@@ -673,6 +680,7 @@ void MinesweeperApp::render(SDL_Renderer* renderer, const SDL_Rect& contentRect)
 
     const char* labels[3] = {"1 Begin", "2 Inter", "3 Expert"};
     for (int i = 0; i < 3; ++i) {
+        if (m_diffBtnRects[i].w <= 0 || m_diffBtnRects[i].h <= 0) continue;
         const bool active =
             (i == 0 && m_difficulty == Difficulty::Beginner) ||
             (i == 1 && m_difficulty == Difficulty::Intermediate) ||
@@ -693,19 +701,21 @@ void MinesweeperApp::render(SDL_Renderer* renderer, const SDL_Rect& contentRect)
 
     // Face button
     {
-        SDL_Color faceBg = kBtnBg;
-        if (m_state == State::Won) faceBg = {60, 120, 70, 255};
-        else if (m_state == State::Lost) faceBg = {140, 60, 60, 255};
-        else if (m_pressing) faceBg = {80, 85, 100, 255};
-        SDL_SetRenderDrawColor(renderer, faceBg.r, faceBg.g, faceBg.b, 255);
-        SDL_RenderFillRect(renderer, &m_faceBtnRect);
-        SDL_SetRenderDrawColor(renderer, 100, 105, 120, 255);
-        SDL_RenderDrawRect(renderer, &m_faceBtnRect);
-        const char* face = ":)";
-        if (m_state == State::Won) face = "B)";
-        else if (m_state == State::Lost) face = "X(";
-        else if (m_pressing) face = ":O";
-        drawCenteredText(renderer, face, m_faceBtnRect, kHudText);
+        if (m_faceBtnRect.w > 0 && m_faceBtnRect.h > 0) {
+            SDL_Color faceBg = kBtnBg;
+            if (m_state == State::Won) faceBg = {60, 120, 70, 255};
+            else if (m_state == State::Lost) faceBg = {140, 60, 60, 255};
+            else if (m_pressing) faceBg = {80, 85, 100, 255};
+            SDL_SetRenderDrawColor(renderer, faceBg.r, faceBg.g, faceBg.b, 255);
+            SDL_RenderFillRect(renderer, &m_faceBtnRect);
+            SDL_SetRenderDrawColor(renderer, 100, 105, 120, 255);
+            SDL_RenderDrawRect(renderer, &m_faceBtnRect);
+            const char* face = ":)";
+            if (m_state == State::Won) face = "B)";
+            else if (m_state == State::Lost) face = "X(";
+            else if (m_pressing) face = ":O";
+            drawCenteredText(renderer, face, m_faceBtnRect, kHudText);
+        }
     }
 
     // Board

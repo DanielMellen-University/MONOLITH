@@ -1,5 +1,7 @@
 # Session log
 
+| 2026-09-15 | fix | Contained Minesweeper's face button on extreme narrow clients, hid impossible overlapping difficulty controls while retaining keyboard shortcuts, and added focused geometry coverage plus docs. |
+
 | 2026-09-15 | fix | Clipped the taskbar Start button and its hit target to the logical desktop edge on tiny desktops, added rendering/input coverage, and updated architecture and changelog notes. |
 
 | 2026-09-15 | fix | Gave desktop icons a stable label-width cell, omitted them on too-narrow desktops, added layout coverage, and updated the 7.3 behavior note and changelog. |

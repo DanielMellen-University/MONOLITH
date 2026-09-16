@@ -139,6 +139,23 @@ int main() {
         check(button.x >= 0 && button.x + button.w <= faceAtTinyWidth.x - 6,
               "Minesweeper tiny-client difficulty controls stay contained");
     }
+    game.onResize(32, 120);
+    game.layoutBoard({0, 0, 32, 120});
+    const SDL_Rect faceAtExtremeWidth = game.clientFaceButtonRect();
+    check(faceAtExtremeWidth.x >= 0
+              && faceAtExtremeWidth.x + faceAtExtremeWidth.w <= 32,
+          "Minesweeper face button stays inside an extreme narrow client");
+    for (int i = 0; i < 3; ++i) {
+        const SDL_Rect button = game.clientDifficultyButtonRect(i);
+        check(button.w == 0,
+              "Minesweeper hides impossible difficulty controls instead of overlapping");
+    }
+    SDL_Event extremeWidthShortcut{};
+    extremeWidthShortcut.type = SDL_KEYDOWN;
+    extremeWidthShortcut.key.keysym.sym = SDLK_1;
+    game.handleEvent(extremeWidthShortcut);
+    check(game.m_difficulty == MinesweeperApp::Difficulty::Beginner,
+          "Minesweeper keyboard difficulty shortcuts survive hidden controls");
     game.m_minesPlaced = true;
     game.m_state = MinesweeperApp::State::Playing;
     game.m_focusPaused = false;

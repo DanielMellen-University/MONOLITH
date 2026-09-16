@@ -1,5 +1,10 @@
 # Changelog
 
+## 2026-09: Contain Minesweeper controls on extreme narrow clients
+
+- The face button now yields to the actual client width, and difficulty buttons hide when no non-overlapping slot remains instead of painting over the face control.
+- Added tiny-client coverage for the contained face button and keyboard-only difficulty fallback.
+
 ## 2026-09: Contain the Start button on tiny desktops
 
 - The taskbar Start button now clips to the logical desktop width and ignores clicks beyond that edge on undersized desktops.
