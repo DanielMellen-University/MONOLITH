@@ -31,6 +31,7 @@
         if (m_mouseY >= taskbarScreenY && m_mouseY < taskbarScreenBottom) {
             clearDesktopIconSelection();
             m_shellMouseCapture = true;
+            ensureTaskbarHitTargets();
             // Start button (when menu was not open, or after we handled the open case above)
             int startBtnScreenWidth = static_cast<int>(70 * m_contentScale);
             int startBtnScreenX = logicalToScreenX(8);
@@ -105,6 +106,7 @@
         const SDL_Rect taskbarScreenRect = logicalRectToScreen(getTaskbarRect());
         const int taskbarScreenY = taskbarScreenRect.y;
         const int taskbarScreenBottom = taskbarScreenRect.y + taskbarScreenRect.h;
+        ensureTaskbarHitTargets();
         if (m_mouseY >= taskbarScreenY && m_mouseY < taskbarScreenBottom && m_taskbarNeedsScroll) {
             m_taskbarScrollOffset += (event.wheel.y > 0 ? -80 : 80);
             if (m_taskbarScrollOffset < 0) m_taskbarScrollOffset = 0;

@@ -1,25 +1,15 @@
-    const SDL_Rect taskbarLogicalRect = getTaskbarRect();
-    const SDL_Rect taskbarRect = logicalRectToScreen(taskbarLogicalRect);
-    const int taskbarY = taskbarLogicalRect.y;
+    const TaskbarLayout taskbarLayout = computeTaskbarLayout();
+    const SDL_Rect taskbarRect = taskbarLayout.taskbarRect;
 
     // Draw taskbar background
     SDL_SetRenderDrawColor(renderer, 35, 35, 42, 255);
     SDL_RenderFillRect(renderer, &taskbarRect);
 
     // --- Left: Start button ---
-    int x = logicalToScreenX(8);
-    const int desktopRight = logicalToScreenX(m_logicalWidth);
-    const int startBtnWidth = std::max(
-        0,
-        std::min(static_cast<int>(70 * m_contentScale), desktopRight - x));
-    const int minimumButtonHeight = static_cast<int>(22 * m_contentScale);
-    const int fontHeight = m_font ? TTF_FontHeight(m_font) : 16;
-    // Keep every taskbar control tall enough for the active font, but never
-    // let a control escape the taskbar itself on a tightly scaled desktop.
-    const int btnHeight = std::min(
-        taskbarRect.h,
-        std::max(minimumButtonHeight, fontHeight + static_cast<int>(4 * m_contentScale)));
-    const int btnY = logicalToScreenY(taskbarY) + (taskbarRect.h - btnHeight) / 2;
+    const int x = taskbarLayout.startX;
+    const int startBtnWidth = taskbarLayout.startButtonWidth;
+    const int btnHeight = taskbarLayout.buttonHeight;
+    const int btnY = taskbarLayout.buttonY;
 
     SDL_SetRenderDrawColor(renderer, 55, 85, 140, 255);
     SDL_Rect startBtn = {x, btnY, startBtnWidth, btnHeight};
@@ -46,130 +36,43 @@
         }
     }
 
-    // Compute the button area from the actual logical width. Very narrow
-    // desktops still need non-negative hit rectangles and a usable partial
-    // button instead of a negative viewport.
-    const int clockReserve = 100; // desired logical space for the clock tray
-    const int taskbarButtonStart = 8 + 70 + 8;
-    m_taskbarButtonAreaLeft = std::clamp(taskbarButtonStart, 0, m_logicalWidth);
-    const int availableAfterStart = std::max(
-        0, m_logicalWidth - m_taskbarButtonAreaLeft - 8);
-    const int adaptiveClockReserve = std::min(
-        clockReserve,
-        std::max(0, availableAfterStart - kMinimumVisibleButtonSpace));
-    m_taskbarButtonAreaWidth = std::max(
-        0, availableAfterStart - adaptiveClockReserve);
-
-    // Calculate total width + prepare drawing order (active/focused window always leftmost)
-    std::vector<Window*> buttonOrder;
-    if (m_focusedWindow) {
-        buttonOrder.push_back(m_focusedWindow);
-    }
-    for (auto& w : m_windows) {
-        if (w.get() != m_focusedWindow) {
-            buttonOrder.push_back(w.get());
-        }
-    }
-
-    int totalButtonsWidth = 0;
-    std::vector<int> buttonWidths;
-    for (Window* win : buttonOrder) {
-        int bw = 85;
-        if (m_font) {
-            int textW = 0;
-            int textH = 0;
-            if (TTF_SizeUTF8(m_font, win->title.c_str(), &textW, &textH) == 0) {
-                // Text textures use native screen pixels, so convert the
-                // measured width back to logical pixels before scaling the
-                // taskbar button.
-                const float scale = std::max(0.01f, m_contentScale);
-                bw = std::max(bw, static_cast<int>(std::ceil(textW / scale)) + 10);
-            }
-        } else {
-            bw = std::max(bw, static_cast<int>(win->title.length() * 6.5f));
-        }
-        buttonWidths.push_back(bw);
-        totalButtonsWidth += bw + 6;
-    }
-
-    // Draw scroll arrows if needed
-    const int arrowWidth = 16;
-    const int arrowGap = 4;
-    const int arrowReserve = (arrowWidth + arrowGap) * 2;
-    m_taskbarNeedsScroll = totalButtonsWidth > m_taskbarButtonAreaWidth
-        && m_taskbarButtonAreaWidth >= arrowReserve;
-    int buttonsStartX = m_taskbarButtonAreaLeft;
-
-    if (m_taskbarNeedsScroll) {
+    // Draw scroll arrows if needed.
+    int buttonsStartX = taskbarLayout.buttonsStartX;
+    if (taskbarLayout.needsScroll) {
         // Left arrow
         SDL_SetRenderDrawColor(renderer, 80, 80, 90, 255);
-        m_taskbarLeftArrowRect = {
-            logicalToScreenX(m_taskbarButtonAreaLeft),
-            btnY,
-            static_cast<int>(arrowWidth * m_contentScale),
-            btnHeight
-        };
         SDL_RenderFillRect(renderer, &m_taskbarLeftArrowRect);
         // Simple left triangle using lines
         SDL_SetRenderDrawColor(renderer, 220, 220, 225, 255);
-        int ax = logicalToScreenX(m_taskbarButtonAreaLeft + 4);
+        int ax = m_taskbarLeftArrowRect.x + static_cast<int>(4 * m_contentScale);
         int ay = btnY + btnHeight/2;
         SDL_RenderDrawLine(renderer, ax + 6, ay - 5, ax, ay);
         SDL_RenderDrawLine(renderer, ax, ay, ax + 6, ay + 5);
 
-        buttonsStartX += arrowWidth + arrowGap;
-
         // Right arrow
-        const int rightX = m_taskbarButtonAreaLeft + m_taskbarButtonAreaWidth - arrowWidth;
         SDL_SetRenderDrawColor(renderer, 80, 80, 90, 255);
-        m_taskbarRightArrowRect = {
-            logicalToScreenX(rightX),
-            btnY,
-            static_cast<int>(arrowWidth * m_contentScale),
-            btnHeight
-        };
         SDL_RenderFillRect(renderer, &m_taskbarRightArrowRect);
         SDL_SetRenderDrawColor(renderer, 220, 220, 225, 255);
-        ax = logicalToScreenX(rightX + 4);
+        ax = m_taskbarRightArrowRect.x + static_cast<int>(4 * m_contentScale);
         SDL_RenderDrawLine(renderer, ax, ay - 5, ax + 6, ay);
         SDL_RenderDrawLine(renderer, ax + 6, ay, ax, ay + 5);
-
-        m_taskbarButtonAreaWidth -= arrowReserve;
-    } else {
-        // A viewport too small for both arrows cannot be scrolled. Resetting
-        // here prevents a prior wide-desktop scroll offset from hiding the
-        // only partial button after the desktop shrinks.
-        m_taskbarScrollOffset = 0;
     }
-
-    // Keep scrolling bounded by the actual button viewport. Without this
-    // clamp, repeated wheel/arrow input can move every window button away from
-    // the visible strip and leave the taskbar looking empty until manually
-    // scrolled back.
-    const int maxTaskbarScroll = std::max(0, totalButtonsWidth - m_taskbarButtonAreaWidth);
-    m_taskbarScrollOffset = std::clamp(m_taskbarScrollOffset, 0, maxTaskbarScroll);
 
     // --- Middle: Window buttons (ALL windows, XP style) ---
     // Active window is always drawn leftmost (per user request)
-    const int areaLeftScreen = logicalToScreenX(buttonsStartX);
-    const int areaRightScreen = logicalToScreenX(
-        buttonsStartX + m_taskbarButtonAreaWidth);
-    const SDL_Rect buttonClipRect = {
-        areaLeftScreen,
-        btnY,
-        std::max(0, areaRightScreen - areaLeftScreen),
-        btnHeight
-    };
+    const int areaLeftScreen = taskbarLayout.areaLeftScreen;
+    const int areaRightScreen = taskbarLayout.areaRightScreen;
+    const SDL_Rect buttonClipRect = taskbarLayout.buttonClipRect;
     const SDL_Rect effectiveButtonClip = intersectRendererClip(buttonClipRect, callerClip);
     if (buttonClipRect.w > 0) {
         SDL_RenderSetClipRect(renderer, &effectiveButtonClip);
     }
     int currentX = logicalToScreenX(buttonsStartX) - static_cast<int>(m_taskbarScrollOffset * m_contentScale);
 
-    for (size_t i = 0; i < buttonOrder.size(); ++i) {
+    for (size_t i = 0; i < taskbarLayout.buttonOrder.size(); ++i) {
         if (buttonClipRect.w <= 0) break;
-        Window* win = buttonOrder[i];
-        int bw = buttonWidths[i];
+        Window* win = taskbarLayout.buttonOrder[i];
+        int bw = taskbarLayout.buttonWidths[i];
 
         SDL_Rect btnRect = {
             currentX,
@@ -248,6 +151,7 @@
     if (buttonClipRect.w > 0) {
         restoreRendererClip(renderer, callerClip);
     }
+    m_taskbarHitTargetsValid = true;
 
     // --- Right: System clock (local time; texture rebuilt when the minute changes) ---
     m_clockHitRect = {0, 0, 0, 0};

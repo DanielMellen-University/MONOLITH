@@ -668,6 +668,27 @@ int main() {
                   && wm.m_taskbarLeftArrowRect.w == 0
                   && wm.m_taskbarRightArrowRect.w == 0,
               "renaming a window clears stale taskbar targets");
+
+        wm.ensureTaskbarHitTargets();
+        SDL_Rect addedTaskbarRect{0, 0, 0, 0};
+        for (const auto& entry : wm.m_taskbarEntries) {
+            if (entry.window == addedWindow) {
+                addedTaskbarRect = entry.rect;
+                break;
+            }
+        }
+        wm.invalidateShellHitTargets();
+        SDL_Event preRenderTaskbarClick{};
+        preRenderTaskbarClick.type = SDL_MOUSEBUTTONDOWN;
+        preRenderTaskbarClick.button.button = SDL_BUTTON_LEFT;
+        preRenderTaskbarClick.button.x = addedTaskbarRect.x + addedTaskbarRect.w / 2;
+        preRenderTaskbarClick.button.y = addedTaskbarRect.y + addedTaskbarRect.h / 2;
+        wm.handleEvent(preRenderTaskbarClick);
+        check(addedTaskbarRect.w > 0 && addedWindow->minimized,
+              "taskbar input rebuilds targets before the next render");
+        SDL_Event preRenderTaskbarRelease = preRenderTaskbarClick;
+        preRenderTaskbarRelease.type = SDL_MOUSEBUTTONUP;
+        wm.handleEvent(preRenderTaskbarRelease);
     }
 
     if (renderer) {

@@ -50,6 +50,28 @@ private:
         Window* window;
     };
     std::vector<TaskbarEntry> m_taskbarEntries;
+    bool m_taskbarHitTargetsValid = false;
+
+    struct TaskbarLayout {
+        SDL_Rect taskbarRect{0, 0, 0, 0};
+        int taskbarY = 0;
+        int startX = 0;
+        int startButtonWidth = 0;
+        int buttonHeight = 0;
+        int buttonY = 0;
+        int buttonsStartX = 0;
+        int areaLeftScreen = 0;
+        int areaRightScreen = 0;
+        SDL_Rect buttonClipRect{0, 0, 0, 0};
+        SDL_Rect leftArrowRect{0, 0, 0, 0};
+        SDL_Rect rightArrowRect{0, 0, 0, 0};
+        bool needsScroll = false;
+        std::vector<Window*> buttonOrder;
+        std::vector<int> buttonWidths;
+    };
+
+    TaskbarLayout computeTaskbarLayout();
+    void ensureTaskbarHitTargets();
 
     // Start menu state
     bool m_showStartMenu = false;

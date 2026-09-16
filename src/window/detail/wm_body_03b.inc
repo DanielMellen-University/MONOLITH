@@ -101,6 +101,7 @@
     }
 
     // === Taskbar (always visible) ===
+    m_taskbarHitTargetsValid = false;
     m_taskbarEntries.clear();
     m_taskbarLeftArrowRect = {0, 0, 0, 0};
     m_taskbarRightArrowRect = {0, 0, 0, 0};

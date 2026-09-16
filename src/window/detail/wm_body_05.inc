@@ -144,6 +144,147 @@ void WindowManager::clearStartMenuSuspension() {
     m_startMenuSuspendedWindowId = -1;
 }
 
+WindowManager::TaskbarLayout WindowManager::computeTaskbarLayout() {
+    TaskbarLayout layout;
+    const SDL_Rect taskbarLogicalRect = getTaskbarRect();
+    layout.taskbarRect = logicalRectToScreen(taskbarLogicalRect);
+    layout.taskbarY = taskbarLogicalRect.y;
+
+    layout.startX = logicalToScreenX(8);
+    const int desktopRight = logicalToScreenX(m_logicalWidth);
+    layout.startButtonWidth = std::max(
+        0,
+        std::min(static_cast<int>(70 * m_contentScale), desktopRight - layout.startX));
+    const int minimumButtonHeight = static_cast<int>(22 * m_contentScale);
+    const int fontHeight = m_font ? TTF_FontHeight(m_font) : 16;
+    layout.buttonHeight = std::min(
+        layout.taskbarRect.h,
+        std::max(minimumButtonHeight, fontHeight + static_cast<int>(4 * m_contentScale)));
+    layout.buttonY = logicalToScreenY(layout.taskbarY)
+        + (layout.taskbarRect.h - layout.buttonHeight) / 2;
+
+    const int clockReserve = 100;
+    const int taskbarButtonStart = 8 + 70 + 8;
+    m_taskbarButtonAreaLeft = std::clamp(taskbarButtonStart, 0, m_logicalWidth);
+    const int availableAfterStart = std::max(
+        0, m_logicalWidth - m_taskbarButtonAreaLeft - 8);
+    const int adaptiveClockReserve = std::min(
+        clockReserve,
+        std::max(0, availableAfterStart - kMinimumVisibleButtonSpace));
+    m_taskbarButtonAreaWidth = std::max(
+        0, availableAfterStart - adaptiveClockReserve);
+
+    if (m_focusedWindow) {
+        layout.buttonOrder.push_back(m_focusedWindow);
+    }
+    for (auto& window : m_windows) {
+        if (window.get() != m_focusedWindow) {
+            layout.buttonOrder.push_back(window.get());
+        }
+    }
+
+    int totalButtonsWidth = 0;
+    layout.buttonWidths.reserve(layout.buttonOrder.size());
+    for (Window* window : layout.buttonOrder) {
+        int buttonWidth = 85;
+        if (m_font) {
+            int textW = 0;
+            int textH = 0;
+            if (TTF_SizeUTF8(m_font, window->title.c_str(), &textW, &textH) == 0) {
+                const float scale = std::max(0.01f, m_contentScale);
+                buttonWidth = std::max(
+                    buttonWidth, static_cast<int>(std::ceil(textW / scale)) + 10);
+            }
+        } else {
+            buttonWidth = std::max(
+                buttonWidth, static_cast<int>(window->title.length() * 6.5f));
+        }
+        layout.buttonWidths.push_back(buttonWidth);
+        totalButtonsWidth += buttonWidth + 6;
+    }
+
+    const int arrowWidth = 16;
+    const int arrowGap = 4;
+    const int arrowReserve = (arrowWidth + arrowGap) * 2;
+    m_taskbarNeedsScroll = totalButtonsWidth > m_taskbarButtonAreaWidth
+        && m_taskbarButtonAreaWidth >= arrowReserve;
+    layout.needsScroll = m_taskbarNeedsScroll;
+    layout.buttonsStartX = m_taskbarButtonAreaLeft;
+    m_taskbarLeftArrowRect = {0, 0, 0, 0};
+    m_taskbarRightArrowRect = {0, 0, 0, 0};
+
+    if (m_taskbarNeedsScroll) {
+        m_taskbarLeftArrowRect = {
+            logicalToScreenX(m_taskbarButtonAreaLeft),
+            layout.buttonY,
+            static_cast<int>(arrowWidth * m_contentScale),
+            layout.buttonHeight
+        };
+        layout.leftArrowRect = m_taskbarLeftArrowRect;
+        layout.buttonsStartX += arrowWidth + arrowGap;
+
+        const int rightX = m_taskbarButtonAreaLeft + m_taskbarButtonAreaWidth - arrowWidth;
+        m_taskbarRightArrowRect = {
+            logicalToScreenX(rightX),
+            layout.buttonY,
+            static_cast<int>(arrowWidth * m_contentScale),
+            layout.buttonHeight
+        };
+        layout.rightArrowRect = m_taskbarRightArrowRect;
+        m_taskbarButtonAreaWidth -= arrowReserve;
+    } else {
+        m_taskbarScrollOffset = 0;
+    }
+
+    const int maxTaskbarScroll = std::max(
+        0, totalButtonsWidth - m_taskbarButtonAreaWidth);
+    m_taskbarScrollOffset = std::clamp(
+        m_taskbarScrollOffset, 0, maxTaskbarScroll);
+
+    layout.areaLeftScreen = logicalToScreenX(layout.buttonsStartX);
+    layout.areaRightScreen = logicalToScreenX(
+        layout.buttonsStartX + m_taskbarButtonAreaWidth);
+    layout.buttonClipRect = {
+        layout.areaLeftScreen,
+        layout.buttonY,
+        std::max(0, layout.areaRightScreen - layout.areaLeftScreen),
+        layout.buttonHeight
+    };
+    return layout;
+}
+
+void WindowManager::ensureTaskbarHitTargets() {
+    if (m_taskbarHitTargetsValid) return;
+
+    const TaskbarLayout layout = computeTaskbarLayout();
+    m_taskbarEntries.clear();
+    int currentX = logicalToScreenX(layout.buttonsStartX)
+        - static_cast<int>(m_taskbarScrollOffset * m_contentScale);
+    for (size_t i = 0; i < layout.buttonOrder.size(); ++i) {
+        const int buttonWidth = layout.buttonWidths[i];
+        const SDL_Rect buttonRect = {
+            currentX,
+            layout.buttonY,
+            static_cast<int>(buttonWidth * m_contentScale),
+            layout.buttonHeight
+        };
+        const bool visible = buttonRect.x + buttonRect.w > layout.areaLeftScreen
+            && buttonRect.x < layout.areaRightScreen;
+        if (visible) {
+            SDL_Rect hitRect = buttonRect;
+            const int hitRight = std::min(
+                buttonRect.x + buttonRect.w, layout.areaRightScreen);
+            hitRect.x = std::max(hitRect.x, layout.areaLeftScreen);
+            hitRect.w = std::max(0, hitRight - hitRect.x);
+            if (hitRect.w > 0) {
+                m_taskbarEntries.push_back({hitRect, layout.buttonOrder[i]});
+            }
+        }
+        currentX += static_cast<int>((buttonWidth + 6) * m_contentScale);
+    }
+    m_taskbarHitTargetsValid = true;
+}
+
 WindowManager::StartMenuLayout WindowManager::computeStartMenuLayout(
     int contentHLogical) const {
     StartMenuLayout layout;
@@ -362,6 +503,7 @@ void WindowManager::setFont(TTF_Font* font) {
 }
 
 void WindowManager::invalidateShellHitTargets() {
+    m_taskbarHitTargetsValid = false;
     m_taskbarEntries.clear();
     m_taskbarNeedsScroll = false;
     m_taskbarLeftArrowRect = {0, 0, 0, 0};

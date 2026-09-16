@@ -1,5 +1,10 @@
 # Changelog
 
+## 2026-09: Make taskbar input independent of frame timing
+
+- Rebuilt taskbar button and scroll-arrow hit targets on demand when queued input arrives before the next render.
+- Shared taskbar geometry between rendering and hit testing, with regression coverage for pre-render taskbar activation.
+
 ## 2026-09: Make Start-menu input independent of frame timing
 
 - Rebuilt Start-menu geometry and actionable rows on demand when queued keyboard or mouse input arrives before the next render.
