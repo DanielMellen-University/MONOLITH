@@ -136,13 +136,52 @@ void WindowManager::applyResize(Window* window, int mouseX, int mouseY) {
     notifyAppResizeIfGeometryChanged(*window, before);
 }
 
+void WindowManager::processDeferredCloses() {
+    if (m_processingDeferredCloses || m_appCallbackDepth != 0) return;
+
+    m_processingDeferredCloses = true;
+    while (!m_deferredCloses.empty()) {
+        std::vector<DeferredClose> pending = std::move(m_deferredCloses);
+        m_deferredCloses.clear();
+        for (const DeferredClose& request : pending) {
+            if (isLiveWindow(request.window, request.id)) {
+                closeWindow(request.window);
+            }
+        }
+    }
+    m_processingDeferredCloses = false;
+}
+
 void WindowManager::closeWindow(Window* window) {
     if (!isLiveWindow(window)) return;
 
     const int windowId = window->id;
 
+    // Do not destroy an app while another app callback is still using the
+    // initiating stack. The request is processed as soon as the outermost
+    // callback returns, preserving prompt close behavior without use-after-free
+    // when a synchronous lifecycle observer closes this window.
+    if (m_appCallbackDepth > 0) {
+        const auto pending = std::find_if(
+            m_deferredCloses.begin(),
+            m_deferredCloses.end(),
+            [window, windowId](const DeferredClose& request) {
+                return request.window == window && request.id == windowId;
+            });
+        if (pending == m_deferredCloses.end()) {
+            m_deferredCloses.push_back({window, windowId});
+        }
+        return;
+    }
+
     // Let apps veto close once (dirty document guards). A second close after arming succeeds.
-    if (window->app && !window->app->allowClose()) {
+    bool allowed = true;
+    invokeAppCallback([&]() {
+        if (window->app && !window->app->allowClose()) {
+            allowed = false;
+        }
+    });
+    if (!allowed) {
         return;
     }
 
@@ -201,7 +240,7 @@ void WindowManager::closeWindow(Window* window) {
 
         // Notify before destruction so apps can clear focus-dependent state (e.g. Snake pause).
         if (wasFocused && m_hostFocused && !m_showStartMenu && window->app) {
-            window->app->onFocusLost();
+            invokeAppCallback([&]() { window->app->onFocusLost(); });
         }
 
         // Focus-loss callbacks can also close the target. The nested close has
@@ -262,7 +301,9 @@ void WindowManager::notifyAppResizeIfGeometryChanged(Window& window,
     }
 
     const int clientHeight = window.rect.h - Window::TITLE_BAR_HEIGHT;
-    window.app->onResize(window.rect.w, clientHeight > 0 ? clientHeight : 0);
+    invokeAppCallback([&]() {
+        window.app->onResize(window.rect.w, clientHeight > 0 ? clientHeight : 0);
+    });
 }
 
 void WindowManager::clampSingleWindow(Window& w) {

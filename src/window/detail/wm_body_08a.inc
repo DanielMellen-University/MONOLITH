@@ -75,7 +75,9 @@ void WindowManager::applyRestoredGeometry(Window* window, int x, int y, int w, i
     clampSingleWindow(*window);
     if (window->app) {
         const int clientH = window->rect.h - Window::TITLE_BAR_HEIGHT;
-        window->app->onResize(window->rect.w, clientH > 0 ? clientH : 0);
+        invokeAppCallback([&]() {
+            window->app->onResize(window->rect.w, clientH > 0 ? clientH : 0);
+        });
     }
 
     // Restored apps can reject or close themselves from their first geometry

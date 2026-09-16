@@ -1,7 +1,7 @@
         // Forward wheel events to the focused app's client area (Settings scroll, etc.).
         if (m_focusedWindow && m_focusedWindow->app && !m_focusedWindow->minimized && !m_showStartMenu) {
             if (isInContentArea(*m_focusedWindow, logicalMouseX, logicalMouseY)) {
-                m_focusedWindow->app->handleEvent(event);
+                invokeAppCallback([&]() { m_focusedWindow->app->handleEvent(event); });
                 return;
             }
         }
@@ -74,7 +74,7 @@
                 }
                 SDL_Event clientEvent = event;
                 translateMouseEventToClient(*clicked, clientEvent);
-                clicked->app->handleEvent(clientEvent);
+                invokeAppCallback([&]() { clicked->app->handleEvent(clientEvent); });
             }
             return;
         }
@@ -99,7 +99,7 @@
                 if (clicked->app) {
                     SDL_Event clientEvent = event;
                     translateMouseEventToClient(*clicked, clientEvent);
-                    clicked->app->handleEvent(clientEvent);
+                    invokeAppCallback([&]() { clicked->app->handleEvent(clientEvent); });
                 }
                 return;
             }
@@ -128,7 +128,7 @@
         if (releaseWindow && releaseWindow->app) {
             SDL_Event clientEvent = event;
             translateMouseEventToClient(*releaseWindow, clientEvent);
-            releaseWindow->app->handleEvent(clientEvent);
+            invokeAppCallback([&]() { releaseWindow->app->handleEvent(clientEvent); });
         }
     }
 }
@@ -165,10 +165,10 @@ void WindowManager::update() {
     // Per-frame app updates (game ticks, timers, etc.). The stable snapshot
     // skips windows closed by an earlier app without iterating the vector that
     // closeWindow mutates.
-    forEachLiveWindow([](Window& window) {
+    forEachLiveWindow([this](Window& window) {
         Window* w = &window;
         if (w->app && !w->minimized) {
-            w->app->update();
+            invokeAppCallback([&]() { w->app->update(); });
         }
     });
 }
@@ -219,7 +219,7 @@ void WindowManager::render(SDL_Renderer* renderer) {
             const RendererClipState previousClip = captureRendererClip(renderer);
             const SDL_Rect appClip = intersectRendererClip(contentRect, previousClip);
             SDL_RenderSetClipRect(renderer, &appClip);
-            win.app->render(renderer, contentRect);
+            invokeAppCallback([&]() { win.app->render(renderer, contentRect); });
             restoreRendererClip(renderer, previousClip);
         }
 

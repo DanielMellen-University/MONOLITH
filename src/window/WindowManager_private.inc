@@ -159,6 +159,35 @@ private:
     SDL_Rect logicalRectToScreen(const SDL_Rect& rect) const;
     TitleButtonRects getTitleButtonRects(const Window& window) const;
 
+    class AppCallbackScope {
+    public:
+        explicit AppCallbackScope(WindowManager& owner)
+            : m_owner(owner) {
+            ++m_owner.m_appCallbackDepth;
+        }
+
+        ~AppCallbackScope() {
+            --m_owner.m_appCallbackDepth;
+            if (m_owner.m_appCallbackDepth == 0) {
+                m_owner.processDeferredCloses();
+            }
+        }
+
+        AppCallbackScope(const AppCallbackScope&) = delete;
+        AppCallbackScope& operator=(const AppCallbackScope&) = delete;
+
+    private:
+        WindowManager& m_owner;
+    };
+
+    template <typename Callback>
+    void invokeAppCallback(Callback&& callback) {
+        AppCallbackScope scope(*this);
+        std::forward<Callback>(callback)();
+    }
+
+    void processDeferredCloses();
+
     // Dispatch window callbacks from a stable snapshot. App callbacks may
     // close or open windows through their controllers, so never iterate
     // m_windows directly while invoking one.
@@ -186,7 +215,7 @@ private:
             if (live == m_windows.end()) continue;
 
             Window* window = live->get();
-            callback(*window);
+            invokeAppCallback([&]() { callback(*window); });
         }
     }
 
@@ -216,6 +245,15 @@ private:
     // Release a bare-app reservation when an untitled Editor or Drawing becomes
     // file-backed, then compact the remaining bare windows.
     void untrackAppInstance(Window* window);
+
+    struct DeferredClose {
+        Window* window = nullptr;
+        int id = -1;
+    };
+
+    int m_appCallbackDepth = 0;
+    bool m_processingDeferredCloses = false;
+    std::vector<DeferredClose> m_deferredCloses;
 
     // After a launcher creates a window, apply restored geometry (session load).
     void applyRestoredGeometry(Window* window, int x, int y, int w, int h,

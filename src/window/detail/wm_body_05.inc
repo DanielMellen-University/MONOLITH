@@ -172,13 +172,13 @@ void WindowManager::bringToFront(Window* window) {
         m_focusedWindow = newFocused;
         if (focusChanged && m_hostFocused && !m_showStartMenu
             && previousFocused && previousFocused->app) {
-            previousFocused->app->onFocusLost();
+            invokeAppCallback([&]() { previousFocused->app->onFocusLost(); });
         }
 
         if (focusChanged && m_hostFocused && !m_showStartMenu
             && m_focusedWindow == newFocused
             && isLiveWindow(newFocused, newFocusedId) && newFocused->app) {
-            newFocused->app->onFocusGained();
+            invokeAppCallback([&]() { newFocused->app->onFocusGained(); });
         }
 
         // When active window changes, reset taskbar scroll so the new leftmost (active) button is visible
@@ -204,7 +204,7 @@ void WindowManager::focusTopmostVisibleWindow() {
     m_focusedWindow = nullptr;
     if (m_hostFocused && !m_showStartMenu
         && previousFocused && previousFocused->app) {
-        previousFocused->app->onFocusLost();
+        invokeAppCallback([&]() { previousFocused->app->onFocusLost(); });
     }
 }
 

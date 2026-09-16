@@ -188,7 +188,11 @@ void WindowManager::notifyVirtualPathMoved(const std::string& oldPath,
         }
         window->editedFilePath = update.next;
         m_fileEditors[update.next] = window;
-        if (window->app) window->app->onBoundFileMoved(update.previous, update.next);
+        if (window->app) {
+            invokeAppCallback([&]() {
+                window->app->onBoundFileMoved(update.previous, update.next);
+            });
+        }
     }
 
     for (const BindingMove& update : drawingUpdates) {
@@ -204,7 +208,11 @@ void WindowManager::notifyVirtualPathMoved(const std::string& oldPath,
         }
         window->drawingFilePath = update.next;
         m_fileDrawings[update.next] = window;
-        if (window->app) window->app->onBoundFileMoved(update.previous, update.next);
+        if (window->app) {
+            invokeAppCallback([&]() {
+                window->app->onBoundFileMoved(update.previous, update.next);
+            });
+        }
     }
 
     forEachLiveApp([&](monolith::app::App& app) {
@@ -296,7 +304,9 @@ void WindowManager::notifyVirtualPathRemoved(const std::string& virtualPath) {
         }
         clearEditorFileBinding(removal.window);
         if (removal.window->app) {
-            removal.window->app->onBoundFileRemoved(removal.removedPath);
+            invokeAppCallback([&]() {
+                removal.window->app->onBoundFileRemoved(removal.removedPath);
+            });
         }
     }
     for (const BindingRemoval& removal : removedDrawings) {
@@ -306,7 +316,9 @@ void WindowManager::notifyVirtualPathRemoved(const std::string& virtualPath) {
         }
         clearDrawingFileBinding(removal.window);
         if (removal.window->app) {
-            removal.window->app->onBoundFileRemoved(removal.removedPath);
+            invokeAppCallback([&]() {
+                removal.window->app->onBoundFileRemoved(removal.removedPath);
+            });
         }
     }
 

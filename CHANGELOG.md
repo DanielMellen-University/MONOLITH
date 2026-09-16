@@ -1,5 +1,10 @@
 # Changelog
 
+## 2026-09: Defer re-entrant app closes
+
+- WindowManager now defers window destruction requested from an app callback until the outermost callback returns, preventing synchronous observers, focus handlers, resize callbacks, input handlers, and updates from destroying the app that is still executing.
+- Added lifecycle regression coverage for an observer closing the source app during a synchronous virtual-path notification.
+
 ## 2026-09: Share virtual and host atomic writes
 
 - Virtual filesystem writes now use the same binary-capable atomic writer as settings, sessions, and game records, removing a duplicated replacement path while preserving permission, symlink, and failure cleanup behavior.

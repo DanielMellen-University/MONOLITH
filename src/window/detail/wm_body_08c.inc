@@ -94,7 +94,7 @@ void WindowManager::setStartMenuVisible(bool visible) {
         m_showStartMenu = true;
         if (m_hostFocused && m_focusedWindow && m_focusedWindow->app
             && !m_focusedWindow->minimized) {
-            m_focusedWindow->app->onFocusLost();
+            invokeAppCallback([&]() { m_focusedWindow->app->onFocusLost(); });
         }
         return;
     }
@@ -106,7 +106,7 @@ void WindowManager::setStartMenuVisible(bool visible) {
         && resumedWindow->app && !resumedWindow->minimized) {
         // Resume whichever window owns logical focus now. The suspended app
         // may have closed or opened another window from onFocusLost().
-        resumedWindow->app->onFocusGained();
+        invokeAppCallback([&]() { resumedWindow->app->onFocusGained(); });
     }
 }
 

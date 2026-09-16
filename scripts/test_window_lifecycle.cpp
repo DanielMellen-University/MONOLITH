@@ -51,6 +51,55 @@ public:
     int notifications = 0;
 };
 
+struct ReentrantNotificationState {
+    bool continuedWhileAlive = false;
+    bool destroyed = false;
+};
+
+class CloseTargetOnChanged final : public monolith::app::App {
+public:
+    CloseTargetOnChanged(monolith::window::WindowManager* wm,
+                         monolith::window::Window** target)
+        : wm(wm), target(target) {}
+
+    void render(SDL_Renderer*, const SDL_Rect&) override {}
+
+    void onVirtualPathChanged(const std::string&) override {
+        if (wm && target && *target) {
+            wm->closeWindow(*target);
+            *target = nullptr;
+        }
+    }
+
+    monolith::window::WindowManager* wm = nullptr;
+    monolith::window::Window** target = nullptr;
+};
+
+class ReentrantNotificationSource final : public monolith::app::App {
+public:
+    ReentrantNotificationSource(monolith::window::WindowManager* wm,
+                                ReentrantNotificationState* state)
+        : wm(wm), state(state) {}
+
+    ~ReentrantNotificationSource() override {
+        if (state) state->destroyed = true;
+    }
+
+    void render(SDL_Renderer*, const SDL_Rect&) override {}
+
+    void handleEvent(const SDL_Event& event) override {
+        if (event.type != SDL_KEYDOWN || !wm || !state) return;
+
+        auto* manager = wm;
+        auto* callbackState = state;
+        manager->notifyVirtualPathChanged("/docs/source.txt");
+        callbackState->continuedWhileAlive = !callbackState->destroyed;
+    }
+
+    monolith::window::WindowManager* wm = nullptr;
+    ReentrantNotificationState* state = nullptr;
+};
+
 class ResizeClosingApp final : public monolith::app::App {
 public:
     explicit ResizeClosingApp(bool closeOnResize = false)
@@ -264,6 +313,37 @@ int main() {
               "a survivor receives a path notification after an earlier app closes");
         check(wm.getWindowAt(100, 160) == nullptr,
               "notification-triggered close removes the source window safely");
+
+        std::error_code ec;
+        std::filesystem::remove_all(hostRoot, ec);
+    }
+
+    {
+        const std::filesystem::path hostRoot = std::filesystem::temp_directory_path()
+            / ("monolith-window-reentrant-notification-" + std::to_string(getpid()));
+        monolith::fs::Filesystem fs(hostRoot.string());
+        check(fs.initialize(), "reentrant notification filesystem initialize");
+
+        monolith::window::WindowManager wm;
+        wm.setAppResources(nullptr, &fs);
+        monolith::window::Window* sourceWindow = nullptr;
+        auto observer = std::make_unique<CloseTargetOnChanged>(&wm, &sourceWindow);
+        wm.createWindow("Observer", 40, 80, 260, 180, std::move(observer));
+
+        ReentrantNotificationState state;
+        auto source = std::make_unique<ReentrantNotificationSource>(&wm, &state);
+        sourceWindow = wm.createWindow("Source", 400, 80, 260, 180,
+                                       std::move(source));
+
+        SDL_Event key{};
+        key.type = SDL_KEYDOWN;
+        key.key.keysym.sym = SDLK_a;
+        wm.handleEvent(key);
+
+        check(state.continuedWhileAlive,
+              "a source callback continues before an observer-triggered close destroys it");
+        check(sourceWindow == nullptr && wm.m_windows.size() == 1,
+              "the observer-triggered close is applied after the source callback returns");
 
         std::error_code ec;
         std::filesystem::remove_all(hostRoot, ec);

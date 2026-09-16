@@ -70,7 +70,9 @@ Window* WindowManager::createWindow(const std::string& title, int x, int y, int 
 
         // Initial size notification
         const int clientH = ptr->rect.h - Window::TITLE_BAR_HEIGHT;
-        ptr->app->onResize(ptr->rect.w, clientH > 0 ? clientH : 0);
+        invokeAppCallback([&]() {
+            ptr->app->onResize(ptr->rect.w, clientH > 0 ? clientH : 0);
+        });
     }
 
     // The initial callback can request a controller close. Do not pass the
@@ -108,7 +110,7 @@ void WindowManager::handleEvent(const SDL_Event& event) {
                 release.button.x = m_mouseX;
                 release.button.y = m_mouseY;
                 translateMouseEventToClient(*capturedWindow, release);
-                capturedWindow->app->handleEvent(release);
+                invokeAppCallback([&]() { capturedWindow->app->handleEvent(release); });
             }
 
             if (m_draggedWindow) {
@@ -129,7 +131,7 @@ void WindowManager::handleEvent(const SDL_Event& event) {
                 && isLiveWindow(focusLostWindow, focusLostWindowId)
                 && focusLostWindow->app && !focusLostWindow->minimized
                 && !m_showStartMenu) {
-                focusLostWindow->app->onFocusLost();
+                invokeAppCallback([&]() { focusLostWindow->app->onFocusLost(); });
             }
             endAltTabCycle();
             return;
@@ -140,7 +142,7 @@ void WindowManager::handleEvent(const SDL_Event& event) {
             m_hostFocused = true;
             if (m_focusedWindow && m_focusedWindow->app && !m_focusedWindow->minimized
                 && !m_showStartMenu) {
-                m_focusedWindow->app->onFocusGained();
+                invokeAppCallback([&]() { m_focusedWindow->app->onFocusGained(); });
             }
             return;
         }
@@ -173,7 +175,7 @@ void WindowManager::handleEvent(const SDL_Event& event) {
             if (capturedMotion || isInContentArea(*motionWindow, logicalX, logicalY)) {
                 SDL_Event clientEvent = event;
                 translateMouseEventToClient(*motionWindow, clientEvent);
-                motionWindow->app->handleEvent(clientEvent);
+                invokeAppCallback([&]() { motionWindow->app->handleEvent(clientEvent); });
             }
         }
     }
@@ -185,7 +187,7 @@ void WindowManager::handleEvent(const SDL_Event& event) {
     // Suppress while Start menu is open so the menu (mouse-driven) owns the interaction.
     if (m_focusedWindow && !m_focusedWindow->minimized && m_focusedWindow->app && !m_showStartMenu &&
         (event.type == SDL_KEYDOWN || event.type == SDL_KEYUP || event.type == SDL_TEXTINPUT)) {
-        m_focusedWindow->app->handleEvent(event);
+        invokeAppCallback([&]() { m_focusedWindow->app->handleEvent(event); });
         // Do not return — WM doesn't consume keyboard yet, but apps get first crack
     }
 
