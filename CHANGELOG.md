@@ -1,5 +1,11 @@
 # Changelog
 
+## 2026-09: Make Start menu keyboard-complete
+
+- The existing Start menu now supports Up/Down selection, Enter activation, and Escape dismissal after opening with `Ctrl+Escape`.
+- Keyboard selection wraps across every actionable menu item and shares the same activation path as mouse clicks.
+- Added headless coverage for selection movement, wrapping, dismissal, and command activation.
+
 ## 2026-09: Defer re-entrant app closes
 
 - WindowManager now defers window destruction requested from an app callback until the outermost callback returns, preventing synchronous observers, focus handlers, resize callbacks, input handlers, and updates from destroying the app that is still executing.

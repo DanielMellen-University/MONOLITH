@@ -410,6 +410,44 @@ int main() {
               "narrow Start menu hit targets stay inside the visible popup");
         wm.m_showStartMenu = false;
 
+        wm.m_showStartMenu = true;
+        wm.m_startMenuItems = {
+            {{0, 0, 40, 20}, 9},
+            {{0, 20, 40, 20}, 9},
+            {{0, 40, 40, 20}, 9}
+        };
+        wm.m_startMenuKeyboardIndex = -1;
+        SDL_Event menuDown{};
+        menuDown.type = SDL_KEYDOWN;
+        menuDown.key.keysym.sym = SDLK_DOWN;
+        wm.handleEvent(menuDown);
+        wm.handleEvent(menuDown);
+        check(wm.m_startMenuKeyboardIndex == 1,
+              "Start menu Down moves the keyboard selection");
+        SDL_Event menuUp = menuDown;
+        menuUp.key.keysym.sym = SDLK_UP;
+        wm.handleEvent(menuUp);
+        check(wm.m_startMenuKeyboardIndex == 0,
+              "Start menu Up moves the keyboard selection");
+        wm.handleEvent(menuUp);
+        check(wm.m_startMenuKeyboardIndex == 2,
+              "Start menu keyboard selection wraps at the first item");
+        SDL_Event menuEscape = menuDown;
+        menuEscape.key.keysym.sym = SDLK_ESCAPE;
+        wm.handleEvent(menuEscape);
+        check(!wm.m_showStartMenu && wm.m_startMenuKeyboardIndex == -1,
+              "Start menu Escape closes keyboard navigation");
+
+        wm.m_showStartMenu = true;
+        wm.m_startMenuItems = {{{0, 0, 40, 20}, 9}};
+        wm.m_startMenuKeyboardIndex = 0;
+        SDL_Event menuEnter = menuDown;
+        menuEnter.key.keysym.sym = SDLK_RETURN;
+        wm.handleEvent(menuEnter);
+        check(wm.shouldQuit() && !wm.m_showStartMenu,
+              "Start menu Enter activates the selected command");
+        wm.m_quitRequested = false;
+
         wm.setLogicalDesktopSize(500, 40);
         wm.render(renderer);
         const bool clockRenderedOnShortClient =

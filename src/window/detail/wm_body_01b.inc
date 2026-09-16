@@ -3,8 +3,7 @@
                 SDL_Point p = {m_mouseX, m_mouseY};
                 if (SDL_PointInRect(&p, &item.rect)) {
                     m_shellMouseCapture = true;
-                    setStartMenuVisible(false);
-#include "wm_start_menu_actions.inc"
+                    activateStartMenuItem(item.action);
                     return;
                 }
             }

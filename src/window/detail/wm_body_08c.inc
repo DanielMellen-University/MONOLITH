@@ -108,6 +108,24 @@ void WindowManager::setStartMenuVisible(bool visible) {
         // may have closed or opened another window from onFocusLost().
         invokeAppCallback([&]() { resumedWindow->app->onFocusGained(); });
     }
+    m_startMenuKeyboardIndex = -1;
+}
+
+void WindowManager::activateStartMenuItem(int action) {
+    setStartMenuVisible(false);
+    switch (action) {
+        case 0: launchTerminal(); break;
+        case 1: launchTextEditor(); break;
+        case 2: launchFilesystem(); break;
+        case 3: launchSettings(); break;
+        case 4: launchDrawing(); break;
+        case 5: launchSnake(); break;
+        case 6: launchMinesweeper(); break;
+        case 7: launchPong(); break;
+        case 8: launchBreakout(); break;
+        case 9: requestQuit(); break;
+        default: break;
+    }
 }
 
 void WindowManager::cycleFocus(int direction) {
@@ -174,6 +192,41 @@ bool WindowManager::tryHandleShellHotkeys(const SDL_Event& event) {
         m_startMenuHoverIndex = -1;
         endAltTabCycle();
         return true;
+    }
+
+    if (m_showStartMenu) {
+        if (key.sym == SDLK_ESCAPE) {
+            setStartMenuVisible(false);
+            clearDesktopIconSelection();
+            return true;
+        }
+
+        if (key.sym == SDLK_UP || key.sym == SDLK_DOWN) {
+            if (m_startMenuItems.empty()) return true;
+            const int count = static_cast<int>(m_startMenuItems.size());
+            if (m_startMenuKeyboardIndex < 0
+                || m_startMenuKeyboardIndex >= count) {
+                m_startMenuKeyboardIndex = key.sym == SDLK_UP ? count - 1 : 0;
+            } else if (key.sym == SDLK_UP) {
+                m_startMenuKeyboardIndex =
+                    (m_startMenuKeyboardIndex + count - 1) % count;
+            } else {
+                m_startMenuKeyboardIndex =
+                    (m_startMenuKeyboardIndex + 1) % count;
+            }
+            return true;
+        }
+
+        if (key.sym == SDLK_RETURN || key.sym == SDLK_KP_ENTER) {
+            if (m_startMenuItems.empty()) return true;
+            if (m_startMenuKeyboardIndex < 0
+                || m_startMenuKeyboardIndex >= static_cast<int>(m_startMenuItems.size())) {
+                m_startMenuKeyboardIndex = 0;
+            }
+            activateStartMenuItem(
+                m_startMenuItems[static_cast<size_t>(m_startMenuKeyboardIndex)].action);
+            return true;
+        }
     }
 
     return false;

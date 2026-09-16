@@ -60,6 +60,7 @@
                 SDL_Rect visibleItemRect{};
                 const bool visibleItem = SDL_IntersectRect(
                     &itemRect, &menuRect, &visibleItemRect);
+                const int itemIndex = static_cast<int>(m_startMenuItems.size());
                 if (visibleItem && visibleItemRect.w > 0 && visibleItemRect.h > 0) {
                     m_startMenuItems.push_back({visibleItemRect, e.action});
                 }
@@ -70,13 +71,15 @@
                     hovered = true;
                     m_startMenuHoverIndex = static_cast<int>(m_startMenuItems.size() - 1);
                 }
+                const bool keyboardSelected = visibleItem
+                    && itemIndex == m_startMenuKeyboardIndex;
 
-                if (hovered) {
+                if (hovered || keyboardSelected) {
                     SDL_SetRenderDrawColor(renderer, hoverBgCol.r, hoverBgCol.g, hoverBgCol.b, 255);
                     SDL_RenderFillRect(renderer, &itemRect);
                 }
 
-                SDL_Color useTextCol = hovered ? hoverTextCol : textCol;
+                SDL_Color useTextCol = (hovered || keyboardSelected) ? hoverTextCol : textCol;
                 const int textPad = (e.indent > 0) ? nestPad : basePad;
 
                 SDL_Surface* s = TTF_RenderText_Blended(m_font, e.label, useTextCol);

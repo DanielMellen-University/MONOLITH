@@ -54,6 +54,7 @@ private:
     // Start menu state
     bool m_showStartMenu = false;
     int m_startMenuHoverIndex = -1;
+    int m_startMenuKeyboardIndex = -1;
     SDL_Rect m_startMenuRect{0, 0, 0, 0};  // screen coords, updated during render when visible
 
     // Quit request (from Shut Down etc.)
@@ -261,6 +262,7 @@ private:
 
     bool tryHandleShellHotkeys(const SDL_Event& event);
     void setStartMenuVisible(bool visible);
+    void activateStartMenuItem(int action);
     void cycleFocus(int direction);
     void endAltTabCycle();
 

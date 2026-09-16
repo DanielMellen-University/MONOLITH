@@ -1,5 +1,7 @@
 # Session log
 
+| 2026-09-15 | fix | Completed Start menu keyboard handling with wrapped Up/Down selection, Enter activation, Escape dismissal, and focused shell regression coverage. |
+
 | 2026-09-15 | fix | Deferred WindowManager closes requested from app callbacks, added re-entrant notification coverage, and documented the callback lifetime contract. |
 
 | 2026-09-15 | refactor | Consolidated virtual filesystem writes onto the shared binary-capable atomic writer and covered embedded NUL preservation. |
