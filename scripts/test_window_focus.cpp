@@ -29,6 +29,31 @@ public:
     int uiScaleChanges = 0;
 };
 
+class FocusClosingApp final : public monolith::app::App {
+public:
+    explicit FocusClosingApp(int* observedFocusGained)
+        : observedFocusGained(observedFocusGained) {}
+
+    void render(SDL_Renderer*, const SDL_Rect&) override {}
+
+    void onFocusGained() override {
+        ++focusGained;
+        if (observedFocusGained) ++*observedFocusGained;
+        if (closeOnFocusGained) {
+            closeOnFocusGained = false;
+            if (auto* controller = getController()) {
+                controller->close();
+            }
+        }
+    }
+
+    bool closeOnFocusGained = true;
+    int focusGained = 0;
+
+private:
+    int* observedFocusGained = nullptr;
+};
+
 bool minimizeWindow(monolith::window::WindowManager& wm, monolith::window::Window* window) {
     if (!window) return false;
     const int buttonX = window->rect.x + window->rect.w - 10 - 16 * 3 - 6 * 2 + 4;
@@ -163,6 +188,26 @@ int main() {
     check(firstPtr->uiScaleChanges == 1 && secondPtr->uiScaleChanges == 1
               && thirdPtr->uiScaleChanges == 1,
           "shared UI scale reaches visible and minimized apps");
+
+    {
+        monolith::window::WindowManager callbackWm;
+        auto survivor = std::make_unique<FocusProbe>();
+        FocusProbe* survivorPtr = survivor.get();
+        auto* survivorWindow = callbackWm.createWindow(
+            "Survivor", 80, 80, 300, 240, std::move(survivor));
+
+        int closingFocusGained = 0;
+        auto closing = std::make_unique<FocusClosingApp>(&closingFocusGained);
+        callbackWm.createWindow("Closing", 420, 80, 300, 240, std::move(closing));
+
+        check(closingFocusGained == 1,
+              "focus-gained callback runs before a self-closing app is destroyed");
+        check(callbackWm.m_focusedWindow == survivorWindow
+                  && callbackWm.m_windows.size() == 1,
+              "focus handoff survives a focus-gained self-close");
+        check(survivorPtr->focusGained == 2,
+              "survivor regains focus after the callback-triggered close");
+    }
 
     std::error_code ec;
     std::filesystem::remove_all(hostRoot, ec);

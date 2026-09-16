@@ -125,16 +125,31 @@ void WindowManager::bringToFront(Window* window) {
         m_windows.push_back(std::move(windowPtr));
 
         Window* newFocused = m_windows.back().get();
+        Window* previousFocused = m_focusedWindow;
+        const int newFocusedId = newFocused->id;
+        const bool focusChanged = previousFocused != newFocused;
 
-        // Notify focus change
-        if (m_focusedWindow && m_focusedWindow != newFocused && m_focusedWindow->app) {
-            m_focusedWindow->app->onFocusLost();
+        // Publish the new focus before callbacks. A focus callback can close
+        // its own window; closeWindow must then perform the handoff without
+        // this stack frame restoring a destroyed pointer afterward.
+        m_focusedWindow = newFocused;
+        if (focusChanged && previousFocused && previousFocused->app) {
+            previousFocused->app->onFocusLost();
         }
-        if (newFocused && newFocused->app && m_focusedWindow != newFocused) {
+
+        const auto newFocusedIsLive = [&]() {
+            return std::find_if(
+                m_windows.begin(),
+                m_windows.end(),
+                [newFocused, newFocusedId](const auto& candidate) {
+                    return candidate.get() == newFocused
+                        && candidate->id == newFocusedId;
+                }) != m_windows.end();
+        };
+        if (focusChanged && m_focusedWindow == newFocused
+            && newFocusedIsLive() && newFocused->app) {
             newFocused->app->onFocusGained();
         }
-
-        m_focusedWindow = newFocused;
 
         // When active window changes, reset taskbar scroll so the new leftmost (active) button is visible
         m_taskbarScrollOffset = 0;
@@ -155,10 +170,11 @@ void WindowManager::focusTopmostVisibleWindow() {
         return;
     }
 
-    if (m_focusedWindow && m_focusedWindow->app) {
-        m_focusedWindow->app->onFocusLost();
-    }
+    Window* previousFocused = m_focusedWindow;
     m_focusedWindow = nullptr;
+    if (previousFocused && previousFocused->app) {
+        previousFocused->app->onFocusLost();
+    }
 }
 
 bool WindowManager::isInTitleBar(const Window& window, int x, int y) const {

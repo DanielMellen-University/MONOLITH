@@ -1,5 +1,10 @@
 # Changelog
 
+## 2026-09: Stabilize focus callback handoff
+
+- WindowManager now publishes focus before lifecycle callbacks and verifies the target remains live, so an app can close itself from `onFocusGained()` without leaving a dangling focused window.
+- Added focused regression coverage for callback-triggered focus handoff.
+
 ## 2026-09: Stabilize resize callback dispatch
 
 - WindowManager now uses the lifecycle snapshot for logical desktop and maximized-window resize callbacks, preventing app-triggered window changes from invalidating geometry passes.
