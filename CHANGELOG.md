@@ -1,5 +1,10 @@
 # Changelog
 
+## 2026-09: Enforce minimum frame size at window creation
+
+- Direct WindowManager-created frames now honor the same minimum width and height already used by resize and session restore paths.
+- Added coverage that the new app receives the resulting clamped client dimensions.
+
 ## 2026-09: Contain Minesweeper controls on extreme narrow clients
 
 - The face button now yields to the actual client width, and difficulty buttons hide when no non-overlapping slot remains instead of painting over the face control.

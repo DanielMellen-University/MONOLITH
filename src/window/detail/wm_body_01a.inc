@@ -48,8 +48,8 @@ Window* WindowManager::createWindow(const std::string& title, int x, int y, int 
     window->title = title;
     window->rect.x = x;
     window->rect.y = y;
-    window->rect.w = w;
-    window->rect.h = h;
+    window->rect.w = std::max(w, Window::MIN_WIDTH);
+    window->rect.h = std::max(h, Window::MIN_HEIGHT + Window::TITLE_BAR_HEIGHT);
     window->app = std::move(app);
 
     // Record instance tracking metadata (if provided by a launcher via claimNext...).

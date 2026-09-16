@@ -98,6 +98,23 @@ int main() {
     monolith::window::Window* window = wm.createWindow(
         "Probe", 100, 100, 300, 240, std::move(probe));
 
+    auto undersizedProbe = std::make_unique<ProbeApp>();
+    ProbeApp* undersizedProbePtr = undersizedProbe.get();
+    monolith::window::Window* undersizedWindow = wm.createWindow(
+        "Undersized", 20, 20, 20, 20, std::move(undersizedProbe));
+    check(undersizedWindow
+              && undersizedWindow->rect.w == monolith::window::Window::MIN_WIDTH
+              && undersizedWindow->rect.h
+                  == monolith::window::Window::MIN_HEIGHT
+                      + monolith::window::Window::TITLE_BAR_HEIGHT,
+          "new windows honor the shared minimum frame size");
+    check(undersizedProbePtr->lastResizeWidth == undersizedWindow->rect.w
+              && undersizedProbePtr->lastResizeHeight
+                  == undersizedWindow->rect.h
+                      - monolith::window::Window::TITLE_BAR_HEIGHT,
+          "new apps receive the clamped client size");
+    wm.closeWindow(undersizedWindow);
+
     wm.m_desktopIconSelected = 2;
     wm.m_desktopIconLastClickIndex = 2;
     wm.m_desktopIconLastClickTicks = 1000;
