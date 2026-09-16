@@ -201,12 +201,28 @@ int main() {
     wm.render(renderer);
     SDL_Texture* firstDesktopGlyph = wm.m_desktopIconTextCache[0].glyphTexture;
     SDL_Texture* firstDesktopLabel = wm.m_desktopIconTextCache[0].labelTexture;
+    SDL_Texture* firstTaskbarTitle = nullptr;
+    for (const auto& [key, entry] : wm.m_shellTextCache) {
+        if (key.rfind("Probe", 0) == 0) {
+            firstTaskbarTitle = entry.texture;
+            break;
+        }
+    }
     wm.render(renderer);
+    SDL_Texture* secondTaskbarTitle = nullptr;
+    for (const auto& [key, entry] : wm.m_shellTextCache) {
+        if (key.rfind("Probe", 0) == 0) {
+            secondTaskbarTitle = entry.texture;
+            break;
+        }
+    }
     check(firstDesktopGlyph != nullptr
               && wm.m_desktopIconTextCache[0].glyphTexture == firstDesktopGlyph
               && firstDesktopLabel != nullptr
-              && wm.m_desktopIconTextCache[0].labelTexture == firstDesktopLabel,
-          "desktop icon text reuses cached glyph and label textures between frames");
+              && wm.m_desktopIconTextCache[0].labelTexture == firstDesktopLabel
+              && firstTaskbarTitle != nullptr
+              && secondTaskbarTitle == firstTaskbarTitle,
+          "shell text reuses icon and taskbar textures between frames");
     wm.m_showStartMenu = true;
     wm.render(renderer);
     SDL_Texture* firstStartMenuHeader = nullptr;

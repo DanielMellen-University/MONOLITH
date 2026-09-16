@@ -102,31 +102,29 @@
         // Title text (clipped)
         if (m_font) {
             SDL_Color textCol = isMin ? SDL_Color{170,170,175,255} : SDL_Color{235,235,240,255};
-            SDL_Surface* s = TTF_RenderUTF8_Blended(m_font, win->title.c_str(), textCol);
-            if (s) {
-                SDL_Texture* t = SDL_CreateTextureFromSurface(renderer, s);
-                if (t) {
-                    // Keep the label at native size. The button owns the clip
-                    // so long titles cannot bleed into neighboring buttons.
-                    SDL_Rect textClip = btnRect;
-                    const int textClipRight = std::min(
-                        btnRect.x + btnRect.w, buttonClipRect.x + buttonClipRect.w);
-                    textClip.x = std::max(textClip.x, buttonClipRect.x);
-                    textClip.w = std::max(0, textClipRight - textClip.x);
-                    if (textClip.w > 0) {
-                        const SDL_Rect effectiveTextClip = intersectRendererClip(textClip, callerClip);
-                        SDL_RenderSetClipRect(renderer, &effectiveTextClip);
-                        SDL_Rect textDst = {
-                            btnRect.x + 5,
-                            btnY + (btnHeight - s->h) / 2,
-                            s->w, s->h
-                        };
-                        SDL_RenderCopy(renderer, t, nullptr, &textDst);
-                        SDL_RenderSetClipRect(renderer, &effectiveButtonClip);
-                    }
-                    SDL_DestroyTexture(t);
+            int textW = 0;
+            int textH = 0;
+            SDL_Texture* texture = getShellTextTexture(
+                renderer, win->title.c_str(), textCol, textW, textH);
+            if (texture) {
+                // Keep the label at native size. The button owns the clip
+                // so long titles cannot bleed into neighboring buttons.
+                SDL_Rect textClip = btnRect;
+                const int textClipRight = std::min(
+                    btnRect.x + btnRect.w, buttonClipRect.x + buttonClipRect.w);
+                textClip.x = std::max(textClip.x, buttonClipRect.x);
+                textClip.w = std::max(0, textClipRight - textClip.x);
+                if (textClip.w > 0) {
+                    const SDL_Rect effectiveTextClip = intersectRendererClip(textClip, callerClip);
+                    SDL_RenderSetClipRect(renderer, &effectiveTextClip);
+                    SDL_Rect textDst = {
+                        btnRect.x + 5,
+                        btnY + (btnHeight - textH) / 2,
+                        textW, textH
+                    };
+                    SDL_RenderCopy(renderer, texture, nullptr, &textDst);
+                    SDL_RenderSetClipRect(renderer, &effectiveButtonClip);
                 }
-                SDL_FreeSurface(s);
             }
         }
 

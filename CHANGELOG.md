@@ -3,6 +3,7 @@
 ## 2026-09: Cache static shell labels
 
 - Reuse taskbar and Start-menu text textures by text and color, including normal and hovered menu rows, while invalidating the shared cache when the interface font changes.
+- Reuse UTF-8 taskbar title textures across buttons and frames while preserving minimized and active colors.
 
 ## 2026-09: Cache static Start-menu text
 

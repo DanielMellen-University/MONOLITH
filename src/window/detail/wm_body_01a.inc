@@ -72,7 +72,7 @@ SDL_Texture* WindowManager::getShellTextTexture(SDL_Renderer* renderer, const ch
         return cached->second.texture;
     }
 
-    SDL_Surface* surface = TTF_RenderText_Blended(m_font, text, color);
+    SDL_Surface* surface = TTF_RenderUTF8_Blended(m_font, text, color);
     if (!surface) return nullptr;
 
     SDL_Texture* texture = SDL_CreateTextureFromSurface(renderer, surface);

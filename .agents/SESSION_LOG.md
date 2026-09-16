@@ -1,5 +1,7 @@
 # Session log
 
+| 2026-09-16 | perf | Reused cached UTF-8 taskbar title textures across buttons and frames, preserved minimized and active colors, and updated the shell rendering notes. |
+
 | 2026-09-16 | perf | Consolidated taskbar and Start-menu labels behind a text-and-color cache, invalidated it with shared font changes, added renderer coverage, and updated architecture and changelog notes. |
 
 | 2026-09-16 | perf | Cached desktop icon glyphs and normal or selected labels between frames, invalidated them with shared font changes, and added renderer coverage plus documentation. |
