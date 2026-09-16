@@ -1,5 +1,9 @@
 # Changelog
 
+## 2026-09: Cache static shell labels
+
+- Reuse taskbar and Start-menu text textures by text and color, including normal and hovered menu rows, while invalidating the shared cache when the interface font changes.
+
 ## 2026-09: Cache static Start-menu text
 
 - Reuse the Start-menu "Monolith" header texture between frames and invalidate it with the shared font, avoiding repeated SDL_ttf surface and texture creation while the menu is open.

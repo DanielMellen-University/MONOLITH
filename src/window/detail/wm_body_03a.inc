@@ -82,24 +82,17 @@
 
         if (m_font) {
             // Small "Monolith" label in the accent area
-            if (!m_startMenuHeaderTexture) {
-                SDL_Color accentText = {255, 255, 255, 255};
-                SDL_Surface* hdr = TTF_RenderText_Blended(m_font, "Monolith", accentText);
-                if (hdr) {
-                    m_startMenuHeaderTexture = SDL_CreateTextureFromSurface(renderer, hdr);
-                    if (m_startMenuHeaderTexture) {
-                        m_startMenuHeaderTexW = hdr->w;
-                        m_startMenuHeaderTexH = hdr->h;
-                    }
-                    SDL_FreeSurface(hdr);
-                }
-            }
-            if (m_startMenuHeaderTexture) {
+            SDL_Color accentText = {255, 255, 255, 255};
+            int headerW = 0;
+            int headerH = 0;
+            SDL_Texture* headerTexture = getShellTextTexture(
+                renderer, "Monolith", accentText, headerW, headerH);
+            if (headerTexture) {
                 SDL_Rect dst = {
                     menuX + static_cast<int>(10 * m_contentScale),
                     menuY + static_cast<int>(4 * m_contentScale),
-                    m_startMenuHeaderTexW, m_startMenuHeaderTexH
+                    headerW, headerH
                 };
-                SDL_RenderCopy(renderer, m_startMenuHeaderTexture, nullptr, &dst);
+                SDL_RenderCopy(renderer, headerTexture, nullptr, &dst);
             }
         }

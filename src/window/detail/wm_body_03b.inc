@@ -32,19 +32,17 @@
 
                 if (e.action == -1) {
                     // Non-clickable category header
-                    SDL_Surface* s = TTF_RenderText_Blended(m_font, e.label, categoryCol);
-                    if (s) {
-                        SDL_Texture* t = SDL_CreateTextureFromSurface(renderer, s);
-                        if (t) {
-                            SDL_Rect dst = {
-                                menuX + basePad,
-                                y + (categoryH - s->h) / 2,
-                                s->w, s->h
-                            };
-                            SDL_RenderCopy(renderer, t, nullptr, &dst);
-                            SDL_DestroyTexture(t);
-                        }
-                        SDL_FreeSurface(s);
+                    int textW = 0;
+                    int textH = 0;
+                    SDL_Texture* texture = getShellTextTexture(
+                        renderer, e.label, categoryCol, textW, textH);
+                    if (texture) {
+                        SDL_Rect dst = {
+                            menuX + basePad,
+                            y + (categoryH - textH) / 2,
+                            textW, textH
+                        };
+                        SDL_RenderCopy(renderer, texture, nullptr, &dst);
                     }
                     y += categoryH + itemGap;
                     continue;
@@ -82,15 +80,15 @@
                 SDL_Color useTextCol = (hovered || keyboardSelected) ? hoverTextCol : textCol;
                 const int textPad = (e.indent > 0) ? nestPad : basePad;
 
-                SDL_Surface* s = TTF_RenderText_Blended(m_font, e.label, useTextCol);
-                if (s) {
-                    SDL_Texture* t = SDL_CreateTextureFromSurface(renderer, s);
-                    if (t) {
-                        SDL_Rect dst = {menuX + textPad, y + (itemH - s->h) / 2, s->w, s->h};
-                        SDL_RenderCopy(renderer, t, nullptr, &dst);
-                        SDL_DestroyTexture(t);
-                    }
-                    SDL_FreeSurface(s);
+                int textW = 0;
+                int textH = 0;
+                SDL_Texture* texture = getShellTextTexture(
+                    renderer, e.label, useTextCol, textW, textH);
+                if (texture) {
+                    SDL_Rect dst = {
+                        menuX + textPad, y + (itemH - textH) / 2, textW, textH
+                    };
+                    SDL_RenderCopy(renderer, texture, nullptr, &dst);
                 }
 
                 y += itemH + itemGap;

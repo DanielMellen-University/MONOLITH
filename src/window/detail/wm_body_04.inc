@@ -18,20 +18,18 @@
 
     if (m_font && startBtn.w > 0 && startBtn.h > 0) {
         SDL_Color textCol = {255, 255, 255, 255};
-        SDL_Surface* s = TTF_RenderText_Blended(m_font, "Start", textCol);
-        if (s) {
-            SDL_Texture* t = SDL_CreateTextureFromSurface(renderer, s);
-            if (t) {
-                const SDL_Rect textClip = intersectRendererClip(startBtn, callerClip);
-                if (textClip.w > 0 && textClip.h > 0) {
-                    SDL_RenderSetClipRect(renderer, &textClip);
-                    SDL_Rect dst = {x + 8, btnY + (btnHeight - s->h)/2, s->w, s->h};
-                    SDL_RenderCopy(renderer, t, nullptr, &dst);
-                    restoreRendererClip(renderer, callerClip);
-                }
-                SDL_DestroyTexture(t);
+        int textW = 0;
+        int textH = 0;
+        SDL_Texture* texture = getShellTextTexture(
+            renderer, "Start", textCol, textW, textH);
+        if (texture) {
+            const SDL_Rect textClip = intersectRendererClip(startBtn, callerClip);
+            if (textClip.w > 0 && textClip.h > 0) {
+                SDL_RenderSetClipRect(renderer, &textClip);
+                SDL_Rect dst = {x + 8, btnY + (btnHeight - textH)/2, textW, textH};
+                SDL_RenderCopy(renderer, texture, nullptr, &dst);
+                restoreRendererClip(renderer, callerClip);
             }
-            SDL_FreeSurface(s);
         }
     }
 

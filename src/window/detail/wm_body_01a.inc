@@ -19,7 +19,7 @@ WindowManager::~WindowManager() {
     }
     m_titleCache.clear();
     destroyClockTextures();
-    destroyStartMenuHeaderTexture();
+    destroyShellTextCache();
     destroyDesktopIconTextCache();
     destroyWallpaperTexture();
 }
@@ -41,13 +41,55 @@ void WindowManager::destroyClockTextures() {
     m_clockDateTexH = 0;
 }
 
-void WindowManager::destroyStartMenuHeaderTexture() {
-    if (m_startMenuHeaderTexture) {
-        SDL_DestroyTexture(m_startMenuHeaderTexture);
-        m_startMenuHeaderTexture = nullptr;
+void WindowManager::destroyShellTextCache() {
+    for (auto& [key, entry] : m_shellTextCache) {
+        (void)key;
+        if (entry.texture) {
+            SDL_DestroyTexture(entry.texture);
+            entry.texture = nullptr;
+        }
     }
-    m_startMenuHeaderTexW = 0;
-    m_startMenuHeaderTexH = 0;
+    m_shellTextCache.clear();
+}
+
+SDL_Texture* WindowManager::getShellTextTexture(SDL_Renderer* renderer, const char* text,
+                                                 SDL_Color color, int& width, int& height) {
+    width = 0;
+    height = 0;
+    if (!renderer || !m_font || !text) return nullptr;
+
+    std::string key(text);
+    key.push_back('\0');
+    key.push_back(static_cast<char>(color.r));
+    key.push_back(static_cast<char>(color.g));
+    key.push_back(static_cast<char>(color.b));
+    key.push_back(static_cast<char>(color.a));
+
+    auto cached = m_shellTextCache.find(key);
+    if (cached != m_shellTextCache.end()) {
+        width = cached->second.width;
+        height = cached->second.height;
+        return cached->second.texture;
+    }
+
+    SDL_Surface* surface = TTF_RenderText_Blended(m_font, text, color);
+    if (!surface) return nullptr;
+
+    SDL_Texture* texture = SDL_CreateTextureFromSurface(renderer, surface);
+    if (!texture) {
+        SDL_FreeSurface(surface);
+        return nullptr;
+    }
+
+    ShellTextCacheEntry entry;
+    entry.texture = texture;
+    entry.width = surface->w;
+    entry.height = surface->h;
+    width = entry.width;
+    height = entry.height;
+    SDL_FreeSurface(surface);
+    m_shellTextCache.emplace(std::move(key), entry);
+    return texture;
 }
 
 Window* WindowManager::createWindow(const std::string& title, int x, int y, int w, int h,

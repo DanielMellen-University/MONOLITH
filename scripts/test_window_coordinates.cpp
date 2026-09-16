@@ -209,17 +209,28 @@ int main() {
           "desktop icon text reuses cached glyph and label textures between frames");
     wm.m_showStartMenu = true;
     wm.render(renderer);
-    SDL_Texture* firstStartMenuHeader = wm.m_startMenuHeaderTexture;
+    SDL_Texture* firstStartMenuHeader = nullptr;
+    for (const auto& [key, entry] : wm.m_shellTextCache) {
+        if (key.rfind("Monolith", 0) == 0) {
+            firstStartMenuHeader = entry.texture;
+            break;
+        }
+    }
+    const size_t firstShellTextCacheSize = wm.m_shellTextCache.size();
     wm.render(renderer);
+    SDL_Texture* secondStartMenuHeader = nullptr;
+    for (const auto& [key, entry] : wm.m_shellTextCache) {
+        if (key.rfind("Monolith", 0) == 0) {
+            secondStartMenuHeader = entry.texture;
+            break;
+        }
+    }
     check(firstStartMenuHeader != nullptr
-              && wm.m_startMenuHeaderTexture == firstStartMenuHeader
-              && wm.m_startMenuHeaderTexW > 0
-              && wm.m_startMenuHeaderTexH > 0,
-          "Start menu reuses its static header texture between frames");
+              && secondStartMenuHeader == firstStartMenuHeader
+              && wm.m_shellTextCache.size() == firstShellTextCacheSize,
+          "shell text reuses Start-menu textures between frames");
     wm.setFont(nullptr);
-    check(wm.m_startMenuHeaderTexture == nullptr
-              && wm.m_startMenuHeaderTexW == 0
-              && wm.m_startMenuHeaderTexH == 0
+    check(wm.m_shellTextCache.empty()
               && wm.m_desktopIconTextCache[0].glyphTexture == nullptr
               && wm.m_desktopIconTextCache[0].labelTexture == nullptr
               && wm.m_desktopIconTextCache[0].selectedLabelTexture == nullptr,

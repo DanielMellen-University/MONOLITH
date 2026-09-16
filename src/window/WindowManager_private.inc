@@ -34,10 +34,13 @@ private:
     };
     std::unordered_map<int, TitleCacheEntry> m_titleCache;
 
-    // Static Start-menu header texture, rebuilt only when the shared font changes.
-    SDL_Texture* m_startMenuHeaderTexture = nullptr;
-    int m_startMenuHeaderTexW = 0;
-    int m_startMenuHeaderTexH = 0;
+    struct ShellTextCacheEntry {
+        SDL_Texture* texture = nullptr;
+        int width = 0;
+        int height = 0;
+    };
+    // Shell labels are keyed by text and color and rebuilt when the shared font changes.
+    std::unordered_map<std::string, ShellTextCacheEntry> m_shellTextCache;
 
     // Logical internal desktop size (overridden at startup; matches main.cpp)
     int m_logicalWidth = 1280;
@@ -142,7 +145,9 @@ private:
     int m_clockDateTexH = 0;
 
     void destroyClockTextures();
-    void destroyStartMenuHeaderTexture();
+    void destroyShellTextCache();
+    SDL_Texture* getShellTextTexture(SDL_Renderer* renderer, const char* text,
+                                      SDL_Color color, int& width, int& height);
     void destroyWallpaperTexture();
     void ensureWallpaperTexture(SDL_Renderer* renderer);
     void renderWallpaper(SDL_Renderer* renderer);
