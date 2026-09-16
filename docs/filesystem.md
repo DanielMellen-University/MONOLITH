@@ -71,7 +71,7 @@ Implementation: `src/fs/Filesystem.hpp`, `src/fs/Filesystem.cpp`.
 |--------|----------|
 | `remove(path)` | Removes one file or empty directory. Symlink entries are unlinked without touching their targets. Refuses virtual root `/`. |
 | `removeRecursive(path)` | Deletes a file or whole directory tree (children first); a symlink entry is unlinked without traversing it. Refuses virtual root `/`. |
-| `copyRecursive(src, dst)` | Copies a file or tree; creates destination directories as needed and removes a newly created destination if a child copy fails. Fails if `dst` is the same as or under `src`. |
+| `copyRecursive(src, dst)` | Copies a file or tree; creates missing destination parent directories for files and destination directories for trees, then removes a newly created tree if a child copy fails. Fails if `dst` is the same as or under `src`. |
 | `copyItemsInto(srcs, destDir)` | Copies each source into `destDir` under its basename (uses `copyRecursive`). Skips existing names, self-copy, and invalid names. Returns the count copied. |
 | `moveItemsInto(srcs, destDir)` | Moves each source into `destDir` under its basename. Uses non-overwriting rename, so existing destination names leave their original sources untouched. Returns the count moved. |
 | `rename(old, new)` | Renames or moves one entry without overwriting. Existing regular entries and dangling symlinks both block the destination. Symlink sources move as entries without moving their targets. Rejects the virtual root and destinations that are the source or inside its subtree. |

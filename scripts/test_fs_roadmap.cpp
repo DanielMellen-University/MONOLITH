@@ -286,6 +286,11 @@ int main() {
     check(fs.fileSize("/dst/empty.txt", copiedEmptySize) && copiedEmptySize == 0,
           "copied empty file remains zero bytes");
 
+    check(fs.copyRecursive("/src/notes.txt", "/new/tree/notes.txt"),
+          "copy file creates missing destination parents");
+    check(fs.readFile("/new/tree/notes.txt") == "memo",
+          "direct file copy preserves content below a new destination tree");
+
     check(fs.writeFile("/src/move.txt", "move me"), "write move source");
     check(fs.writeFile("/src/conflict.txt", "keep source"), "write conflicting source");
     check(fs.writeFile("/dst/conflict.txt", "keep destination"), "write conflicting destination");

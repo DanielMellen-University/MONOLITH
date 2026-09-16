@@ -1,5 +1,10 @@
 # Changelog
 
+## 2026-09: Create parents for direct filesystem copies
+
+- Made `Filesystem::copyRecursive` create missing destination parent directories for direct file copies, matching its documented tree-copy behavior.
+- Added regression coverage for copying a file into a new nested destination.
+
 ## 2026-09: Keep lifecycle regressions sanitizer-clean
 
 - Moved reentrant close assertions onto external test state so lifecycle coverage never reads an app after its window has been destroyed.

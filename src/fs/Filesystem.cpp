@@ -256,6 +256,12 @@ bool Filesystem::copyRecursive(const std::string& srcVirtualPath, const std::str
         std::string content;
         if (!readFile(src, content)) return false;
         if (content.size() != expectedBytes) return false;
+
+        // Directory copies create their destination tree before descending;
+        // direct file copies need the same parent-directory contract.
+        const size_t slash = dst.find_last_of('/');
+        const std::string parent = slash <= 0 ? "/" : dst.substr(0, slash);
+        if (!createDirectory(parent) && !isDirectory(parent)) return false;
         return writeFile(dst, content);
     }
     if (!isDirectory(src)) {
