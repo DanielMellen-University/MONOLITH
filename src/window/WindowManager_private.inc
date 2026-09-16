@@ -102,6 +102,7 @@ private:
     int m_clockTexW = 0;
     int m_clockTexH = 0;
     SDL_Rect m_clockHitRect{0, 0, 0, 0};
+    SDL_Rect m_clockTooltipRect{0, 0, 0, 0};
     SDL_Texture* m_clockDateTexture = nullptr;
     std::string m_clockDateText;
     int m_clockDateTexW = 0;

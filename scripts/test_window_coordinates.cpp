@@ -410,6 +410,24 @@ int main() {
               "narrow Start menu hit targets stay inside the visible popup");
         wm.m_showStartMenu = false;
 
+        wm.setLogicalDesktopSize(500, 40);
+        wm.render(renderer);
+        const bool clockRenderedOnShortClient =
+            wm.m_clockHitRect.w > 0 && wm.m_clockHitRect.h > 0;
+        if (clockRenderedOnShortClient) {
+            wm.m_mouseX = wm.m_clockHitRect.x + wm.m_clockHitRect.w / 2;
+            wm.m_mouseY = wm.m_clockHitRect.y + wm.m_clockHitRect.h / 2;
+            wm.render(renderer);
+        }
+        const SDL_Rect tinyUsableScreen = wm.logicalRectToScreen(wm.getUsableDesktopRect());
+        check(clockRenderedOnShortClient
+                  && rectInside(wm.m_clockTooltipRect,
+                         tinyUsableScreen.x + tinyUsableScreen.w,
+                         tinyUsableScreen.y + tinyUsableScreen.h)
+                  && wm.m_clockTooltipRect.x >= tinyUsableScreen.x
+                  && wm.m_clockTooltipRect.y >= tinyUsableScreen.y,
+              "clock date tooltip stays inside the usable desktop on short clients");
+
         wm.setLogicalDesktopSize(1000, 700);
         wm.m_taskbarScrollOffset = 400;
         wm.setLogicalDesktopSize(120, 120);

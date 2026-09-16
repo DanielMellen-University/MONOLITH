@@ -251,6 +251,7 @@
 
     // --- Right: System clock (local time; texture rebuilt when the minute changes) ---
     m_clockHitRect = {0, 0, 0, 0};
+    m_clockTooltipRect = {0, 0, 0, 0};
     if (m_font) {
         std::time_t now = std::time(nullptr);
         std::tm localTm{};

@@ -11,27 +11,39 @@
             if (m_clockDateTexture && SDL_PointInRect(&mousePt, &m_clockHitRect)) {
                 const int tipPadX = static_cast<int>(6 * m_contentScale);
                 const int tipPadY = static_cast<int>(3 * m_contentScale);
-                const int tipW = m_clockDateTexW + tipPadX * 2;
-                const int tipH = m_clockDateTexH + tipPadY * 2;
-                int tipX = trayX + trayW - tipW;
-                if (tipX < 0) {
-                    tipX = 0;
+                const SDL_Rect usableScreen = logicalRectToScreen(getUsableDesktopRect());
+                int tipW = m_clockDateTexW + tipPadX * 2;
+                int tipH = m_clockDateTexH + tipPadY * 2;
+                tipW = std::min(tipW, std::max(0, usableScreen.w));
+                tipH = std::min(tipH, std::max(0, usableScreen.h));
+                if (tipW > 0 && tipH > 0) {
+                    const int usableRight = usableScreen.x + usableScreen.w;
+                    const int usableBottom = usableScreen.y + usableScreen.h;
+                    int tipX = trayX + trayW - tipW;
+                    int tipY = trayY - tipH - static_cast<int>(4 * m_contentScale);
+                    tipX = std::clamp(tipX, usableScreen.x, usableRight - tipW);
+                    tipY = std::clamp(tipY, usableScreen.y, usableBottom - tipH);
+
+                    const SDL_Rect tipBg = {tipX, tipY, tipW, tipH};
+                    m_clockTooltipRect = tipBg;
+                    const SDL_Rect tooltipClip = intersectRendererClip(tipBg, callerClip);
+                    if (tooltipClip.w > 0 && tooltipClip.h > 0) {
+                        SDL_RenderSetClipRect(renderer, &tooltipClip);
+                        SDL_SetRenderDrawColor(renderer, 50, 50, 58, 255);
+                        SDL_RenderFillRect(renderer, &tipBg);
+                        SDL_SetRenderDrawColor(renderer, 110, 110, 120, 255);
+                        SDL_RenderDrawRect(renderer, &tipBg);
+
+                        SDL_Rect tipDst = {
+                            tipX + tipPadX,
+                            tipY + tipPadY,
+                            m_clockDateTexW,
+                            m_clockDateTexH
+                        };
+                        SDL_RenderCopy(renderer, m_clockDateTexture, nullptr, &tipDst);
+                        restoreRendererClip(renderer, callerClip);
+                    }
                 }
-                const int tipY = trayY - tipH - static_cast<int>(4 * m_contentScale);
-
-                SDL_SetRenderDrawColor(renderer, 50, 50, 58, 255);
-                SDL_Rect tipBg = {tipX, tipY, tipW, tipH};
-                SDL_RenderFillRect(renderer, &tipBg);
-                SDL_SetRenderDrawColor(renderer, 110, 110, 120, 255);
-                SDL_RenderDrawRect(renderer, &tipBg);
-
-                SDL_Rect tipDst = {
-                    tipX + tipPadX,
-                    tipY + tipPadY,
-                    m_clockDateTexW,
-                    m_clockDateTexH
-                };
-                SDL_RenderCopy(renderer, m_clockDateTexture, nullptr, &tipDst);
             }
             }
         }

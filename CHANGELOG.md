@@ -1,5 +1,10 @@
 # Changelog
 
+## 2026-09: Contain the taskbar clock tooltip
+
+- The clock's date tooltip now stays within the usable desktop on short and narrow clients instead of being positioned above the rendered surface.
+- Tooltip rendering preserves the caller's clip and has focused geometry coverage for undersized desktops.
+
 ## 2026-09: Contain Filesystem Browser context menus
 
 - Context menus now clamp to the browser client instead of keeping a fixed minimum width that can extend off-screen in narrow windows.
