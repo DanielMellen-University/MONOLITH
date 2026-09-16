@@ -308,6 +308,19 @@ int main() {
     check(!wm.m_showStartMenu && secondPtr->keyUps == keyUpsBeforeMenuEscape,
           "bare Escape dismissal consumes the matching key release");
 
+    const int keyUpsBeforeMenuEnter = secondPtr->keyUps;
+    wm.handleEvent(ctrlEscape);
+    wm.handleEvent(escapeRelease);
+    SDL_Event menuEnter{};
+    menuEnter.type = SDL_KEYDOWN;
+    menuEnter.key.keysym.sym = SDLK_RETURN;
+    wm.handleEvent(menuEnter);
+    SDL_Event menuEnterRelease = menuEnter;
+    menuEnterRelease.type = SDL_KEYUP;
+    wm.handleEvent(menuEnterRelease);
+    check(!wm.m_showStartMenu && secondPtr->keyUps == keyUpsBeforeMenuEnter,
+          "Start-menu Enter activation consumes the matching key release");
+
     SDL_DestroyWindow(hostWindow);
     SDL_Quit();
 

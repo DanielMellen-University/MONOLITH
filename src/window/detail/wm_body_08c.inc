@@ -242,6 +242,9 @@ bool WindowManager::tryHandleShellHotkeys(const SDL_Event& event) {
                 || m_startMenuKeyboardIndex >= static_cast<int>(m_startMenuItems.size())) {
                 m_startMenuKeyboardIndex = 0;
             }
+            // Activation closes the menu and may focus a newly launched app;
+            // keep the matching release out of that app's input stream.
+            m_shellKeyUpsPending.insert(key.sym);
             activateStartMenuItem(
                 m_startMenuItems[static_cast<size_t>(m_startMenuKeyboardIndex)].action);
             return true;

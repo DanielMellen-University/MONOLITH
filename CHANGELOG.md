@@ -1,5 +1,10 @@
 # Changelog
 
+## 2026-09: Keep Start-menu activation shell-owned
+
+- Consume the Return or keypad Enter release paired with Start-menu activation so a newly focused app cannot receive an unintended key-up.
+- Extend shell input regression coverage to the complete Enter activation gesture.
+
 ## 2026-09: Keep Start-menu Escape shell-owned
 
 - Consume the key-up paired with a bare Escape that dismisses the Start menu, preventing the resumed app from interpreting the release as its own prompt cancellation.
