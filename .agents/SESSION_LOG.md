@@ -1,5 +1,7 @@
 # Session log
 
+| 2026-09-16 | fix | Invalidated Drawing toolbar and color-swatch hit targets after resize and interface-scale changes, with focused Drawing state coverage and app-guide/changelog notes. |
+
 | 2026-09-16 | fix | Invalidated Filesystem Browser toolbar and filter hit targets after resize and interface-scale changes, with focused browser state coverage and app-guide/changelog notes. |
 
 | 2026-09-16 | fix | Invalidated cached taskbar, clock, and Start-menu hit targets after shell geometry, clock-format, or font-metric changes, with focused window-coordinate coverage and architecture/changelog notes. |

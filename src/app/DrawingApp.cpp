@@ -1183,6 +1183,7 @@ void DrawingApp::onResize(int clientWidth, int clientHeight) {
     m_clientWidth = clientWidth;
     m_clientHeight = clientHeight;
     updateLayoutMetrics();
+    invalidateHitTargets();
 
     const int canvasW = std::max(1, clientWidth);
     const int canvasH = std::max(1, clientHeight - m_canvasTop - m_statusBarHeight);
@@ -1206,9 +1207,32 @@ void DrawingApp::onResize(int clientWidth, int clientHeight) {
 
 void DrawingApp::onUiScaleChanged() {
     updateLayoutMetrics();
+    invalidateHitTargets();
     // The path prompt stores its horizontal position in pixels; remeasure it
     // against the new font on the next render.
     m_pathPromptScrollPx = 0;
+}
+
+void DrawingApp::invalidateHitTargets() {
+    m_btnNew = {0, 0, 0, 0};
+    m_btnSave = {0, 0, 0, 0};
+    m_btnOpen = {0, 0, 0, 0};
+    m_btnUndo = {0, 0, 0, 0};
+    m_btnRedo = {0, 0, 0, 0};
+    m_btnPen = {0, 0, 0, 0};
+    m_btnEraser = {0, 0, 0, 0};
+    m_btnFill = {0, 0, 0, 0};
+    m_btnEyedropper = {0, 0, 0, 0};
+    m_btnLine = {0, 0, 0, 0};
+    m_btnRect = {0, 0, 0, 0};
+    m_btnRgb = {0, 0, 0, 0};
+    m_btnClear = {0, 0, 0, 0};
+    m_btnBrushSmall = {0, 0, 0, 0};
+    m_btnBrushMedium = {0, 0, 0, 0};
+    m_btnBrushLarge = {0, 0, 0, 0};
+    for (SDL_Rect& swatch : m_colorSwatches) {
+        swatch = {0, 0, 0, 0};
+    }
 }
 
 void DrawingApp::render(SDL_Renderer* renderer, const SDL_Rect& contentRect) {

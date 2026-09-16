@@ -87,6 +87,7 @@ private:
     int getToolbarHeight() const;
     int getStatusBarHeight() const;
     void updateLayoutMetrics();
+    void invalidateHitTargets();
     void handleToolbarClick(int x, int y);
     bool isInCanvas(int x, int y) const;
     void canvasPointFromClient(int clientX, int clientY, int& outX, int& outY) const;

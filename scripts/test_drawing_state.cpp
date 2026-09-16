@@ -140,6 +140,8 @@ int main() {
     const std::vector<uint8_t> pixelsBeforeScale = drawing.m_pixels;
     drawing.pushUndoSnapshot();
     const size_t undoCountBeforeScale = drawing.m_undoStack.size();
+    drawing.m_btnNew = {10, 10, 40, 20};
+    drawing.m_colorSwatches[0] = {10, 40, 12, 12};
     check(TTF_SetFontSize(font, 22) == 0, "drawing state applies larger test font");
     drawing.onUiScaleChanged();
     check(drawing.m_canvasTop > baseToolbarHeight
@@ -151,7 +153,13 @@ int main() {
               && drawing.m_undoStack.size() == undoCountBeforeScale
               && !drawing.m_dirty,
           "Drawing text scaling preserves canvas data and history");
+    check(drawing.m_btnNew.w == 0 && drawing.m_colorSwatches[0].w == 0,
+          "Drawing scaling invalidates stale toolbar hit targets");
+    drawing.m_btnSave = {10, 10, 40, 20};
+    drawing.m_colorSwatches[1] = {10, 40, 12, 12};
     drawing.onResize(320, 300);
+    check(drawing.m_btnSave.w == 0 && drawing.m_colorSwatches[1].w == 0,
+          "Drawing resize invalidates stale toolbar hit targets");
     const int scaledDisplayHeight = drawing.m_clientHeight
         - drawing.m_canvasTop - drawing.m_statusBarHeight;
     int mappedX = 0;

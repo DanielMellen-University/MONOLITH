@@ -1,5 +1,10 @@
 # Changelog
 
+## 2026-09: Invalidate stale Drawing hit targets
+
+- Cleared cached Drawing toolbar and color-swatch hit rectangles on client resize and interface text-scale changes, preventing pre-render clicks from activating controls at their old positions.
+- Added Drawing state coverage for both invalidation paths.
+
 ## 2026-09: Invalidate stale browser hit targets
 
 - Cleared cached Filesystem Browser toolbar and filter hit rectangles on client resize and interface text-scale changes, preventing pre-render clicks from activating controls at their old positions.
