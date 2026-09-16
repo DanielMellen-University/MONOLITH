@@ -48,6 +48,7 @@ inline constexpr int kDesktopIconCount =
     static_cast<int>(sizeof(kDefaultDesktopIcons) / sizeof(kDefaultDesktopIcons[0]));
 
 inline constexpr int kDesktopIconTile = 48;
+inline constexpr int kDesktopIconCellW = 112;
 inline constexpr int kDesktopIconLabelBand = 22;
 inline constexpr int kDesktopIconGap = 14;
 inline constexpr int kDesktopIconMargin = 16;
@@ -62,7 +63,6 @@ inline std::vector<DesktopIconPlacement> layoutDesktopIcons(
     std::vector<DesktopIconPlacement> out;
     if (usableWidth <= 0 || usableHeight <= 0) return out;
 
-    const int cellW = kDesktopIconTile + 8;
     const int iconH = kDesktopIconTile + kDesktopIconLabelBand;
     const int remainingAfterFirst = usableHeight - kDesktopIconMargin - iconH;
     const int maxRows = remainingAfterFirst < 0
@@ -75,12 +75,12 @@ inline std::vector<DesktopIconPlacement> layoutDesktopIcons(
         const DesktopIconDef& def = kDefaultDesktopIcons[i];
         const int x = kDesktopIconMargin;
         const int y = kDesktopIconMargin + i * kDesktopIconCellH;
-        if (x + cellW > usableWidth) break;
+        if (x + kDesktopIconCellW > usableWidth) break;
         if (y + kDesktopIconTile + kDesktopIconLabelBand > usableHeight) break;
 
         DesktopIconPlacement p;
         p.tile = {x, y, kDesktopIconTile, kDesktopIconTile};
-        p.rect = {x, y, cellW, kDesktopIconTile + kDesktopIconLabelBand};
+        p.rect = {x, y, kDesktopIconCellW, kDesktopIconTile + kDesktopIconLabelBand};
         p.label = def.label;
         p.glyph = def.glyph;
         p.action = def.action;

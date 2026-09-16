@@ -1,5 +1,10 @@
 # Changelog
 
+## 2026-09: Keep desktop icon labels inside their column
+
+- Desktop icons now reserve a stable label-width hit cell, preventing longer labels such as Filesystem from bleeding into the workspace.
+- Narrow desktops omit icons when the label column cannot fit horizontally.
+
 ## 2026-09: Keep editor path completion UTF-8 safe
 
 - Ctrl+O and Save As completion now stop at complete Unicode codepoints when multiple filenames share a multibyte prefix.

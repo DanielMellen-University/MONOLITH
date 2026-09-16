@@ -22,6 +22,8 @@ int main() {
           "first icon is Terminal");
     check(tall.back().action == DesktopIconAction::Settings,
           "last icon is Settings");
+    check(tall.front().rect.w == kDesktopIconCellW,
+          "desktop icon cells reserve a stable label-width hit area");
 
     for (const auto& icon : tall) {
         check(icon.rect.y + icon.rect.h <= 720 - 28,
@@ -49,6 +51,8 @@ int main() {
           "desktop renders one icon when the first row exactly fits");
     check(layoutDesktopIcons(200, oneIconHeight - 1).empty(),
           "desktop omits the first icon when its row is one pixel too tall");
+    check(layoutDesktopIcons(kDesktopIconCellW - 1, oneIconHeight).empty(),
+          "narrow desktops omit icons whose labels cannot fit horizontally");
 
     check(isDesktopIconDoubleClick(2, 1000, 2, 1300),
           "same-icon click within the window counts as a double-click");
