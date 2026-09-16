@@ -19,6 +19,11 @@ struct TestController final : monolith::app::IWindowController {
     std::string wallpaperPath;
     int logicalWidth = 1280;
     int logicalHeight = 720;
+    uint8_t backgroundR = 25;
+    uint8_t backgroundG = 25;
+    uint8_t backgroundB = 30;
+    bool clock24Hour = false;
+    int uiScalePercent = 100;
 
     void close() override {}
     void setTitle(const std::string&) override {}
@@ -29,6 +34,24 @@ struct TestController final : monolith::app::IWindowController {
 
     void setWallpaperPath(const std::string& path) override {
         wallpaperPath = path;
+    }
+
+    void setDesktopBackgroundColor(uint8_t r, uint8_t g, uint8_t b) override {
+        backgroundR = r;
+        backgroundG = g;
+        backgroundB = b;
+    }
+
+    void setClock24Hour(bool enabled) override {
+        clock24Hour = enabled;
+    }
+
+    int getUiScalePercent() const override {
+        return uiScalePercent;
+    }
+
+    void setUiScalePercent(int percent) override {
+        uiScalePercent = percent;
     }
 
     void getLogicalDesktopSize(int& width, int& height) const override {
@@ -209,6 +232,53 @@ int main() {
               && settings.m_wallpaperSetRect.w == 0
               && settings.m_wallpaperClearRect.w == 0,
           "Settings resize invalidates stale hit targets");
+    settings.ensureHitTargets();
+    const SDL_Rect preRenderPreset = settings.m_backgroundSwatches[2];
+    const SDL_Rect preRenderField = settings.m_wallpaperFieldRect;
+    const SDL_Rect preRenderClock = settings.m_clockFormatHitRects[1];
+    const SDL_Rect preRenderScale = settings.m_uiScaleHitRects[2];
+    check(preRenderPreset.w > 0 && preRenderField.w > 0
+              && preRenderField.h > 0 && settings.m_wallpaperSetRect.w > 0
+              && settings.m_wallpaperClearRect.w > 0
+              && preRenderClock.w > 0 && preRenderScale.w > 0,
+          "Settings rebuilds every control target on demand");
+    auto clickRect = [&](const SDL_Rect& rect) {
+        SDL_Event click{};
+        click.type = SDL_MOUSEBUTTONDOWN;
+        click.button.button = SDL_BUTTON_LEFT;
+        click.button.x = rect.x + rect.w / 2;
+        click.button.y = rect.y + rect.h / 2;
+        settings.handleEvent(click);
+    };
+    settings.invalidateHitTargets();
+    clickRect(preRenderPreset);
+    check(controller.backgroundR == 32 && controller.backgroundG == 36
+              && controller.backgroundB == 48,
+          "Settings accepts a queued scaled preset click before render");
+    settings.invalidateHitTargets();
+    clickRect(preRenderField);
+    check(settings.m_wallpaperFieldFocused,
+          "Settings accepts a queued scaled wallpaper-field click before render");
+    settings.m_wallpaperFieldFocused = false;
+    settings.invalidateHitTargets();
+    clickRect(preRenderClock);
+    check(controller.clock24Hour,
+          "Settings accepts a queued scaled clock click before render");
+    settings.invalidateHitTargets();
+    clickRect(preRenderScale);
+    check(controller.uiScalePercent == 115,
+          "Settings accepts a queued scaled UI-size click before render");
+    settings.m_scrollOffset = 20;
+    settings.invalidateHitTargets();
+    settings.ensureHitTargets();
+    const SDL_Rect scrolledPreset = settings.m_backgroundSwatches[3];
+    check(scrolledPreset.y > 0,
+          "Settings keeps a scrolled control inside the client viewport");
+    settings.invalidateHitTargets();
+    clickRect(scrolledPreset);
+    check(controller.backgroundR == 20 && controller.backgroundG == 32
+              && controller.backgroundB == 24,
+          "Settings clicks scrolled controls in client coordinates");
     settings.m_wallpaperFieldFocused = false;
     settings.m_backgroundSwatches[2] = {10, 10, 20, 20};
     SDL_Event wheel{};

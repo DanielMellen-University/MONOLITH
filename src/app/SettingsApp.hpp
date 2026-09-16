@@ -65,6 +65,7 @@ private:
     int getFooterHeight() const;
     SDL_Rect getFooterRect(const SDL_Rect& contentRect) const;
     void syncWallpaperBufferFromShell();
+    void ensureHitTargets();
     void invalidateHitTargets();
 
     static constexpr int kPresetCount = 6;
@@ -106,6 +107,7 @@ private:
 
     int m_clientWidth = 0;
     int m_clientHeight = 0;
+    bool m_hitTargetsValid = false;
 };
 
 } // namespace monolith::app

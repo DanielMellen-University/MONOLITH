@@ -48,6 +48,79 @@ SDL_Rect SettingsApp::getFooterRect(const SDL_Rect& contentRect) const {
     };
 }
 
+void SettingsApp::ensureHitTargets() {
+    if (m_hitTargetsValid) return;
+
+    if (!m_font) {
+        m_hitTargetsValid = true;
+        return;
+    }
+
+    int y = kPadY - m_scrollOffset;
+    y += getLineHeight() + 2 + 8;
+    y += getLineHeight() + 6;
+
+    int swatchX = kPadX;
+    const int controlSize = getControlSize();
+    for (SDL_Rect& swatch : m_backgroundSwatches) {
+        swatch = {swatchX, y, controlSize, controlSize};
+        swatchX += controlSize + kSwatchGap;
+    }
+
+    y += controlSize + 8;
+    y += getLineHeight() + 8;
+    y += getLineHeight() + 6;
+
+    const int setW = measureTextWidth(m_font, "Set") + kBtnPadX * 2;
+    const int clearW = measureTextWidth(m_font, "Clear") + kBtnPadX * 2;
+    const int btnGap = 6;
+    const int rightReserve = setW + clearW + btnGap * 2;
+    const int fieldW = std::max(0, m_clientWidth - kPadX * 2 - rightReserve);
+    const int fieldHeight = getFieldHeight();
+    m_wallpaperFieldRect = {kPadX, y, fieldW, fieldHeight};
+    m_wallpaperSetRect = {kPadX + fieldW + btnGap, y, setW, fieldHeight};
+    m_wallpaperClearRect = {
+        kPadX + fieldW + btnGap + setW + btnGap, y, clearW, fieldHeight
+    };
+
+    y += fieldHeight + 8;
+    y += getLineHeight() + 8;
+    y += getLineHeight() + 6;
+
+    auto textWidthOr = [&](const char* text, int fallback) {
+        const int width = measureTextWidth(m_font, text);
+        return width > 0 ? width : fallback;
+    };
+
+    int optionX = kPadX;
+    const int optionHeight = getControlSize();
+    for (int i = 0; i < 2; ++i) {
+        const int optionWidth = textWidthOr(i == 0 ? "12-hour" : "24-hour", 60)
+            + 10 * 2;
+        m_clockFormatHitRects[static_cast<size_t>(i)] = {
+            optionX, y, optionWidth, optionHeight
+        };
+        optionX += optionWidth + kSwatchGap;
+    }
+
+    y += optionHeight + 8;
+    y += getLineHeight() + 8;
+    y += getLineHeight() + 6;
+
+    int scaleX = kPadX;
+    const int scaleHeight = getControlSize();
+    for (int i = 0; i < kUiScaleCount; ++i) {
+        const int optionWidth = textWidthOr(kUiScaleOptions[static_cast<size_t>(i)].label, 80)
+            + 10 * 2;
+        m_uiScaleHitRects[static_cast<size_t>(i)] = {
+            scaleX, y, optionWidth, scaleHeight
+        };
+        scaleX += optionWidth + kSwatchGap;
+    }
+
+    m_hitTargetsValid = true;
+}
+
 void SettingsApp::onUiScaleChanged() {
     invalidateHitTargets();
     // The wallpaper prompt stores its horizontal position in pixels; discard
@@ -58,6 +131,7 @@ void SettingsApp::onUiScaleChanged() {
 }
 
 void SettingsApp::invalidateHitTargets() {
+    m_hitTargetsValid = false;
     for (SDL_Rect& rect : m_backgroundSwatches) {
         rect = {0, 0, 0, 0};
     }

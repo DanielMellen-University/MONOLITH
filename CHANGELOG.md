@@ -1,5 +1,11 @@
 # Changelog
 
+## 2026-09: Keep Settings controls responsive across layout changes
+
+- Rebuilt Settings swatch, wallpaper, clock, and text-size hit targets on demand when queued input arrives after a resize, interface-scale change, or scroll update but before the next render.
+- Corrected Settings click coordinates after scrolling so visible controls remain actionable instead of applying the scroll offset twice.
+- Shared the Settings control geometry between rendering and input, with focused coverage for pre-render scaled clicks across the appearance controls.
+
 ## 2026-09: Keep Drawing controls responsive across layout changes
 
 - Rebuilt Drawing toolbar and color-swatch hit targets on demand when queued input arrives after a resize or interface-scale change but before the next render.

@@ -48,7 +48,7 @@ The **APPEARANCE** section at the top lets you change live desktop preferences.
 - Changing the size updates shared app and window text immediately, and open text-heavy apps keep their cursor and scroll views within the new font geometry.
 - Settings section spacing, wallpaper fields, clock/scale controls, and footer height grow from the active font metrics, keeping labels inside their controls at the supported 115% scale.
 - The wallpaper path field gives up width before the Set and Clear buttons do, so the action controls remain inside narrow Settings clients.
-- Cached swatch, clock, text-size, and wallpaper-control hit rectangles are cleared immediately when the client resizes, the interface scale changes, or the scroll offset moves, then rebuilt on the next render so a pre-render event cannot use the old layout.
+- Cached swatch, clock, text-size, and wallpaper-control hit rectangles are cleared immediately when the client resizes, the interface scale changes, or the scroll offset moves, then rebuilt on demand for input or during the next render so queued events use the current layout. The cached rectangles use the same scrolled client coordinates as the drawn controls.
 - Settings preserves the shell's renderer clip while applying its scroll-area clip, so a partially visible window cannot paint outside its client intersection.
 - The footer is clamped inside the client rectangle when a Settings window is shorter than the scaled footer band.
 
