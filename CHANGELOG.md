@@ -1,5 +1,10 @@
 # Changelog
 
+## 2026-09: Reject unsafe atomic temp entries
+
+- Virtual file writes and host text snapshots now reject symlinked or non-regular `.tmp` siblings before replacement.
+- Added regression coverage that preserves both destination records and symlink targets.
+
 ## 2026-09: Isolate game randomness
 
 - Snake and Minesweeper now keep independent random streams instead of sharing the process-global C RNG.

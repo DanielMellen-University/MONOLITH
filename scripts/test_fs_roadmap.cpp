@@ -220,6 +220,29 @@ int main() {
                   == atomicPermissions)
               && !stdfs::exists(hostRoot / "src/atomic.txt.tmp"),
           "overwrite file atomically while retaining permission bits");
+    const stdfs::path outsideTempTarget = outsideRoot / "atomic-temp-target.txt";
+    {
+        std::ofstream outsideTempFile(outsideTempTarget);
+        outsideTempFile << "outside-before";
+    }
+    const stdfs::path atomicTempLink = hostRoot / "src/atomic.txt.tmp";
+    stdfs::remove(atomicTempLink, ec);
+    stdfs::create_symlink(outsideTempTarget, atomicTempLink, ec);
+    check(!ec, "create atomic temp symlink");
+    if (!ec) {
+        check(!fs.writeFile("/src/atomic.txt", "blocked"),
+              "atomic write rejects a symlink temporary sibling");
+        std::ifstream outsideTempCheck(outsideTempTarget);
+        std::string outsideTempContent;
+        std::getline(outsideTempCheck, outsideTempContent);
+        check(outsideTempContent == "outside-before",
+              "atomic temp symlink target remains untouched");
+        check(fs.readFile("/src/atomic.txt") == "after",
+              "atomic temp symlink rejection preserves the destination");
+        check(stdfs::is_symlink(stdfs::symlink_status(atomicTempLink)),
+              "atomic temp symlink remains an entry");
+        stdfs::remove(atomicTempLink, ec);
+    }
     const stdfs::path blockedWritePath = hostRoot / "src/blocked-write.txt";
     stdfs::remove_all(blockedWritePath, ec);
     check(stdfs::create_directory(blockedWritePath),

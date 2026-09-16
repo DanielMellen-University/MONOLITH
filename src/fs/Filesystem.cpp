@@ -1,5 +1,7 @@
 #include "Filesystem.hpp"
 
+#include "../detail/AtomicFile.hpp"
+
 #include <algorithm>
 #include <cctype>
 #include <filesystem>
@@ -443,6 +445,8 @@ bool Filesystem::writeFile(const std::string& virtualPath, const std::string& co
         }
 
         const stdfs::path tempPath = writePath.string() + ".tmp";
+        if (!monolith::detail::isSafeAtomicTempPath(tempPath)) return false;
+
         std::ofstream file(tempPath, std::ios::binary | std::ios::trunc);
         if (!file) return false;
 
@@ -456,6 +460,12 @@ bool Filesystem::writeFile(const std::string& virtualPath, const std::string& co
         }
         file.close();
         if (!file) {
+            std::error_code cleanupError;
+            stdfs::remove(tempPath, cleanupError);
+            return false;
+        }
+
+        if (!monolith::detail::isSafeAtomicTempPath(tempPath)) {
             std::error_code cleanupError;
             stdfs::remove(tempPath, cleanupError);
             return false;

@@ -3,9 +3,25 @@
 #include <filesystem>
 #include <fstream>
 #include <ostream>
+#include <system_error>
 #include <utility>
 
 namespace monolith::detail {
+
+// A temporary sibling is an implementation detail, not a file that callers
+// should be able to redirect through a symlink. Existing regular temp files
+// may be replaced after an interrupted write; every other existing entry is
+// rejected.
+inline bool isSafeAtomicTempPath(const std::filesystem::path& tempPath) {
+    std::error_code statusError;
+    const auto status = std::filesystem::symlink_status(tempPath, statusError);
+    if (statusError
+        && statusError != std::make_error_code(std::errc::no_such_file_or_directory)) {
+        return false;
+    }
+    return status.type() == std::filesystem::file_type::not_found
+        || std::filesystem::is_regular_file(status);
+}
 
 // Write text to a sibling temporary file, then replace the target only after
 // the complete stream has succeeded.
@@ -34,6 +50,8 @@ bool writeTextAtomically(const std::filesystem::path& targetPath,
     }
 
     const std::filesystem::path tempPath = targetPath.string() + ".tmp";
+    if (!isSafeAtomicTempPath(tempPath)) return false;
+
     std::ofstream out(tempPath, std::ios::trunc);
     if (!out) return false;
 
@@ -60,6 +78,12 @@ bool writeTextAtomically(const std::filesystem::path& targetPath,
     }
     out.close();
     if (!out) {
+        std::error_code cleanupError;
+        std::filesystem::remove(tempPath, cleanupError);
+        return false;
+    }
+
+    if (!isSafeAtomicTempPath(tempPath)) {
         std::error_code cleanupError;
         std::filesystem::remove(tempPath, cleanupError);
         return false;

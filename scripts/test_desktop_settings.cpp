@@ -54,6 +54,32 @@ int main() {
     check(std::filesystem::status(path).permissions() == restrictivePermissions,
           "settings replacement retains existing permissions");
 
+    const std::filesystem::path outsideTempTarget =
+        std::filesystem::temp_directory_path() / "monolith-desktop-settings-temp-target";
+    std::filesystem::remove(outsideTempTarget, ec);
+    {
+        std::ofstream outsideTempFile(outsideTempTarget);
+        outsideTempFile << "outside-before";
+    }
+    const std::filesystem::path tempLink = path.string() + ".tmp";
+    std::filesystem::remove(tempLink, ec);
+    std::filesystem::create_symlink(outsideTempTarget, tempLink, ec);
+    check(!ec, "create settings temp symlink");
+    if (!ec) {
+        saved.setUiScalePercent(100);
+        check(!saved.saveToHostPath(path.string()),
+              "settings save rejects a symlink temporary sibling");
+        std::ifstream outsideTempCheck(outsideTempTarget);
+        std::string outsideTempContent;
+        std::getline(outsideTempCheck, outsideTempContent);
+        check(outsideTempContent == "outside-before",
+              "settings temp symlink target remains untouched");
+        check(std::filesystem::is_symlink(std::filesystem::symlink_status(tempLink)),
+              "settings temp symlink remains an entry");
+        std::filesystem::remove(tempLink, ec);
+    }
+    std::filesystem::remove(outsideTempTarget, ec);
+
     const std::filesystem::path blockedPath =
         std::filesystem::temp_directory_path() / "monolith-desktop-settings-blocked";
     std::filesystem::remove_all(blockedPath, ec);
