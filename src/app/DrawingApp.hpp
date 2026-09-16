@@ -27,6 +27,8 @@ public:
     void onUiScaleChanged() override;
     void onBoundFileMoved(const std::string& oldPath,
                           const std::string& newPath) override;
+    void onVirtualPathMoved(const std::string& oldPath,
+                            const std::string& newPath) override;
     void onVirtualPathChanged(const std::string& changedPath) override;
     void onBoundFileRemoved(const std::string& removedPath) override;
     bool allowClose() override;
@@ -93,6 +95,8 @@ private:
     void canvasPointFromClient(int clientX, int clientY, int& outX, int& outY) const;
     void setStatus(const std::string& message);
     void beginPathPrompt(PathPromptMode mode);
+    void remapPathPrompt(const std::string& oldPath,
+                         const std::string& newPath);
     void finishPathPrompt(bool commit);
     void completePathPrompt();
     void handlePathPromptKey(const SDL_Keysym& keysym);

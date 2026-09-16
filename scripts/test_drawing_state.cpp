@@ -289,6 +289,13 @@ int main() {
               && drawing.m_filePath == "/archive/alternate.modr"
               && drawing.m_pathPromptCursorPos == std::string("/archive/alternate.modr/").size(),
           "Save prompt canonicalizes a moved bound drawing file and preserves its caret");
+    drawing.beginPathPrompt(monolith::app::DrawingApp::PathPromptMode::Open);
+    drawing.m_pathPromptBuffer = "/drawings/nested/child.modr";
+    drawing.m_pathPromptCursorPos = std::string("/drawings/nested/").size();
+    drawing.onVirtualPathMoved("/drawings", "/archive/../archive");
+    check(drawing.m_pathPromptBuffer == "/archive/nested/child.modr"
+              && drawing.m_pathPromptCursorPos == std::string("/archive/nested/").size(),
+          "Open prompt follows a moved Drawing directory and preserves its caret");
     drawing.beginPathPrompt(monolith::app::DrawingApp::PathPromptMode::Save);
     drawing.m_pathPromptBuffer = "/archive/alternate.modr";
     drawing.m_pathPromptCursorPos = drawing.m_pathPromptBuffer.size();

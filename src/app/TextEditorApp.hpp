@@ -26,6 +26,8 @@ public:
     void onUiScaleChanged() override;
     void onBoundFileMoved(const std::string& oldPath,
                           const std::string& newPath) override;
+    void onVirtualPathMoved(const std::string& oldPath,
+                            const std::string& newPath) override;
     void onVirtualPathChanged(const std::string& changedPath) override;
     void onBoundFileRemoved(const std::string& removedPath) override;
     bool allowClose() override;
@@ -85,6 +87,8 @@ private:
 
     enum class PathPromptMode { None, Open, SaveAs, GoToLine };
     void beginPathPrompt(PathPromptMode mode);
+    void remapPathPrompt(const std::string& oldPath,
+                         const std::string& newPath);
     void finishPathPrompt(bool commit);
     void completePathPrompt();
     void handlePathPromptKey(const SDL_Keysym& keysym);

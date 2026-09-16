@@ -361,6 +361,12 @@ int main() {
     check(promptEditor.m_pathPromptBuffer == "/renamed.txt/child.txt"
               && promptEditor.m_pathPromptCursorPos == std::string("/renamed.txt/").size(),
           "Save As prompt canonicalizes a moved bound editor file and preserves its caret");
+    prepareOpen(promptEditor, "/docs/nested/child.txt");
+    promptEditor.m_pathPromptCursorPos = std::string("/docs/nested/").size();
+    promptEditor.onVirtualPathMoved("/docs", "/archive/../archive");
+    check(promptEditor.m_pathPromptBuffer == "/archive/nested/child.txt"
+              && promptEditor.m_pathPromptCursorPos == std::string("/archive/nested/").size(),
+          "Open prompt follows a moved editor directory and preserves its caret");
     prepareSaveAs(promptEditor, "/renamed.txt");
     promptEditor.onBoundFileRemoved("/renamed.txt");
     check(promptEditor.m_pathPromptBuffer == "/",

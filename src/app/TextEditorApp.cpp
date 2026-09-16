@@ -422,32 +422,46 @@ void TextEditorApp::onBoundFileMoved(const std::string& oldPath,
     if (newPath.empty()) return;
     const std::string normalizedNewPath = m_fs ? m_fs->normalize(newPath) : newPath;
 
-    if (m_fs && (m_pathPromptMode == PathPromptMode::Open
-                 || m_pathPromptMode == PathPromptMode::SaveAs)) {
-        const bool trailingSlash = !m_pathPromptBuffer.empty()
-            && m_pathPromptBuffer.back() == '/';
-        const std::string oldPrompt = m_pathPromptBuffer;
-        const std::size_t oldCursor = m_pathPromptCursorPos;
-        const std::string oldNormalized = m_fs->normalize(oldPath);
-        const std::string promptPath = m_fs->normalize(m_pathPromptBuffer);
-        if (m_fs->isSameOrDescendant(oldNormalized, promptPath)) {
-            m_pathPromptBuffer = normalizedNewPath
-                + promptPath.substr(oldNormalized.size());
-            if (trailingSlash && m_pathPromptBuffer.back() != '/') {
-                m_pathPromptBuffer.push_back('/');
-            }
-            m_pathPromptCursorPos = remapUtf8CursorAfterPrefix(
-                oldPrompt, oldCursor, oldNormalized, normalizedNewPath,
-                m_pathPromptBuffer);
-            m_statusHorizontalScrollPx = 0;
-        }
-    }
+    remapPathPrompt(oldPath, newPath);
 
     m_filePath = normalizedNewPath;
     refreshSyntaxMode();
     clearDiscardArm();
     updateTitleForPath();
     setStatus("File moved: " + normalizedNewPath);
+}
+
+void TextEditorApp::onVirtualPathMoved(const std::string& oldPath,
+                                       const std::string& newPath) {
+    remapPathPrompt(oldPath, newPath);
+}
+
+void TextEditorApp::remapPathPrompt(const std::string& oldPath,
+                                    const std::string& newPath) {
+    if (!m_fs || (m_pathPromptMode != PathPromptMode::Open
+                  && m_pathPromptMode != PathPromptMode::SaveAs)) {
+        return;
+    }
+
+    const std::string oldNormalized = m_fs->normalize(oldPath);
+    const std::string normalizedNewPath = m_fs->normalize(newPath);
+    if (oldNormalized.empty() || normalizedNewPath.empty() || oldNormalized == "/") return;
+
+    const bool trailingSlash = !m_pathPromptBuffer.empty()
+        && m_pathPromptBuffer.back() == '/';
+    const std::string oldPrompt = m_pathPromptBuffer;
+    const std::size_t oldCursor = m_pathPromptCursorPos;
+    const std::string promptPath = m_fs->normalize(m_pathPromptBuffer);
+    if (!m_fs->isSameOrDescendant(oldNormalized, promptPath)) return;
+
+    m_pathPromptBuffer = normalizedNewPath + promptPath.substr(oldNormalized.size());
+    if (trailingSlash && m_pathPromptBuffer.back() != '/') {
+        m_pathPromptBuffer.push_back('/');
+    }
+    m_pathPromptCursorPos = remapUtf8CursorAfterPrefix(
+        oldPrompt, oldCursor, oldNormalized, normalizedNewPath,
+        m_pathPromptBuffer);
+    m_statusHorizontalScrollPx = 0;
 }
 
 void TextEditorApp::onVirtualPathChanged(const std::string& changedPath) {

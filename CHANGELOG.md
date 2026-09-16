@@ -1,5 +1,10 @@
 # Changelog
 
+## 2026-09: Follow moved directories in active prompts
+
+- Remapped Text Editor and Drawing Open/Save prompts when a directory in the prompt moves, including normalized paths and UTF-8-safe caret positions.
+- Added focused coverage for directory moves in both apps.
+
 ## 2026-09: Repair prompts after parent deletion
 
 - Passed the actual removed directory into bound Editor and Drawing windows when a parent tree is deleted, so active path prompts return to the nearest surviving parent instead of retaining a dead path.
