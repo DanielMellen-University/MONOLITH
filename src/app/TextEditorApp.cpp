@@ -1472,6 +1472,10 @@ void TextEditorApp::replaceCurrentMatch() {
         setStatus("Replace: match moved, try again");
         return;
     }
+    if (m_replaceText == m_findQuery) {
+        setStatus("Replace: text is unchanged");
+        return;
+    }
 
     pushUndoState();
     line.replace(static_cast<size_t>(match.second), m_findQuery.size(), m_replaceText);
@@ -1504,6 +1508,10 @@ void TextEditorApp::replaceAllMatches() {
     updateFindMatches();
     if (m_findMatches.empty()) {
         setStatus("Replace all: no matches");
+        return;
+    }
+    if (m_replaceText == m_findQuery) {
+        setStatus("Replace all: text is unchanged");
         return;
     }
 

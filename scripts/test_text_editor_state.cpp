@@ -300,6 +300,29 @@ int main() {
     check(!undoEditor.m_dirty && undoEditor.m_lines == std::vector<std::string>{"Xoriginal"},
           "undoing after save compares against the new saved content");
 
+    TestEditor noOpReplaceEditor(nullptr, &fs, "/old.txt");
+    noOpReplaceEditor.m_searchMode = TestEditor::SearchMode::Replace;
+    noOpReplaceEditor.m_findQuery = "Xoriginal";
+    noOpReplaceEditor.m_replaceText = "Xoriginal";
+    noOpReplaceEditor.updateFindMatches();
+    const size_t noOpUndoCount = noOpReplaceEditor.m_undoStack.size();
+    noOpReplaceEditor.replaceCurrentMatch();
+    check(!noOpReplaceEditor.m_dirty, "replacing a match with itself stays clean");
+    check(noOpReplaceEditor.m_lines == std::vector<std::string>{"Xoriginal"},
+          "replacing a match with itself preserves document content");
+    check(noOpReplaceEditor.m_undoStack.size() == noOpUndoCount,
+          "replacing a match with itself preserves undo history");
+    check(noOpReplaceEditor.m_statusMessage == "Replace: text is unchanged",
+          "replacing a match with itself reports a no-op");
+    noOpReplaceEditor.replaceAllMatches();
+    check(!noOpReplaceEditor.m_dirty, "replace all with identical text stays clean");
+    check(noOpReplaceEditor.m_lines == std::vector<std::string>{"Xoriginal"},
+          "replace all with identical text preserves document content");
+    check(noOpReplaceEditor.m_undoStack.size() == noOpUndoCount,
+          "replace all with identical text preserves undo history");
+    check(noOpReplaceEditor.m_statusMessage == "Replace all: text is unchanged",
+          "replace all with identical text reports a no-op");
+
     editor.m_lines = {"aa"};
     editor.m_cursorRow = 0;
     editor.m_cursorCol = 0;

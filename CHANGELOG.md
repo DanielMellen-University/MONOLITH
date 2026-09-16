@@ -1,5 +1,10 @@
 # Changelog
 
+## 2026-09: Keep no-op Text Editor replaces clean
+
+- Treat Replace and Replace All operations whose replacement equals the find text as no-ops, so they do not create undo entries or a false dirty marker.
+- Add focused coverage for clean-state and history preservation.
+
 ## 2026-09: Keep failed Drawing opens clean
 
 - Establish a clean blank baseline when a missing or invalid initial `.modr` path falls back to an untitled Drawing window, so undo does not leave a false `[modified]` marker.

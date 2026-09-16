@@ -105,6 +105,7 @@ The status bar shows match count (e.g. `2/5`). The current match is selected in 
 | Esc | Exit |
 
 Replacement is case-sensitive, non-overlapping substring match (same as find). Each original match is replaced once, even when the replacement text contains the search text. Multi-line find is not supported.
+Replacing with the same text is a no-op: it leaves the buffer clean and does not add an undo step.
 Both search fields insert text at the caret, and long prompts scroll horizontally to keep the active caret visible.
 
 ## Saving
