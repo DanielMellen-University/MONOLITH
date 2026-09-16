@@ -1,5 +1,11 @@
 # Changelog
 
+## 2026-09: Isolate game randomness
+
+- Snake and Minesweeper now keep independent random streams instead of sharing the process-global C RNG.
+- Bounded food and mine coordinates now use standard uniform distributions, and the helper has focused headless coverage.
+- Documented the random-state boundary in both game guides and the development script reference.
+
 ## 2026-09: Document complete Drawing verification
 
 - Added the one-command headless suite to the Drawing developer guide alongside the focused raster, state, integration, and smoke checks.

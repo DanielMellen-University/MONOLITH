@@ -3,8 +3,6 @@
 #include "../detail/AtomicFile.hpp"
 
 #include <algorithm>
-#include <cstdlib>
-#include <ctime>
 #include <filesystem>
 #include <fstream>
 #include <queue>
@@ -99,11 +97,6 @@ void MinesweeperApp::recordBestTimeIfNeeded() {
 }
 
 MinesweeperApp::MinesweeperApp(TTF_Font* font) : m_font(font) {
-    static bool seeded = false;
-    if (!seeded) {
-        std::srand(static_cast<unsigned>(std::time(nullptr)));
-        seeded = true;
-    }
     loadBestTimes();
     newGame(Difficulty::Beginner);
 }
@@ -177,8 +170,8 @@ void MinesweeperApp::placeMines(int safeX, int safeY) {
     const int maxAttempts = m_width * m_height * 20;
     while (placed < m_mineCount && attempts < maxAttempts) {
         ++attempts;
-        const int x = std::rand() % m_width;
-        const int y = std::rand() % m_height;
+        const int x = m_random.uniformInt(m_width);
+        const int y = m_random.uniformInt(m_height);
         if (isExcluded(x, y)) continue;
         Cell& c = m_cells[static_cast<size_t>(index(x, y))];
         if (c.mine) continue;

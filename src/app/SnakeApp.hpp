@@ -1,6 +1,7 @@
 #pragma once
 
 #include "App.hpp"
+#include "../detail/Random.hpp"
 #include <SDL2/SDL.h>
 #include <SDL2/SDL_ttf.h>
 #include <cstdint>
@@ -63,6 +64,7 @@ private:
     static std::string highScoreHostPath();
 
     TTF_Font* m_font = nullptr;
+    monolith::detail::Random m_random;
 
     std::deque<std::pair<int, int>> m_body; // front = head
     Dir m_dir = Dir::Right;

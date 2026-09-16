@@ -43,6 +43,7 @@ Changing difficulty immediately starts a new game.
 - Timer starts on the first reveal and freezes on win/lose (displayed up to 999s).
 - Timer **pauses while the Minesweeper window is unfocused or the Start menu is open** (HUD shows **PAUSED**) and resumes from the exact elapsed time when you focus it again; this matches Snake.
 - HUD shows remaining mines (total − flags), timer, best time for the difficulty, and difficulty name.
+- Mine placement uses a private unbiased random stream, so opening or resetting Snake cannot alter the board sequence.
 
 ## Best times
 
@@ -69,6 +70,7 @@ The board letterboxes inside the window. Expert on a small window uses compresse
 ## Developer Notes
 
 - `src/app/MinesweeperApp.{hpp,cpp}`
+- `src/detail/Random.hpp` provides the per-game bounded random helper shared with Snake
 - `scripts/test_minesweeper_state.cpp` covers focus pause/resume without rendering
 - `WindowManager::launchMinesweeper()` and Start menu action `6` (listed under the **Games** category)
 - Timer advances in `App::update()` while playing and focused; `onFocusLost` / `onFocusGained` freeze and resume

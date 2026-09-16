@@ -45,6 +45,7 @@ The best score is saved on the host at `~/.monolith/snake_highscore.txt` and sho
 - Overlay line spacing follows the active interface font so scaled text does not overlap on end-state screens
 - HUD height follows the active interface font with a stable minimum, keeping the board below the text strip after Settings text scaling
 - Brief flash when food is eaten; the deadline remains correct across SDL tick wraparound
+- Food placement uses a private unbiased random stream, so opening or resetting Minesweeper cannot alter Snake's sequence
 
 The board letterboxes inside the window when resized or maximized. If the client area becomes very small, cells compress so the full board remains inside the window instead of covering the HUD.
 
@@ -56,6 +57,7 @@ The board letterboxes inside the window when resized or maximized. If the client
 ## Developer Notes
 
 - `src/app/SnakeApp.{hpp,cpp}`
+- `src/detail/Random.hpp` provides the per-game bounded random helper shared with Minesweeper
 - `scripts/test_snake_state.cpp` covers tail movement and growth collision rules without rendering
 - `WindowManager::launchSnake()` and Start menu action `5` (listed under the **Games** category)
 - Game steps run from `App::update()`, dispatched by `WindowManager::update()` for non-minimized windows

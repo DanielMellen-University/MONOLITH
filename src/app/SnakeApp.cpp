@@ -4,8 +4,6 @@
 #include "../detail/TickMath.hpp"
 
 #include <algorithm>
-#include <cstdlib>
-#include <ctime>
 #include <filesystem>
 #include <fstream>
 #include <string>
@@ -54,11 +52,6 @@ void SnakeApp::maybeUpdateHighScore() {
 }
 
 SnakeApp::SnakeApp(TTF_Font* font) : m_font(font) {
-    static bool seeded = false;
-    if (!seeded) {
-        std::srand(static_cast<unsigned>(std::time(nullptr)));
-        seeded = true;
-    }
     loadHighScore();
     resetGame();
 }
@@ -89,8 +82,8 @@ void SnakeApp::spawnFood() {
         return;
     }
     for (int attempt = 0; attempt < 500; ++attempt) {
-        const int x = std::rand() % kGridW;
-        const int y = std::rand() % kGridH;
+        const int x = m_random.uniformInt(kGridW);
+        const int y = m_random.uniformInt(kGridH);
         bool occupied = false;
         for (const auto& seg : m_body) {
             if (seg.first == x && seg.second == y) {

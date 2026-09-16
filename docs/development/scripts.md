@@ -64,6 +64,12 @@ Headless Snake state and tiny-client layout test for score persistence, tail mov
 g++ -std=c++23 scripts/test_snake_state.cpp src/app/SnakeApp.cpp $(pkg-config --cflags --libs sdl2 SDL2_ttf) -o build/test_snake_state && ./build/test_snake_state
 ```
 
+Headless check of the bounded random helper shared by the built-in games:
+
+```bash
+g++ -std=c++23 scripts/test_random.cpp -o build/test_random && ./build/test_random
+```
+
 Headless Minesweeper state and tiny-client layout test for best-time persistence, scaled HUD controls, shared control hitboxes, precise focus pause/resume timing, and keeping the Expert board inside its content area:
 
 ```bash
