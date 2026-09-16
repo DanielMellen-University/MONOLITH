@@ -128,6 +128,8 @@ The canvas is a raster surface. It fills the space between the toolbar and the s
 3. Draw on the canvas. The status bar adds `[modified]` after the first canvas change.
 4. Press **Ctrl+S**, keep the suggested `.modr` path or edit it, then press **Enter**.
 
+Fill marks pixels as soon as they enter its work list, so each connected pixel is visited once even on large flat regions.
+
 ### Edit An Existing Drawing
 
 1. Double-click a `.modr` file in Filesystem Browser, or press **Ctrl+O** and enter its internal path.

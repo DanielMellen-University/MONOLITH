@@ -3,6 +3,7 @@
 #include <SDL2/SDL.h>
 #include <SDL2/SDL_ttf.h>
 
+#include <algorithm>
 #include <filesystem>
 #include <iostream>
 #include <string>
@@ -102,6 +103,19 @@ int main() {
 
     drawing.onResize(300, 300);
     check(!drawing.m_dirty, "initial blank resize stays clean");
+    drawing.m_usingCustomColor = true;
+    drawing.m_customR = 12;
+    drawing.m_customG = 34;
+    drawing.m_customB = 56;
+    drawing.floodFill(0, 0);
+    bool fillCoveredCanvas = true;
+    for (size_t i = 0; i + 3 < drawing.m_pixels.size(); i += 4) {
+        fillCoveredCanvas &= drawing.m_pixels[i + 0] == drawing.m_customR
+            && drawing.m_pixels[i + 1] == drawing.m_customG
+            && drawing.m_pixels[i + 2] == drawing.m_customB
+            && drawing.m_pixels[i + 3] == 255;
+    }
+    check(fillCoveredCanvas, "Drawing fill covers a connected canvas without gaps");
     check(drawing.loadFromPath("/drawings/resize.modr"), "load resize drawing");
     check(!drawing.m_dirty, "loaded drawing starts clean");
 

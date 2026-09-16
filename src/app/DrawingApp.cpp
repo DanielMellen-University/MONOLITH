@@ -325,28 +325,37 @@ void DrawingApp::floodFill(int x, int y) {
     pushUndoSnapshot();
 
     std::vector<std::pair<int, int>> queue;
-    queue.emplace_back(x, y);
+    auto enqueueIfTarget = [&](int px, int py) {
+        if (px < 0 || py < 0 || px >= m_canvasWidth || py >= m_canvasHeight) return;
+
+        const size_t idx = (static_cast<size_t>(py) * static_cast<size_t>(m_canvasWidth)
+                            + static_cast<size_t>(px)) * 4;
+        if (m_pixels[idx + 0] != targetR
+            || m_pixels[idx + 1] != targetG
+            || m_pixels[idx + 2] != targetB) {
+            return;
+        }
+
+        // Mark pixels when they enter the work list. A neighboring pixel can
+        // otherwise enqueue the same region several times before its first
+        // copy is popped, which makes large fills needlessly memory hungry.
+        m_pixels[idx + 0] = fillR;
+        m_pixels[idx + 1] = fillG;
+        m_pixels[idx + 2] = fillB;
+        m_pixels[idx + 3] = 255;
+        queue.emplace_back(px, py);
+    };
+
+    enqueueIfTarget(x, y);
 
     while (!queue.empty()) {
         const auto [px, py] = queue.back();
         queue.pop_back();
 
-        if (px < 0 || py < 0 || px >= m_canvasWidth || py >= m_canvasHeight) continue;
-
-        const size_t idx = (static_cast<size_t>(py) * static_cast<size_t>(m_canvasWidth) + static_cast<size_t>(px)) * 4;
-        if (m_pixels[idx + 0] != targetR || m_pixels[idx + 1] != targetG || m_pixels[idx + 2] != targetB) {
-            continue;
-        }
-
-        m_pixels[idx + 0] = fillR;
-        m_pixels[idx + 1] = fillG;
-        m_pixels[idx + 2] = fillB;
-        m_pixels[idx + 3] = 255;
-
-        queue.emplace_back(px + 1, py);
-        queue.emplace_back(px - 1, py);
-        queue.emplace_back(px, py + 1);
-        queue.emplace_back(px, py - 1);
+        enqueueIfTarget(px + 1, py);
+        enqueueIfTarget(px - 1, py);
+        enqueueIfTarget(px, py + 1);
+        enqueueIfTarget(px, py - 1);
     }
 
     m_dirty = true;

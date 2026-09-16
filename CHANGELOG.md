@@ -1,5 +1,10 @@
 # Changelog
 
+## 2026-09: Make Drawing Fill linear in the connected region
+
+- The Fill tool now marks pixels as soon as they enter its work list, avoiding duplicate queue entries on large flat canvases.
+- Added state coverage that verifies a connected canvas is filled without gaps.
+
 ## 2026-09: Contain the taskbar clock tooltip
 
 - The clock's date tooltip now stays within the usable desktop on short and narrow clients instead of being positioned above the rendered surface.

@@ -1,5 +1,7 @@
 # Session log
 
+| 2026-09-15 | fix | Made Drawing Fill mark pixels on enqueue to avoid duplicate work on large regions, added connected-canvas coverage, and updated the Drawing guide and changelog. |
+
 | 2026-09-15 | fix | Contained the taskbar clock date tooltip within the usable desktop on short and narrow clients, preserved caller clipping, and added focused geometry coverage plus architecture/changelog notes. |
 
 | 2026-09-15 | fix | Contained Filesystem Browser context menus within undersized clients, clipped their popup rendering, and added focused geometry coverage plus app docs. |
