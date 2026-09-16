@@ -6,8 +6,8 @@
 
 namespace monolith::drawing {
 
-/** Set one RGBA pixel. No-op if (x,y) is outside the canvas. */
-void setPixel(std::vector<uint8_t>& rgba, int width, int height,
+/** Set one RGBA pixel. Returns false if the pixel was already that color. */
+bool setPixel(std::vector<uint8_t>& rgba, int width, int height,
               int x, int y, uint8_t r, uint8_t g, uint8_t b);
 
 /** Read one RGB pixel. Returns false if (x,y) or the RGBA buffer is invalid. */
@@ -15,11 +15,11 @@ bool getPixel(const std::vector<uint8_t>& rgba, int width, int height,
               int x, int y, uint8_t& r, uint8_t& g, uint8_t& b);
 
 /** Bresenham line, 1px wide, including both endpoints. */
-void drawLine(std::vector<uint8_t>& rgba, int width, int height,
+bool drawLine(std::vector<uint8_t>& rgba, int width, int height,
               int x0, int y0, int x1, int y1, uint8_t r, uint8_t g, uint8_t b);
 
 /** Axis-aligned rectangle boundary (inclusive), 1px wide. */
-void drawRect(std::vector<uint8_t>& rgba, int width, int height,
+bool drawRect(std::vector<uint8_t>& rgba, int width, int height,
               int x0, int y0, int x1, int y1, uint8_t r, uint8_t g, uint8_t b);
 
 /** Encode live RGBA canvas as .modr (magic + w/h + RGB payload). */

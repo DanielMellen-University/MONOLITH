@@ -290,15 +290,15 @@ The **S**, **M**, and **L** buttons select brush radii of 2, 5, and 10 pixels. T
 
 | Tool | Interaction | History |
 |------|-------------|---------|
-| Pen | Drag to paint with a filled circular brush | One undo state per drag |
-| Eraser | Drag to paint the canvas background color | One undo state per drag |
-| Fill | Click a connected region | One undo state per fill |
+| Pen | Drag to paint with a filled circular brush | One undo state per changed drag |
+| Eraser | Drag to paint the canvas background color | One undo state per changed drag |
+| Fill | Click a connected region | One undo state per changed fill |
 | Pick | Click one pixel to copy its RGB value, then return to Pen | No canvas change |
-| Line | Drag from one endpoint to the other | One undo state per drag |
-| Rect | Drag the two opposite corners | One undo state per drag |
+| Line | Drag from one endpoint to the other | One undo state per changed drag |
+| Rect | Drag the two opposite corners | One undo state per changed drag |
 | Clear | Clear the entire canvas | One undo state per changed clear; blank canvases are unchanged |
 
-Pen and Eraser interpolate between mouse events, so fast drags remain continuous. Line and Rect commit when the mouse button is released; releasing outside the canvas uses the last canvas point reached.
+Pen and Eraser interpolate between mouse events, so fast drags remain continuous. Line and Rect commit when the mouse button is released; releasing outside the canvas uses the last canvas point reached. A stroke that leaves every pixel unchanged does not mark the sketch modified or consume an undo state.
 
 ## Canvas Behavior
 
@@ -516,11 +516,11 @@ Opening a valid file replaces the current canvas dimensions and pixels. The file
 
 Drawing stores a capped history of canvas snapshots.
 
-- A snapshot is recorded before each stroke.
-- A snapshot is recorded before each Fill operation.
-- A snapshot is recorded before Clear.
+- A snapshot is recorded before each changed stroke.
+- A snapshot is recorded before each changed Fill operation.
+- A snapshot is recorded before each changed Clear.
 - Undo and redo operate on full canvas states.
-- Starting a new stroke or clearing after an undo resets redo history.
+- Starting a changed stroke or clearing after an undo resets redo history.
 - Picking a color does not create a history state.
 - Opening a file clears history.
 - Resizing the canvas clears history so old snapshots are not applied to the wrong canvas size.

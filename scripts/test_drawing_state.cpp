@@ -135,6 +135,52 @@ int main() {
               && drawing.m_undoStack.size() == clearUndoCount
               && drawing.m_statusMessage == "Canvas already clear.",
           "clearing an already blank Drawing stays clean and out of undo history");
+    drawing.m_tool = monolith::app::DrawingApp::Tool::Eraser;
+    const std::vector<uint8_t> blankPixels = drawing.m_pixels;
+    SDL_Event noOpStrokeDown{};
+    noOpStrokeDown.type = SDL_MOUSEBUTTONDOWN;
+    noOpStrokeDown.button.button = SDL_BUTTON_LEFT;
+    noOpStrokeDown.button.x = 1;
+    noOpStrokeDown.button.y = drawing.m_canvasTop + 1;
+    drawing.handleEvent(noOpStrokeDown);
+    SDL_Event noOpStrokeUp = noOpStrokeDown;
+    noOpStrokeUp.type = SDL_MOUSEBUTTONUP;
+    drawing.handleEvent(noOpStrokeUp);
+    check(!drawing.m_dirty
+              && drawing.m_pixels == blankPixels
+              && drawing.m_undoStack.size() == clearUndoCount,
+          "an eraser stroke on a blank Drawing stays clean and out of undo history");
+
+    TestDrawing redoDrawing(font, &fs);
+    redoDrawing.onResize(300, 300);
+    redoDrawing.m_tool = monolith::app::DrawingApp::Tool::Pen;
+    SDL_Event changedStrokeDown = noOpStrokeDown;
+    changedStrokeDown.button.x = 20;
+    changedStrokeDown.button.y = redoDrawing.m_canvasTop + 20;
+    redoDrawing.handleEvent(changedStrokeDown);
+    SDL_Event changedStrokeUp = changedStrokeDown;
+    changedStrokeUp.type = SDL_MOUSEBUTTONUP;
+    redoDrawing.handleEvent(changedStrokeUp);
+    check(redoDrawing.m_dirty && redoDrawing.m_undoStack.size() == 1,
+          "a changed Drawing stroke records one undo state");
+    redoDrawing.undoCanvas();
+    check(!redoDrawing.m_dirty && redoDrawing.m_undoStack.empty()
+              && redoDrawing.m_redoStack.size() == 1,
+          "undoing a Drawing stroke exposes its redo state");
+    redoDrawing.m_tool = monolith::app::DrawingApp::Tool::Eraser;
+    changedStrokeDown.button.x = 20;
+    changedStrokeDown.button.y = redoDrawing.m_canvasTop + 20;
+    redoDrawing.handleEvent(changedStrokeDown);
+    changedStrokeUp = changedStrokeDown;
+    changedStrokeUp.type = SDL_MOUSEBUTTONUP;
+    redoDrawing.handleEvent(changedStrokeUp);
+    check(!redoDrawing.m_dirty && redoDrawing.m_undoStack.empty()
+              && redoDrawing.m_redoStack.size() == 1,
+          "a no-op Drawing stroke preserves redo history");
+    redoDrawing.redoCanvas();
+    check(redoDrawing.m_dirty && redoDrawing.m_redoStack.empty(),
+          "preserved Drawing redo history still reapplies the stroke");
+    drawing.m_tool = monolith::app::DrawingApp::Tool::Pen;
     drawing.m_usingCustomColor = true;
     drawing.m_customR = 12;
     drawing.m_customG = 34;

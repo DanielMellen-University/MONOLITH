@@ -122,14 +122,36 @@ void DrawingApp::markTextureDirty() {
 }
 
 void DrawingApp::pushUndoSnapshot() {
-    if (m_pixels.empty() || m_canvasWidth <= 0 || m_canvasHeight <= 0) return;
+    pushUndoSnapshot({m_canvasWidth, m_canvasHeight, m_pixels});
+}
+
+void DrawingApp::pushUndoSnapshot(const CanvasSnapshot& snapshot) {
+    if (snapshot.pixels.empty() || snapshot.width <= 0 || snapshot.height <= 0) return;
 
     if (m_undoStack.size() >= kMaxHistoryStates) {
         m_undoStack.erase(m_undoStack.begin());
     }
 
-    m_undoStack.push_back({m_canvasWidth, m_canvasHeight, m_pixels});
+    m_undoStack.push_back(snapshot);
     m_redoStack.clear();
+}
+
+void DrawingApp::beginStroke() {
+    m_strokeStartSnapshot = {m_canvasWidth, m_canvasHeight, m_pixels};
+    m_strokeHistoryPending = true;
+    m_strokeChanged = false;
+}
+
+void DrawingApp::recordStrokeChange() {
+    if (!m_strokeHistoryPending || m_strokeChanged) return;
+    pushUndoSnapshot(m_strokeStartSnapshot);
+    m_strokeChanged = true;
+}
+
+void DrawingApp::finishStroke() {
+    m_strokeHistoryPending = false;
+    m_strokeChanged = false;
+    m_strokeStartSnapshot = {};
 }
 
 void DrawingApp::restoreCanvasSnapshot(const CanvasSnapshot& snapshot) {
@@ -260,38 +282,42 @@ uint8_t DrawingApp::activeBlue() const {
     return kColors[m_colorIndex].b;
 }
 
-void DrawingApp::setPixel(int x, int y, uint8_t r, uint8_t g, uint8_t b) {
-    monolith::drawing::setPixel(m_pixels, m_canvasWidth, m_canvasHeight, x, y, r, g, b);
+bool DrawingApp::setPixel(int x, int y, uint8_t r, uint8_t g, uint8_t b) {
+    return monolith::drawing::setPixel(
+        m_pixels, m_canvasWidth, m_canvasHeight, x, y, r, g, b);
 }
 
-void DrawingApp::commitShape(int x0, int y0, int x1, int y1) {
+bool DrawingApp::commitShape(int x0, int y0, int x1, int y1) {
     const uint8_t r = activeRed();
     const uint8_t g = activeGreen();
     const uint8_t b = activeBlue();
+    bool changed = false;
     if (m_tool == Tool::Line) {
-        monolith::drawing::drawLine(m_pixels, m_canvasWidth, m_canvasHeight, x0, y0, x1, y1, r, g, b);
+        changed = monolith::drawing::drawLine(
+            m_pixels, m_canvasWidth, m_canvasHeight, x0, y0, x1, y1, r, g, b);
     } else if (m_tool == Tool::Rect) {
-        monolith::drawing::drawRect(m_pixels, m_canvasWidth, m_canvasHeight, x0, y0, x1, y1, r, g, b);
+        changed = monolith::drawing::drawRect(
+            m_pixels, m_canvasWidth, m_canvasHeight, x0, y0, x1, y1, r, g, b);
     }
-    m_dirty = true;
-    clearDiscardArm();
-    markTextureDirty();
+    return changed;
 }
 
-void DrawingApp::stampBrush(int x, int y) {
+bool DrawingApp::stampBrush(int x, int y) {
     const int radius = brushRadius();
     const uint8_t r = activeRed();
     const uint8_t g = activeGreen();
     const uint8_t b = activeBlue();
     const int r2 = radius * radius;
 
+    bool changed = false;
     for (int dy = -radius; dy <= radius; ++dy) {
         for (int dx = -radius; dx <= radius; ++dx) {
             if (dx * dx + dy * dy <= r2) {
-                setPixel(x + dx, y + dy, r, g, b);
+                changed = setPixel(x + dx, y + dy, r, g, b) || changed;
             }
         }
     }
+    return changed;
 }
 
 void DrawingApp::floodFill(int x, int y) {
@@ -369,7 +395,7 @@ void DrawingApp::pickColorAt(int x, int y) {
     setStatus(oss.str());
 }
 
-void DrawingApp::drawStroke(int x0, int y0, int x1, int y1) {
+bool DrawingApp::drawStroke(int x0, int y0, int x1, int y1) {
     const int dx = std::abs(x1 - x0);
     const int dy = std::abs(y1 - y0);
     const int sx = (x0 < x1) ? 1 : -1;
@@ -378,9 +404,10 @@ void DrawingApp::drawStroke(int x0, int y0, int x1, int y1) {
 
     int x = x0;
     int y = y0;
+    bool changed = false;
 
     while (true) {
-        stampBrush(x, y);
+        changed = stampBrush(x, y) || changed;
 
         if (x == x1 && y == y1) break;
 
@@ -395,9 +422,7 @@ void DrawingApp::drawStroke(int x0, int y0, int x1, int y1) {
         }
     }
 
-    m_dirty = true;
-    clearDiscardArm();
-    markTextureDirty();
+    return changed;
 }
 
 bool DrawingApp::isInCanvas(int x, int y) const {
@@ -1410,14 +1435,16 @@ void DrawingApp::handleEvent(const SDL_Event& event) {
             m_lastCanvasY = cy;
             m_shapeAnchorX = cx;
             m_shapeAnchorY = cy;
-            pushUndoSnapshot();
+            beginStroke();
             if (m_tool == Tool::Line || m_tool == Tool::Rect) {
                 return;
             }
-            stampBrush(cx, cy);
-            m_dirty = true;
-            clearDiscardArm();
-            markTextureDirty();
+            if (stampBrush(cx, cy)) {
+                recordStrokeChange();
+                m_dirty = true;
+                clearDiscardArm();
+                markTextureDirty();
+            }
         }
         return;
     }
@@ -1432,13 +1459,19 @@ void DrawingApp::handleEvent(const SDL_Event& event) {
             if (isInCanvas(x, y)) {
                 canvasPointFromClient(x, y, cx, cy);
             }
-            commitShape(m_shapeAnchorX, m_shapeAnchorY, cx, cy);
+            if (commitShape(m_shapeAnchorX, m_shapeAnchorY, cx, cy)) {
+                recordStrokeChange();
+                m_dirty = true;
+                clearDiscardArm();
+                markTextureDirty();
+            }
         }
         m_drawing = false;
         m_lastCanvasX = -1;
         m_lastCanvasY = -1;
         m_shapeAnchorX = -1;
         m_shapeAnchorY = -1;
+        finishStroke();
         return;
     }
 
@@ -1458,9 +1491,14 @@ void DrawingApp::handleEvent(const SDL_Event& event) {
         }
 
         if (m_lastCanvasX >= 0 && m_lastCanvasY >= 0) {
-            drawStroke(m_lastCanvasX, m_lastCanvasY, cx, cy);
-        } else {
-            stampBrush(cx, cy);
+            if (drawStroke(m_lastCanvasX, m_lastCanvasY, cx, cy)) {
+                recordStrokeChange();
+                m_dirty = true;
+                clearDiscardArm();
+                markTextureDirty();
+            }
+        } else if (stampBrush(cx, cy)) {
+            recordStrokeChange();
             m_dirty = true;
             clearDiscardArm();
             markTextureDirty();

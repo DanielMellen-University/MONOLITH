@@ -27,17 +27,22 @@ uint32_t readU32LE(const std::string& data, size_t offset) {
 }
 } // namespace
 
-void setPixel(std::vector<uint8_t>& rgba, int width, int height,
+bool setPixel(std::vector<uint8_t>& rgba, int width, int height,
               int x, int y, uint8_t r, uint8_t g, uint8_t b) {
-    if (width <= 0 || height <= 0) return;
-    if (x < 0 || y < 0 || x >= width || y >= height) return;
+    if (width <= 0 || height <= 0) return false;
+    if (x < 0 || y < 0 || x >= width || y >= height) return false;
     const size_t expected = static_cast<size_t>(width) * static_cast<size_t>(height) * 4;
-    if (rgba.size() < expected) return;
+    if (rgba.size() < expected) return false;
     const size_t idx = (static_cast<size_t>(y) * static_cast<size_t>(width) + static_cast<size_t>(x)) * 4;
+    if (rgba[idx + 0] == r && rgba[idx + 1] == g && rgba[idx + 2] == b
+        && rgba[idx + 3] == 255) {
+        return false;
+    }
     rgba[idx + 0] = r;
     rgba[idx + 1] = g;
     rgba[idx + 2] = b;
     rgba[idx + 3] = 255;
+    return true;
 }
 
 bool getPixel(const std::vector<uint8_t>& rgba, int width, int height,
@@ -54,8 +59,9 @@ bool getPixel(const std::vector<uint8_t>& rgba, int width, int height,
     return true;
 }
 
-void drawLine(std::vector<uint8_t>& rgba, int width, int height,
+bool drawLine(std::vector<uint8_t>& rgba, int width, int height,
               int x0, int y0, int x1, int y1, uint8_t r, uint8_t g, uint8_t b) {
+    bool changed = false;
     const int dx = std::abs(x1 - x0);
     const int dy = std::abs(y1 - y0);
     const int sx = (x0 < x1) ? 1 : -1;
@@ -64,7 +70,7 @@ void drawLine(std::vector<uint8_t>& rgba, int width, int height,
     int x = x0;
     int y = y0;
     while (true) {
-        setPixel(rgba, width, height, x, y, r, g, b);
+        changed = setPixel(rgba, width, height, x, y, r, g, b) || changed;
         if (x == x1 && y == y1) break;
         const int e2 = 2 * err;
         if (e2 > -dy) {
@@ -76,20 +82,23 @@ void drawLine(std::vector<uint8_t>& rgba, int width, int height,
             y += sy;
         }
     }
+    return changed;
 }
 
-void drawRect(std::vector<uint8_t>& rgba, int width, int height,
+bool drawRect(std::vector<uint8_t>& rgba, int width, int height,
               int x0, int y0, int x1, int y1, uint8_t r, uint8_t g, uint8_t b) {
+    bool changed = false;
     if (x0 > x1) std::swap(x0, x1);
     if (y0 > y1) std::swap(y0, y1);
     for (int x = x0; x <= x1; ++x) {
-        setPixel(rgba, width, height, x, y0, r, g, b);
-        setPixel(rgba, width, height, x, y1, r, g, b);
+        changed = setPixel(rgba, width, height, x, y0, r, g, b) || changed;
+        changed = setPixel(rgba, width, height, x, y1, r, g, b) || changed;
     }
     for (int y = y0; y <= y1; ++y) {
-        setPixel(rgba, width, height, x0, y, r, g, b);
-        setPixel(rgba, width, height, x1, y, r, g, b);
+        changed = setPixel(rgba, width, height, x0, y, r, g, b) || changed;
+        changed = setPixel(rgba, width, height, x1, y, r, g, b) || changed;
     }
+    return changed;
 }
 
 std::string encodeModr(int width, int height, const std::vector<uint8_t>& rgba) {

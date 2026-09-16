@@ -1,5 +1,10 @@
 # Changelog
 
+## 2026-09: Keep no-op Drawing strokes clean
+
+- Defer stroke history capture until Pen, Eraser, Line, or Rect actually changes a pixel, preserving clean state and redo history for no-op gestures.
+- Add focused eraser coverage and document changed-stroke history behavior.
+
 ## 2026-09: Keep no-op Drawing clears clean
 
 - Treat Clear on an already blank canvas as a no-op, preserving the clean marker and undo history.

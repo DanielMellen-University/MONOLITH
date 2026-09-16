@@ -63,14 +63,18 @@ private:
     void markTextureDirty();
     void syncTexture(SDL_Renderer* renderer);
     void pushUndoSnapshot();
+    void pushUndoSnapshot(const CanvasSnapshot& snapshot);
+    void beginStroke();
+    void recordStrokeChange();
+    void finishStroke();
     void restoreCanvasSnapshot(const CanvasSnapshot& snapshot);
     void undoCanvas();
     void redoCanvas();
     void refreshDirtyState();
-    void setPixel(int x, int y, uint8_t r, uint8_t g, uint8_t b);
-    void stampBrush(int x, int y);
-    void drawStroke(int x0, int y0, int x1, int y1);
-    void commitShape(int x0, int y0, int x1, int y1);
+    bool setPixel(int x, int y, uint8_t r, uint8_t g, uint8_t b);
+    bool stampBrush(int x, int y);
+    bool drawStroke(int x0, int y0, int x1, int y1);
+    bool commitShape(int x0, int y0, int x1, int y1);
     void floodFill(int x, int y);
     void pickColorAt(int x, int y);
     int brushRadius() const;
@@ -140,6 +144,9 @@ private:
     int m_lastCanvasY = -1;
     int m_shapeAnchorX = -1;
     int m_shapeAnchorY = -1;
+    bool m_strokeHistoryPending = false;
+    bool m_strokeChanged = false;
+    CanvasSnapshot m_strokeStartSnapshot;
 
     std::string m_filePath;
     bool m_dirty = false;
