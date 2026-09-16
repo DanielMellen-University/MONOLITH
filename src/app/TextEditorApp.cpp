@@ -46,6 +46,16 @@ std::string commonPrefix(const std::vector<std::string>& values) {
         common.resize(len);
         if (common.empty()) break;
     }
+
+    // Completion edits byte offsets, but the prompt must never stop inside a
+    // UTF-8 codepoint when two names share only its leading bytes.
+    if (!common.empty()) {
+        const std::size_t start = utf8PrevCodepointStart(common, common.size());
+        const std::size_t length = utf8CodepointByteLen(common, start);
+        if (start + length > common.size()) {
+            common.resize(start);
+        }
+    }
     return common;
 }
 

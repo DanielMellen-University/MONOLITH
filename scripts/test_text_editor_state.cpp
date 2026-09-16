@@ -157,6 +157,13 @@ int main() {
     check(fs.writeFile("/classic-mac.txt", "first\rsecond\r"),
           "write lone-CR editor file");
     check(fs.createDirectory("/folder"), "create unwritable save target directory");
+    check(fs.createDirectory("/unicode"), "create Unicode completion directory");
+    const std::string eAcuteName = std::string("\xC3\xA9") + "clair.txt";
+    const std::string eCircumflexName = std::string("\xC3\xAA") + "clair.txt";
+    check(fs.writeFile("/unicode/" + eAcuteName, "acute"),
+          "write first Unicode completion candidate");
+    check(fs.writeFile("/unicode/" + eCircumflexName, "circumflex"),
+          "write second Unicode completion candidate");
 
     TestEditor emptyEditor(nullptr, &fs, "/empty.txt");
     check(emptyEditor.m_lines == std::vector<std::string>{""},
@@ -320,6 +327,16 @@ int main() {
     promptEditor.completePathPrompt();
     check(promptEditor.m_statusMessage == "No path matches.",
           "path completion reports when the editor has no matches");
+
+    prepareOpen(promptEditor, "/unicode/");
+    promptEditor.completePathPrompt();
+    check(promptEditor.m_pathPromptBuffer == "/unicode/"
+              && promptEditor.m_pathPromptCursorPos == promptEditor.m_pathPromptBuffer.size(),
+          "ambiguous Unicode completion never inserts a partial codepoint");
+    prepareOpen(promptEditor, "/unicode/" + eAcuteName.substr(0, 2));
+    promptEditor.completePathPrompt();
+    check(promptEditor.m_pathPromptBuffer == "/unicode/" + eAcuteName,
+          "Unicode path completion expands an exact codepoint prefix");
 
     prepareSaveAs(promptEditor, "/new.txt/child.txt");
     promptEditor.m_pathPromptCursorPos = std::string("/new.txt/").size();

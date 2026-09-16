@@ -1,5 +1,10 @@
 # Changelog
 
+## 2026-09: Keep editor path completion UTF-8 safe
+
+- Ctrl+O and Save As completion now stop at complete Unicode codepoints when multiple filenames share a multibyte prefix.
+- Added coverage for ambiguous and exact Unicode path completions.
+
 ## 2026-09: Preserve intentionally empty sessions
 
 - A valid session containing only stale or no entries now keeps the desktop empty instead of triggering the demo-window fallback.
