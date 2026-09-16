@@ -280,6 +280,7 @@ void WindowManager::notifyVirtualPathRemoved(const std::string& virtualPath) {
     struct BindingRemoval {
         Window* window;
         int id;
+        std::string boundPath;
         std::string removedPath;
     };
     std::vector<BindingRemoval> removedEditors;
@@ -289,17 +290,17 @@ void WindowManager::notifyVirtualPathRemoved(const std::string& virtualPath) {
         if (!window) continue;
         if (!window->editedFilePath.empty()
             && m_fs->isSameOrDescendant(removed, window->editedFilePath)) {
-            removedEditors.push_back({window, window->id, window->editedFilePath});
+            removedEditors.push_back({window, window->id, window->editedFilePath, removed});
         }
         if (!window->drawingFilePath.empty()
             && m_fs->isSameOrDescendant(removed, window->drawingFilePath)) {
-            removedDrawings.push_back({window, window->id, window->drawingFilePath});
+            removedDrawings.push_back({window, window->id, window->drawingFilePath, removed});
         }
     }
 
     for (const BindingRemoval& removal : removedEditors) {
         if (!isLiveWindow(removal.window, removal.id)
-            || removal.window->editedFilePath != removal.removedPath) {
+            || removal.window->editedFilePath != removal.boundPath) {
             continue;
         }
         clearEditorFileBinding(removal.window);
@@ -311,7 +312,7 @@ void WindowManager::notifyVirtualPathRemoved(const std::string& virtualPath) {
     }
     for (const BindingRemoval& removal : removedDrawings) {
         if (!isLiveWindow(removal.window, removal.id)
-            || removal.window->drawingFilePath != removal.removedPath) {
+            || removal.window->drawingFilePath != removal.boundPath) {
             continue;
         }
         clearDrawingFileBinding(removal.window);

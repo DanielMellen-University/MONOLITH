@@ -17,6 +17,8 @@ If an initial path is missing or unreadable, the failed window falls back to the
 
 Saving a bare editor with Save As turns it into a file-backed editor and releases its old bare `Editor` instance number; other bare editors compact their titles immediately.
 
+If a bound file's parent directory is deleted, the editor keeps the document buffer but releases the file binding. An active Open or Save As prompt returns to the nearest surviving parent directory.
+
 ## Editing
 
 - Type to insert characters at the cursor (UTF-8 text input; cursor movement and backspace/delete stay on complete codepoint boundaries).

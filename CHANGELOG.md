@@ -1,5 +1,10 @@
 # Changelog
 
+## 2026-09: Repair prompts after parent deletion
+
+- Passed the actual removed directory into bound Editor and Drawing windows when a parent tree is deleted, so active path prompts return to the nearest surviving parent instead of retaining a dead path.
+- Added integration coverage for a bound Editor below a deleted directory.
+
 ## 2026-09: Align Replace All with Find matches
 
 - Made Replace All consume the same non-overlapping match list as Find, so overlapping candidates such as `aa` in `aaa` resolve from the documented first match instead of selecting the last byte offset.

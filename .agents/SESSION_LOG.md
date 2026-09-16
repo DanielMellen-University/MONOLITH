@@ -1,5 +1,7 @@
 # Session log
 
+| 2026-09-16 | fix | Preserved the actual removed directory in bound-file callbacks so Editor and Drawing prompts recover to a surviving parent after recursive deletion. |
+
 | 2026-09-16 | fix | Aligned Text Editor Replace All with Find's non-overlapping match order, fixing overlapping candidates and adding regression coverage. |
 
 | 2026-09-16 | fix | Preserved direct Filesystem Browser rename state across synchronous self-notifications, with re-entrant rename regression coverage and documentation updates. |

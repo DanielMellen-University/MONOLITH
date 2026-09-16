@@ -4,6 +4,8 @@ The Drawing app is Monolith's native sketching tool. It provides a pixel canvas,
 
 Drawing files use the `.modr` extension (Monolith Drawing Raster).
 
+If a bound sketch's parent directory is deleted, Drawing keeps the current canvas but releases the file binding. An active Open or Save prompt returns to the nearest surviving parent directory.
+
 ## Guide Map
 
 - [Quick Start](#quick-start)

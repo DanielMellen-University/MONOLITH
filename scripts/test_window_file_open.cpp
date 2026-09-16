@@ -3,6 +3,8 @@
 #include "../src/app/DrawingRaster.hpp"
 #include "../src/fs/Filesystem.hpp"
 #define private public
+#include "../src/app/DrawingApp.hpp"
+#include "../src/app/TextEditorApp.hpp"
 #include "../src/window/WindowManager.hpp"
 #undef private
 
@@ -255,6 +257,34 @@ int main() {
             });
         check(detachedEditor != wm.m_windows.end(),
               "deleted editor becomes a tracked untitled window");
+
+        check(fs.createDirectory("/docs/delete-editor-parent"),
+              "create bound editor parent deletion source");
+        check(fs.writeFile("/docs/delete-editor-parent/child.txt", "child"),
+              "write bound editor parent deletion file");
+        wm.openPath("/docs/delete-editor-parent/child.txt");
+        auto editorParentWindow = std::find_if(
+            wm.m_windows.begin(), wm.m_windows.end(),
+            [](const auto& window) {
+                return window && window->editedFilePath == "/docs/delete-editor-parent/child.txt";
+            });
+        auto* editorParentApp = editorParentWindow == wm.m_windows.end()
+            ? nullptr
+            : dynamic_cast<monolith::app::TextEditorApp*>((*editorParentWindow)->app.get());
+        check(editorParentApp != nullptr,
+              "find editor bound below a deleted parent");
+        if (editorParentApp) {
+            editorParentApp->beginPathPrompt(monolith::app::TextEditorApp::PathPromptMode::Open);
+            editorParentApp->m_pathPromptBuffer = "/docs/delete-editor-parent/other.txt";
+            editorParentApp->m_pathPromptCursorPos = editorParentApp->m_pathPromptBuffer.size();
+        }
+        check(fs.removeRecursive("/docs/delete-editor-parent"),
+              "remove bound editor parent directory");
+        wm.notifyVirtualPathRemoved("/docs/delete-editor-parent");
+        check(editorParentApp
+                  && editorParentApp->m_filePath.empty()
+                  && editorParentApp->m_pathPromptBuffer == "/docs/",
+              "deleted editor parent returns its active prompt to the surviving parent");
 
         auto probe = std::make_unique<CreationProbeApp>();
         CreationProbeApp* probePtr = probe.get();
