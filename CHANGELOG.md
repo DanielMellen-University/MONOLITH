@@ -1,5 +1,9 @@
 # Changelog
 
+## 2026-09: Clarify focused SDL verification
+
+- Documented the dummy SDL video and audio drivers needed when running an individual SDL-linked headless test outside the complete verification runner.
+
 ## 2026-09: Invalidate stale Settings hit targets
 
 - Cleared cached Settings swatch, clock, interface-scale, and wallpaper-control hit rectangles on client resize, interface text-scale changes, and scroll movement, preventing pre-render clicks from activating controls at their old positions.

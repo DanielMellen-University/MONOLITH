@@ -12,6 +12,14 @@ Run every static integration check and documented state test with one command:
 
 The runner builds the generated source fragments, compiles the existing tests into `build/`, and executes SDL tests with dummy video and audio drivers by default. Set `BUILD_DIR`, `CXX`, `SDL_VIDEODRIVER`, or `SDL_AUDIODRIVER` to override those defaults. The individual commands below remain useful when iterating on one subsystem.
 
+The focused SDL commands below only show the compile step and binary name to keep them readable. When running them without a display, use the same drivers as the suite, for example:
+
+```bash
+SDL_VIDEODRIVER=dummy SDL_AUDIODRIVER=dummy ./build/test_settings_app_state
+```
+
+Keep the driver variables unset when testing against a real SDL display. The plain-logic checks do not need these variables.
+
 ## Drawing Integration Check
 
 Static grep-based check that Drawing is wired into the window manager and Start menu:
