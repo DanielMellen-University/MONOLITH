@@ -175,7 +175,6 @@ void WindowManager::closeWindow(Window* window) {
         const bool wasFocused = (m_focusedWindow == window);
 
         if (m_focusedWindow == window) m_focusedWindow = nullptr;
-        if (m_startMenuSuspendedWindow == window) m_startMenuSuspendedWindow = nullptr;
         if (m_draggedWindow == window) m_draggedWindow = nullptr;
         if (m_mouseCaptureWindow == window) m_mouseCaptureWindow = nullptr;
         if (m_resizingWindow == window) {
@@ -195,7 +194,7 @@ void WindowManager::closeWindow(Window* window) {
             m_taskbarEntries.end());
 
         // Notify before destruction so apps can clear focus-dependent state (e.g. Snake pause).
-        if (wasFocused && window->app) {
+        if (wasFocused && m_hostFocused && !m_showStartMenu && window->app) {
             window->app->onFocusLost();
         }
 

@@ -1,5 +1,11 @@
 # Changelog
 
+## 2026-09: Keep modal focus handoffs honest
+
+- WindowManager now suppresses focus gains while the host or Start menu is inactive and resumes the current logical window after callback-triggered changes, preventing apps behind the modal menu from receiving active focus early.
+- Host focus-loss dispatch now stays attached to the window that was active when the transition began, even if a captured mouse release closes it.
+- Added regression coverage for Start-menu focus suspension with callback-triggered close.
+
 ## 2026-09: Guard shell input after app callbacks
 
 - WindowManager now verifies window identity after initial sizing, resize callbacks, and focus-triggering input activation, preventing a self-closing app from leaving the shell to dereference a stale event target.

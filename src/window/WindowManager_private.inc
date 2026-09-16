@@ -53,8 +53,6 @@ private:
 
     // Start menu state
     bool m_showStartMenu = false;
-    // The app whose input is suspended while the modal Start menu is visible.
-    Window* m_startMenuSuspendedWindow = nullptr;
     int m_startMenuHoverIndex = -1;
     SDL_Rect m_startMenuRect{0, 0, 0, 0};  // screen coords, updated during render when visible
 

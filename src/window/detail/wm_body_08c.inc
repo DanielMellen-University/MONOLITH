@@ -83,20 +83,21 @@ void WindowManager::setStartMenuVisible(bool visible) {
 
     if (visible) {
         m_showStartMenu = true;
-        m_startMenuSuspendedWindow = nullptr;
-        if (m_focusedWindow && m_focusedWindow->app && !m_focusedWindow->minimized) {
-            m_startMenuSuspendedWindow = m_focusedWindow;
-            m_startMenuSuspendedWindow->app->onFocusLost();
+        if (m_hostFocused && m_focusedWindow && m_focusedWindow->app
+            && !m_focusedWindow->minimized) {
+            m_focusedWindow->app->onFocusLost();
         }
         return;
     }
 
-    Window* suspendedWindow = m_startMenuSuspendedWindow;
-    m_startMenuSuspendedWindow = nullptr;
+    Window* resumedWindow = m_focusedWindow;
+    const int resumedWindowId = resumedWindow ? resumedWindow->id : -1;
     m_showStartMenu = false;
-    if (m_hostFocused && suspendedWindow && suspendedWindow == m_focusedWindow
-        && suspendedWindow->app && !suspendedWindow->minimized) {
-        suspendedWindow->app->onFocusGained();
+    if (m_hostFocused && isLiveWindow(resumedWindow, resumedWindowId)
+        && resumedWindow->app && !resumedWindow->minimized) {
+        // Resume whichever window owns logical focus now. The suspended app
+        // may have closed or opened another window from onFocusLost().
+        resumedWindow->app->onFocusGained();
     }
 }
 

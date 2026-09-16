@@ -158,11 +158,13 @@ void WindowManager::bringToFront(Window* window) {
         // its own window; closeWindow must then perform the handoff without
         // this stack frame restoring a destroyed pointer afterward.
         m_focusedWindow = newFocused;
-        if (focusChanged && previousFocused && previousFocused->app) {
+        if (focusChanged && m_hostFocused && !m_showStartMenu
+            && previousFocused && previousFocused->app) {
             previousFocused->app->onFocusLost();
         }
 
-        if (focusChanged && m_focusedWindow == newFocused
+        if (focusChanged && m_hostFocused && !m_showStartMenu
+            && m_focusedWindow == newFocused
             && isLiveWindow(newFocused, newFocusedId) && newFocused->app) {
             newFocused->app->onFocusGained();
         }
@@ -188,7 +190,8 @@ void WindowManager::focusTopmostVisibleWindow() {
 
     Window* previousFocused = m_focusedWindow;
     m_focusedWindow = nullptr;
-    if (previousFocused && previousFocused->app) {
+    if (m_hostFocused && !m_showStartMenu
+        && previousFocused && previousFocused->app) {
         previousFocused->app->onFocusLost();
     }
 }

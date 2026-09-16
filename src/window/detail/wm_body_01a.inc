@@ -92,6 +92,8 @@ void WindowManager::handleEvent(const SDL_Event& event) {
     if (event.type == SDL_WINDOWEVENT) {
         if (event.window.event == SDL_WINDOWEVENT_FOCUS_LOST) {
             if (!m_hostFocused) return;
+            Window* focusLostWindow = m_focusedWindow;
+            const int focusLostWindowId = focusLostWindow ? focusLostWindow->id : -1;
             m_hostFocused = false;
 
             // SDL may not deliver the matching mouse-up after the host window
@@ -120,9 +122,14 @@ void WindowManager::handleEvent(const SDL_Event& event) {
             m_mouseDown = false;
             m_shellKeyUpsPending.clear();
 
-            if (m_focusedWindow && m_focusedWindow->app && !m_focusedWindow->minimized
+            // The release callback above may close the focused window and hand
+            // logical focus to a survivor. Only the client that was active at
+            // the host transition should receive the host-loss notification.
+            if (m_focusedWindow == focusLostWindow
+                && isLiveWindow(focusLostWindow, focusLostWindowId)
+                && focusLostWindow->app && !focusLostWindow->minimized
                 && !m_showStartMenu) {
-                m_focusedWindow->app->onFocusLost();
+                focusLostWindow->app->onFocusLost();
             }
             endAltTabCycle();
             return;

@@ -54,6 +54,24 @@ private:
     int* observedFocusGained = nullptr;
 };
 
+class FocusLostClosingApp final : public monolith::app::App {
+public:
+    void render(SDL_Renderer*, const SDL_Rect&) override {}
+
+    void onFocusLost() override {
+        ++focusLost;
+        if (closeOnFocusLost) {
+            closeOnFocusLost = false;
+            if (auto* controller = getController()) {
+                controller->close();
+            }
+        }
+    }
+
+    bool closeOnFocusLost = false;
+    int focusLost = 0;
+};
+
 bool minimizeWindow(monolith::window::WindowManager& wm, monolith::window::Window* window) {
     if (!window) return false;
     const int buttonX = window->rect.x + window->rect.w - 10 - 16 * 3 - 6 * 2 + 4;
@@ -207,6 +225,40 @@ int main() {
               "focus handoff survives a focus-gained self-close");
         check(survivorPtr->focusGained == 2,
               "survivor regains focus after the callback-triggered close");
+    }
+
+    {
+        monolith::window::WindowManager callbackWm;
+        auto survivor = std::make_unique<FocusProbe>();
+        FocusProbe* survivorPtr = survivor.get();
+        callbackWm.createWindow("Survivor", 80, 80, 300, 240, std::move(survivor));
+
+        auto closing = std::make_unique<FocusLostClosingApp>();
+        FocusLostClosingApp* closingPtr = closing.get();
+        callbackWm.createWindow("Closing", 420, 80, 300, 240, std::move(closing));
+        closingPtr->closeOnFocusLost = true;
+
+        const int focusGainedBeforeMenu = survivorPtr->focusGained;
+        SDL_Event toggleStart{};
+        toggleStart.type = SDL_KEYDOWN;
+        toggleStart.key.keysym.sym = SDLK_ESCAPE;
+        toggleStart.key.keysym.mod = KMOD_CTRL;
+        callbackWm.handleEvent(toggleStart);
+        check(callbackWm.m_showStartMenu && callbackWm.m_windows.size() == 1,
+              "Start menu survives a focused app closing from focus lost");
+        check(survivorPtr->focusGained == focusGainedBeforeMenu,
+              "modal Start menu does not resume a survivor behind the menu");
+
+        SDL_Event toggleStartRelease{};
+        toggleStartRelease.type = SDL_KEYUP;
+        toggleStartRelease.key.keysym.sym = SDLK_ESCAPE;
+        toggleStartRelease.key.keysym.mod = KMOD_CTRL;
+        callbackWm.handleEvent(toggleStartRelease);
+        callbackWm.handleEvent(toggleStart);
+        check(!callbackWm.m_showStartMenu
+                  && survivorPtr->focusGained == focusGainedBeforeMenu + 1,
+              "closing Start resumes the current focused survivor once");
+        callbackWm.handleEvent(toggleStartRelease);
     }
 
     std::error_code ec;
