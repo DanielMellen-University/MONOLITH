@@ -638,9 +638,9 @@ void MinesweeperApp::handleEvent(const SDL_Event& event) {
     } else if (event.button.button == SDL_BUTTON_RIGHT) {
         cycleMark(cx, cy);
     } else if (event.button.button == SDL_BUTTON_MIDDLE) {
-        m_pressing = true;
-        m_pressX = cx;
-        m_pressY = cy;
+        // Middle-click chords are instantaneous. The shell captures left
+        // button gestures, but not middle-button releases outside the client,
+        // so do not arm a transient preview that depends on that release.
         chord(cx, cy);
     }
 }

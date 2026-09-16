@@ -12,6 +12,11 @@
 - Clear Minesweeper pressed-cell previews on focus loss so modal transitions cannot leave stale pointer state visible.
 - Add focused coverage and document the shared focus-boundary contract.
 
+## 2026-09: Keep Minesweeper middle-click transient
+
+- Treat middle-click chords as instantaneous so a release outside the client cannot leave the pressed-cell preview armed; left-click previews retain the shell's captured-release behavior.
+- Add focused coverage and document the distinction in the Minesweeper guide.
+
 ## 2026-09: Cache Browser hit targets between frames
 
 - Keep Filesystem Browser toolbar and filter geometry cached until resize or UI-scale changes instead of rebuilding it every render.

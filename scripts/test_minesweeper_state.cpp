@@ -180,6 +180,18 @@ int main() {
     check(resumedElapsed >= pausedMs && resumedElapsed < pausedMs + 100u,
           "resume preserves the sub-second timer remainder");
 
+    game.newGame(MinesweeperApp::Difficulty::Beginner);
+    game.onResize(260, 220);
+    game.layoutBoard({0, 0, 260, 220});
+    SDL_Event middleChord{};
+    middleChord.type = SDL_MOUSEBUTTONDOWN;
+    middleChord.button.button = SDL_BUTTON_MIDDLE;
+    middleChord.button.x = game.m_boardX + game.m_cellPx / 2;
+    middleChord.button.y = game.m_boardY + game.m_cellPx / 2;
+    game.handleEvent(middleChord);
+    check(!game.m_pressing && game.m_pressX == -1 && game.m_pressY == -1,
+          "Minesweeper middle-click chords do not arm a release-dependent preview");
+
     SDL_Event keypadEnter{};
     keypadEnter.type = SDL_KEYDOWN;
     keypadEnter.key.keysym.sym = SDLK_KP_ENTER;

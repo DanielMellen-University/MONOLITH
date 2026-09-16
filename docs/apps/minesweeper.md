@@ -16,7 +16,7 @@ Open **Minesweeper** from the Start menu under **Games**. Multiple independent g
 |-------|--------|
 | Left-click | Reveal cell; on an already-open number with matching flags, **chord** (open neighbors) |
 | Right-click | Cycle mark: empty → flag → question → empty |
-| Middle-click | Chord on a revealed number (same as left-click chord) |
+| Middle-click | Chord on a revealed number (same as left-click chord; no held preview) |
 | Face button (`:)` / `B)` / `X(`) | New game at current difficulty |
 | R / Enter | New game (same difficulty) |
 | 1 / 2 / 3 | Beginner / Intermediate / Expert (restarts) |
