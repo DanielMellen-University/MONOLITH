@@ -102,6 +102,24 @@ int main() {
     check(terminal.m_commandHistory == std::vector<std::string>{"echo first", "echo second"},
           "CRLF history entries lose their carriage returns");
 
+    terminal.m_history.clear();
+    for (int i = 0; i < 2002; ++i) {
+        terminal.addOutput("line " + std::to_string(i));
+    }
+    check(terminal.m_history.size() == 2000
+              && terminal.m_history.front() == "line 2"
+              && terminal.m_history.back() == "line 2001",
+          "scrollback trims its excess in one pass while keeping the newest lines");
+
+    terminal.m_commandHistory.assign(500, "old command");
+    terminal.m_inputBuffer = "new command";
+    terminal.m_inputCursorPos = static_cast<int>(terminal.m_inputBuffer.size());
+    terminal.submitInput();
+    check(terminal.m_commandHistory.size() == 500
+              && terminal.m_commandHistory.front() == "old command"
+              && terminal.m_commandHistory.back() == "new command",
+          "command history keeps its cap when a new command arrives");
+
     auto key = [&](SDL_Keycode sym, SDL_Keymod mod = KMOD_NONE) {
         SDL_Keysym keysym{};
         keysym.sym = sym;

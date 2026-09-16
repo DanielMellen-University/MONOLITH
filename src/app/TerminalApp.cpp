@@ -98,8 +98,11 @@ void TerminalApp::onVirtualPathRemoved(const std::string& path) {
 
 void TerminalApp::addOutput(const std::string& line) {
     m_history.push_back(line);
-    while (m_history.size() > kMaxScrollbackLines) {
-        m_history.erase(m_history.begin());
+    if (m_history.size() > kMaxScrollbackLines) {
+        const auto excess = m_history.size() - kMaxScrollbackLines;
+        m_history.erase(
+            m_history.begin(),
+            m_history.begin() + static_cast<std::vector<std::string>::difference_type>(excess));
     }
     m_scrollOffset = 0;   // auto-scroll to bottom on new output
 }
@@ -117,8 +120,12 @@ void TerminalApp::submitInput() {
 
     if (!command.empty()) {
         m_commandHistory.push_back(command);
-        while (m_commandHistory.size() > kMaxCommandHistory) {
-            m_commandHistory.erase(m_commandHistory.begin());
+        if (m_commandHistory.size() > kMaxCommandHistory) {
+            const auto excess = m_commandHistory.size() - kMaxCommandHistory;
+            m_commandHistory.erase(
+                m_commandHistory.begin(),
+                m_commandHistory.begin()
+                    + static_cast<std::vector<std::string>::difference_type>(excess));
         }
         saveCommandHistory();
         executeCommand(command);

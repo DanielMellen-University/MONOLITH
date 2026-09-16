@@ -107,7 +107,7 @@ Command history persists across sessions in:
 /home/monolith/.terminal_history
 ```
 
-History is saved after each submitted command. Command history is capped (oldest entries drop); on-screen scrollback is also capped so long sessions stay responsive.
+History is saved after each submitted command. Command history is capped (oldest entries drop); on-screen scrollback is also capped so long sessions stay responsive. Both caps discard any excess in one bounded trim when new entries arrive, so large command output does not pay for repeated front-of-vector shifts.
 
 History loading accepts both Unix and Windows line endings, so recalled commands do not carry a hidden carriage return into command parsing.
 

@@ -1,5 +1,10 @@
 # Changelog
 
+## 2026-09: Trim Terminal history in bounded batches
+
+- Keep scrollback and command history caps unchanged while removing excess entries in one range operation instead of shifting the vector once per dropped line.
+- Add focused coverage for retaining the newest scrollback and command-history entries.
+
 ## 2026-09: Tear down SDL-backed apps before SDL shutdown
 
 - Scope the Window Manager and hosted apps before renderer, font, and SDL cleanup so their texture destructors run against live SDL resources.

@@ -107,8 +107,12 @@ void TerminalApp::loadCommandHistory() {
             m_commandHistory.push_back(line);
         }
     }
-    while (m_commandHistory.size() > kMaxCommandHistory) {
-        m_commandHistory.erase(m_commandHistory.begin());
+    if (m_commandHistory.size() > kMaxCommandHistory) {
+        const auto excess = m_commandHistory.size() - kMaxCommandHistory;
+        m_commandHistory.erase(
+            m_commandHistory.begin(),
+            m_commandHistory.begin()
+                + static_cast<std::vector<std::string>::difference_type>(excess));
     }
 }
 

@@ -1,5 +1,7 @@
 # Session log
 
+| 2026-09-16 | refactor | Trimmed Terminal scrollback and command history caps in one range operation, added bounded-history coverage, and documented the efficiency fix. |
+
 | 2026-09-16 | fix | Scoped Window Manager and app destruction before SDL renderer shutdown, added lifecycle verification, and updated architecture/changelog notes. |
 
 | 2026-09-16 | fix | Preserved the Terminal draft caret across command-history navigation, added focused coverage, and updated the Terminal guide and changelog. |
