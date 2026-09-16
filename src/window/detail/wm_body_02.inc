@@ -175,6 +175,7 @@ void WindowManager::update() {
 
 void WindowManager::render(SDL_Renderer* renderer) {
     const RendererClipState callerClip = captureRendererClip(renderer);
+    SDL_RenderSetClipRect(renderer, callerClip.active ? &callerClip.rect : nullptr);
 
     // Solid color is cleared by main; paint wallpaper image (if any) under windows.
     renderWallpaper(renderer);

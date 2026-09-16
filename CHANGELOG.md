@@ -1,5 +1,10 @@
 # Changelog
 
+## 2026-09: Enforce the shell render clip
+
+- Applied the caller renderer clip across wallpaper, desktop icons, window chrome, and taskbar drawing instead of only restoring it after nested rendering.
+- Added pixel-level coverage that rejects shell pixels outside a parent clip.
+
 ## 2026-09: Invalidate taskbar targets after scrolling
 
 - Cleared cached taskbar rectangles after arrow and wheel scrolling so rapid input cannot activate buttons from the previous viewport before the next render.

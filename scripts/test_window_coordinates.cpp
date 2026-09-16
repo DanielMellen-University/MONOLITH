@@ -231,6 +231,9 @@ int main() {
           "WindowManager restores the renderer clip after app rendering");
 
     const SDL_Rect expectedFrameClip{7, 9, 180, 120};
+    SDL_RenderSetClipRect(renderer, nullptr);
+    SDL_SetRenderDrawColor(renderer, 0, 0, 0, 255);
+    SDL_RenderClear(renderer);
     SDL_RenderSetClipRect(renderer, &expectedFrameClip);
     wm.render(renderer);
     SDL_Rect clipAfterClippedFrame{};
@@ -241,6 +244,19 @@ int main() {
               && clipAfterClippedFrame.h == expectedFrameClip.h,
           "WindowManager preserves the caller renderer clip across the full frame");
     SDL_RenderSetClipRect(renderer, nullptr);
+    Uint32 outsideFramePixel = 0;
+    const SDL_Rect outsideFrameSample{400, 380, 1, 1};
+    const bool readOutsideFrame = rgbaFormat
+        && SDL_RenderReadPixels(renderer, &outsideFrameSample, SDL_PIXELFORMAT_RGBA32,
+                                &outsideFramePixel, sizeof(outsideFramePixel)) == 0;
+    Uint8 outsideFrameR = 0, outsideFrameG = 0, outsideFrameB = 0, outsideFrameA = 0;
+    if (readOutsideFrame) {
+        SDL_GetRGBA(outsideFramePixel, rgbaFormat,
+                    &outsideFrameR, &outsideFrameG, &outsideFrameB, &outsideFrameA);
+    }
+    check(readOutsideFrame && outsideFrameR == 0
+              && outsideFrameG == 0 && outsideFrameB == 0,
+          "WindowManager keeps shell rendering inside the caller clip");
 
     window->rect = {100, 100, 300, 200};
     const int resizeCallsBeforeEdgeDrag = probePtr->resizeCalls;
