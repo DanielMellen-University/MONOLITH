@@ -4,6 +4,10 @@
 
 - Documented the dummy SDL video and audio drivers needed when running an individual SDL-linked headless test outside the complete verification runner.
 
+## 2026-09: Cover shell-owned hotkey boundaries
+
+- Extended WindowManager input coverage to assert that `Alt+Tab` and `Ctrl+Escape` keydowns, as well as their releases, stay owned by the shell instead of reaching the focused app.
+
 ## 2026-09: Invalidate stale Settings hit targets
 
 - Cleared cached Settings swatch, clock, interface-scale, and wallpaper-control hit rectangles on client resize, interface text-scale changes, and scroll movement, preventing pre-render clicks from activating controls at their old positions.

@@ -29,6 +29,8 @@ public:
             ++wheelEvents;
         } else if (event.type == SDL_KEYUP) {
             ++keyUps;
+        } else if (event.type == SDL_KEYDOWN) {
+            ++keyDowns;
         }
     }
 
@@ -37,6 +39,7 @@ public:
     int motions = 0;
     int wheelEvents = 0;
     int keyUps = 0;
+    int keyDowns = 0;
     int focusGained = 0;
     int focusLost = 0;
     int downX = -1;
@@ -204,7 +207,10 @@ int main() {
     altTab.type = SDL_KEYDOWN;
     altTab.key.keysym.sym = SDLK_TAB;
     altTab.key.keysym.mod = KMOD_ALT;
+    const int secondKeyDownsBeforeAltTab = secondPtr->keyDowns;
     wm.handleEvent(altTab);
+    check(secondPtr->keyDowns == secondKeyDownsBeforeAltTab,
+          "shell-owned Alt+Tab keydown does not reach the focused client");
     SDL_Event tabRelease{};
     tabRelease.type = SDL_KEYUP;
     tabRelease.key.keysym.sym = SDLK_TAB;
@@ -224,7 +230,10 @@ int main() {
     ctrlEscape.type = SDL_KEYDOWN;
     ctrlEscape.key.keysym.sym = SDLK_ESCAPE;
     ctrlEscape.key.keysym.mod = KMOD_CTRL;
+    const int firstKeyDownsBeforeCtrlEscape = firstPtr->keyDowns;
     wm.handleEvent(ctrlEscape);
+    check(firstPtr->keyDowns == firstKeyDownsBeforeCtrlEscape,
+          "shell-owned Ctrl+Escape keydown does not reach the focused client");
     SDL_Event escapeRelease{};
     escapeRelease.type = SDL_KEYUP;
     escapeRelease.key.keysym.sym = SDLK_ESCAPE;

@@ -2,6 +2,8 @@
 
 | 2026-09-16 | docs | Clarified dummy SDL driver usage for focused headless tests so individual SDL-linked commands match the complete verification runner. |
 
+| 2026-09-16 | test | Covered both keydown and keyup sides of shell-owned Alt+Tab and Ctrl+Escape gestures in the WindowManager mouse-capture regression suite. |
+
 | 2026-09-16 | fix | Invalidated Settings swatch, clock, interface-scale, and wallpaper-control hit targets after resize, interface-scale, or scroll changes, with focused Settings state coverage and app-guide/changelog notes. |
 
 | 2026-09-16 | fix | Invalidated Drawing toolbar and color-swatch hit targets after resize and interface-scale changes, with focused Drawing state coverage and app-guide/changelog notes. |
