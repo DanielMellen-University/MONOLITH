@@ -272,6 +272,23 @@ int main() {
     }
 
     {
+        check(fs.writeFile("/drawings/broken.modr", "not a drawing"),
+              "write corrupt session drawing");
+        const auto staleSessionPath = hostRoot / "stale-session.txt";
+        {
+            std::ofstream staleSession(staleSessionPath);
+            staleSession << "session_v1\n"
+                         << "editor 10 10 240 160 0 0 \"/docs/missing.txt\"\n"
+                         << "drawing 20 20 240 160 0 0 \"/drawings/broken.modr\"\n";
+        }
+        monolith::window::WindowManager staleSessionWm;
+        staleSessionWm.setAppResources(font, &fs);
+        check(!staleSessionWm.loadSession(staleSessionPath.string())
+                  && staleSessionWm.m_windows.empty(),
+              "stale file-backed session entries are skipped instead of restoring blank apps");
+    }
+
+    {
         monolith::window::WindowManager numberingWm;
         numberingWm.setAppResources(font, &fs);
 

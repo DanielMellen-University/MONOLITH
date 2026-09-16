@@ -1,5 +1,10 @@
 # Changelog
 
+## 2026-09: Skip stale file-backed session entries
+
+- Session restore now skips missing or invalid file-backed Editor and Drawing entries instead of presenting blank untitled windows as successful restores.
+- Added coverage for missing editor files and corrupt `.modr` session entries.
+
 ## 2026-09: Claim new files before notifications
 
 - Text Editor and Drawing now register a newly saved file binding before broadcasting its creation, so synchronous observers focus the saving window instead of opening a duplicate.

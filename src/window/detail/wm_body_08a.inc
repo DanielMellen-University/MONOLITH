@@ -114,6 +114,15 @@ bool WindowManager::loadSession(const std::string& hostPath) {
             continue;
         }
 
+        const bool expectsEditorFile = kind == "editor" && !path.empty();
+        const bool expectsDrawingFile = kind == "drawing" && !path.empty();
+        const bool expectsFile = expectsEditorFile || expectsDrawingFile;
+        if (expectsFile && (!m_fs || !m_fs->isFile(path))) {
+            // A file-backed session entry cannot be faithfully restored as a
+            // blank untitled app. Leave the stale entry out of this session.
+            continue;
+        }
+
         const size_t before = m_windows.size();
         if (kind == "terminal") {
             launchTerminal();
@@ -140,6 +149,14 @@ bool WindowManager::loadSession(const std::string& hostPath) {
         if (m_windows.size() > before) {
             Window* restoredWindow = m_windows.back().get();
             const int restoredWindowId = restoredWindow->id;
+            const bool boundSuccessfully =
+                (!expectsEditorFile && !expectsDrawingFile)
+                || (expectsEditorFile && !restoredWindow->editedFilePath.empty())
+                || (expectsDrawingFile && !restoredWindow->drawingFilePath.empty());
+            if (!boundSuccessfully) {
+                closeWindow(restoredWindow);
+                continue;
+            }
             applyRestoredGeometry(restoredWindow, x, y, w, h,
                                   minFlag != 0, maxFlag != 0);
             if (isLiveWindow(restoredWindow, restoredWindowId)) ++restored;
