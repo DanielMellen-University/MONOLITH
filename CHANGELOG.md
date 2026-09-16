@@ -1,5 +1,10 @@
 # Changelog
 
+## 2026-09: Tear down SDL-backed apps before SDL shutdown
+
+- Scope the Window Manager and hosted apps before renderer, font, and SDL cleanup so their texture destructors run against live SDL resources.
+- Add a static lifecycle check to the headless verification runner and document the ownership boundary.
+
 ## 2026-09: Restore Terminal draft caret after history navigation
 
 - Preserve the input caret alongside an untouched draft while navigating command history, so Down restores both the text and its editing position.

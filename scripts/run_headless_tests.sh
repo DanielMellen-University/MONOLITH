@@ -58,6 +58,7 @@ echo "[check] static integration"
 ./scripts/verify_drawing_integration.sh
 ./scripts/verify_games_integration.sh
 ./scripts/verify_desktop_icons.sh
+./scripts/verify_main_lifecycle.sh
 
 echo "[build] generated sources"
 cmake --build "$BUILD_DIR" --target monolith_settings_bodies monolith_stb_image

@@ -44,6 +44,13 @@ The main loop uses the same format. After editing `build/generated/main/main_bod
 python3 src/compress_main_bodies.py build/generated/main src
 ```
 
+The complete headless runner also checks that the Window Manager and its
+SDL-backed apps are destroyed before renderer and SDL shutdown:
+
+```bash
+./scripts/verify_main_lifecycle.sh
+```
+
 ## Drawing Integration Check
 
 Static grep-based check that Drawing is wired into the window manager and Start menu:

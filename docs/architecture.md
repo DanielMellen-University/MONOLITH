@@ -155,6 +155,7 @@ All app callbacks enter through a small lifecycle scope. If a callback requests 
 - WindowManager renders from a live identity snapshot, so an app that closes or replaces its window during `render()` cannot invalidate the frame loop or leave the shell drawing through a dead window pointer; newly opened windows render on the next frame.
 - Rendering uses SDL2's accelerated renderer with VSYNC; apps draw text via SDL_ttf and primitives via SDL draw calls.
 - The main loop explicitly starts SDL text input after the renderer is created and stops it before SDL shutdown, so Terminal, Text Editor, Drawing, and Settings receive printable UTF-8 input through the same owned lifecycle.
+- The main loop scopes the Window Manager and its SDL-backed apps before destroying the renderer or shutting down SDL, so texture-owning destructors run while their renderer and SDL services are still valid.
 
 ### 4. Input System
 
