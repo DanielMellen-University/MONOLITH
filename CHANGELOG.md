@@ -1,5 +1,9 @@
 # Changelog
 
+## 2026-09: Cache Settings text surfaces
+
+- Reuse Settings labels, options, information lines, and footer surfaces between frames while clearing them at scale, resize, wallpaper-path, and active-prompt boundaries.
+
 ## 2026-09: Bound dynamic editor text caches
 
 - Clear Text Editor and Drawing status or prompt surfaces when their dynamic text changes, preventing old feedback and caret variants from accumulating while preserving repeated static labels between frames.

@@ -98,3 +98,5 @@ Main implementation files:
 - `src/main.cpp` — loads settings at startup, clears solid background, seeds sample wallpaper
 
 Settings changes go through `IWindowController` so the app does not reach into WindowManager internals directly.
+
+Settings caches renderer-independent SDL_ttf surfaces for its repeated labels, option text, information lines, and footer. The cache is cleared when the shared interface scale or client size changes, when the wallpaper path changes, and while the wallpaper field is actively rendered so caret variants cannot accumulate. Per-frame SDL textures remain short-lived and are created from the cached surfaces.

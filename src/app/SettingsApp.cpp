@@ -122,6 +122,7 @@ void SettingsApp::ensureHitTargets() {
 }
 
 void SettingsApp::onUiScaleChanged() {
+    m_textSurfaceCache.clear();
     invalidateHitTargets();
     // The wallpaper prompt stores its horizontal position in pixels; discard
     // that stale offset so the next render measures it with the new font.

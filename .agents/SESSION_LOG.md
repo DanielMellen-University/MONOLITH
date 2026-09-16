@@ -1,5 +1,7 @@
 # Session log
 
+| 2026-09-16 | perf | Cached Settings labels, options, information lines, and footer text surfaces, bounded wallpaper prompt variants, added renderer reuse coverage, and updated Settings and architecture documentation. |
+
 | 2026-09-16 | fix | Bounded Text Editor and Drawing dynamic status or prompt text caches, added focused invalidation coverage, and updated app and architecture documentation. |
 
 | 2026-09-16 | fix | Invalidated Filesystem Browser text surfaces when listings or status feedback change, added focused cache lifecycle coverage, and updated Browser and architecture documentation. |

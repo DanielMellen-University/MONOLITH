@@ -325,6 +325,14 @@ int main() {
                   && restoredClip.w == expectedClip.w
                   && restoredClip.h == expectedClip.h,
               "Settings restores the caller renderer clip after rendering");
+        const size_t cachedSurfaceCount = settings.m_textSurfaceCache.m_entries.size();
+        settings.render(renderer, {0, 0, 200, 240});
+        check(cachedSurfaceCount > 0
+                  && settings.m_textSurfaceCache.m_entries.size() == cachedSurfaceCount,
+              "Settings reuses cached text surfaces between frames");
+        settings.onUiScaleChanged();
+        check(settings.m_textSurfaceCache.m_entries.empty(),
+              "Settings clears cached text surfaces when UI scale changes");
         SDL_DestroyRenderer(renderer);
     }
     if (surface) SDL_FreeSurface(surface);
