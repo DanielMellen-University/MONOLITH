@@ -1,5 +1,7 @@
 # Session log
 
+| 2026-09-16 | fix | Preserved the Terminal draft caret across command-history navigation, added focused coverage, and updated the Terminal guide and changelog. |
+
 | 2026-09-16 | fix | Preserved Terminal reverse-search match state so repeated Ctrl+R walks older commands, added focused coverage, and updated the Terminal guide. |
 
 | 2026-09-16 | fix | Rebuilt Settings control targets before queued post-scale input, aligned scrolled click coordinates with the rendered controls, added focused coverage, and updated the Settings guide. |

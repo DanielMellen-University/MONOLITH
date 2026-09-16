@@ -270,10 +270,14 @@ int main() {
 
     terminal.m_commandHistory = {"first command", "second command"};
     terminal.m_inputBuffer = "draft";
-    terminal.m_inputCursorPos = static_cast<int>(terminal.m_inputBuffer.size());
+    terminal.m_inputCursorPos = 2;
     key(SDLK_UP);
     check(terminal.m_inputBuffer == "second command" && terminal.m_historyIndex == 1,
           "terminal history navigation recalls the newest command");
+    key(SDLK_DOWN);
+    check(terminal.m_inputBuffer == "draft" && terminal.m_inputCursorPos == 2,
+          "terminal history navigation restores the draft caret");
+    key(SDLK_UP);
     text(" edited");
     check(terminal.m_inputBuffer == "second command edited" && terminal.m_historyIndex == -1,
           "editing a recalled command exits history navigation");

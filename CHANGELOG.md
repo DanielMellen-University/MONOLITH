@@ -1,5 +1,10 @@
 # Changelog
 
+## 2026-09: Restore Terminal draft caret after history navigation
+
+- Preserve the input caret alongside an untouched draft while navigating command history, so Down restores both the text and its editing position.
+- Add focused Terminal regression coverage and document the behavior.
+
 ## 2026-09: Keep identical Text Editor replacements clean
 
 - Treat typing or pasting the exact selected text as a selection collapse instead of a document edit, preserving clean state and undo history.

@@ -85,6 +85,7 @@ private:
     // Command history navigation
     int m_historyIndex = -1;           // -1 means not navigating history
     std::string m_savedInputBuffer;    // original input when starting history nav
+    int m_savedInputCursorPos = 0;     // original caret when starting history nav
 
     // Input line cursor
     int m_inputCursorPos = 0;

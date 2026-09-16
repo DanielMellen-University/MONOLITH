@@ -110,6 +110,7 @@ void TerminalApp::submitInput() {
     m_inputCursorPos = 0;
     m_historyIndex = -1;
     m_savedInputBuffer.clear();
+    m_savedInputCursorPos = 0;
 
     // Echo the command as the user typed it
     addOutput(getInputPrompt() + command);
@@ -130,6 +131,7 @@ void TerminalApp::submitInput() {
 void TerminalApp::leaveHistoryNavigationOnEdit() {
     m_historyIndex = -1;
     m_savedInputBuffer.clear();
+    m_savedInputCursorPos = 0;
 }
 
 void TerminalApp::executeCommand(const std::string& commandLine) {
@@ -638,12 +640,17 @@ void TerminalApp::handleKeyDown(const SDL_Keysym& keysym) {
             m_inputCursorPos = 0;
             m_historyIndex = -1;
             m_savedInputBuffer.clear();
+            m_savedInputCursorPos = 0;
             break;
 
         case SDLK_UP:
             if (!m_commandHistory.empty()) {
                 if (m_historyIndex == -1) {
                     m_savedInputBuffer = m_inputBuffer;
+                    m_savedInputCursorPos = std::clamp(
+                        m_inputCursorPos,
+                        0,
+                        static_cast<int>(m_inputBuffer.size()));
                     m_historyIndex = static_cast<int>(m_commandHistory.size()) - 1;
                 } else if (m_historyIndex > 0) {
                     m_historyIndex--;
@@ -659,7 +666,11 @@ void TerminalApp::handleKeyDown(const SDL_Keysym& keysym) {
                 if (m_historyIndex >= static_cast<int>(m_commandHistory.size())) {
                     m_historyIndex = -1;
                     m_inputBuffer = m_savedInputBuffer;
-                    m_inputCursorPos = static_cast<int>(m_inputBuffer.size());
+                    m_inputCursorPos = std::clamp(
+                        m_savedInputCursorPos,
+                        0,
+                        static_cast<int>(m_inputBuffer.size()));
+                    m_savedInputCursorPos = 0;
                 } else {
                     m_inputBuffer = m_commandHistory[m_historyIndex];
                     m_inputCursorPos = static_cast<int>(m_inputBuffer.size());

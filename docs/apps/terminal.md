@@ -52,6 +52,8 @@ While reverse search is active, each additional `Ctrl+R` moves to the next older
 Once a history entry is recalled, typing, Backspace, Delete, or a completion
 that changes the command returns to normal input editing. Pressing Down after
 that keeps the edited command instead of restoring the pre-navigation buffer.
+When Down returns to an untouched draft, it also restores the draft's original
+caret position.
 
 ## Built-in Commands
 
