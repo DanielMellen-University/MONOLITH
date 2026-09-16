@@ -1,5 +1,10 @@
 # Changelog
 
+## 2026-09: Align Replace All with Find matches
+
+- Made Replace All consume the same non-overlapping match list as Find, so overlapping candidates such as `aa` in `aaa` resolve from the documented first match instead of selecting the last byte offset.
+- Added regression coverage for overlapping candidates.
+
 ## 2026-09: Render shell titles as UTF-8
 
 - Switched window-title and taskbar-label rendering to SDL_ttf's UTF-8 API so Unicode filenames display consistently with their measured widths.

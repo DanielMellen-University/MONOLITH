@@ -292,6 +292,16 @@ int main() {
     check(editor.m_lines == std::vector<std::string>{"aaaa"},
           "replace all does not reprocess replacement text");
 
+    editor.m_lines = {"aaa"};
+    editor.m_cursorRow = 0;
+    editor.m_cursorCol = 0;
+    editor.m_searchMode = TestEditor::SearchMode::Replace;
+    editor.m_findQuery = "aa";
+    editor.m_replaceText = "X";
+    editor.replaceAllMatches();
+    check(editor.m_lines == std::vector<std::string>{"Xa"},
+          "replace all follows find order for overlapping candidates");
+
     editor.m_lines = {"aaaa"};
     editor.m_cursorRow = 0;
     editor.m_cursorCol = 0;

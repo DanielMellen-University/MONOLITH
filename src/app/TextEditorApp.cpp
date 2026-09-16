@@ -1491,19 +1491,21 @@ void TextEditorApp::replaceAllMatches() {
 
     pushUndoState();
     int count = 0;
-    // Right-to-left per line so indices stay valid.
-    for (int row = static_cast<int>(m_lines.size()) - 1; row >= 0; --row) {
+    // Replace the same non-overlapping matches Find reports. Processing the
+    // saved positions from right to left keeps earlier byte offsets stable.
+    const auto matches = m_findMatches;
+    for (auto it = matches.rbegin(); it != matches.rend(); ++it) {
+        const int row = it->first;
+        const int col = it->second;
+        if (row < 0 || row >= static_cast<int>(m_lines.size()) || col < 0) continue;
         std::string& line = m_lines[static_cast<size_t>(row)];
-        size_t searchEnd = line.size();
-        while (searchEnd > 0) {
-            const size_t pos = line.rfind(m_findQuery, searchEnd - 1);
-            if (pos == std::string::npos) break;
-            line.replace(pos, m_findQuery.size(), m_replaceText);
-            ++count;
-            // Search only before the match just replaced. This keeps text
-            // introduced by the replacement from being processed again.
-            searchEnd = pos;
+        const size_t pos = static_cast<size_t>(col);
+        if (pos + m_findQuery.size() > line.size()
+            || line.compare(pos, m_findQuery.size(), m_findQuery) != 0) {
+            continue;
         }
+        line.replace(pos, m_findQuery.size(), m_replaceText);
+        ++count;
     }
 
     m_dirty = true;

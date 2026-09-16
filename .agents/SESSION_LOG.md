@@ -1,5 +1,7 @@
 # Session log
 
+| 2026-09-16 | fix | Aligned Text Editor Replace All with Find's non-overlapping match order, fixing overlapping candidates and adding regression coverage. |
+
 | 2026-09-16 | fix | Preserved direct Filesystem Browser rename state across synchronous self-notifications, with re-entrant rename regression coverage and documentation updates. |
 
 | 2026-09-16 | fix | Blocked queued keyboard and pointer delivery while the SDL host is unfocused, with focus regression coverage and architecture notes. |
