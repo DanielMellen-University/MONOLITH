@@ -1,5 +1,9 @@
 # Changelog
 
+## 2026-09: Share UTF-8 completion prefixes
+
+- Centralized complete UTF-8 common-prefix completion in the shared app helper so Text Editor, Drawing, and Terminal use one boundary-safe rule.
+
 ## 2026-09: Centralize UTF-8 completion safety
 
 - Shared the complete-codepoint completion guard across Terminal, Text Editor, Drawing, and Settings so future path-completion changes keep the same input invariant.

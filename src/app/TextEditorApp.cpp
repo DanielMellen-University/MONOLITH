@@ -34,23 +34,6 @@ SDL_Rect intersectRendererClip(const SDL_Rect& requested, const RendererClipStat
     return result;
 }
 
-std::string commonPrefix(const std::vector<std::string>& values) {
-    if (values.empty()) return "";
-
-    std::string common = values.front();
-    for (size_t i = 1; i < values.size(); ++i) {
-        size_t len = 0;
-        while (len < common.size() && len < values[i].size() && common[len] == values[i][len]) {
-            ++len;
-        }
-        common.resize(len);
-        if (common.empty()) break;
-    }
-
-    trimIncompleteUtf8Suffix(common);
-    return common;
-}
-
 std::string normalizeLineEndings(const std::string& text) {
     std::string normalized;
     normalized.reserve(text.size());
@@ -709,7 +692,7 @@ void TextEditorApp::completePathPrompt() {
         return;
     }
 
-    const std::string common = commonPrefix(matches);
+    const std::string common = utf8CommonPrefix(matches);
     if (common.size() > prefixBuffer.size()) {
         applyCompletion(common);
     }

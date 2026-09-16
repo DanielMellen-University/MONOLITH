@@ -9,6 +9,7 @@ using monolith::app::utf8CodepointByteLen;
 using monolith::app::utf8ClampToCodepointBoundary;
 using monolith::app::utf8NextCodepointStart;
 using monolith::app::utf8PrevCodepointStart;
+using monolith::app::utf8CommonPrefix;
 using monolith::app::trimIncompleteUtf8Suffix;
 
 int main() {
@@ -42,6 +43,12 @@ int main() {
     trimIncompleteUtf8Suffix(completePrefix);
     check(completePrefix == "A\xC3\xA9",
           "completion prefix keeps complete UTF-8 codepoints");
+
+    check(utf8CommonPrefix({"/unicode/\xC3\xA9" "clair", "/unicode/\xC3\xAA" "cole"})
+              == "/unicode/",
+          "common completion prefix stops before ambiguous UTF-8 codepoints");
+    check(utf8CommonPrefix({"alpha", "alphabet"}) == "alpha",
+          "common completion prefix keeps complete ASCII candidates");
 
     std::string edited = value;
     popLastUtf8Codepoint(edited);

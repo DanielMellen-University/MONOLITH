@@ -3,6 +3,7 @@
 #include <algorithm>
 #include <cstddef>
 #include <string>
+#include <vector>
 
 namespace monolith::app {
 
@@ -56,6 +57,26 @@ inline void trimIncompleteUtf8Suffix(std::string& value) {
     if (start + length > value.size()) {
         value.resize(start);
     }
+}
+
+// Return the longest byte prefix that is also a complete UTF-8 prefix.
+inline std::string utf8CommonPrefix(const std::vector<std::string>& values) {
+    if (values.empty()) return {};
+
+    std::string common = values.front();
+    for (std::size_t i = 1; i < values.size(); ++i) {
+        std::size_t length = 0;
+        while (length < common.size()
+               && length < values[i].size()
+               && common[length] == values[i][length]) {
+            ++length;
+        }
+        common.resize(length);
+        if (common.empty()) break;
+    }
+
+    trimIncompleteUtf8Suffix(common);
+    return common;
 }
 
 // Preserve a prompt caret's position after replacing a moved path prefix.

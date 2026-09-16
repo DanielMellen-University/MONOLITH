@@ -166,14 +166,7 @@ void TerminalApp::handleTabCompletion() {
         }
     } else {
         // Multiple matches - complete common prefix if possible
-        std::string common = context.prefix;
-        for (const auto& m : matches) {
-            std::size_t len = std::min(common.size(), m.size());
-            while (len > 0 && common.compare(0, len, m, 0, len) != 0) --len;
-            common = common.substr(0, len);
-        }
-
-        trimIncompleteUtf8Suffix(common);
+        const std::string common = utf8CommonPrefix(matches);
 
         if (common.size() > context.prefix.size()) {
             replacePrefix(common);

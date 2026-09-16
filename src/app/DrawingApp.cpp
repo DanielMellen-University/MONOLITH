@@ -51,22 +51,6 @@ bool pointInRect(int x, int y, const SDL_Rect& rect) {
     return x >= rect.x && x < rect.x + rect.w && y >= rect.y && y < rect.y + rect.h;
 }
 
-std::string commonPrefix(const std::vector<std::string>& values) {
-    if (values.empty()) return "";
-
-    std::string common = values.front();
-    for (size_t i = 1; i < values.size(); ++i) {
-        size_t len = 0;
-        while (len < common.size() && len < values[i].size() && common[len] == values[i][len]) {
-            ++len;
-        }
-        common.resize(len);
-        if (common.empty()) break;
-    }
-
-    trimIncompleteUtf8Suffix(common);
-    return common;
-}
 } // namespace
 
 DrawingApp::DrawingApp(TTF_Font* font, monolith::fs::Filesystem* fs, const std::string& initialPath)
@@ -863,7 +847,7 @@ void DrawingApp::completePathPrompt() {
         return;
     }
 
-    const std::string common = commonPrefix(matches);
+    const std::string common = utf8CommonPrefix(matches);
     if (common.size() > prefixBuffer.size()) {
         const std::string replacement = common.substr(nameStart);
         m_pathPromptBuffer.replace(
