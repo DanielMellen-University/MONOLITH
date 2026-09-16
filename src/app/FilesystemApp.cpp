@@ -1707,9 +1707,12 @@ void FilesystemApp::drawList(SDL_Renderer* r, const SDL_Rect& contentRect, int l
 }
 
 void FilesystemApp::render(SDL_Renderer* renderer, const SDL_Rect& contentRect) {
-    m_clientWidth = contentRect.w;
-    m_clientHeight = contentRect.h;
-    invalidateHitTargets();
+    // Layout invalidation is driven by resize and UI-scale callbacks. Keep
+    // stable hit rectangles cached across frames, but handle direct renders
+    // with a changed client size just like the Window Manager callback path.
+    if (m_clientWidth != contentRect.w || m_clientHeight != contentRect.h) {
+        onResize(contentRect.w, contentRect.h);
+    }
     ensureHitTargets();
 
     // Main background

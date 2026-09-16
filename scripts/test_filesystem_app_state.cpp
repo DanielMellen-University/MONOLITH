@@ -504,6 +504,12 @@ int main() {
         }
         check(!leakedOutsideCallerClip,
               "browser nested text clips stay inside the caller renderer clip");
+
+        browser.ensureHitTargets();
+        const int cachedDeleteX = browser.m_btnDelete.x;
+        browser.render(renderer, {0, 0, browser.m_clientWidth, browser.m_clientHeight});
+        check(browser.m_hitTargetsValid && browser.m_btnDelete.x == cachedDeleteX,
+              "browser retains stable hit targets across render frames");
         SDL_DestroyRenderer(renderer);
     }
     if (surface) SDL_FreeSurface(surface);

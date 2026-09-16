@@ -6,6 +6,11 @@
 - Close an active Drawing stroke before Save, Open, or RGB prompts consume pointer input.
 - Add focused state coverage for both prompt transitions.
 
+## 2026-09: Cache Browser hit targets between frames
+
+- Keep Filesystem Browser toolbar and filter geometry cached until resize or UI-scale changes instead of rebuilding it every render.
+- Preserve direct-render resize handling and add coverage for stable hit targets across frames.
+
 ## 2026-09: Cancel Browser rename before pointer actions
 
 - End Filesystem Browser inline rename mode before toolbar or context-menu mouse actions, so Delete and other controls cannot run with stale rename state still armed.
