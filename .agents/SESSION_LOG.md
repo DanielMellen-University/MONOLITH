@@ -1,5 +1,7 @@
 # Session log
 
+| 2026-09-16 | perf | Cached Text Editor syntax spans, line numbers, and status text surfaces, cleared them after document changes and UI-scale changes, added renderer coverage, and updated architecture and editor documentation. |
+
 | 2026-09-16 | docs | Documented Drawing's cached toolbar and status text surfaces, UI-scale invalidation, and canvas texture upload lifecycle. |
 
 | 2026-09-16 | perf | Cached Drawing toolbar and status or prompt text surfaces, cleared them on UI-scale changes, added renderer coverage, and updated architecture and changelog notes. |

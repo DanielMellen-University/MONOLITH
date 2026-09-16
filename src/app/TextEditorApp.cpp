@@ -264,7 +264,7 @@ void TextEditorApp::drawColoredLine(SDL_Renderer* renderer, const std::string& l
         if (len == 0) continue;
 
         const std::string text = line.substr(span.start, len);
-        SDL_Surface* surf = TTF_RenderUTF8_Blended(m_font, text.c_str(), span.color);
+        SDL_Surface* surf = m_textSurfaceCache.get(m_font, text.c_str(), span.color);
         if (!surf) continue;
 
         SDL_Texture* tex = SDL_CreateTextureFromSurface(renderer, surf);
@@ -277,7 +277,6 @@ void TextEditorApp::drawColoredLine(SDL_Renderer* renderer, const std::string& l
             SDL_DestroyTexture(tex);
             curX += surf->w;
         }
-        SDL_FreeSurface(surf);
     }
 }
 
@@ -312,6 +311,7 @@ bool TextEditorApp::loadInitialFile(const std::string& virtualPath) {
     if (m_lines.empty()) {
         m_lines = { "" };
     }
+    m_textSurfaceCache.clear();
     m_filePath = normalized;
     m_savedLines = m_lines;
     m_cursorRow = 0;
@@ -894,6 +894,7 @@ void TextEditorApp::cutSelection() {
     }
     pushUndoState();
     deleteSelectionRange();
+    m_textSurfaceCache.clear();
     m_dirty = true;
     clearDiscardArm();
     setStatus("Cut");
@@ -976,6 +977,7 @@ void TextEditorApp::pasteClipboard() {
         start = nl + 1;
     }
 
+    m_textSurfaceCache.clear();
     m_dirty = true;
     clearDiscardArm();
     clearSelection();
@@ -1083,6 +1085,7 @@ void TextEditorApp::insertText(const char* text) {
 
     line.insert(static_cast<size_t>(m_cursorCol), filtered);
     m_cursorCol += static_cast<int>(filtered.size());
+    m_textSurfaceCache.clear();
     m_dirty = true;
     clearDiscardArm();
     clearSelection();
@@ -1106,6 +1109,7 @@ void TextEditorApp::insertNewline() {
 
     m_cursorRow++;
     m_cursorCol = 0;
+    m_textSurfaceCache.clear();
     m_dirty = true;
     clearDiscardArm();
     clearSelection();
@@ -1116,6 +1120,7 @@ void TextEditorApp::deleteChar() {
     if (hasSelection()) {
         pushUndoState();
         deleteSelectionRange();
+        m_textSurfaceCache.clear();
         m_dirty = true;
         clearDiscardArm();
         ensureCursorVisible();
@@ -1144,6 +1149,7 @@ void TextEditorApp::deleteChar() {
         m_cursorRow--;
         m_cursorCol = newCol;
     }
+    m_textSurfaceCache.clear();
     m_dirty = true;
     clearDiscardArm();
     ensureCursorVisible();
@@ -1153,6 +1159,7 @@ void TextEditorApp::deleteForward() {
     if (hasSelection()) {
         pushUndoState();
         deleteSelectionRange();
+        m_textSurfaceCache.clear();
         m_dirty = true;
         clearDiscardArm();
         ensureCursorVisible();
@@ -1178,6 +1185,7 @@ void TextEditorApp::deleteForward() {
         line += m_lines[m_cursorRow + 1];
         m_lines.erase(m_lines.begin() + m_cursorRow + 1);
     }
+    m_textSurfaceCache.clear();
     m_dirty = true;
     clearDiscardArm();
     ensureCursorVisible();
@@ -1516,6 +1524,7 @@ void TextEditorApp::replaceCurrentMatch() {
 
     pushUndoState();
     line.replace(static_cast<size_t>(match.second), m_findQuery.size(), m_replaceText);
+    m_textSurfaceCache.clear();
     m_dirty = true;
     clearDiscardArm();
 
@@ -1571,6 +1580,7 @@ void TextEditorApp::replaceAllMatches() {
         ++count;
     }
 
+    m_textSurfaceCache.clear();
     m_dirty = true;
     clearDiscardArm();
     m_cursorRow = 0;
@@ -1661,7 +1671,7 @@ void TextEditorApp::render(SDL_Renderer* renderer, const SDL_Rect& contentRect) 
 
         // Draw line number
         std::string lineNumStr = std::to_string(lineIdx + 1);
-        SDL_Surface* numSurf = TTF_RenderUTF8_Blended(m_font, lineNumStr.c_str(), lineNumColor);
+        SDL_Surface* numSurf = m_textSurfaceCache.get(m_font, lineNumStr.c_str(), lineNumColor);
         if (numSurf) {
             SDL_Texture* numTex = SDL_CreateTextureFromSurface(renderer, numSurf);
             if (numTex) {
@@ -1674,7 +1684,6 @@ void TextEditorApp::render(SDL_Renderer* renderer, const SDL_Rect& contentRect) 
                 SDL_RenderCopy(renderer, numTex, nullptr, &numDst);
                 SDL_DestroyTexture(numTex);
             }
-            SDL_FreeSurface(numSurf);
         }
 
         SDL_RenderSetClipRect(renderer, &effectiveTextClip);
@@ -1854,7 +1863,8 @@ void TextEditorApp::render(SDL_Renderer* renderer, const SDL_Rect& contentRect) 
             status += "   |  Shift+wheel horizontal";
         }
 
-        SDL_Surface* surf = TTF_RenderUTF8_Blended(m_font, status.c_str(), {150, 155, 160, 255});
+        const SDL_Color statusColor = {150, 155, 160, 255};
+        SDL_Surface* surf = m_textSurfaceCache.get(m_font, status.c_str(), statusColor);
         if (surf) {
             SDL_Texture* tex = SDL_CreateTextureFromSurface(renderer, surf);
             if (tex) {
@@ -1888,7 +1898,6 @@ void TextEditorApp::render(SDL_Renderer* renderer, const SDL_Rect& contentRect) 
                 restoreRendererClip(renderer, previousClip);
                 SDL_DestroyTexture(tex);
             }
-            SDL_FreeSurface(surf);
         }
     }
 }
@@ -2251,6 +2260,7 @@ void TextEditorApp::onResize(int clientWidth, int clientHeight) {
 }
 
 void TextEditorApp::onUiScaleChanged() {
+    m_textSurfaceCache.clear();
     const int visible = std::max(
         1,
         getVisibleLineCount({0, 0, m_clientWidth, m_clientHeight}));
@@ -2293,6 +2303,7 @@ void TextEditorApp::pushUndoState(UndoCoalesce kind) {
 }
 
 void TextEditorApp::applyEditorState(const EditorState& state) {
+    m_textSurfaceCache.clear();
     m_lines = state.lines;
     m_cursorRow = state.cursorRow;
     m_cursorCol = state.cursorCol;

@@ -1,5 +1,9 @@
 # Changelog
 
+## 2026-09: Cache Text Editor text surfaces
+
+- Reuse SDL_ttf surfaces for syntax spans, line numbers, and status text, clearing them after document changes, undo or redo, loads, and interface-scale changes.
+
 ## 2026-09: Document Drawing rendering lifecycle
 
 - Document the Drawing text-surface cache, UI-scale invalidation, and separation from the canvas texture upload path.

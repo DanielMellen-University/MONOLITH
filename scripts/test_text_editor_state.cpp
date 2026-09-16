@@ -202,6 +202,19 @@ int main() {
                       && restoredClip.w == expectedClip.w
                       && restoredClip.h == expectedClip.h,
                   "Text Editor restores the caller renderer clip after rendering");
+            const size_t cachedSurfaceCount = scaleEditor.m_textSurfaceCache.m_entries.size();
+            scaleEditor.render(renderer, {0, 0, 200, 160});
+            check(cachedSurfaceCount > 0
+                      && scaleEditor.m_textSurfaceCache.m_entries.size() == cachedSurfaceCount,
+                  "Text Editor reuses cached text surfaces between frames");
+            scaleEditor.m_cursorRow = 0;
+            scaleEditor.m_cursorCol = 0;
+            scaleEditor.insertText("x");
+            check(scaleEditor.m_textSurfaceCache.m_entries.empty(),
+                  "Text Editor clears cached text surfaces after document edits");
+            scaleEditor.onUiScaleChanged();
+            check(scaleEditor.m_textSurfaceCache.m_entries.empty(),
+                  "Text Editor clears cached text surfaces when UI scale changes");
             scaleEditor.m_lines.assign(20, "line");
             scaleEditor.m_cursorRow = 19;
             scaleEditor.m_cursorCol = 0;
