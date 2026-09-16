@@ -32,6 +32,9 @@ using monolith::detail::RendererClipState;
 using monolith::detail::captureRendererClip;
 using monolith::detail::restoreRendererClip;
 using monolith::detail::intersectRendererClip;
+using monolith::detail::RendererBlendState;
+using monolith::detail::captureRendererBlend;
+using monolith::detail::restoreRendererBlend;
 
 #include "detail/wm_body_01.inc"
 #include "detail/wm_body_02.inc"

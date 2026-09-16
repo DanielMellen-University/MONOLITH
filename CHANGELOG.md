@@ -1,5 +1,10 @@
 # Changelog
 
+## 2026-09: Isolate WindowManager blend state
+
+- Compose WindowManager frames with a neutral SDL draw blend mode, restore it after each app callback, and return the caller's original mode after rendering.
+- Add a regression probe for an app that leaks blend state into the following window.
+
 ## 2026-09: Keep refined reverse searches on matching entries
 
 - Restart Terminal reverse-search matching from the newest entry after query edits, so adding or removing text does not skip a command that still matches.

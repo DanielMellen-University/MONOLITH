@@ -93,6 +93,7 @@
     }
 
     restoreRendererClip(renderer, callerClip);
+    restoreRendererBlend(renderer, callerBlend);
 }
 
 Window* WindowManager::getWindowAt(int mouseX, int mouseY) {

@@ -1,5 +1,7 @@
 # Session log
 
+| 2026-09-16 | fix | Isolated WindowManager SDL blend state across app callbacks and full-frame composition, added a deliberate-leak regression probe, and updated architecture/changelog notes. |
+
 | 2026-09-16 | fix | Restarted Terminal reverse-search matching after query edits so refinement cannot skip a still-matching command, added focused coverage, and documented the traversal contract. |
 
 | 2026-09-16 | fix | Preserved caller SDL blend modes across Snake and Minesweeper end-state overlays, added renderer-state coverage, and updated architecture/changelog notes. |

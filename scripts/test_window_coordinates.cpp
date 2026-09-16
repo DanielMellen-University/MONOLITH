@@ -15,6 +15,10 @@ class ProbeApp final : public monolith::app::App {
 public:
     void render(SDL_Renderer* renderer, const SDL_Rect& contentRect) override {
         SDL_RenderGetClipRect(renderer, &renderClip);
+        SDL_GetRenderDrawBlendMode(renderer, &renderBlendMode);
+        if (leakBlendMode) {
+            SDL_SetRenderDrawBlendMode(renderer, SDL_BLENDMODE_ADD);
+        }
         renderRect = contentRect;
     }
 
@@ -40,6 +44,8 @@ public:
     int resizeCalls = 0;
     SDL_Rect renderClip{0, 0, 0, 0};
     SDL_Rect renderRect{0, 0, 0, 0};
+    SDL_BlendMode renderBlendMode = SDL_BLENDMODE_NONE;
+    bool leakBlendMode = false;
 };
 
 class RenderClosingApp final : public monolith::app::App {
@@ -741,6 +747,26 @@ int main() {
               "render snapshot survives a front app closing during render");
         check(survivorPtr->renderRect.w > 0,
               "render continues with the surviving window after callback removal");
+
+        monolith::window::WindowManager blendWm;
+        blendWm.setLogicalDesktopSize(900, 600);
+        auto leakingApp = std::make_unique<ProbeApp>();
+        ProbeApp* leakingAppPtr = leakingApp.get();
+        leakingAppPtr->leakBlendMode = true;
+        blendWm.createWindow("Leaking blend app", 40, 40, 300, 220, std::move(leakingApp));
+        auto observingApp = std::make_unique<ProbeApp>();
+        ProbeApp* observingAppPtr = observingApp.get();
+        blendWm.createWindow("Observing blend app", 380, 80, 300, 220, std::move(observingApp));
+
+        SDL_SetRenderDrawBlendMode(renderer, SDL_BLENDMODE_ADD);
+        blendWm.render(renderer);
+        SDL_BlendMode afterFrameBlend = SDL_BLENDMODE_NONE;
+        SDL_GetRenderDrawBlendMode(renderer, &afterFrameBlend);
+        check(leakingAppPtr->renderBlendMode == SDL_BLENDMODE_NONE
+                  && observingAppPtr->renderBlendMode == SDL_BLENDMODE_NONE,
+              "WindowManager isolates app blend state during composition");
+        check(afterFrameBlend == SDL_BLENDMODE_ADD,
+              "WindowManager restores the caller blend mode after composition");
     }
 
     if (font) TTF_CloseFont(font);
