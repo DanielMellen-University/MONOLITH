@@ -1390,15 +1390,18 @@ void FilesystemApp::drawPathBar(SDL_Renderer* r, const SDL_Rect& contentRect, in
                         pathVisibleWidth,
                         pathBarHeight
                     };
-                    SDL_RenderSetClipRect(r, &pathClip);
-                    SDL_Rect dst = {
-                        contentRect.x + 10,
-                        contentRect.y + (pathBarHeight - surf->h) / 2,
-                        surf->w,
-                        surf->h
-                    };
-                    SDL_RenderCopy(r, tex, nullptr, &dst);
-                    restoreRendererClip(r, previousClip);
+                    const SDL_Rect effectivePathClip = intersectRendererClip(pathClip, previousClip);
+                    if (effectivePathClip.w > 0 && effectivePathClip.h > 0) {
+                        SDL_RenderSetClipRect(r, &effectivePathClip);
+                        SDL_Rect dst = {
+                            contentRect.x + 10,
+                            contentRect.y + (pathBarHeight - surf->h) / 2,
+                            surf->w,
+                            surf->h
+                        };
+                        SDL_RenderCopy(r, tex, nullptr, &dst);
+                        restoreRendererClip(r, previousClip);
+                    }
                 }
                 SDL_DestroyTexture(tex);
             }
@@ -1456,15 +1459,18 @@ void FilesystemApp::drawPathBar(SDL_Renderer* r, const SDL_Rect& contentRect, in
                         visibleWidth,
                         filterDraw.h
                     };
-                    SDL_RenderSetClipRect(r, &filterClip);
-                    SDL_Rect dst = {
-                        filterDraw.x + 6 - (m_filtering ? m_filterScrollPx : 0),
-                        filterDraw.y + (filterDraw.h - fs->h) / 2,
-                        fs->w,
-                        fs->h
-                    };
-                    SDL_RenderCopy(r, ft, nullptr, &dst);
-                    restoreRendererClip(r, previousClip);
+                    const SDL_Rect effectiveFilterClip = intersectRendererClip(filterClip, previousClip);
+                    if (effectiveFilterClip.w > 0 && effectiveFilterClip.h > 0) {
+                        SDL_RenderSetClipRect(r, &effectiveFilterClip);
+                        SDL_Rect dst = {
+                            filterDraw.x + 6 - (m_filtering ? m_filterScrollPx : 0),
+                            filterDraw.y + (filterDraw.h - fs->h) / 2,
+                            fs->w,
+                            fs->h
+                        };
+                        SDL_RenderCopy(r, ft, nullptr, &dst);
+                        restoreRendererClip(r, previousClip);
+                    }
                 }
                 SDL_DestroyTexture(ft);
             }
@@ -1658,10 +1664,13 @@ void FilesystemApp::drawList(SDL_Renderer* r, const SDL_Rect& contentRect, int l
                 SDL_Texture* t = SDL_CreateTextureFromSurface(r, s);
                 if (t) {
                     SDL_Rect nameClip = {nameX, rowRect.y, nameWidth, rowRect.h};
-                    SDL_RenderSetClipRect(r, &nameClip);
-                    SDL_Rect d = {nameX - textOffset, rowRect.y + 2, s->w, s->h};
-                    SDL_RenderCopy(r, t, nullptr, &d);
-                    restoreRendererClip(r, previousClip);
+                    const SDL_Rect effectiveNameClip = intersectRendererClip(nameClip, previousClip);
+                    if (effectiveNameClip.w > 0 && effectiveNameClip.h > 0) {
+                        SDL_RenderSetClipRect(r, &effectiveNameClip);
+                        SDL_Rect d = {nameX - textOffset, rowRect.y + 2, s->w, s->h};
+                        SDL_RenderCopy(r, t, nullptr, &d);
+                        restoreRendererClip(r, previousClip);
+                    }
                     SDL_DestroyTexture(t);
                 }
                 SDL_FreeSurface(s);
@@ -1673,9 +1682,12 @@ void FilesystemApp::drawList(SDL_Renderer* r, const SDL_Rect& contentRect, int l
                 int cursorY = rowRect.y + 2;
                 SDL_SetRenderDrawColor(r, 255, 255, 255, 220);
                 SDL_Rect nameClip = {nameX, rowRect.y, nameWidth, rowH};
-                SDL_RenderSetClipRect(r, &nameClip);
-                SDL_RenderDrawLine(r, cursorX, cursorY, cursorX, cursorY + rowH - 6);
-                restoreRendererClip(r, previousClip);
+                const SDL_Rect effectiveNameClip = intersectRendererClip(nameClip, previousClip);
+                if (effectiveNameClip.w > 0 && effectiveNameClip.h > 0) {
+                    SDL_RenderSetClipRect(r, &effectiveNameClip);
+                    SDL_RenderDrawLine(r, cursorX, cursorY, cursorX, cursorY + rowH - 6);
+                    restoreRendererClip(r, previousClip);
+                }
             }
         }
 
@@ -1971,15 +1983,18 @@ void FilesystemApp::drawStatusBar(SDL_Renderer* r, const SDL_Rect& contentRect) 
                 visibleWidth,
                 bar.h
             };
-            SDL_RenderSetClipRect(r, &statusClip);
-            SDL_Rect dst = {
-                contentRect.x + 10,
-                bar.y + (statusBarHeight - surf->h) / 2,
-                surf->w,
-                surf->h
-            };
-            SDL_RenderCopy(r, tex, nullptr, &dst);
-            restoreRendererClip(r, previousClip);
+            const SDL_Rect effectiveStatusClip = intersectRendererClip(statusClip, previousClip);
+            if (effectiveStatusClip.w > 0 && effectiveStatusClip.h > 0) {
+                SDL_RenderSetClipRect(r, &effectiveStatusClip);
+                SDL_Rect dst = {
+                    contentRect.x + 10,
+                    bar.y + (statusBarHeight - surf->h) / 2,
+                    surf->w,
+                    surf->h
+                };
+                SDL_RenderCopy(r, tex, nullptr, &dst);
+                restoreRendererClip(r, previousClip);
+            }
             SDL_DestroyTexture(tex);
         }
         SDL_FreeSurface(surf);

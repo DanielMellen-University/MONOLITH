@@ -1,5 +1,10 @@
 # Changelog
 
+## 2026-09: Keep Browser text inside caller clips
+
+- Intersected Filesystem Browser path, filter, filename, rename-cursor, and status text clips with the caller renderer clip instead of temporarily widening the render boundary.
+- Added pixel-level headless coverage that rejects text escaping a one-pixel caller clip.
+
 ## 2026-09: Use shared clip intersections in shell boundaries
 
 - Routed the WindowManager client boundary and Filesystem Browser context menu through the shared renderer clip intersection helper, removing the last duplicate shell-side intersection logic.

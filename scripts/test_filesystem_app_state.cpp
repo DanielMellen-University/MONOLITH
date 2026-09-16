@@ -374,7 +374,11 @@ int main() {
     SDL_Renderer* renderer = surface ? SDL_CreateSoftwareRenderer(surface) : nullptr;
     check(renderer != nullptr, "browser state creates a software renderer");
     if (renderer) {
-        const SDL_Rect expectedClip{5, 6, 140, 120};
+        SDL_RenderSetClipRect(renderer, nullptr);
+        const Uint32 sentinel = SDL_MapRGBA(surface->format, 3, 5, 7, 255);
+        SDL_SetRenderDrawColor(renderer, 3, 5, 7, 255);
+        SDL_RenderClear(renderer);
+        const SDL_Rect expectedClip{239, 239, 1, 1};
         SDL_RenderSetClipRect(renderer, &expectedClip);
         browser.render(renderer, {0, 0, 200, 200});
         SDL_Rect restoredClip{};
@@ -384,6 +388,27 @@ int main() {
                   && restoredClip.w == expectedClip.w
                   && restoredClip.h == expectedClip.h,
               "browser restores the caller renderer clip after rendering");
+
+        bool leakedOutsideCallerClip = false;
+        if (SDL_LockSurface(surface) == 0) {
+            const auto* pixels = static_cast<const Uint32*>(surface->pixels);
+            for (int y = 0; y < surface->h && !leakedOutsideCallerClip; ++y) {
+                for (int x = 0; x < surface->w; ++x) {
+                    SDL_Point point{x, y};
+                    if (!SDL_PointInRect(&point, &expectedClip)
+                            && pixels[y * (surface->pitch / static_cast<int>(sizeof(Uint32))) + x]
+                                != sentinel) {
+                        leakedOutsideCallerClip = true;
+                        break;
+                    }
+                }
+            }
+            SDL_UnlockSurface(surface);
+        } else {
+            leakedOutsideCallerClip = true;
+        }
+        check(!leakedOutsideCallerClip,
+              "browser nested text clips stay inside the caller renderer clip");
         SDL_DestroyRenderer(renderer);
     }
     if (surface) SDL_FreeSurface(surface);
