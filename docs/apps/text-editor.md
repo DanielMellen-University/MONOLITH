@@ -24,7 +24,7 @@ If a bound file's parent directory is deleted, the editor keeps the document buf
 - Type to insert characters at the cursor (UTF-8 text input; cursor movement and backspace/delete stay on complete codepoint boundaries).
 - **Enter** inserts a new line.
 - **Arrow keys**, **Home**, and **End** move the cursor; hold **Shift** to extend the selection.
-- Click to place the cursor; drag to select. **Esc** clears the selection.
+- Click to place the cursor; drag to select. A captured drag clamps to the nearest visible document edge when the pointer leaves the text viewport, so selections can end at the top or bottom without stopping early. **Esc** clears the selection.
 - **Backspace** / **Delete** remove the selection when one exists, otherwise one codepoint.
 - Typing or paste replaces the current selection.
 - Typing or pasting exactly the selected text only collapses the selection; it does not dirty the buffer or add an undo step.
@@ -126,6 +126,7 @@ Path prompts support Left/Right/Home/End, UTF-8-safe Backspace/Delete, and inser
 - Horizontal scrolling is clamped to the current line after wheel input and window resizing, so widening the editor cannot leave the text viewport stranded past the line end.
 - Resizing clamps vertical scrollback to the lines that fit in the new editor area. If the client is too short to fit a document row above the status bar, the editor leaves the document area empty instead of claiming rows that cannot be rendered.
 - Mouse selection starts only on complete rendered rows; the unused gap above the status bar is not treated as document content.
+- A captured mouse selection extends to the nearest visible document edge while the pointer is outside the text viewport, matching the shell's pointer-capture behavior for other drag-based apps.
 - Syntax-highlighted spans at the viewport edge are clipped without scaling, so text measurements and cursor geometry stay consistent.
 - Document rows and the status prompt intersect their internal clips with the caller clip and restore it after rendering, so editor content stays inside the shell's visible client intersection.
 - Combining characters / complex scripts are treated as separate codepoints for cursor motion.

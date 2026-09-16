@@ -78,7 +78,8 @@ private:
     void cutSelection();
     void pasteClipboard();
     int measureTextPrefixWidth(const std::string& line, int col) const;
-    bool clientToDocument(int clientX, int clientY, int& outRow, int& outCol) const;
+    bool clientToDocument(int clientX, int clientY, int& outRow, int& outCol,
+                          bool clampToViewport = false) const;
 
     // === File I/O ===
     bool loadInitialFile(const std::string& virtualPath);

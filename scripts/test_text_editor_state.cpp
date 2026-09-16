@@ -137,6 +137,33 @@ int main() {
         check(!scaleEditor.m_selectingWithMouse && scaleEditor.m_cursorRow == 0,
               "Text Editor ignores clicks in the gap below the last rendered row");
 
+        scaleEditor.m_lines = {"first", "second", "third"};
+        scaleEditor.onResize(320, 160);
+        scaleEditor.m_cursorRow = 0;
+        scaleEditor.m_cursorCol = 0;
+        scaleEditor.m_scrollOffset = 0;
+        scaleEditor.m_selectingWithMouse = false;
+        SDL_Event selectionStart{};
+        selectionStart.type = SDL_MOUSEBUTTONDOWN;
+        selectionStart.button.button = SDL_BUTTON_LEFT;
+        selectionStart.button.clicks = 1;
+        selectionStart.button.x = TestEditor::kPadding + TestEditor::kLineNumWidth + 2;
+        selectionStart.button.y = TestEditor::kPadding + 1;
+        scaleEditor.handleEvent(selectionStart);
+        SDL_Event selectionMotion = selectionStart;
+        selectionMotion.type = SDL_MOUSEMOTION;
+        selectionMotion.motion.x = 320;
+        selectionMotion.motion.y = 200;
+        scaleEditor.handleEvent(selectionMotion);
+        check(scaleEditor.m_selectingWithMouse
+                  && scaleEditor.m_cursorRow == static_cast<int>(scaleEditor.m_lines.size()) - 1
+                  && scaleEditor.m_cursorCol == static_cast<int>(scaleEditor.m_lines.back().size()),
+              "Text Editor extends a captured selection to the nearest document edge");
+        SDL_Event selectionEnd{};
+        selectionEnd.type = SDL_MOUSEBUTTONUP;
+        selectionEnd.button.button = SDL_BUTTON_LEFT;
+        scaleEditor.handleEvent(selectionEnd);
+
         SDL_Surface* surface = videoReady
             ? SDL_CreateRGBSurfaceWithFormat(0, 240, 200, 32, SDL_PIXELFORMAT_RGBA32)
             : nullptr;

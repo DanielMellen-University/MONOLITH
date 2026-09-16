@@ -1,5 +1,7 @@
 # Session log
 
+| 2026-09-16 | fix | Extended captured Text Editor mouse selections to the nearest visible document edge, added focused coverage, and updated editor and shell input documentation. |
+
 | 2026-09-16 | fix | Invalidated taskbar targets when focus clears after the last visible window is minimized, added no-render-gap coverage, and updated shell architecture/changelog notes. |
 
 | 2026-09-16 | fix | Kept client keyboard events owned by the focused app after shell hotkeys, added callback-close coverage that blocks accidental desktop-icon activation, and updated input-routing documentation. |

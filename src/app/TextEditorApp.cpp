@@ -991,7 +991,8 @@ int TextEditorApp::measureTextPrefixWidth(const std::string& line, int col) cons
     return w;
 }
 
-bool TextEditorApp::clientToDocument(int clientX, int clientY, int& outRow, int& outCol) const {
+bool TextEditorApp::clientToDocument(int clientX, int clientY, int& outRow, int& outCol,
+                                     bool clampToViewport) const {
     if (m_lines.empty()) {
         outRow = 0;
         outCol = 0;
@@ -1002,7 +1003,12 @@ bool TextEditorApp::clientToDocument(int clientX, int clientY, int& outRow, int&
 
     int relY = clientY - kPadding;
     const int visible = getVisibleLineCount({0, 0, m_clientWidth, m_clientHeight});
-    if (visible <= 0 || relY < 0 || relY >= visible * lineHeight) return false;
+    if (visible <= 0) return false;
+    if (!clampToViewport && (relY < 0 || relY >= visible * lineHeight)) return false;
+
+    if (clampToViewport) {
+        relY = std::clamp(relY, 0, visible * lineHeight - 1);
+    }
     int row = m_scrollOffset + relY / lineHeight;
     if (row < 0) row = 0;
     if (row >= static_cast<int>(m_lines.size())) {
@@ -1931,7 +1937,7 @@ void TextEditorApp::handleEvent(const SDL_Event& event) {
 
     if (event.type == SDL_MOUSEMOTION && m_selectingWithMouse) {
         int row = 0, col = 0;
-        if (!clientToDocument(event.motion.x, event.motion.y, row, col)) return;
+        if (!clientToDocument(event.motion.x, event.motion.y, row, col, true)) return;
         m_cursorRow = row;
         m_cursorCol = col;
         m_hasSelection = true;

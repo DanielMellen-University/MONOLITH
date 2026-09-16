@@ -1,5 +1,10 @@
 # Changelog
 
+## 2026-09: Extend Text Editor selections to captured edges
+
+- Keep mouse selection active while captured motion leaves the text viewport, clamping the cursor to the nearest visible document edge instead of stopping early.
+- Add focused Text Editor coverage for a drag that ends below the rendered document rows.
+
 ## 2026-09: Keep Start-menu activation shell-owned
 
 - Consume the Return or keypad Enter release paired with Start-menu activation so a newly focused app cannot receive an unintended key-up.
