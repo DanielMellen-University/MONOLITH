@@ -226,6 +226,15 @@ void WindowManager::notifyVirtualPathCreated(const std::string& virtualPath) {
     const std::string created = m_fs->normalize(virtualPath);
     if (created.empty() || created == "/") return;
 
+    // A configured wallpaper may have been missing when the previous render
+    // attempted to load it. Clear that failed-path cache when the file itself
+    // or one of its newly-created parent directories appears.
+    const std::string wallpaper = m_fs->normalize(m_desktopSettings.wallpaperPath());
+    if (!wallpaper.empty() && m_fs->isSameOrDescendant(created, wallpaper)) {
+        destroyWallpaperTexture();
+        m_wallpaperLoadedPath.clear();
+    }
+
     forEachLiveApp([&](monolith::app::App& app) {
         app.onVirtualPathCreated(created);
     });

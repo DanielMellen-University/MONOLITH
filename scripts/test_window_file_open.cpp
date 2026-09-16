@@ -299,6 +299,11 @@ int main() {
               "WindowManager dispatches normalized change notifications to apps");
         check(wm.m_wallpaperLoadedPath.empty(),
               "wallpaper cache is invalidated when its file changes");
+        wm.setWallpaperPath("/docs/new-wall.bmp");
+        wm.m_wallpaperLoadedPath = "/docs/new-wall.bmp";
+        wm.notifyVirtualPathCreated("/docs/new-wall.bmp");
+        check(wm.m_wallpaperLoadedPath.empty(),
+              "wallpaper cache is invalidated when its missing file is created");
     }
 
     {

@@ -1,5 +1,7 @@
 # Session log
 
+| 2026-09-16 | fix | Invalidated failed wallpaper-load state when the configured image or a parent directory is created, added focused recovery coverage, and updated shell architecture notes. |
+
 | 2026-09-16 | fix | Made session restore identify each launched window by its monotonic creation ID, so app creation callbacks cannot redirect saved geometry to a nested callback-created window. |
 
 | 2026-09-16 | fix | Made direct `Filesystem::copyRecursive` calls create missing destination parents, added nested-file copy coverage, and aligned the filesystem guide with the shared copy contract. |

@@ -1,5 +1,10 @@
 # Changelog
 
+## 2026-09: Retry wallpapers after file creation
+
+- Invalidated the cached wallpaper load when a missing configured image or one of its parent directories is created.
+- Added WindowManager coverage for recovering a wallpaper path after creation.
+
 ## 2026-09: Keep session geometry attached to its launcher
 
 - Applied restored geometry to the window ID created for each session entry instead of assuming the newest vector element is the launched window.
