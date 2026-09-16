@@ -1,12 +1,18 @@
 #include "SettingsApp.hpp"
 #include "FilePath.hpp"
 #include "Utf8.hpp"
+#include "../detail/RendererClip.hpp"
 
 #include <algorithm>
 #include <cctype>
 #include <vector>
 
 namespace monolith::app {
+
+using monolith::detail::RendererClipState;
+using monolith::detail::captureRendererClip;
+using monolith::detail::restoreRendererClip;
+using monolith::detail::intersectRendererClip;
 
 #include "SettingsApp_body_00.inc"
 #include "SettingsApp_body_01.inc"
