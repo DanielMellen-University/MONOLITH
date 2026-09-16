@@ -47,6 +47,8 @@ Type commands at the prompt and press **Enter** to run them. Output appears abov
 | Page Up / Page Down | Scroll output history |
 | Mouse wheel | Scroll output history |
 
+While reverse search is active, each additional `Ctrl+R` moves to the next older matching command. When no older match remains, the current match stays selected.
+
 Once a history entry is recalled, typing, Backspace, Delete, or a completion
 that changes the command returns to normal input editing. Pressing Down after
 that keeps the edited command instead of restoring the pre-navigation buffer.

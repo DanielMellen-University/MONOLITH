@@ -123,6 +123,21 @@ int main() {
     check(terminal.m_inputBuffer == "echo two",
           "down does not replace an accepted search result with stale input");
 
+    terminal.m_commandHistory = {"echo one", "echo two", "echo two again", "echo last"};
+    terminal.m_inputBuffer.clear();
+    terminal.m_inputCursorPos = 0;
+    key(SDLK_r, KMOD_CTRL);
+    text("echo");
+    check(terminal.m_searchMatchIndex == 3,
+          "reverse search starts at the newest matching command");
+    key(SDLK_r, KMOD_CTRL);
+    check(terminal.m_searchMatchIndex == 2,
+          "repeated reverse search moves to the previous matching command");
+    key(SDLK_r, KMOD_CTRL);
+    check(terminal.m_searchMatchIndex == 1,
+          "reverse search keeps walking older matching commands");
+    key(SDLK_ESCAPE);
+
     terminal.m_inputBuffer = "echo saved command";
     terminal.m_inputCursorPos = 5;
     key(SDLK_r, KMOD_CTRL);

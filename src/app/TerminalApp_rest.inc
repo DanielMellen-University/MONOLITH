@@ -56,14 +56,18 @@ void TerminalApp::exitReverseSearch(bool accept) {
 }
 
 void TerminalApp::updateReverseSearchMatch() {
+    const int previousMatch = m_searchMatchIndex;
     m_searchMatchIndex = -1;
 
     if (m_searchBuffer.empty()) {
         return;
     }
 
-    // Search backward from the end (or from current match - 1 if repeating)
-    int start = (m_searchMatchIndex >= 0) ? m_searchMatchIndex - 1 : static_cast<int>(m_commandHistory.size()) - 1;
+    // Search backward from the end, or older than the current result when the
+    // query is being extended during an active reverse search.
+    const int start = previousMatch >= 0
+        ? previousMatch - 1
+        : static_cast<int>(m_commandHistory.size()) - 1;
 
     for (int i = start; i >= 0; --i) {
         if (m_commandHistory[i].find(m_searchBuffer) != std::string::npos) {

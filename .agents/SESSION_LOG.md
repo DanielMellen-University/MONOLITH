@@ -1,5 +1,7 @@
 # Session log
 
+| 2026-09-16 | fix | Preserved Terminal reverse-search match state so repeated Ctrl+R walks older commands, added focused coverage, and updated the Terminal guide. |
+
 | 2026-09-16 | fix | Rebuilt Settings control targets before queued post-scale input, aligned scrolled click coordinates with the rendered controls, added focused coverage, and updated the Settings guide. |
 
 | 2026-09-16 | fix | Rebuilt Drawing toolbar and swatch targets before queued post-scale input, shared their geometry between rendering and events, added focused coverage, and updated the Drawing guide. |

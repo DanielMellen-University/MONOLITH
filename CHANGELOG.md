@@ -1,5 +1,10 @@
 # Changelog
 
+## 2026-09: Keep Terminal reverse search moving backward
+
+- Preserved the active reverse-search match while extending a query, so repeated `Ctrl+R` now walks older matching commands instead of resetting to the newest result.
+- Added focused coverage for three-match reverse-search navigation and documented the behavior.
+
 ## 2026-09: Keep Settings controls responsive across layout changes
 
 - Rebuilt Settings swatch, wallpaper, clock, and text-size hit targets on demand when queued input arrives after a resize, interface-scale change, or scroll update but before the next render.
