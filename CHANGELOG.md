@@ -1,5 +1,10 @@
 # Changelog
 
+## 2026-09: Keep failed Drawing opens clean
+
+- Establish a clean blank baseline when a missing or invalid initial `.modr` path falls back to an untitled Drawing window, so undo does not leave a false `[modified]` marker.
+- Add focused coverage for failed initial opens and undo.
+
 ## 2026-09: Reset Drawing's saved baseline for New sketches
 
 - Give a blank sketch created by **New** its own saved baseline so undoing a new edit clears `[modified]` instead of comparing against the previous file.

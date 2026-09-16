@@ -1215,7 +1215,12 @@ void DrawingApp::onResize(int clientWidth, int clientHeight) {
     if (!m_pendingInitialPath.empty()) {
         const std::string path = m_pendingInitialPath;
         m_pendingInitialPath.clear();
-        loadFromPath(path);
+        if (!loadFromPath(path)) {
+            // A failed initial open becomes an untitled blank sketch. Keep that
+            // fallback canvas clean so its first undo returns to a clean state.
+            m_savedSnapshot = {m_canvasWidth, m_canvasHeight, m_pixels};
+            m_dirty = false;
+        }
     }
 }
 

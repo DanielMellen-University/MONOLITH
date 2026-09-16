@@ -275,3 +275,5 @@ Current chunk pointer: [`CURRENT_CHUNK`](CURRENT_CHUNK).
 | 2026-09-16 | fix | Made Text Editor dirty state compare against the last loaded or saved content so undo/redo clears and restores the marker accurately; added focused coverage and updated the editor guide. |
 | 2026-09-16 | fix | Made Drawing dirty state compare against the last saved canvas so undo/redo clears and restores `[modified]` accurately while resize behavior stays intact; added focused coverage and updated the Drawing guide. |
 | 2026-09-16 | fix | Reset Drawing's saved canvas baseline when **New** creates a blank sketch so undo/redo reports `[modified]` accurately after leaving a file-backed drawing; added focused coverage and updated the Drawing guide. |
+
+| 2026-09-16 | fix | Established a clean Drawing baseline when a missing or invalid initial `.modr` open falls back to an untitled canvas, so undo cannot leave a false `[modified]` marker; added focused coverage and updated the Drawing guide. |

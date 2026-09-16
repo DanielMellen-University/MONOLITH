@@ -49,8 +49,9 @@ struct TestController final : monolith::app::IWindowController {
 struct TestDrawing final : monolith::app::DrawingApp {
     using monolith::app::App::setController;
 
-    TestDrawing(TTF_Font* font, monolith::fs::Filesystem* fs)
-        : DrawingApp(font, fs) {}
+    TestDrawing(TTF_Font* font, monolith::fs::Filesystem* fs,
+                const std::string& initialPath = {})
+        : DrawingApp(font, fs, initialPath) {}
 };
 
 } // namespace
@@ -94,6 +95,17 @@ int main() {
         std::filesystem::remove_all(hostRoot, ec);
         return 1;
     }
+
+    TestDrawing failedInitialDrawing(font, &fs, "/drawings/missing.modr");
+    failedInitialDrawing.onResize(300, 300);
+    check(failedInitialDrawing.m_filePath.empty() && !failedInitialDrawing.m_dirty,
+          "failed initial Drawing open falls back to a clean untitled canvas");
+    failedInitialDrawing.pushUndoSnapshot();
+    failedInitialDrawing.setPixel(0, 0, 9, 8, 7);
+    failedInitialDrawing.m_dirty = true;
+    failedInitialDrawing.undoCanvas();
+    check(!failedInitialDrawing.m_dirty,
+          "undoing after a failed initial Drawing open clears the modified state");
 
     TestDrawing drawing(font, &fs);
     bool occupiedSketchNames = true;
