@@ -2231,6 +2231,12 @@ void TextEditorApp::handleEvent(const SDL_Event& event) {
     }
 }
 
+void TextEditorApp::onFocusLost() {
+    // Modal shell transitions may not deliver the matching mouse release.
+    // Preserve any selection, but stop treating later motion as a drag.
+    m_selectingWithMouse = false;
+}
+
 void TextEditorApp::onResize(int clientWidth, int clientHeight) {
     m_clientWidth = clientWidth;
     m_clientHeight = clientHeight;

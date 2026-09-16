@@ -23,6 +23,7 @@ public:
 
     void render(SDL_Renderer* renderer, const SDL_Rect& contentRect) override;
     void handleEvent(const SDL_Event& event) override;
+    void onFocusLost() override;
     void onResize(int clientWidth, int clientHeight) override;
     void onUiScaleChanged() override;
     void onBoundFileMoved(const std::string& oldPath,
@@ -67,6 +68,7 @@ private:
     void beginStroke();
     void recordStrokeChange();
     void finishStroke();
+    void endActiveStroke();
     void restoreCanvasSnapshot(const CanvasSnapshot& snapshot);
     void undoCanvas();
     void redoCanvas();

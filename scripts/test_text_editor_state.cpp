@@ -164,6 +164,14 @@ int main() {
         selectionEnd.button.button = SDL_BUTTON_LEFT;
         scaleEditor.handleEvent(selectionEnd);
 
+        TestEditor focusGestureEditor(nullptr, &fs, "/old.txt");
+        focusGestureEditor.m_lines = {"focus gesture"};
+        focusGestureEditor.onResize(320, 120);
+        focusGestureEditor.handleEvent(selectionStart);
+        focusGestureEditor.onFocusLost();
+        check(!focusGestureEditor.m_selectingWithMouse,
+              "Text Editor focus loss ends an active mouse selection");
+
         TestEditor promptGestureEditor(nullptr, &fs, "/old.txt");
         promptGestureEditor.m_lines = {"prompt gesture"};
         promptGestureEditor.onResize(320, 120);

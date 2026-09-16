@@ -25,6 +25,7 @@ If a bound file's parent directory is deleted, the editor keeps the document buf
 - **Enter** inserts a new line.
 - **Arrow keys**, **Home**, and **End** move the cursor; hold **Shift** to extend the selection.
 - Click to place the cursor; drag to select. A captured drag clamps to the nearest visible document edge when the pointer leaves the text viewport, so selections can end at the top or bottom without stopping early. **Esc** clears the selection.
+- Losing focus ends an in-progress mouse selection without discarding the selected text, so opening the Start menu cannot leave later pointer motion attached to the editor.
 - **Backspace** / **Delete** remove the selection when one exists, otherwise one codepoint.
 - Typing or paste replaces the current selection.
 - Typing or pasting exactly the selected text only collapses the selection; it does not dirty the buffer or add an undo step.

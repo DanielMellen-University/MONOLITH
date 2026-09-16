@@ -154,6 +154,15 @@ void DrawingApp::finishStroke() {
     m_strokeStartSnapshot = {};
 }
 
+void DrawingApp::endActiveStroke() {
+    m_drawing = false;
+    m_lastCanvasX = -1;
+    m_lastCanvasY = -1;
+    m_shapeAnchorX = -1;
+    m_shapeAnchorY = -1;
+    finishStroke();
+}
+
 void DrawingApp::restoreCanvasSnapshot(const CanvasSnapshot& snapshot) {
     if (snapshot.width <= 0 || snapshot.height <= 0 || snapshot.pixels.empty()) return;
 
@@ -747,14 +756,7 @@ void DrawingApp::beginPathPrompt(PathPromptMode mode) {
     clearDiscardArm();
     // The prompt owns subsequent input, including the matching mouse release.
     // Close any active stroke before that release is intentionally ignored.
-    if (m_drawing || m_strokeHistoryPending) {
-        m_drawing = false;
-        m_lastCanvasX = -1;
-        m_lastCanvasY = -1;
-        m_shapeAnchorX = -1;
-        m_shapeAnchorY = -1;
-        finishStroke();
-    }
+    endActiveStroke();
     m_pathPromptMode = mode;
     if (mode == PathPromptMode::Save) {
         m_pathPromptBuffer = m_filePath.empty() ? defaultSavePath() : m_filePath;
@@ -1239,6 +1241,12 @@ void DrawingApp::drawStatusBar(SDL_Renderer* renderer, const SDL_Rect& contentRe
         }
         SDL_FreeSurface(surf);
     }
+}
+
+void DrawingApp::onFocusLost() {
+    // Start-menu and window-focus transitions do not guarantee a matching
+    // mouse release, so never carry a canvas gesture across the boundary.
+    endActiveStroke();
 }
 
 void DrawingApp::onResize(int clientWidth, int clientHeight) {

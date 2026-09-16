@@ -160,6 +160,9 @@ int main() {
     game.m_state = MinesweeperApp::State::Playing;
     game.m_focusPaused = false;
     game.m_timerStartMs = SDL_GetTicks() - 1234u;
+    game.m_pressing = true;
+    game.m_pressX = 2;
+    game.m_pressY = 3;
     game.onFocusLost();
 
     const Uint32 pausedMs = game.m_elapsedMs;
@@ -168,6 +171,8 @@ int main() {
     check(game.m_elapsedSec == 1,
           "HUD seconds remain the whole-second display of elapsed time");
     check(game.m_focusPaused, "focus loss pauses the timer");
+    check(!game.m_pressing && game.m_pressX == -1 && game.m_pressY == -1,
+          "Minesweeper focus loss clears the pressed-cell preview");
 
     game.onFocusGained();
     const Uint32 resumedElapsed = SDL_GetTicks() - game.m_timerStartMs;

@@ -340,6 +340,9 @@ void MinesweeperApp::checkWin() {
 }
 
 void MinesweeperApp::onFocusLost() {
+    m_pressing = false;
+    m_pressX = -1;
+    m_pressY = -1;
     if (m_state == State::Playing && m_minesPlaced && !m_focusPaused) {
         m_focusPaused = true;
         const Uint32 now = SDL_GetTicks();

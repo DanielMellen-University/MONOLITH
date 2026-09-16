@@ -259,6 +259,21 @@ int main() {
           "Drawing path prompts end an active mouse stroke");
     promptGestureDrawing.finishPathPrompt(false);
 
+    TestDrawing focusGestureDrawing(font, &fs);
+    focusGestureDrawing.onResize(300, 300);
+    SDL_Event focusStrokeDown{};
+    focusStrokeDown.type = SDL_MOUSEBUTTONDOWN;
+    focusStrokeDown.button.button = SDL_BUTTON_LEFT;
+    focusStrokeDown.button.x = 20;
+    focusStrokeDown.button.y = focusGestureDrawing.m_canvasTop + 20;
+    focusGestureDrawing.handleEvent(focusStrokeDown);
+    focusGestureDrawing.onFocusLost();
+    check(!focusGestureDrawing.m_drawing
+              && !focusGestureDrawing.m_strokeHistoryPending
+              && focusGestureDrawing.m_lastCanvasX == -1
+              && focusGestureDrawing.m_lastCanvasY == -1,
+          "Drawing focus loss ends an active mouse stroke");
+
     drawing.m_tool = monolith::app::DrawingApp::Tool::Pen;
     drawing.m_usingCustomColor = true;
     drawing.m_customR = 12;

@@ -6,6 +6,12 @@
 - Close an active Drawing stroke before Save, Open, or RGB prompts consume pointer input.
 - Add focused state coverage for both prompt transitions.
 
+## 2026-09: End app gestures at focus boundaries
+
+- End active Text Editor selections and Drawing strokes when focus moves to the Start menu or another window, while preserving already selected text and painted pixels.
+- Clear Minesweeper pressed-cell previews on focus loss so modal transitions cannot leave stale pointer state visible.
+- Add focused coverage and document the shared focus-boundary contract.
+
 ## 2026-09: Cache Browser hit targets between frames
 
 - Keep Filesystem Browser toolbar and filter geometry cached until resize or UI-scale changes instead of rebuilding it every render.
