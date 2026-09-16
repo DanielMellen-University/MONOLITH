@@ -182,6 +182,25 @@ int main() {
     check(game.m_state == MinesweeperApp::State::Ready && !game.m_minesPlaced,
           "keypad Enter starts a new Minesweeper game");
 
+    SDL_Surface* minesweeperSurface = SDL_CreateRGBSurfaceWithFormat(
+        0, 240, 240, 32, SDL_PIXELFORMAT_RGBA32);
+    SDL_Renderer* minesweeperRenderer = minesweeperSurface
+        ? SDL_CreateSoftwareRenderer(minesweeperSurface)
+        : nullptr;
+    check(minesweeperRenderer != nullptr,
+          "Minesweeper state creates a software renderer");
+    if (minesweeperRenderer) {
+        SDL_SetRenderDrawBlendMode(minesweeperRenderer, SDL_BLENDMODE_ADD);
+        game.m_state = MinesweeperApp::State::Lost;
+        game.render(minesweeperRenderer, {0, 0, 240, 240});
+        SDL_BlendMode restoredBlend = SDL_BLENDMODE_NONE;
+        SDL_GetRenderDrawBlendMode(minesweeperRenderer, &restoredBlend);
+        check(restoredBlend == SDL_BLENDMODE_ADD,
+              "Minesweeper overlay restores the caller renderer blend mode");
+        SDL_DestroyRenderer(minesweeperRenderer);
+    }
+    if (minesweeperSurface) SDL_FreeSurface(minesweeperSurface);
+
     std::filesystem::remove_all(testHome, cleanupError);
     if (hadOriginalHome) {
         setenv("HOME", originalHome.c_str(), 1);

@@ -23,6 +23,9 @@ using monolith::detail::RendererClipState;
 using monolith::detail::captureRendererClip;
 using monolith::detail::restoreRendererClip;
 using monolith::detail::intersectRendererClip;
+using monolith::detail::RendererBlendState;
+using monolith::detail::captureRendererBlend;
+using monolith::detail::restoreRendererBlend;
 
 std::string SnakeApp::highScoreHostPath() {
     const char* home = std::getenv("HOME");
@@ -523,10 +526,11 @@ void SnakeApp::render(SDL_Renderer* renderer, const SDL_Rect& contentRect) {
     // Overlays — all lines horizontally centered as a vertical stack
     auto drawOverlayStack = [&](const char* title, const std::string& line2,
                                 const char* line3, SDL_Color line3Color) {
+        const RendererBlendState previousBlend = captureRendererBlend(renderer);
         SDL_SetRenderDrawBlendMode(renderer, SDL_BLENDMODE_BLEND);
         SDL_SetRenderDrawColor(renderer, 0, 0, 0, 150);
         SDL_RenderFillRect(renderer, &boardRect);
-        SDL_SetRenderDrawBlendMode(renderer, SDL_BLENDMODE_NONE);
+        restoreRendererBlend(renderer, previousBlend);
 
         const int lineH = std::max(18, m_font ? TTF_FontHeight(m_font) : 18);
         const int gap = 4;

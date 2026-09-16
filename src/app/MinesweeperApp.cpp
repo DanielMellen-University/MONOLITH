@@ -25,6 +25,9 @@ using monolith::detail::RendererClipState;
 using monolith::detail::captureRendererClip;
 using monolith::detail::restoreRendererClip;
 using monolith::detail::intersectRendererClip;
+using monolith::detail::RendererBlendState;
+using monolith::detail::captureRendererBlend;
+using monolith::detail::restoreRendererBlend;
 
 const MinesweeperApp::DifficultySpec& MinesweeperApp::specFor(Difficulty d) {
     static const DifficultySpec beginner{"Beginner", 9, 9, 10};
@@ -812,10 +815,11 @@ void MinesweeperApp::render(SDL_Renderer* renderer, const SDL_Rect& contentRect)
     // End overlays — centered vertical stack
     if (m_state == State::Won || m_state == State::Lost) {
         SDL_Rect boardRect{m_boardX, m_boardY, m_boardPxW, m_boardPxH};
+        const RendererBlendState previousBlend = captureRendererBlend(renderer);
         SDL_SetRenderDrawBlendMode(renderer, SDL_BLENDMODE_BLEND);
         SDL_SetRenderDrawColor(renderer, 0, 0, 0, 130);
         SDL_RenderFillRect(renderer, &boardRect);
-        SDL_SetRenderDrawBlendMode(renderer, SDL_BLENDMODE_NONE);
+        restoreRendererBlend(renderer, previousBlend);
 
         const char* title = (m_state == State::Won) ? "YOU WIN!" : "BOOM!";
         std::string line2;

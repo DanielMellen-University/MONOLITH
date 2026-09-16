@@ -1,5 +1,10 @@
 # Changelog
 
+## 2026-09: Preserve renderer blend state across game overlays
+
+- Restore the caller's SDL draw blend mode after Snake and Minesweeper render translucent end-state overlays instead of forcing it to `NONE`.
+- Add direct renderer-state coverage for both games and document the shared rendering contract.
+
 ## 2026-09: Trim Terminal history in bounded batches
 
 - Keep scrollback and command history caps unchanged while removing excess entries in one range operation instead of shifting the vector once per dropped line.

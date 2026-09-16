@@ -148,6 +148,24 @@ int main() {
     check(!monolith::detail::tickDeadlinePending(0x00000050u, 0x00000050u),
           "Snake flash deadline is inactive at its exact expiry");
 
+    SDL_Surface* snakeSurface = SDL_CreateRGBSurfaceWithFormat(
+        0, 240, 240, 32, SDL_PIXELFORMAT_RGBA32);
+    SDL_Renderer* snakeRenderer = snakeSurface
+        ? SDL_CreateSoftwareRenderer(snakeSurface)
+        : nullptr;
+    check(snakeRenderer != nullptr, "Snake state creates a software renderer");
+    if (snakeRenderer) {
+        SDL_SetRenderDrawBlendMode(snakeRenderer, SDL_BLENDMODE_ADD);
+        game.m_state = SnakeApp::State::GameOver;
+        game.render(snakeRenderer, {0, 0, 240, 240});
+        SDL_BlendMode restoredBlend = SDL_BLENDMODE_NONE;
+        SDL_GetRenderDrawBlendMode(snakeRenderer, &restoredBlend);
+        check(restoredBlend == SDL_BLENDMODE_ADD,
+              "Snake overlay restores the caller renderer blend mode");
+        SDL_DestroyRenderer(snakeRenderer);
+    }
+    if (snakeSurface) SDL_FreeSurface(snakeSurface);
+
     std::filesystem::remove_all(testHome, cleanupError);
     if (hadOriginalHome) {
         setenv("HOME", originalHome.c_str(), 1);
