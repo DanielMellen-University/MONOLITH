@@ -186,6 +186,12 @@ void FilesystemApp::goUp() {
 
 void FilesystemApp::refreshEntries(const std::string& movedFrom,
                                    const std::string& movedTo) {
+    // External filesystem events replace the row vector. Any active inline
+    // rename points into the old vector, so discard it before rebuilding.
+    if (m_renaming) {
+        finishRename(false);
+    }
+
     // A refresh can follow an external rename, move, or delete. Do not leave
     // a menu target pointing at an index from the previous listing.
     if (m_showContextMenu) {

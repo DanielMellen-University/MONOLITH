@@ -301,6 +301,19 @@ int main() {
     check(browser.m_selectedIndex >= 0
               && browser.m_entries[static_cast<size_t>(browser.m_selectedIndex)].name == "a.txt",
           "status-bar clicks do not select a list row");
+    check(browser.selectEntryNamed("a.txt", false),
+          "select an entry before external refresh rename coverage");
+    browser.startRenameSelected();
+    browser.m_renameBuffer = "stale-rename.txt";
+    check(browser.m_renaming, "external refresh rename starts inline edit");
+    browser.onVirtualPathChanged("/home/monolith/a.txt");
+    check(!browser.m_renaming && browser.m_renameIndex == -1
+              && browser.m_renameBuffer.empty(),
+          "external refresh cancels the stale inline rename");
+    key(browser, SDLK_RETURN);
+    check(fs.isFile("/home/monolith/a.txt")
+              && !fs.exists("/home/monolith/stale-rename.txt"),
+          "Enter cannot commit an inline rename after external refresh");
     browser.clearMultiSelection();
     browser.m_selectedIndex = -1;
     browser.m_scrollOffset = 999;

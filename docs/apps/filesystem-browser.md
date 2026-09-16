@@ -147,6 +147,7 @@ Right-clicking an already selected row keeps the current multi-selection, so con
 - A selected direct child remains selected across an external rename in the current folder, including its primary selection and Shift-selection anchor.
 - External creations from Terminal, Text Editor, Drawing, or another Filesystem Browser refresh the folder currently being viewed, including ancestor folders when a write also creates missing parents, so new rows appear without pressing Refresh.
 - External changes to an existing direct child use the same refresh path, keeping listings current after an overwrite.
+- External refreshes cancel an active inline rename, so a stale row index cannot rename a different entry after the listing changes.
 - A change event for the directory currently being viewed refreshes that directory too, which keeps the open listing current after recursive tree merges.
 - The shared virtual clipboard follows a successful rename or move made by another Filesystem Browser or Terminal, including sources nested under a moved directory.
 - Paste skips items whose names already exist in the destination, same-folder sources, and folders pasted into themselves (`isSameOrDescendant`).

@@ -1,5 +1,10 @@
 # Changelog
 
+## 2026-09: Cancel stale browser renames after refresh
+
+- Filesystem Browser refreshes now cancel inline rename state before replacing the directory listing, preventing a later Enter from renaming a different row after an external filesystem change.
+- Added regression coverage for external refreshes during rename mode.
+
 ## 2026-09: Clamp editor horizontal scroll after resize
 
 - Text Editor horizontal scrolling now clamps after wheel input and client resizing, preventing a stale pixel offset from leaving a widened editor blank.

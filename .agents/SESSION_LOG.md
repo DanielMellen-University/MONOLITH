@@ -1,5 +1,7 @@
 # Session log
 
+| 2026-09-15 | fix | Canceled Filesystem Browser inline renames before external listing refreshes, added stale-row regression coverage, and updated the browser guide and changelog. |
+
 | 2026-09-15 | fix | Clamped Text Editor horizontal scroll to the current line after wheel input and resize, added widened-client regression coverage, and updated the editor guide and changelog. |
 
 | 2026-09-15 | fix | Made Drawing Fill mark pixels on enqueue to avoid duplicate work on large regions, added connected-canvas coverage, and updated the Drawing guide and changelog. |
