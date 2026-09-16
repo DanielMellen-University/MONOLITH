@@ -176,6 +176,7 @@ void WindowManager::update() {
 void WindowManager::render(SDL_Renderer* renderer) {
     const RendererClipState callerClip = captureRendererClip(renderer);
     const RendererBlendState callerBlend = captureRendererBlend(renderer);
+    const RendererDrawColorState callerDrawColor = captureRendererDrawColor(renderer);
     SDL_RenderSetClipRect(renderer, callerClip.active ? &callerClip.rect : nullptr);
     // The shell composes opaque window chrome and app content under a neutral
     // blend mode, then returns the caller's mode after the complete frame.
@@ -223,11 +224,13 @@ void WindowManager::render(SDL_Renderer* renderer) {
         if (win.app) {
             const RendererClipState previousClip = captureRendererClip(renderer);
             const RendererBlendState previousBlend = captureRendererBlend(renderer);
+            const RendererDrawColorState previousDrawColor = captureRendererDrawColor(renderer);
             const SDL_Rect appClip = intersectRendererClip(contentRect, previousClip);
             SDL_RenderSetClipRect(renderer, &appClip);
             invokeAppCallback([&]() { win.app->render(renderer, contentRect); });
             restoreRendererClip(renderer, previousClip);
             restoreRendererBlend(renderer, previousBlend);
+            restoreRendererDrawColor(renderer, previousDrawColor);
         }
 
         if (!isLiveWindow(target.window, target.id)) continue;

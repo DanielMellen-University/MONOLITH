@@ -94,6 +94,7 @@
 
     restoreRendererClip(renderer, callerClip);
     restoreRendererBlend(renderer, callerBlend);
+    restoreRendererDrawColor(renderer, callerDrawColor);
 }
 
 Window* WindowManager::getWindowAt(int mouseX, int mouseY) {

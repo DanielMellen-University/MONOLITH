@@ -35,6 +35,9 @@ using monolith::detail::intersectRendererClip;
 using monolith::detail::RendererBlendState;
 using monolith::detail::captureRendererBlend;
 using monolith::detail::restoreRendererBlend;
+using monolith::detail::RendererDrawColorState;
+using monolith::detail::captureRendererDrawColor;
+using monolith::detail::restoreRendererDrawColor;
 
 #include "detail/wm_body_01.inc"
 #include "detail/wm_body_02.inc"

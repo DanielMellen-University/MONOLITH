@@ -16,8 +16,13 @@ public:
     void render(SDL_Renderer* renderer, const SDL_Rect& contentRect) override {
         SDL_RenderGetClipRect(renderer, &renderClip);
         SDL_GetRenderDrawBlendMode(renderer, &renderBlendMode);
+        SDL_GetRenderDrawColor(renderer, &renderColorR, &renderColorG,
+                               &renderColorB, &renderColorA);
         if (leakBlendMode) {
             SDL_SetRenderDrawBlendMode(renderer, SDL_BLENDMODE_ADD);
+        }
+        if (leakDrawColor) {
+            SDL_SetRenderDrawColor(renderer, 1, 2, 3, 4);
         }
         renderRect = contentRect;
     }
@@ -46,6 +51,11 @@ public:
     SDL_Rect renderRect{0, 0, 0, 0};
     SDL_BlendMode renderBlendMode = SDL_BLENDMODE_NONE;
     bool leakBlendMode = false;
+    Uint8 renderColorR = 0;
+    Uint8 renderColorG = 0;
+    Uint8 renderColorB = 0;
+    Uint8 renderColorA = 0;
+    bool leakDrawColor = false;
 };
 
 class RenderClosingApp final : public monolith::app::App {
@@ -756,17 +766,46 @@ int main() {
         blendWm.createWindow("Leaking blend app", 40, 40, 300, 220, std::move(leakingApp));
         auto observingApp = std::make_unique<ProbeApp>();
         ProbeApp* observingAppPtr = observingApp.get();
+        observingAppPtr->leakDrawColor = false;
         blendWm.createWindow("Observing blend app", 380, 80, 300, 220, std::move(observingApp));
 
         SDL_SetRenderDrawBlendMode(renderer, SDL_BLENDMODE_ADD);
+        SDL_SetRenderDrawColor(renderer, 9, 8, 7, 6);
         blendWm.render(renderer);
         SDL_BlendMode afterFrameBlend = SDL_BLENDMODE_NONE;
         SDL_GetRenderDrawBlendMode(renderer, &afterFrameBlend);
+        Uint8 afterFrameR = 0, afterFrameG = 0, afterFrameB = 0, afterFrameA = 0;
+        SDL_GetRenderDrawColor(renderer, &afterFrameR, &afterFrameG,
+                               &afterFrameB, &afterFrameA);
         check(leakingAppPtr->renderBlendMode == SDL_BLENDMODE_NONE
                   && observingAppPtr->renderBlendMode == SDL_BLENDMODE_NONE,
               "WindowManager isolates app blend state during composition");
         check(afterFrameBlend == SDL_BLENDMODE_ADD,
               "WindowManager restores the caller blend mode after composition");
+        check(afterFrameR == 9 && afterFrameG == 8 && afterFrameB == 7 && afterFrameA == 6,
+              "WindowManager restores the caller draw color after composition");
+
+        monolith::window::WindowManager colorWm;
+        colorWm.setLogicalDesktopSize(900, 600);
+        auto leakingColorApp = std::make_unique<ProbeApp>();
+        ProbeApp* leakingColorAppPtr = leakingColorApp.get();
+        leakingColorAppPtr->leakDrawColor = true;
+        colorWm.createWindow("Leaking draw color app", 40, 40, 300, 220,
+                             std::move(leakingColorApp));
+        auto observingColorApp = std::make_unique<ProbeApp>();
+        ProbeApp* observingColorAppPtr = observingColorApp.get();
+        colorWm.createWindow("Observing draw color app", 380, 80, 300, 220,
+                             std::move(observingColorApp));
+        colorWm.render(renderer);
+        check(leakingColorAppPtr->renderColorR == 45
+                  && leakingColorAppPtr->renderColorG == 45
+                  && leakingColorAppPtr->renderColorB == 50
+                  && leakingColorAppPtr->renderColorA == 255
+                  && observingColorAppPtr->renderColorR == 45
+                  && observingColorAppPtr->renderColorG == 45
+                  && observingColorAppPtr->renderColorB == 50
+                  && observingColorAppPtr->renderColorA == 255,
+              "WindowManager isolates app draw color state during composition");
     }
 
     if (font) TTF_CloseFont(font);

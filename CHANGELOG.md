@@ -1,5 +1,10 @@
 # Changelog
 
+## 2026-09: Isolate WindowManager draw color state
+
+- Restore SDL draw color after each app callback and after the full WindowManager frame, preventing app-owned renderer state from leaking into later shell composition or the caller.
+- Add headless coverage for inter-app isolation and exact caller draw-color restoration.
+
 ## 2026-09: Isolate WindowManager blend state
 
 - Compose WindowManager frames with a neutral SDL draw blend mode, restore it after each app callback, and return the caller's original mode after rendering.

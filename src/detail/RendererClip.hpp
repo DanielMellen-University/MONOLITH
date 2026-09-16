@@ -13,6 +13,13 @@ struct RendererBlendState {
     SDL_BlendMode mode = SDL_BLENDMODE_NONE;
 };
 
+struct RendererDrawColorState {
+    Uint8 r = 0;
+    Uint8 g = 0;
+    Uint8 b = 0;
+    Uint8 a = 255;
+};
+
 inline RendererClipState captureRendererClip(SDL_Renderer* renderer) {
     RendererClipState state;
     SDL_RenderGetClipRect(renderer, &state.rect);
@@ -43,6 +50,17 @@ inline RendererBlendState captureRendererBlend(SDL_Renderer* renderer) {
 inline void restoreRendererBlend(SDL_Renderer* renderer,
                                  const RendererBlendState& state) {
     SDL_SetRenderDrawBlendMode(renderer, state.mode);
+}
+
+inline RendererDrawColorState captureRendererDrawColor(SDL_Renderer* renderer) {
+    RendererDrawColorState state;
+    SDL_GetRenderDrawColor(renderer, &state.r, &state.g, &state.b, &state.a);
+    return state;
+}
+
+inline void restoreRendererDrawColor(SDL_Renderer* renderer,
+                                     const RendererDrawColorState& state) {
+    SDL_SetRenderDrawColor(renderer, state.r, state.g, state.b, state.a);
 }
 
 } // namespace monolith::detail
