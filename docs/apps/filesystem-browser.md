@@ -76,7 +76,7 @@ The browser starts at `/home/monolith` when that path exists.
 
 Press **F2** or choose Rename from the context menu. The caret starts at the end of the existing name. Use Left/Right/Home/End to move it, type to insert, Backspace/Delete to remove complete UTF-8 characters, then press **Enter** to commit or **Esc** to cancel. Clicking another browser control cancels the inline edit before that control's action runs. Names that contain `/` (or that are empty, `.`, or `..`) are rejected so rename cannot create a nested path.
 
-After a successful rename, the new name remains selected and the status bar reports the completed rename even while other open apps refresh synchronously.
+After a successful rename, the new name remains selected and the status bar reports the completed rename even while other open apps refresh synchronously. Clicking another browser control or scrolling the listing cancels the inline edit before that pointer action runs.
 
 If the renamed entry is open in Text Editor or Drawing, the shell updates that window's bound virtual path, title, session record, and singleton focus binding. Renaming a directory also updates open files and drawings below it, plus any Terminal or Filesystem Browser currently inside the directory.
 

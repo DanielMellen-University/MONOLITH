@@ -1084,6 +1084,12 @@ void FilesystemApp::handleMouseButton(const SDL_MouseButtonEvent& e) {
 }
 
 void FilesystemApp::handleMouseWheel(const SDL_MouseWheelEvent& e) {
+    // Scrolling changes which row a stale rename index would refer to, so end
+    // inline editing before moving the listing.
+    if (m_renaming) {
+        finishRename(false);
+    }
+
     int visible = getVisibleRowCount({0, 0, m_clientWidth, m_clientHeight});
     int maxScroll = std::max(0, static_cast<int>(m_entries.size()) - visible);
 

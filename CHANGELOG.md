@@ -4,6 +4,7 @@
 
 - End Filesystem Browser inline rename mode before toolbar or context-menu mouse actions, so Delete and other controls cannot run with stale rename state still armed.
 - Add focused coverage for arming Delete from the toolbar during an inline rename.
+- Cancel inline rename before wheel scrolling changes the visible row mapping.
 
 ## 2026-09: Block shell hotkeys while host-unfocused
 

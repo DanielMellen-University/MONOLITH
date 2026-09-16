@@ -166,6 +166,16 @@ int main() {
     check(!browser.m_renaming && browser.m_confirmingDelete,
           "toolbar actions cancel inline rename before arming delete");
     browser.cancelPendingDelete();
+
+    browser.selectEntryNamed("a.txt", false);
+    browser.startRenameSelected();
+    const int scrollBeforeRenameWheel = browser.m_scrollOffset;
+    SDL_MouseWheelEvent renameWheel{};
+    renameWheel.y = -1;
+    browser.handleMouseWheel(renameWheel);
+    check(!browser.m_renaming
+              && browser.m_scrollOffset > scrollBeforeRenameWheel,
+          "wheel scrolling cancels inline rename before moving rows");
     browser.setController(nullptr);
 
     check(fs.writeFile("/home/monolith/external-create.txt", "created"),
