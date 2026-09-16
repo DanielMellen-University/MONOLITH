@@ -66,6 +66,7 @@ private:
     void restoreCanvasSnapshot(const CanvasSnapshot& snapshot);
     void undoCanvas();
     void redoCanvas();
+    void refreshDirtyState();
     void setPixel(int x, int y, uint8_t r, uint8_t g, uint8_t b);
     void stampBrush(int x, int y);
     void drawStroke(int x0, int y0, int x1, int y1);
@@ -107,6 +108,7 @@ private:
     monolith::fs::Filesystem* m_fs = nullptr;
 
     std::vector<uint8_t> m_pixels; // R,G,B,A byte order per pixel
+    CanvasSnapshot m_savedSnapshot;
     std::vector<CanvasSnapshot> m_undoStack;
     std::vector<CanvasSnapshot> m_redoStack;
     int m_canvasWidth = 0;

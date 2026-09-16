@@ -218,6 +218,17 @@ int main() {
               && !drawing.m_suppressChangedNotification,
           "Drawing ignores its own synchronous change notification");
 
+    drawing.pushUndoSnapshot();
+    drawing.setPixel(0, 0, 1, 2, 3);
+    drawing.m_dirty = true;
+    drawing.undoCanvas();
+    check(!drawing.m_dirty && drawing.m_pixels == loadedPixels,
+          "undoing back to the saved canvas clears the modified state");
+    drawing.redoCanvas();
+    check(drawing.m_dirty && drawing.m_pixels[0] == 1
+              && drawing.m_pixels[1] == 2 && drawing.m_pixels[2] == 3,
+          "redoing an undone drawing edit restores the modified state");
+
     drawing.onResize(320, 300);
     check(drawing.m_dirty, "resizing a loaded drawing marks it modified");
     check(drawing.m_undoStack.empty() && drawing.m_redoStack.empty(),

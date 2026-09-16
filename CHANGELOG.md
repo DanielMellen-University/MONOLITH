@@ -1,5 +1,10 @@
 # Changelog
 
+## 2026-09: Keep Drawing's modified marker truthful
+
+- Track the last saved canvas dimensions and pixels so undo and redo clear or restore `[modified]` accurately.
+- Preserve the existing rule that resizing a file-backed canvas is a modification, with focused coverage for saved-canvas undo and redo.
+
 ## 2026-09: Keep the Text Editor dirty marker truthful
 
 - Track the last loaded or saved document content so undo and redo update the dirty state instead of always leaving the editor marked unsaved.

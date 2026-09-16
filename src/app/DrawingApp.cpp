@@ -123,9 +123,15 @@ void DrawingApp::restoreCanvasSnapshot(const CanvasSnapshot& snapshot) {
     m_canvasWidth = snapshot.width;
     m_canvasHeight = snapshot.height;
     m_pixels = snapshot.pixels;
-    m_dirty = true;
+    refreshDirtyState();
     clearDiscardArm();
     markTextureDirty();
+}
+
+void DrawingApp::refreshDirtyState() {
+    m_dirty = m_canvasWidth != m_savedSnapshot.width
+        || m_canvasHeight != m_savedSnapshot.height
+        || m_pixels != m_savedSnapshot.pixels;
 }
 
 void DrawingApp::undoCanvas() {
@@ -486,6 +492,7 @@ bool DrawingApp::saveToPath(const std::string& virtualPath) {
     }
 
     m_filePath = path;
+    m_savedSnapshot = {m_canvasWidth, m_canvasHeight, m_pixels};
     m_dirty = false;
     clearDiscardArm();
 
@@ -543,6 +550,7 @@ bool DrawingApp::loadFromPath(const std::string& virtualPath) {
     m_pixels = std::move(rgba);
 
     m_filePath = path;
+    m_savedSnapshot = {m_canvasWidth, m_canvasHeight, m_pixels};
     m_dirty = false;
     m_undoStack.clear();
     m_redoStack.clear();
@@ -1198,6 +1206,8 @@ void DrawingApp::onResize(int clientWidth, int clientHeight) {
         if (!m_filePath.empty()) {
             m_dirty = true;
             clearDiscardArm();
+        } else if (!m_dirty) {
+            m_savedSnapshot = {m_canvasWidth, m_canvasHeight, m_pixels};
         }
     }
 
