@@ -158,6 +158,7 @@ Right-clicking an already selected row keeps the current multi-selection, so con
 - The path bar, toolbar buttons, list start, and status bar follow the shared interface font with stable minimums, so scaled labels keep their hit targets and the listing below them.
 - Toolbar and filter hit rectangles are cleared immediately when the client resizes or the shared interface text scale changes; they are rebuilt on demand before input or during the next render, so an event between frames uses the current layout instead of activating a control at its old position.
 - Stable toolbar and filter hit rectangles remain cached between frames, avoiding repeated layout work while preserving the resize and text-scale invalidation behavior.
+- Repeated path, toolbar, row, menu, and status labels reuse renderer-independent SDL_ttf surfaces between frames. The text cache is cleared when the listing refreshes, status text changes, or the shared interface text scale changes, so renamed rows and transient feedback do not accumulate stale surfaces.
 - The path-bar filter control stays inside the client width; in a very narrow window it shrinks below its normal minimum instead of moving partly off-screen.
 - Context menus clamp to the current client rectangle and clip long labels or partially visible rows inside the popup, including when the browser is narrower or shorter than the normal menu.
 - Internal path, list, and status text clips restore the caller's renderer clip, keeping Browser inside the shell's visible client intersection.

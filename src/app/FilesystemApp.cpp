@@ -176,6 +176,7 @@ void FilesystemApp::goUp() {
 
 void FilesystemApp::refreshEntries(const std::string& movedFrom,
                                    const std::string& movedTo) {
+    m_textSurfaceCache.clear();
     // External filesystem events replace the row vector. Any active inline
     // rename points into the old vector, so discard it before rebuilding.
     if (m_renaming) {
@@ -2047,7 +2048,9 @@ void FilesystemApp::drawStatusBar(SDL_Renderer* r, const SDL_Rect& contentRect) 
 }
 
 void FilesystemApp::setStatus(const std::string& message) {
+    if (m_statusMessage == message) return;
     m_statusMessage = message;
+    m_textSurfaceCache.clear();
 }
 
 void FilesystemApp::drawContextMenu(SDL_Renderer* r, const SDL_Rect& contentRect) {

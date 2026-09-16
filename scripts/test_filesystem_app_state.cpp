@@ -515,6 +515,12 @@ int main() {
         check(cachedSurfaceCount > 0
                   && browser.m_textSurfaceCache.m_entries.size() == cachedSurfaceCount,
               "browser reuses cached text surfaces between frames");
+        browser.setStatus("cache invalidation");
+        check(browser.m_textSurfaceCache.m_entries.empty(),
+              "browser clears cached text surfaces when status changes");
+        browser.refreshEntries();
+        check(browser.m_textSurfaceCache.m_entries.empty(),
+              "browser keeps cached text surfaces clear across listing refreshes");
         browser.onUiScaleChanged();
         check(browser.m_textSurfaceCache.m_entries.empty(),
               "browser clears cached text surfaces when UI scale changes");

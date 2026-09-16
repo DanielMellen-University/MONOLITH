@@ -1,5 +1,9 @@
 # Changelog
 
+## 2026-09: Invalidate Browser text surfaces with listing changes
+
+- Clear cached path, row, menu, and status surfaces when Browser listings or status feedback change, preventing stale text allocations from accumulating across filesystem operations.
+
 ## 2026-09: Cache Terminal scrollback text surfaces
 
 - Reuse SDL_ttf surfaces for visible scrollback lines, clearing them when output is cleared, the scrollback cap trims old lines, or the interface scale changes.
