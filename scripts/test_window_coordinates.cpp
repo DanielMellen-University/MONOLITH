@@ -199,6 +199,14 @@ int main() {
 
     wm.setLogicalDesktopSize(500, 400);
     wm.render(renderer);
+    SDL_Texture* firstDesktopGlyph = wm.m_desktopIconTextCache[0].glyphTexture;
+    SDL_Texture* firstDesktopLabel = wm.m_desktopIconTextCache[0].labelTexture;
+    wm.render(renderer);
+    check(firstDesktopGlyph != nullptr
+              && wm.m_desktopIconTextCache[0].glyphTexture == firstDesktopGlyph
+              && firstDesktopLabel != nullptr
+              && wm.m_desktopIconTextCache[0].labelTexture == firstDesktopLabel,
+          "desktop icon text reuses cached glyph and label textures between frames");
     wm.m_showStartMenu = true;
     wm.render(renderer);
     SDL_Texture* firstStartMenuHeader = wm.m_startMenuHeaderTexture;
@@ -211,8 +219,11 @@ int main() {
     wm.setFont(nullptr);
     check(wm.m_startMenuHeaderTexture == nullptr
               && wm.m_startMenuHeaderTexW == 0
-              && wm.m_startMenuHeaderTexH == 0,
-          "font changes invalidate the cached Start-menu header texture");
+              && wm.m_startMenuHeaderTexH == 0
+              && wm.m_desktopIconTextCache[0].glyphTexture == nullptr
+              && wm.m_desktopIconTextCache[0].labelTexture == nullptr
+              && wm.m_desktopIconTextCache[0].selectedLabelTexture == nullptr,
+          "font changes invalidate cached shell text textures");
     wm.setFont(font);
     wm.m_showStartMenu = false;
     wm.invalidateShellHitTargets();

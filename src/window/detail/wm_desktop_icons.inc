@@ -4,6 +4,15 @@ void WindowManager::clearDesktopIconSelection() {
     m_desktopIconLastClickTicks = 0;
 }
 
+void WindowManager::destroyDesktopIconTextCache() {
+    for (auto& entry : m_desktopIconTextCache) {
+        if (entry.glyphTexture) SDL_DestroyTexture(entry.glyphTexture);
+        if (entry.labelTexture) SDL_DestroyTexture(entry.labelTexture);
+        if (entry.selectedLabelTexture) SDL_DestroyTexture(entry.selectedLabelTexture);
+        entry = {};
+    }
+}
+
 void WindowManager::activateDesktopIcon(DesktopIconAction action) {
     switch (action) {
         case DesktopIconAction::Terminal: launchTerminal(); break;
@@ -68,45 +77,72 @@ void WindowManager::renderDesktopIcons(SDL_Renderer* renderer) {
         SDL_SetRenderDrawColor(renderer, 220, 220, 230, 255);
         SDL_RenderDrawRect(renderer, &tileScreen);
 
-        if (m_font && icon.glyph && icon.glyph[0] != '\0') {
+        if (!m_font || i >= kDesktopIconCount) continue;
+
+        auto& cache = m_desktopIconTextCache[static_cast<size_t>(i)];
+        if (!cache.glyphTexture && icon.glyph && icon.glyph[0] != '\0') {
             SDL_Color glyphCol = {245, 245, 250, 255};
             SDL_Surface* gs = TTF_RenderText_Blended(m_font, icon.glyph, glyphCol);
             if (gs) {
-                SDL_Texture* gt = SDL_CreateTextureFromSurface(renderer, gs);
-                if (gt) {
-                    SDL_Rect dst = {
-                        tileScreen.x + (tileScreen.w - gs->w) / 2,
-                        tileScreen.y + (tileScreen.h - gs->h) / 2,
-                        gs->w,
-                        gs->h
-                    };
-                    SDL_RenderCopy(renderer, gt, nullptr, &dst);
-                    SDL_DestroyTexture(gt);
+                cache.glyphTexture = SDL_CreateTextureFromSurface(renderer, gs);
+                if (cache.glyphTexture) {
+                    cache.glyphW = gs->w;
+                    cache.glyphH = gs->h;
                 }
                 SDL_FreeSurface(gs);
             }
         }
+        if (cache.glyphTexture) {
+            SDL_Rect dst = {
+                tileScreen.x + (tileScreen.w - cache.glyphW) / 2,
+                tileScreen.y + (tileScreen.h - cache.glyphH) / 2,
+                cache.glyphW,
+                cache.glyphH
+            };
+            SDL_RenderCopy(renderer, cache.glyphTexture, nullptr, &dst);
+        }
 
-        if (m_font && icon.label) {
-            SDL_Color labelCol = selected
-                ? SDL_Color{255, 255, 255, 255}
-                : SDL_Color{220, 220, 230, 255};
-            SDL_Surface* ls = TTF_RenderText_Blended(m_font, icon.label, labelCol);
-            if (ls) {
-                SDL_Texture* lt = SDL_CreateTextureFromSurface(renderer, ls);
-                if (lt) {
-                    const int labelY = logicalToScreenY(
-                        icon.tile.y + icon.tile.h + 2);
-                    SDL_Rect dst = {
-                        tileScreen.x + (tileScreen.w - ls->w) / 2,
-                        labelY,
-                        ls->w,
-                        ls->h
-                    };
-                    SDL_RenderCopy(renderer, lt, nullptr, &dst);
-                    SDL_DestroyTexture(lt);
+        if (icon.label) {
+            if (!cache.labelTexture) {
+                SDL_Color labelCol = {220, 220, 230, 255};
+                SDL_Surface* ls = TTF_RenderText_Blended(m_font, icon.label, labelCol);
+                if (ls) {
+                    cache.labelTexture = SDL_CreateTextureFromSurface(renderer, ls);
+                    if (cache.labelTexture) {
+                        cache.labelW = ls->w;
+                        cache.labelH = ls->h;
+                    }
+                    SDL_FreeSurface(ls);
                 }
-                SDL_FreeSurface(ls);
+            }
+            if (!cache.selectedLabelTexture) {
+                SDL_Color selectedLabelCol = {255, 255, 255, 255};
+                SDL_Surface* ls = TTF_RenderText_Blended(
+                    m_font, icon.label, selectedLabelCol);
+                if (ls) {
+                    cache.selectedLabelTexture = SDL_CreateTextureFromSurface(renderer, ls);
+                    if (cache.selectedLabelTexture) {
+                        cache.selectedLabelW = ls->w;
+                        cache.selectedLabelH = ls->h;
+                    }
+                    SDL_FreeSurface(ls);
+                }
+            }
+
+            SDL_Texture* labelTexture = selected
+                ? cache.selectedLabelTexture : cache.labelTexture;
+            const int labelW = selected ? cache.selectedLabelW : cache.labelW;
+            const int labelH = selected ? cache.selectedLabelH : cache.labelH;
+            if (labelTexture) {
+                const int labelY = logicalToScreenY(
+                    icon.tile.y + icon.tile.h + 2);
+                SDL_Rect dst = {
+                    tileScreen.x + (tileScreen.w - labelW) / 2,
+                    labelY,
+                    labelW,
+                    labelH
+                };
+                SDL_RenderCopy(renderer, labelTexture, nullptr, &dst);
             }
         }
     }

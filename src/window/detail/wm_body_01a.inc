@@ -20,6 +20,7 @@ WindowManager::~WindowManager() {
     m_titleCache.clear();
     destroyClockTextures();
     destroyStartMenuHeaderTexture();
+    destroyDesktopIconTextCache();
     destroyWallpaperTexture();
 }
 

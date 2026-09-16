@@ -3,6 +3,7 @@
 #include "Window.hpp"
 #include "DesktopIcons.hpp"
 #include <SDL2/SDL.h>
+#include <array>
 #include <cmath>
 #include <cstdint>
 #include <SDL2/SDL_ttf.h>

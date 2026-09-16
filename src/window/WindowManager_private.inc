@@ -151,6 +151,19 @@ private:
     int m_desktopIconSelected = -1;
     int m_desktopIconLastClickIndex = -1;
     Uint32 m_desktopIconLastClickTicks = 0;
+    struct DesktopIconTextCacheEntry {
+        SDL_Texture* glyphTexture = nullptr;
+        int glyphW = 0;
+        int glyphH = 0;
+        SDL_Texture* labelTexture = nullptr;
+        int labelW = 0;
+        int labelH = 0;
+        SDL_Texture* selectedLabelTexture = nullptr;
+        int selectedLabelW = 0;
+        int selectedLabelH = 0;
+    };
+    std::array<DesktopIconTextCacheEntry, kDesktopIconCount> m_desktopIconTextCache{};
+    void destroyDesktopIconTextCache();
     void renderDesktopIcons(SDL_Renderer* renderer);
     bool tryHandleDesktopIconClick(int logicalX, int logicalY);
     void activateDesktopIcon(DesktopIconAction action);
