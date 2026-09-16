@@ -114,6 +114,13 @@ int main() {
               "Text Editor resize clamps vertical scrollback to the visible lines");
         check(scaleEditor.getVisibleLineCount({0, 0, 320, 40}) == 0,
               "Text Editor reports no rows when the status bar fills a tiny client");
+        scaleEditor.m_lines = {"line"};
+        scaleEditor.m_cursorRow = 0;
+        scaleEditor.m_cursorCol = 0;
+        scaleEditor.m_horizontalScrollOffset = 800;
+        scaleEditor.onResize(1200, 80);
+        check(scaleEditor.m_horizontalScrollOffset == 0,
+              "Text Editor clamps horizontal scroll after widening the client");
         scaleEditor.m_cursorRow = 0;
         scaleEditor.m_scrollOffset = 0;
         scaleEditor.m_selectingWithMouse = false;

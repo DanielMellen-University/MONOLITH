@@ -60,6 +60,7 @@ private:
     void moveHome(bool extendSelection);
     void moveEnd(bool extendSelection);
     void clampCursor();
+    void clampHorizontalScroll();
     void ensureCursorVisible();
     void setStatus(const std::string& message);
 

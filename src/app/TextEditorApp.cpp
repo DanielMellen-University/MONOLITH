@@ -1287,6 +1287,27 @@ void TextEditorApp::clampCursor() {
         m_lines[m_cursorRow], static_cast<std::size_t>(m_cursorCol)));
 }
 
+void TextEditorApp::clampHorizontalScroll() {
+    if (m_lines.empty()) {
+        m_horizontalScrollOffset = 0;
+        return;
+    }
+
+    const int textLeft = kPadding + kLineNumWidth;
+    const int textRight = std::max(textLeft + 1, m_clientWidth - kPadding);
+    const int viewportWidth = textRight - textLeft;
+    if (viewportWidth <= 0) {
+        m_horizontalScrollOffset = 0;
+        return;
+    }
+
+    const int row = std::clamp(m_cursorRow, 0, static_cast<int>(m_lines.size()) - 1);
+    const std::string& line = m_lines[static_cast<size_t>(row)];
+    const int lineWidth = measureTextPrefixWidth(line, static_cast<int>(line.size()));
+    const int maxScroll = std::max(0, lineWidth - viewportWidth);
+    m_horizontalScrollOffset = std::clamp(m_horizontalScrollOffset, 0, maxScroll);
+}
+
 void TextEditorApp::ensureCursorVisible() {
     clampCursor();
 
@@ -1315,7 +1336,7 @@ void TextEditorApp::ensureCursorVisible() {
     } else if (cursorRight > m_horizontalScrollOffset + viewportWidth) {
         m_horizontalScrollOffset = cursorRight - viewportWidth;
     }
-    if (m_horizontalScrollOffset < 0) m_horizontalScrollOffset = 0;
+    clampHorizontalScroll();
 }
 
 void TextEditorApp::enterFindMode() {
@@ -1865,7 +1886,7 @@ void TextEditorApp::handleEvent(const SDL_Event& event) {
         if (horizontal) {
             const int delta = event.wheel.x != 0 ? event.wheel.x : -event.wheel.y;
             m_horizontalScrollOffset += delta * 48;
-            if (m_horizontalScrollOffset < 0) m_horizontalScrollOffset = 0;
+            clampHorizontalScroll();
             return;
         }
 

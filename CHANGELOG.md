@@ -1,5 +1,10 @@
 # Changelog
 
+## 2026-09: Clamp editor horizontal scroll after resize
+
+- Text Editor horizontal scrolling now clamps after wheel input and client resizing, preventing a stale pixel offset from leaving a widened editor blank.
+- Added regression coverage for widening a client while a horizontal offset is active.
+
 ## 2026-09: Make Drawing Fill linear in the connected region
 
 - The Fill tool now marks pixels as soon as they enter its work list, avoiding duplicate queue entries on large flat canvases.
