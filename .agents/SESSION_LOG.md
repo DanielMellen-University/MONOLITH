@@ -1,5 +1,7 @@
 # Session log
 
+| 2026-09-16 | fix | Blocked queued shell hotkeys while the SDL host is unfocused, added complete keyboard-path coverage, and updated input-routing documentation. |
+
 | 2026-09-16 | fix | Clamped captured Drawing drags to the nearest canvas edge for pen and shape tools, added focused endpoint coverage, and updated Drawing and shell input documentation. |
 
 | 2026-09-16 | fix | Extended captured Text Editor mouse selections to the nearest visible document edge, added focused coverage, and updated editor and shell input documentation. |

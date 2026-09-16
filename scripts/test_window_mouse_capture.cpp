@@ -236,6 +236,28 @@ int main() {
               && firstPtr->wheelEvents == firstWheelBeforeHostLoss,
           "host-unfocused pointer input does not reach the shell or app");
 
+    monolith::window::Window* focusedBeforeUnfocusedHotkeys = wm.m_focusedWindow;
+    const bool startMenuBeforeUnfocusedHotkeys = wm.m_showStartMenu;
+    SDL_Event blockedCtrlEscape{};
+    blockedCtrlEscape.type = SDL_KEYDOWN;
+    blockedCtrlEscape.key.keysym.sym = SDLK_ESCAPE;
+    blockedCtrlEscape.key.keysym.mod = KMOD_CTRL;
+    wm.handleEvent(blockedCtrlEscape);
+    SDL_Event blockedCtrlEscapeRelease = blockedCtrlEscape;
+    blockedCtrlEscapeRelease.type = SDL_KEYUP;
+    wm.handleEvent(blockedCtrlEscapeRelease);
+    SDL_Event blockedAltTab{};
+    blockedAltTab.type = SDL_KEYDOWN;
+    blockedAltTab.key.keysym.sym = SDLK_TAB;
+    blockedAltTab.key.keysym.mod = KMOD_ALT;
+    wm.handleEvent(blockedAltTab);
+    SDL_Event blockedAltTabRelease = blockedAltTab;
+    blockedAltTabRelease.type = SDL_KEYUP;
+    wm.handleEvent(blockedAltTabRelease);
+    check(wm.m_focusedWindow == focusedBeforeUnfocusedHotkeys
+              && wm.m_showStartMenu == startMenuBeforeUnfocusedHotkeys,
+          "host-unfocused shell hotkeys do not change focus or open Start");
+
     SDL_Event focusGained{};
     focusGained.type = SDL_WINDOWEVENT;
     focusGained.window.event = SDL_WINDOWEVENT_FOCUS_GAINED;

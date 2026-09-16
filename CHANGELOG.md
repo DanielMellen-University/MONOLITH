@@ -1,5 +1,10 @@
 # Changelog
 
+## 2026-09: Block shell hotkeys while host-unfocused
+
+- Apply the host-focus guard before shell-hotkey routing, preventing queued Ctrl+Escape and Alt+Tab events from changing menu or focus state after focus loss while preserving Escape dismissal of an already-open Start menu.
+- Extend mouse-capture coverage to the complete host-unfocused keyboard path.
+
 ## 2026-09: Clamp Drawing drags at the canvas edge
 
 - Keep captured Pen, Eraser, Line, and Rect drags continuous when the pointer leaves the canvas by mapping outside motion and release coordinates to the nearest canvas pixel.

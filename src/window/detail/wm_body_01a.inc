@@ -149,15 +149,31 @@ void WindowManager::handleEvent(const SDL_Event& event) {
         }
     }
 
-    if (tryHandleShellHotkeys(event)) {
-        return;
-    }
-
+    // Ignore queued input while the host window is unfocused, including shell
+    // hotkeys. The one exception is dismissing an already-open Start menu: it
+    // must be possible to close that modal without resuming its suspended app.
+    const bool unfocusedStartDismiss = !m_hostFocused
+        && m_showStartMenu
+        && event.type == SDL_KEYDOWN
+        && event.key.keysym.sym == SDLK_ESCAPE;
+    const bool unfocusedStartDismissRelease = !m_hostFocused
+        && event.type == SDL_KEYUP
+        && event.key.keysym.sym == SDLK_ESCAPE
+        && m_shellKeyUpsPending.find(SDLK_ESCAPE) != m_shellKeyUpsPending.end();
     if (!m_hostFocused
-        && (event.type == SDL_MOUSEMOTION
+        && !unfocusedStartDismiss
+        && !unfocusedStartDismissRelease
+        && (event.type == SDL_KEYDOWN
+            || event.type == SDL_KEYUP
+            || event.type == SDL_TEXTINPUT
+            || event.type == SDL_MOUSEMOTION
             || event.type == SDL_MOUSEBUTTONDOWN
             || event.type == SDL_MOUSEBUTTONUP
             || event.type == SDL_MOUSEWHEEL)) {
+        return;
+    }
+
+    if (tryHandleShellHotkeys(event)) {
         return;
     }
 
