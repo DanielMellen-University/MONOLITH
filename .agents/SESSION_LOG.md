@@ -1,5 +1,7 @@
 # Session log
 
+| 2026-09-15 | fix | Identity-checked editor and Drawing bound-file remaps before lifecycle callbacks, added sibling-close coverage, and updated architecture/changelog/development docs. |
+
 | 2026-09-15 | fix | Made WindowManager rendering use a live identity snapshot, added renderer-backed self-close coverage, and updated architecture/changelog/development docs. |
 
 | 2026-09-15 | fix | Guarded session restore geometry callbacks and counted only live restored entries; added resize-close coverage and updated architecture/changelog/development docs. |

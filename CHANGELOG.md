@@ -1,5 +1,10 @@
 # Changelog
 
+## 2026-09: Guard bound-file remaps
+
+- Editor and Drawing binding updates now verify window identity and the expected old path before invoking callbacks, so a callback-triggered sibling close cannot invalidate the remaining remap or removal pass.
+- Added lifecycle coverage for a bound-file callback closing a sibling window.
+
 ## 2026-09: Snapshot the render pass
 
 - WindowManager now renders from a live window identity snapshot, so an app can close itself during `render()` without invalidating the frame or leaving the shell to draw a destroyed window.

@@ -101,6 +101,24 @@ public:
     int keyDowns = 0;
 };
 
+class BoundMoveClosingApp final : public monolith::app::App {
+public:
+    explicit BoundMoveClosingApp(monolith::window::WindowManager* wm)
+        : wm(wm) {}
+
+    void render(SDL_Renderer*, const SDL_Rect&) override {}
+
+    void onBoundFileMoved(const std::string&, const std::string&) override {
+        if (wm && sibling) {
+            wm->closeWindow(sibling);
+            sibling = nullptr;
+        }
+    }
+
+    monolith::window::WindowManager* wm = nullptr;
+    monolith::window::Window* sibling = nullptr;
+};
+
 void leftButton(SDL_Event& event, Uint32 type, int x, int y) {
     event = {};
     event.type = type;
@@ -177,6 +195,37 @@ int main() {
               "a survivor receives a path notification after an earlier app closes");
         check(wm.getWindowAt(100, 160) == nullptr,
               "notification-triggered close removes the source window safely");
+
+        std::error_code ec;
+        std::filesystem::remove_all(hostRoot, ec);
+    }
+
+    {
+        const std::filesystem::path hostRoot = std::filesystem::temp_directory_path()
+            / ("monolith-window-binding-" + std::to_string(getpid()));
+        monolith::fs::Filesystem fs(hostRoot.string());
+        check(fs.initialize(), "binding callback filesystem initialize");
+
+        monolith::window::WindowManager wm;
+        wm.setAppResources(nullptr, &fs);
+        auto closing = std::make_unique<BoundMoveClosingApp>(&wm);
+        BoundMoveClosingApp* closingPtr = closing.get();
+        auto* closingWindow = wm.createWindow("Closing", 40, 80, 260, 180,
+                                               std::move(closing));
+        auto survivor = std::make_unique<NotificationProbe>();
+        auto* survivorWindow = wm.createWindow("Survivor", 400, 80, 260, 180,
+                                                std::move(survivor));
+        closingPtr->sibling = survivorWindow;
+        wm.associateEditorWithFile(closingWindow, "/docs/old.txt");
+        wm.associateEditorWithFile(survivorWindow, "/docs/survivor.txt");
+
+        wm.notifyVirtualPathMoved("/docs/old.txt", "/archive/new.txt");
+
+        check(wm.m_windows.size() == 1 && wm.m_windows.front().get() == closingWindow,
+              "bound-file callback can close a sibling without invalidating remap dispatch");
+        check(closingWindow->editedFilePath == "/archive/new.txt"
+                  && wm.focusEditorForFile("/archive/new.txt"),
+              "surviving bound editor keeps its remapped singleton path");
 
         std::error_code ec;
         std::filesystem::remove_all(hostRoot, ec);
