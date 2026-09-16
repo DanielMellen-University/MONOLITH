@@ -1,5 +1,10 @@
 # Changelog
 
+## 2026-09: Keep Drawing controls responsive across layout changes
+
+- Rebuilt Drawing toolbar and color-swatch hit targets on demand when queued input arrives after a resize or interface-scale change but before the next render.
+- Shared Drawing toolbar geometry between rendering and input, with focused coverage for pre-render scaled toolbar and swatch clicks.
+
 ## 2026-09: Keep Browser controls responsive across layout changes
 
 - Rebuilt Filesystem Browser toolbar and filter hit targets on demand when input arrives after a resize or interface-scale change but before the next render.

@@ -160,6 +160,27 @@ int main() {
     drawing.onResize(320, 300);
     check(drawing.m_btnSave.w == 0 && drawing.m_colorSwatches[1].w == 0,
           "Drawing resize invalidates stale toolbar hit targets");
+    drawing.ensureHitTargets();
+    const SDL_Rect scaledLineButton = drawing.m_btnLine;
+    const SDL_Rect scaledBlueSwatch = drawing.m_colorSwatches[4];
+    check(scaledLineButton.w > 0 && scaledBlueSwatch.w > 0,
+          "Drawing rebuilds toolbar and swatch targets on demand");
+    drawing.invalidateHitTargets();
+    drawing.m_tool = monolith::app::DrawingApp::Tool::Pen;
+    SDL_Event click{};
+    click.type = SDL_MOUSEBUTTONDOWN;
+    click.button.button = SDL_BUTTON_LEFT;
+    click.button.x = scaledLineButton.x + scaledLineButton.w / 2;
+    click.button.y = scaledLineButton.y + scaledLineButton.h / 2;
+    drawing.handleEvent(click);
+    check(drawing.m_tool == monolith::app::DrawingApp::Tool::Line,
+          "Drawing accepts a queued scaled toolbar click before render");
+    drawing.invalidateHitTargets();
+    click.button.x = scaledBlueSwatch.x + scaledBlueSwatch.w / 2;
+    click.button.y = scaledBlueSwatch.y + scaledBlueSwatch.h / 2;
+    drawing.handleEvent(click);
+    check(drawing.m_colorIndex == 4 && !drawing.m_usingCustomColor,
+          "Drawing accepts a queued scaled swatch click before render");
     const int scaledDisplayHeight = drawing.m_clientHeight
         - drawing.m_canvasTop - drawing.m_statusBarHeight;
     int mappedX = 0;

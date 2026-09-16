@@ -89,6 +89,7 @@ private:
     int getToolbarHeight() const;
     int getStatusBarHeight() const;
     void updateLayoutMetrics();
+    void ensureHitTargets();
     void invalidateHitTargets();
     void handleToolbarClick(int x, int y);
     bool isInCanvas(int x, int y) const;
@@ -175,6 +176,7 @@ private:
     SDL_Rect m_btnBrushMedium{0, 0, 0, 0};
     SDL_Rect m_btnBrushLarge{0, 0, 0, 0};
     SDL_Rect m_colorSwatches[kColorCount]{};
+    bool m_hitTargetsValid = false;
 };
 
 } // namespace monolith::app
