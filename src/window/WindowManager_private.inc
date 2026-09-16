@@ -154,11 +154,11 @@ private:
     SDL_Rect logicalRectToScreen(const SDL_Rect& rect) const;
     TitleButtonRects getTitleButtonRects(const Window& window) const;
 
-    // Dispatch lifecycle notifications from a stable snapshot. App callbacks
-    // may close or open windows through their controllers, so never iterate
+    // Dispatch window callbacks from a stable snapshot. App callbacks may
+    // close or open windows through their controllers, so never iterate
     // m_windows directly while invoking one.
     template <typename Callback>
-    void forEachLiveApp(Callback&& callback) {
+    void forEachLiveWindow(Callback&& callback) {
         struct Target {
             Window* window;
             int id;
@@ -181,10 +181,15 @@ private:
             if (live == m_windows.end()) continue;
 
             Window* window = live->get();
-            if (window->app) {
-                callback(*window->app);
-            }
+            callback(*window);
         }
+    }
+
+    template <typename Callback>
+    void forEachLiveApp(Callback&& callback) {
+        forEachLiveWindow([&callback](Window& window) {
+            if (window.app) callback(*window.app);
+        });
     }
 
     // Claims the lowest available positive instance number for the given app base

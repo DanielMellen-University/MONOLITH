@@ -1,5 +1,10 @@
 # Changelog
 
+## 2026-09: Stabilize resize callback dispatch
+
+- WindowManager now uses the lifecycle snapshot for logical desktop and maximized-window resize callbacks, preventing app-triggered window changes from invalidating geometry passes.
+- Extended lifecycle regression coverage to include resize-time self-closes.
+
 ## 2026-09: Stabilize lifecycle broadcasts
 
 - WindowManager now snapshots live apps before virtual-path and UI-scale callbacks, so an app can close or open windows during a notification without invalidating the broadcast loop.

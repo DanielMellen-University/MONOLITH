@@ -192,24 +192,25 @@ void WindowManager::setLogicalDesktopSize(int width, int height) {
     m_logicalHeight = std::max(1, height);
 
     // Re-clamp when logical size changes and keep each app's client geometry
-    // synchronized when the shell had to move or resize its window.
-    for (auto& windowPtr : m_windows) {
-        if (!windowPtr || windowPtr->minimized) continue;
+    // synchronized when the shell had to move or resize its window. The stable
+    // snapshot keeps an onResize callback from invalidating this pass.
+    forEachLiveWindow([this](Window& window) {
+        if (window.minimized) return;
 
-        const SDL_Rect before = windowPtr->rect;
-        if (windowPtr->maximized) {
-            windowPtr->rect = getUsableDesktopRect();
+        const SDL_Rect before = window.rect;
+        if (window.maximized) {
+            window.rect = getUsableDesktopRect();
         } else {
-            clampSingleWindow(*windowPtr);
+            clampSingleWindow(window);
         }
-        if (windowPtr->rect.x == before.x
-            && windowPtr->rect.y == before.y
-            && windowPtr->rect.w == before.w
-            && windowPtr->rect.h == before.h) {
-            continue;
+        if (window.rect.x == before.x
+            && window.rect.y == before.y
+            && window.rect.w == before.w
+            && window.rect.h == before.h) {
+            return;
         }
-        notifyAppResizeIfGeometryChanged(*windowPtr, before);
-    }
+        notifyAppResizeIfGeometryChanged(window, before);
+    });
 }
 
 void WindowManager::getLogicalDesktopSize(int& width, int& height) const {

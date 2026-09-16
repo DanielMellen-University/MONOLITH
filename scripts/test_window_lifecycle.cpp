@@ -49,6 +49,21 @@ public:
     int notifications = 0;
 };
 
+class ResizeClosingApp final : public monolith::app::App {
+public:
+    void render(SDL_Renderer*, const SDL_Rect&) override {}
+
+    void onResize(int, int) override {
+        if (closeOnResize) {
+            if (auto* controller = getController()) {
+                controller->close();
+            }
+        }
+    }
+
+    bool closeOnResize = false;
+};
+
 } // namespace
 
 int main() {
@@ -120,6 +135,33 @@ int main() {
 
         std::error_code ec;
         std::filesystem::remove_all(hostRoot, ec);
+    }
+
+    {
+        monolith::window::WindowManager wm;
+        auto closing = std::make_unique<ResizeClosingApp>();
+        ResizeClosingApp* closingPtr = closing.get();
+        wm.createWindow("Closing", 400, 400, 260, 180, std::move(closing));
+        closingPtr->closeOnResize = true;
+
+        wm.setLogicalDesktopSize(500, 400);
+
+        check(wm.getWindowAt(300, 250) == nullptr,
+              "a window closed from logical resize is removed safely");
+    }
+
+    {
+        monolith::window::WindowManager wm;
+        auto closing = std::make_unique<ResizeClosingApp>();
+        ResizeClosingApp* closingPtr = closing.get();
+        auto* window = wm.createWindow("Closing", 100, 100, 260, 180, std::move(closing));
+        window->maximized = true;
+        closingPtr->closeOnResize = true;
+
+        wm.update();
+
+        check(wm.getWindowAt(100, 100) == nullptr,
+              "a maximized window closed from update resize is removed safely");
     }
 
     if (failures == 0) {

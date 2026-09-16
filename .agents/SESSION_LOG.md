@@ -1,5 +1,7 @@
 # Session log
 
+| 2026-09-15 | fix | Routed logical desktop, maximized-window, and app-update callbacks through the stable WindowManager window snapshot; added resize-time self-close coverage and updated architecture/changelog/development docs. |
+
 | 2026-09-15 | fix | Made virtual-path and UI-scale app callbacks use a live window snapshot, preventing app-triggered lifecycle changes from invalidating broadcasts; extended lifecycle coverage and updated architecture/changelog/development docs. |
 
 | 2026-09-15 | fix | Made WindowManager app-update dispatch resilient to controller-driven self-closes with a live pointer snapshot; added lifecycle coverage and updated architecture/changelog/development docs. |

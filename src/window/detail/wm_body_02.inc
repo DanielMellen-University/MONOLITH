@@ -149,43 +149,24 @@ void WindowManager::update() {
     // The taskbar is permanently at the bottom, so all maximized windows must
     // always reserve space for it. This is a general rule for the entire desktop shell,
     // not something individual apps should have to handle.
-    for (auto& w : m_windows) {
-        if (w->maximized && !w->minimized) {
-            const SDL_Rect before = w->rect;
+    forEachLiveWindow([this](Window& w) {
+        if (w.maximized && !w.minimized) {
+            const SDL_Rect before = w.rect;
             SDL_Rect usable = getUsableDesktopRect();
-            w->rect = usable;
-            notifyAppResizeIfGeometryChanged(*w, before);
+            w.rect = usable;
+            notifyAppResizeIfGeometryChanged(w, before);
         }
-    }
+    });
 
-    // Per-frame app updates (game ticks, timers, etc.). Take a pointer snapshot
-    // first because an app may close its own window from update() through its
-    // controller. The live-membership check skips windows closed by an earlier
-    // app without iterating the vector that closeWindow mutates.
-    struct UpdateTarget {
-        Window* window;
-        int id;
-    };
-    std::vector<UpdateTarget> updateOrder;
-    updateOrder.reserve(m_windows.size());
-    for (const auto& window : m_windows) {
-        if (window) updateOrder.push_back({window.get(), window->id});
-    }
-    for (const UpdateTarget& target : updateOrder) {
-        const auto live = std::find_if(
-            m_windows.begin(),
-            m_windows.end(),
-            [&target](const auto& candidate) {
-                return candidate.get() == target.window
-                    && candidate->id == target.id;
-            });
-        if (live == m_windows.end()) continue;
-
-        Window* w = live->get();
+    // Per-frame app updates (game ticks, timers, etc.). The stable snapshot
+    // skips windows closed by an earlier app without iterating the vector that
+    // closeWindow mutates.
+    forEachLiveWindow([](Window& window) {
+        Window* w = &window;
         if (w->app && !w->minimized) {
             w->app->update();
         }
-    }
+    });
 }
 
 void WindowManager::render(SDL_Renderer* renderer) {
