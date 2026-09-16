@@ -382,12 +382,15 @@ int main() {
               maximizeBeforeMinimizeButtons.maximize.y + 1),
           "maximize can be toggled before a minimized restore");
     const auto minimizeMaximizedButtons = wm.getTitleButtonRects(*window);
+    wm.render(renderer);
+    check(wm.m_taskbarHitTargetsValid,
+          "taskbar targets are valid before a title-bar minimize");
     check(wm.handleTitleBarButtons(
               window,
               minimizeMaximizedButtons.minimize.x + 1,
               minimizeMaximizedButtons.minimize.y + 1),
           "maximized window can be minimized");
-    check(window->minimized && window->maximized,
+    check(window->minimized && window->maximized && !wm.m_taskbarHitTargetsValid,
           "minimizing preserves the maximized window state");
 
     wm.setLogicalDesktopSize(800, 600);

@@ -1,5 +1,10 @@
 # Changelog
 
+## 2026-09: Invalidate taskbar targets when windows minimize
+
+- Clear cached taskbar hit targets at the minimize transition, so queued input between frames sees the updated window state even when no focus handoff occurs.
+- Add a no-render-gap regression around minimizing a maximized window.
+
 ## 2026-09: Restore maximized windows against the current desktop
 
 - Reapply the current usable desktop rectangle when bringing a minimized maximized window forward, so desktop growth cannot leave it at stale dimensions for a frame.

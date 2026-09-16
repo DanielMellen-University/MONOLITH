@@ -63,6 +63,7 @@ The Window Manager is the most foundational subsystem.
 - Minimizing the focused window uses the same handoff rule: the topmost non-minimized survivor becomes focused, or focus is cleared when none remain. Minimized apps never receive keyboard events.
 - When many windows are open, the taskbar scrolls horizontally (arrow buttons and mouse wheel). Arrow hit targets are recorded during render (same pattern as taskbar window buttons) and handled in the taskbar click path.
 - Closing a window immediately removes its cached taskbar hit target, so keyboard- or app-triggered closes cannot leave a raw pointer for a later event between renders.
+- Minimizing a window invalidates cached taskbar hit targets immediately, including when the minimized window was not focused and no z-order handoff occurs.
 - Taskbar scrolling is clamped to the measured button strip after arrow controls reserve their space, so repeated input cannot scroll every window button out of view.
 - On narrow logical desktops, the taskbar button viewport is clamped to non-negative space; scroll arrows are shown only when both controls fit, stale scroll offsets reset after a shrink, and button rendering plus hit rectangles are clipped to the visible viewport.
 - The Start button is also clipped to the logical desktop edge, and its hit target stops there, so an undersized desktop cannot paint or activate shell chrome outside its own surface.

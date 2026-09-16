@@ -703,6 +703,7 @@ bool WindowManager::handleTitleBarButtons(Window* window, int mouseX, int mouseY
         if (m_focusedWindow == window) {
             focusTopmostVisibleWindow();
         }
+        invalidateShellHitTargets();
         return true;
     }
 
