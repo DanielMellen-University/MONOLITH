@@ -65,6 +65,7 @@ The Window Manager is the most foundational subsystem.
 - Taskbar scrolling is clamped to the measured button strip after arrow controls reserve their space, so repeated input cannot scroll every window button out of view.
 - On narrow logical desktops, the taskbar button viewport is clamped to non-negative space; scroll arrows are shown only when both controls fit, stale scroll offsets reset after a shrink, and button rendering plus hit rectangles are clipped to the visible viewport.
 - The Start button is also clipped to the logical desktop edge, and its hit target stops there, so an undersized desktop cannot paint or activate shell chrome outside its own surface.
+- The Start menu clamps its width to the logical desktop and its visible height to the usable area above the taskbar; partially visible rows are clipped and only their visible portions remain clickable on undersized desktops.
 - The clock tray yields the button strip when the available width is too small for both controls, preventing taskbar status UI from overlapping window-button input.
 - Maximize, restore, and logical desktop resizing keep maximized frames aligned to the usable area, clamp restored frames above the taskbar, and notify the app after the final client geometry is known.
 - Taskbar window labels stay at native text size, and each button measures its UTF-8 title before allocating width, so larger fonts and long titles clip inside their own button without drawing over neighbors.

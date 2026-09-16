@@ -1,5 +1,10 @@
 # Changelog
 
+## 2026-09: Contain the Start menu on undersized desktops
+
+- Start menu geometry now stays within the logical desktop and the usable area above the taskbar, even when a test or future host provides an unusually small desktop.
+- Menu hit targets are clipped to the visible popup so hidden rows cannot be activated outside the rendered menu.
+
 ## 2026-09: Enforce minimum frame size at window creation
 
 - Direct WindowManager-created frames now honor the same minimum width and height already used by resize and session restore paths.

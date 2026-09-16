@@ -389,6 +389,27 @@ int main() {
         outsideStartRelease.type = SDL_MOUSEBUTTONUP;
         wm.handleEvent(outsideStartRelease);
 
+        wm.m_showStartMenu = true;
+        wm.setLogicalDesktopSize(40, 60);
+        SDL_SetRenderDrawColor(renderer, 0, 0, 0, 255);
+        SDL_RenderClear(renderer);
+        wm.render(renderer);
+        const SDL_Rect tinyMenu = wm.m_startMenuRect;
+        check(rectInside(tinyMenu, 40, 60)
+                  && tinyMenu.y + tinyMenu.h <= wm.getTaskbarRect().y,
+              "narrow Start menus stay inside the usable desktop");
+        bool startItemsContained = true;
+        for (const auto& item : wm.m_startMenuItems) {
+            startItemsContained &= rectInside(item.rect, 40, 60)
+                && item.rect.x >= tinyMenu.x
+                && item.rect.y >= tinyMenu.y
+                && item.rect.x + item.rect.w <= tinyMenu.x + tinyMenu.w
+                && item.rect.y + item.rect.h <= tinyMenu.y + tinyMenu.h;
+        }
+        check(startItemsContained,
+              "narrow Start menu hit targets stay inside the visible popup");
+        wm.m_showStartMenu = false;
+
         wm.setLogicalDesktopSize(1000, 700);
         wm.m_taskbarScrollOffset = 400;
         wm.setLogicalDesktopSize(120, 120);

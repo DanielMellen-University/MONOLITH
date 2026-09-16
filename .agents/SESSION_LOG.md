@@ -1,5 +1,7 @@
 # Session log
 
+| 2026-09-15 | fix | Contained the Start menu within undersized logical desktops, clipped partially visible menu rows and hit targets, and added shell geometry coverage plus docs. |
+
 | 2026-09-15 | fix | Enforced the WindowManager minimum frame size during direct creation, verified the initial app resize dimensions, and updated architecture/changelog notes. |
 
 | 2026-09-15 | fix | Contained Minesweeper's face button on extreme narrow clients, hid impossible overlapping difficulty controls while retaining keyboard shortcuts, and added focused geometry coverage plus docs. |

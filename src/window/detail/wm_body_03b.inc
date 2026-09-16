@@ -54,14 +54,19 @@
                 SDL_Rect itemRect = {
                     menuX + static_cast<int>(4 * m_contentScale),
                     y,
-                    static_cast<int>((menuWidth - 8) * m_contentScale),
+                    static_cast<int>(std::max(0, menuWidth - 8) * m_contentScale),
                     itemH
                 };
-                m_startMenuItems.push_back({itemRect, e.action});
+                SDL_Rect visibleItemRect{};
+                const bool visibleItem = SDL_IntersectRect(
+                    &itemRect, &menuRect, &visibleItemRect);
+                if (visibleItem && visibleItemRect.w > 0 && visibleItemRect.h > 0) {
+                    m_startMenuItems.push_back({visibleItemRect, e.action});
+                }
 
                 bool hovered = false;
                 SDL_Point mousePt = {m_mouseX, m_mouseY};
-                if (SDL_PointInRect(&mousePt, &itemRect)) {
+                if (visibleItem && SDL_PointInRect(&mousePt, &visibleItemRect)) {
                     hovered = true;
                     m_startMenuHoverIndex = static_cast<int>(m_startMenuItems.size() - 1);
                 }
@@ -88,10 +93,11 @@
                 y += itemH + itemGap;
             }
         }
+        restoreRendererClip(renderer, callerClip);
+        }
     }
 
     // === Taskbar (always visible) ===
     m_taskbarEntries.clear();
     m_taskbarLeftArrowRect = {0, 0, 0, 0};
     m_taskbarRightArrowRect = {0, 0, 0, 0};
-
