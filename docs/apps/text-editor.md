@@ -27,6 +27,7 @@ If a bound file's parent directory is deleted, the editor keeps the document buf
 - Click to place the cursor; drag to select. **Esc** clears the selection.
 - **Backspace** / **Delete** remove the selection when one exists, otherwise one codepoint.
 - Typing or paste replaces the current selection.
+- Typing or pasting exactly the selected text only collapses the selection; it does not dirty the buffer or add an undo step.
 - **Mouse wheel** scrolls the buffer.
 - **Shift + mouse wheel** scrolls horizontally through long lines; the cursor also auto-scrolls into view while you type or move with the keyboard.
 - Line numbers appear in the left margin.

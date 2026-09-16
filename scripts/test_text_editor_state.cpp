@@ -323,6 +323,32 @@ int main() {
     check(noOpReplaceEditor.m_statusMessage == "Replace all: text is unchanged",
           "replace all with identical text reports a no-op");
 
+    check(fs.writeFile("/same.txt", "same"), "write identical selection editor fixture");
+    TestEditor noOpSelectionEditor(nullptr, &fs, "/same.txt");
+    noOpSelectionEditor.m_selAnchorRow = 0;
+    noOpSelectionEditor.m_selAnchorCol = 0;
+    noOpSelectionEditor.m_cursorRow = 0;
+    noOpSelectionEditor.m_cursorCol = 4;
+    noOpSelectionEditor.m_hasSelection = true;
+    noOpSelectionEditor.insertText("same");
+    check(!noOpSelectionEditor.m_dirty
+              && !noOpSelectionEditor.hasSelection()
+              && noOpSelectionEditor.m_cursorCol == 4
+              && noOpSelectionEditor.m_undoStack.empty(),
+          "typing the selected text preserves clean state and undo history");
+    check(SDL_SetClipboardText("same") == 0, "set identical selection clipboard fixture");
+    noOpSelectionEditor.m_selAnchorRow = 0;
+    noOpSelectionEditor.m_selAnchorCol = 0;
+    noOpSelectionEditor.m_cursorRow = 0;
+    noOpSelectionEditor.m_cursorCol = 4;
+    noOpSelectionEditor.m_hasSelection = true;
+    noOpSelectionEditor.pasteClipboard();
+    check(!noOpSelectionEditor.m_dirty
+              && !noOpSelectionEditor.hasSelection()
+              && noOpSelectionEditor.m_cursorCol == 4
+              && noOpSelectionEditor.m_undoStack.empty(),
+          "pasting the selected text preserves clean state and undo history");
+
     editor.m_lines = {"aa"};
     editor.m_cursorRow = 0;
     editor.m_cursorCol = 0;

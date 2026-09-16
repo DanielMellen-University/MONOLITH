@@ -280,3 +280,4 @@ Current chunk pointer: [`CURRENT_CHUNK`](CURRENT_CHUNK).
 | 2026-09-16 | fix | Kept Text Editor Replace and Replace All no-ops out of undo history and the dirty marker when replacement text matches the find text; added focused coverage and updated the editor guide. |
 | 2026-09-16 | fix | Kept Drawing Clear no-ops out of undo history and the modified marker when the canvas is already blank; added focused coverage and updated the Drawing guide. |
 | 2026-09-16 | fix | Deferred Drawing stroke history until Pen, Eraser, Line, or Rect changes a pixel, so no-op gestures preserve clean state and redo history; added focused coverage and updated the Drawing guide. |
+| 2026-09-16 | fix | Kept Text Editor typing and paste operations clean when they exactly reproduce the selected text; added focused coverage and updated the editor guide. |

@@ -1,5 +1,10 @@
 # Changelog
 
+## 2026-09: Keep identical Text Editor replacements clean
+
+- Treat typing or pasting the exact selected text as a selection collapse instead of a document edit, preserving clean state and undo history.
+- Add focused coverage for both input paths and update the editor guide.
+
 ## 2026-09: Keep no-op Drawing strokes clean
 
 - Defer stroke history capture until Pen, Eraser, Line, or Rect actually changes a pixel, preserving clean state and redo history for no-op gestures.

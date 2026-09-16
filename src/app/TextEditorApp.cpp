@@ -929,6 +929,18 @@ void TextEditorApp::pasteClipboard() {
         return;
     }
 
+    if (hasSelection() && selectedText() == cleaned) {
+        int r0 = 0, c0 = 0, r1 = 0, c1 = 0;
+        getOrderedSelection(r0, c0, r1, c1);
+        m_cursorRow = r1;
+        m_cursorCol = c1;
+        clampCursor();
+        clearSelection();
+        setStatus("Pasted");
+        ensureCursorVisible();
+        return;
+    }
+
     pushUndoState();
     if (hasSelection()) {
         deleteSelectionRange();
@@ -1032,6 +1044,18 @@ void TextEditorApp::insertText(const char* text) {
         filtered.push_back(static_cast<char>(c));
     }
     if (filtered.empty()) return;
+
+    if (hasSelection() && selectedText() == filtered) {
+        int r0 = 0, c0 = 0, r1 = 0, c1 = 0;
+        getOrderedSelection(r0, c0, r1, c1);
+        m_cursorRow = r1;
+        m_cursorCol = c1;
+        clampCursor();
+        clearSelection();
+        m_statusMessage.clear();
+        ensureCursorVisible();
+        return;
+    }
 
     pushUndoState(hasSelection() ? UndoCoalesce::None : UndoCoalesce::Insert);
     if (hasSelection()) {
