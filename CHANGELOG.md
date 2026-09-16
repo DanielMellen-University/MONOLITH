@@ -1,5 +1,9 @@
 # Changelog
 
+## 2026-09: Route binding titles through shell cache ownership
+
+- Covered failed opens and file-binding transitions that rename bare Editor or Drawing windows, keeping title textures and taskbar hit targets synchronized there too.
+
 ## 2026-09: Invalidate taskbar targets after window changes
 
 - Cleared cached taskbar and shell hit targets when windows are created, focused, closed, or renamed, preventing between-frame clicks from using obsolete window geometry.

@@ -258,7 +258,7 @@ void WindowManager::launchDrawing(const std::string& initialPath) {
     // A failed initial path is an ordinary untitled Drawing window. Track it
     // so its title, close bookkeeping, and session restore remain coherent.
     auto [title, inst] = claimNextAppInstanceTitle("Drawing");
-    w->title = title;
+    setWindowTitle(w, title);
     w->appBaseTitle = "Drawing";
     w->appInstanceNumber = inst;
 }

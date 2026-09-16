@@ -40,7 +40,7 @@ void WindowManager::clearEditorFileBinding(Window* window) {
         auto [title, instance] = claimNextAppInstanceTitle("Editor");
         window->appBaseTitle = "Editor";
         window->appInstanceNumber = instance;
-        window->title = title;
+        setWindowTitle(window, title);
     }
 }
 
@@ -108,7 +108,7 @@ void WindowManager::clearDrawingFileBinding(Window* window) {
         auto [title, instance] = claimNextAppInstanceTitle("Drawing");
         window->appBaseTitle = "Drawing";
         window->appInstanceNumber = instance;
-        window->title = title;
+        setWindowTitle(window, title);
     }
 }
 
