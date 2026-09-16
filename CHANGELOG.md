@@ -1,5 +1,10 @@
 # Changelog
 
+## 2026-09: Document complete Drawing verification
+
+- Added the one-command headless suite to the Drawing developer guide alongside the focused raster, state, integration, and smoke checks.
+- Documented when to use focused Drawing checks versus the complete repository runner.
+
 ## 2026-09: Add one-command headless verification
 
 - Added `scripts/run_headless_tests.sh` to build and run the documented static checks and state tests with consistent SDL dummy drivers.

@@ -1,5 +1,7 @@
 # Session log
 
+| 2026-09-15 | docs | Documented the complete headless suite in the Drawing developer guide, including the focused-versus-full verification workflow; updated the public changelog. |
+
 | 2026-09-15 | chore | Added one-command headless verification for all documented static and state checks, including generated source setup and consistent SDL dummy drivers, and documented the focused-command escape hatch. |
 
 | 2026-09-15 | fix | Made Snake's food flash deadline wrap-safe across the 32-bit SDL tick counter, added active/expired boundary coverage, and documented the effect contract. |

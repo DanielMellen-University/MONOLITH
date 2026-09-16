@@ -640,6 +640,18 @@ display path:
 ./scripts/headless_drawing_smoke.sh
 ```
 
+For a complete repository check that also rebuilds generated sources and runs
+the other app and shell tests, use:
+
+```bash
+./scripts/run_headless_tests.sh
+```
+
+The full runner uses SDL's dummy video and audio drivers by default, so it is
+safe to run from a non-interactive terminal. Use the focused commands above
+when iterating on Drawing, then run the complete suite before submitting a
+cross-app or shell change.
+
 Keep this guide and [Development Scripts](../development/scripts.md) aligned
 when a Drawing shortcut, prompt rule, file-format invariant, or shell-routing
 behavior changes.
