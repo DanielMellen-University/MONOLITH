@@ -27,8 +27,11 @@
             // Start button (when menu was not open, or after we handled the open case above)
             int startBtnScreenWidth = static_cast<int>(70 * m_contentScale);
             int startBtnScreenX = logicalToScreenX(8);
+            const int startBtnScreenRight = std::min(
+                startBtnScreenX + startBtnScreenWidth,
+                taskbarScreenRect.x + taskbarScreenRect.w);
 
-            if (m_mouseX >= startBtnScreenX && m_mouseX < startBtnScreenX + startBtnScreenWidth) {
+            if (m_mouseX >= startBtnScreenX && m_mouseX < startBtnScreenRight) {
                 setStartMenuVisible(!m_showStartMenu);
                 return;
             }

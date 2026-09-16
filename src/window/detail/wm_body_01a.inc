@@ -210,7 +210,10 @@ void WindowManager::handleEvent(const SDL_Event& event) {
             // Clicking the Start button itself while menu is open should toggle it closed.
             int startBtnScreenWidth = static_cast<int>(70 * m_contentScale);
             int startBtnScreenX = logicalToScreenX(8);
-            if (m_mouseX >= startBtnScreenX && m_mouseX < startBtnScreenX + startBtnScreenWidth &&
+            const int startBtnScreenRight = std::min(
+                startBtnScreenX + startBtnScreenWidth,
+                taskbarScreenRect.x + taskbarScreenRect.w);
+            if (m_mouseX >= startBtnScreenX && m_mouseX < startBtnScreenRight &&
                 m_mouseY >= taskbarScreenY && m_mouseY < taskbarScreenBottom) {
                 m_shellMouseCapture = true;
                 setStartMenuVisible(!m_showStartMenu);

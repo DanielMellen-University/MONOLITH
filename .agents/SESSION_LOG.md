@@ -1,5 +1,7 @@
 # Session log
 
+| 2026-09-15 | fix | Clipped the taskbar Start button and its hit target to the logical desktop edge on tiny desktops, added rendering/input coverage, and updated architecture and changelog notes. |
+
 | 2026-09-15 | fix | Gave desktop icons a stable label-width cell, omitted them on too-narrow desktops, added layout coverage, and updated the 7.3 behavior note and changelog. |
 
 | 2026-09-15 | fix | Kept Text Editor path completion on complete UTF-8 boundaries, covered ambiguous and exact Unicode filenames, and updated the Text Editor guide and changelog. |

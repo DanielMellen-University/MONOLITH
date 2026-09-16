@@ -1,5 +1,10 @@
 # Changelog
 
+## 2026-09: Contain the Start button on tiny desktops
+
+- The taskbar Start button now clips to the logical desktop width and ignores clicks beyond that edge on undersized desktops.
+- Added rendering and input coverage for the narrow-taskbar boundary.
+
 ## 2026-09: Keep desktop icon labels inside their column
 
 - Desktop icons now reserve a stable label-width hit cell, preventing longer labels such as Filesystem from bleeding into the workspace.

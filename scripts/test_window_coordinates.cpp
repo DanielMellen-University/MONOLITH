@@ -343,6 +343,35 @@ int main() {
         check(readArrowPixel && arrowR == 80 && arrowG == 80 && arrowB == 90,
               "taskbar buttons stay clipped behind the visible right arrow");
 
+        wm.setLogicalDesktopSize(40, 60);
+        SDL_SetRenderDrawColor(renderer, 0, 0, 0, 255);
+        SDL_RenderClear(renderer);
+        wm.render(renderer);
+        const int outsideStartY = wm.logicalToScreenY(wm.getTaskbarRect().y + 4);
+        Uint32 outsideStartPixel = 0;
+        SDL_Rect outsideStartSample = {60, outsideStartY, 1, 1};
+        const bool readOutsideStart = rgbaFormat
+            && SDL_RenderReadPixels(renderer, &outsideStartSample, SDL_PIXELFORMAT_RGBA32,
+                                    &outsideStartPixel, sizeof(outsideStartPixel)) == 0;
+        Uint8 outsideR = 0, outsideG = 0, outsideB = 0, outsideA = 0;
+        if (readOutsideStart) {
+            SDL_GetRGBA(outsideStartPixel, rgbaFormat,
+                        &outsideR, &outsideG, &outsideB, &outsideA);
+        }
+        check(readOutsideStart && outsideR == 0 && outsideG == 0 && outsideB == 0,
+              "narrow taskbars contain the Start button inside the desktop edge");
+        SDL_Event outsideStartClick{};
+        outsideStartClick.type = SDL_MOUSEBUTTONDOWN;
+        outsideStartClick.button.button = SDL_BUTTON_LEFT;
+        outsideStartClick.button.x = 60;
+        outsideStartClick.button.y = outsideStartY;
+        wm.handleEvent(outsideStartClick);
+        check(!wm.m_showStartMenu,
+              "clicks beyond a narrow Start button do not open the Start menu");
+        SDL_Event outsideStartRelease = outsideStartClick;
+        outsideStartRelease.type = SDL_MOUSEBUTTONUP;
+        wm.handleEvent(outsideStartRelease);
+
         wm.setLogicalDesktopSize(1000, 700);
         wm.m_taskbarScrollOffset = 400;
         wm.setLogicalDesktopSize(120, 120);

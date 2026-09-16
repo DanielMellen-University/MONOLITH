@@ -8,7 +8,10 @@
 
     // --- Left: Start button ---
     int x = logicalToScreenX(8);
-    const int startBtnWidth = static_cast<int>(70 * m_contentScale);
+    const int desktopRight = logicalToScreenX(m_logicalWidth);
+    const int startBtnWidth = std::max(
+        0,
+        std::min(static_cast<int>(70 * m_contentScale), desktopRight - x));
     const int minimumButtonHeight = static_cast<int>(22 * m_contentScale);
     const int fontHeight = m_font ? TTF_FontHeight(m_font) : 16;
     // Keep every taskbar control tall enough for the active font, but never
@@ -20,16 +23,23 @@
 
     SDL_SetRenderDrawColor(renderer, 55, 85, 140, 255);
     SDL_Rect startBtn = {x, btnY, startBtnWidth, btnHeight};
-    SDL_RenderFillRect(renderer, &startBtn);
+    if (startBtn.w > 0 && startBtn.h > 0) {
+        SDL_RenderFillRect(renderer, &startBtn);
+    }
 
-    if (m_font) {
+    if (m_font && startBtn.w > 0 && startBtn.h > 0) {
         SDL_Color textCol = {255, 255, 255, 255};
         SDL_Surface* s = TTF_RenderText_Blended(m_font, "Start", textCol);
         if (s) {
             SDL_Texture* t = SDL_CreateTextureFromSurface(renderer, s);
             if (t) {
-                SDL_Rect dst = {x + 8, btnY + (btnHeight - s->h)/2, s->w, s->h};
-                SDL_RenderCopy(renderer, t, nullptr, &dst);
+                const SDL_Rect textClip = intersectRendererClip(startBtn, callerClip);
+                if (textClip.w > 0 && textClip.h > 0) {
+                    SDL_RenderSetClipRect(renderer, &textClip);
+                    SDL_Rect dst = {x + 8, btnY + (btnHeight - s->h)/2, s->w, s->h};
+                    SDL_RenderCopy(renderer, t, nullptr, &dst);
+                    restoreRendererClip(renderer, callerClip);
+                }
                 SDL_DestroyTexture(t);
             }
             SDL_FreeSurface(s);
