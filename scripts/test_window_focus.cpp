@@ -5,6 +5,7 @@
 #undef private
 
 #include <filesystem>
+#include <cstring>
 #include <iostream>
 #include <memory>
 #include <unistd.h>
@@ -17,6 +18,7 @@ public:
 
     void handleEvent(const SDL_Event& event) override {
         if (event.type == SDL_KEYDOWN) ++keyDowns;
+        if (event.type == SDL_TEXTINPUT) ++textInputs;
     }
 
     void onFocusGained() override { ++focusGained; }
@@ -24,6 +26,7 @@ public:
     void onUiScaleChanged() override { ++uiScaleChanges; }
 
     int keyDowns = 0;
+    int textInputs = 0;
     int focusGained = 0;
     int focusLost = 0;
     int uiScaleChanges = 0;
@@ -133,6 +136,19 @@ int main() {
     wm.handleEvent(hostFocusLost);
     check(secondPtr->focusLost == focusLostBeforeStartMenu + 1,
           "host focus loss does not double-suspend the app behind Start");
+    const int keyDownsBeforeHostLoss = secondPtr->keyDowns;
+    const int textInputsBeforeHostLoss = secondPtr->textInputs;
+    SDL_Event blockedKey{};
+    blockedKey.type = SDL_KEYDOWN;
+    blockedKey.key.keysym.sym = SDLK_b;
+    wm.handleEvent(blockedKey);
+    SDL_Event blockedText{};
+    blockedText.type = SDL_TEXTINPUT;
+    std::strncpy(blockedText.text.text, "b", SDL_TEXTINPUTEVENT_TEXT_SIZE - 1);
+    wm.handleEvent(blockedText);
+    check(secondPtr->keyDowns == keyDownsBeforeHostLoss
+              && secondPtr->textInputs == textInputsBeforeHostLoss,
+          "host-unfocused input does not reach the focused app");
     wm.handleEvent(openStartMenu);
     check(!wm.m_showStartMenu && secondPtr->focusGained == focusGainedBeforeStartMenu,
           "closing Start while the host is unfocused keeps the app suspended");

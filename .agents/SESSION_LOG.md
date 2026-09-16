@@ -1,5 +1,7 @@
 # Session log
 
+| 2026-09-16 | fix | Blocked queued keyboard and text-input delivery while the SDL host is unfocused, with focus regression coverage and architecture notes. |
+
 | 2026-09-16 | fix | Refreshed SDL pointer state for wheel routing and added coverage for stationary-pointer scrolling over a client. |
 
 | 2026-09-16 | fix | Enforced the caller renderer clip across the complete WindowManager frame and added pixel-level containment coverage for shell drawing. |

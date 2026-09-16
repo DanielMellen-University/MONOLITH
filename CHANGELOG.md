@@ -1,5 +1,10 @@
 # Changelog
 
+## 2026-09: Block app input while the host is unfocused
+
+- Stopped queued key and text-input events from reaching the focused app after the SDL host window loses focus, while preserving shell-owned key-release cleanup and focus recovery.
+- Added keyboard and text-input regression coverage for the host-unfocused state.
+
 ## 2026-09: Refresh wheel routing from the host pointer
 
 - Updated WindowManager wheel handling to refresh SDL's current pointer position before deciding whether the taskbar or focused client owns the scroll.
