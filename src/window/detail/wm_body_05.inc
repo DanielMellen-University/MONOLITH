@@ -403,7 +403,11 @@ void WindowManager::bringToFront(Window* window) {
     // A minimized window may have come from an old session or a changed
     // desktop size. Re-apply the shell geometry invariant before it becomes
     // visible so its title bar stays above the taskbar.
-    clampSingleWindow(*window);
+    if (window->maximized) {
+        window->rect = getUsableDesktopRect();
+    } else {
+        clampSingleWindow(*window);
+    }
     notifyAppResizeIfGeometryChanged(*window, before);
 
     // Resize callbacks may close the target or replace its storage before the

@@ -69,6 +69,7 @@ The Window Manager is the most foundational subsystem.
 - The Start menu clamps its width to the logical desktop and its visible height to the usable area above the taskbar; partially visible rows are clipped and only their visible portions remain clickable on undersized desktops.
 - The clock tray yields the button strip when the available width is too small for both controls, preventing taskbar status UI from overlapping window-button input.
 - Maximize, restore, and logical desktop resizing keep maximized frames aligned to the usable area, clamp restored frames above the taskbar, and notify the app after the final client geometry is known.
+- Bringing a minimized maximized window forward reapplies the current usable desktop rectangle immediately, including after the logical desktop grows while it was hidden.
 - Taskbar window labels stay at native text size, render through SDL_ttf's UTF-8 API, and each button measures its UTF-8 title before allocating width, so Unicode filenames, larger fonts, and long titles clip inside their own button without drawing over neighbors.
 - Taskbar buttons and the clock tray also derive their height from the active font, capped by the taskbar band, so scaled labels remain vertically contained.
 - Window title labels stay at native text size, render through SDL_ttf's UTF-8 API, and clip before the minimize button, so Unicode filenames and long file-backed titles do not get misdecoded, horizontally distorted, or cover title-bar controls.

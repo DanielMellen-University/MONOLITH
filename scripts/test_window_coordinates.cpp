@@ -371,6 +371,37 @@ int main() {
               && probePtr->resizeCalls == resizeCallsBeforeMaxRestore + 1,
           "restoring after a desktop shrink clamps the frame above the taskbar");
 
+    wm.setLogicalDesktopSize(420, 220);
+    window->minimized = false;
+    window->maximized = false;
+    window->rect = {60, 40, 300, 180};
+    const auto maximizeBeforeMinimizeButtons = wm.getTitleButtonRects(*window);
+    check(wm.handleTitleBarButtons(
+              window,
+              maximizeBeforeMinimizeButtons.maximize.x + 1,
+              maximizeBeforeMinimizeButtons.maximize.y + 1),
+          "maximize can be toggled before a minimized restore");
+    const auto minimizeMaximizedButtons = wm.getTitleButtonRects(*window);
+    check(wm.handleTitleBarButtons(
+              window,
+              minimizeMaximizedButtons.minimize.x + 1,
+              minimizeMaximizedButtons.minimize.y + 1),
+          "maximized window can be minimized");
+    check(window->minimized && window->maximized,
+          "minimizing preserves the maximized window state");
+
+    wm.setLogicalDesktopSize(800, 600);
+    const SDL_Rect grownUsable = wm.getUsableDesktopRect();
+    const int resizeCallsBeforeMaximizedRestore = probePtr->resizeCalls;
+    wm.bringToFront(window);
+    check(!window->minimized && window->maximized
+              && window->rect.x == grownUsable.x
+              && window->rect.y == grownUsable.y
+              && window->rect.w == grownUsable.w
+              && window->rect.h == grownUsable.h
+              && probePtr->resizeCalls == resizeCallsBeforeMaximizedRestore + 1,
+          "restoring a minimized maximized window fills a grown desktop immediately");
+
     wm.setLogicalDesktopSize(120, 20);
     const SDL_Rect undersizedUsable = wm.getUsableDesktopRect();
     check(window->rect.y == 0

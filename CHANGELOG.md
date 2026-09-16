@@ -1,5 +1,10 @@
 # Changelog
 
+## 2026-09: Restore maximized windows against the current desktop
+
+- Reapply the current usable desktop rectangle when bringing a minimized maximized window forward, so desktop growth cannot leave it at stale dimensions for a frame.
+- Add geometry coverage for minimizing a maximized window, growing the desktop, and restoring it through the shell.
+
 ## 2026-09: Isolate WindowManager draw color state
 
 - Restore SDL draw color after each app callback and after the full WindowManager frame, preventing app-owned renderer state from leaking into later shell composition or the caller.
