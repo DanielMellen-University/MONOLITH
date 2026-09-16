@@ -144,6 +144,104 @@ void WindowManager::clearStartMenuSuspension() {
     m_startMenuSuspendedWindowId = -1;
 }
 
+WindowManager::StartMenuLayout WindowManager::computeStartMenuLayout(
+    int contentHLogical) const {
+    StartMenuLayout layout;
+    layout.menuWidthLogical = std::min(210, std::max(0, m_logicalWidth));
+    layout.headerHLogical = 22;
+    layout.topPadLogical = 6;
+    const int itemHLogical = 26;
+    const int itemGapLogical = 2;
+    const int categoryHLogical = 20;
+    const int separatorHLogical = 10;
+
+    const int menuHeight = layout.headerHLogical + contentHLogical;
+    const SDL_Rect usableDesktop = getUsableDesktopRect();
+    const int visibleMenuHeight = std::min(menuHeight, std::max(0, usableDesktop.h));
+    const int menuXLogical = std::clamp(
+        8, 0, std::max(0, m_logicalWidth - layout.menuWidthLogical));
+    const int menuYLogical = std::max(
+        usableDesktop.y,
+        usableDesktop.y + usableDesktop.h - visibleMenuHeight);
+    const int menuX = logicalToScreenX(menuXLogical);
+    const int menuY = logicalToScreenY(menuYLogical);
+
+    layout.menuRect = {
+        menuX, menuY,
+        static_cast<int>(layout.menuWidthLogical * m_contentScale),
+        static_cast<int>(visibleMenuHeight * m_contentScale)
+    };
+    layout.itemH = static_cast<int>(itemHLogical * m_contentScale);
+    layout.itemGap = static_cast<int>(itemGapLogical * m_contentScale);
+    layout.categoryH = static_cast<int>(categoryHLogical * m_contentScale);
+    layout.separatorH = static_cast<int>(separatorHLogical * m_contentScale);
+    layout.itemStartY = menuY + static_cast<int>(
+        (layout.headerHLogical + layout.topPadLogical) * m_contentScale);
+    return layout;
+}
+
+void WindowManager::ensureStartMenuHitTargets() {
+    if (!m_showStartMenu) return;
+    if (!m_startMenuItems.empty() && m_startMenuRect.w > 0 && m_startMenuRect.h > 0) {
+        return;
+    }
+
+    struct MenuEntry {
+        const char* label;
+        int action;
+        int indent;
+    };
+    #include "wm_start_menu_entries.inc"
+    const size_t entryCount = sizeof(entries) / sizeof(entries[0]);
+    const int itemHLogical = 26;
+    const int itemGapLogical = 2;
+    const int categoryHLogical = 20;
+    const int separatorHLogical = 10;
+    const int bottomPadLogical = 8;
+    const int topPadLogical = 6;
+    int contentHLogical = topPadLogical;
+    for (size_t i = 0; i < entryCount; ++i) {
+        if (entries[i].action == -2) {
+            contentHLogical += separatorHLogical;
+        } else if (entries[i].action == -1) {
+            contentHLogical += categoryHLogical + itemGapLogical;
+        } else {
+            contentHLogical += itemHLogical + itemGapLogical;
+        }
+    }
+    contentHLogical += bottomPadLogical;
+    const StartMenuLayout layout = computeStartMenuLayout(contentHLogical);
+    m_startMenuRect = layout.menuRect;
+    m_startMenuItems.clear();
+    m_startMenuHoverIndex = -1;
+
+    int y = layout.itemStartY;
+    for (size_t i = 0; i < entryCount; ++i) {
+        const auto& entry = entries[i];
+        if (entry.action == -2) {
+            y += layout.separatorH;
+            continue;
+        }
+        if (entry.action == -1) {
+            y += layout.categoryH + layout.itemGap;
+            continue;
+        }
+
+        const SDL_Rect itemRect = {
+            layout.menuRect.x + static_cast<int>(4 * m_contentScale),
+            y,
+            static_cast<int>(std::max(0, layout.menuWidthLogical - 8) * m_contentScale),
+            layout.itemH
+        };
+        SDL_Rect visibleItemRect{};
+        if (SDL_IntersectRect(&itemRect, &m_startMenuRect, &visibleItemRect)
+            && visibleItemRect.w > 0 && visibleItemRect.h > 0) {
+            m_startMenuItems.push_back({visibleItemRect, entry.action});
+        }
+        y += layout.itemH + layout.itemGap;
+    }
+}
+
 void WindowManager::bringToFront(Window* window) {
     if (!isLiveWindow(window)) return;
 

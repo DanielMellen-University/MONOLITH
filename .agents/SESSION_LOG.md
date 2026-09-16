@@ -1,5 +1,7 @@
 # Session log
 
+| 2026-09-16 | fix | Made Start-menu keyboard and mouse routing rebuild popup hit targets before the first render, with pre-render input coverage and updated shell architecture notes. |
+
 | 2026-09-16 | fix | Kept Start-menu focus handoffs single-step for window clicks, taskbar activation, and Alt+Tab; added focused callback coverage and updated shell architecture notes. |
 
 | 2026-09-16 | fix | Invalidated failed wallpaper-load state when the configured image or a parent directory is created, added focused recovery coverage, and updated shell architecture notes. |

@@ -92,6 +92,9 @@ void WindowManager::setStartMenuVisible(bool visible, bool resumeFocusedApp) {
 
     if (visible) {
         m_showStartMenu = true;
+        m_startMenuItems.clear();
+        m_startMenuRect = {0, 0, 0, 0};
+        m_startMenuHoverIndex = -1;
         clearStartMenuSuspension();
         if (m_hostFocused && m_focusedWindow && m_focusedWindow->app
             && !m_focusedWindow->minimized) {
@@ -206,6 +209,7 @@ bool WindowManager::tryHandleShellHotkeys(const SDL_Event& event) {
     }
 
     if (m_showStartMenu) {
+        ensureStartMenuHitTargets();
         if (key.sym == SDLK_ESCAPE) {
             setStartMenuVisible(false);
             clearDesktopIconSelection();

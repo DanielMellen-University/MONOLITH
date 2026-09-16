@@ -1,5 +1,10 @@
 # Changelog
 
+## 2026-09: Make Start-menu input independent of frame timing
+
+- Rebuilt Start-menu geometry and actionable rows on demand when queued keyboard or mouse input arrives before the next render.
+- Added coordinate coverage for pre-render keyboard selection and popup clicks.
+
 ## 2026-09: Keep Start-menu focus handoffs single-step
 
 - Prevented Start-menu dismissal from briefly resuming the previously focused app before a click, taskbar action, or Alt+Tab hands focus to another window.

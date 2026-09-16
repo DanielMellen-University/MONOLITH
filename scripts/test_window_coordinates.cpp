@@ -150,6 +150,37 @@ int main() {
           "opening the Start menu clears desktop-icon click history");
     wm.handleEvent(ctrlEscape);
 
+    wm.handleEvent(ctrlEscape);
+    SDL_Event menuDownBeforeRender{};
+    menuDownBeforeRender.type = SDL_KEYDOWN;
+    menuDownBeforeRender.key.keysym.sym = SDLK_DOWN;
+    wm.handleEvent(menuDownBeforeRender);
+    check(wm.m_showStartMenu
+              && !wm.m_startMenuItems.empty()
+              && wm.m_startMenuKeyboardIndex == 0,
+          "Start menu keyboard input builds hit targets before the first render");
+    wm.handleEvent(ctrlEscape);
+
+    wm.handleEvent(ctrlEscape);
+    wm.ensureStartMenuHitTargets();
+    const SDL_Rect menuBeforeRender = wm.m_startMenuRect;
+    wm.m_startMenuItems.clear();
+    wm.m_startMenuRect = {0, 0, 0, 0};
+    SDL_Event menuClickBeforeRender{};
+    menuClickBeforeRender.type = SDL_MOUSEBUTTONDOWN;
+    menuClickBeforeRender.button.button = SDL_BUTTON_LEFT;
+    menuClickBeforeRender.button.x = menuBeforeRender.x + 2;
+    menuClickBeforeRender.button.y = menuBeforeRender.y + 2;
+    wm.handleEvent(menuClickBeforeRender);
+    check(wm.m_showStartMenu
+              && !wm.m_startMenuItems.empty()
+              && wm.m_startMenuRect.w > 0,
+          "Start menu mouse input rebuilds hit targets before the first render");
+    SDL_Event menuClickRelease = menuClickBeforeRender;
+    menuClickRelease.type = SDL_MOUSEBUTTONUP;
+    wm.handleEvent(menuClickRelease);
+    wm.handleEvent(ctrlEscape);
+
     wm.setLogicalDesktopSize(500, 400);
     wm.render(renderer);
     wm.m_desktopIconSelected = 1;

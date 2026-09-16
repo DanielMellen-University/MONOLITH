@@ -228,6 +228,7 @@ void WindowManager::handleEvent(const SDL_Event& event) {
         // Start Menu popup lives *above* the taskbar, so we must check it for *any* click
         // when it is open (not just clicks whose Y is inside the taskbar strip).
         if (m_showStartMenu) {
+            ensureStartMenuHitTargets();
             clearDesktopIconSelection();
             // Clicking the Start button itself while menu is open should toggle it closed.
             int startBtnScreenWidth = static_cast<int>(70 * m_contentScale);

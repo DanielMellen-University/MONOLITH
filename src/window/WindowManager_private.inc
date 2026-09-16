@@ -136,6 +136,21 @@ private:
     };
     std::vector<StartMenuItem> m_startMenuItems;
 
+    struct StartMenuLayout {
+        int menuWidthLogical = 0;
+        int headerHLogical = 0;
+        int topPadLogical = 0;
+        int itemH = 0;
+        int itemGap = 0;
+        int categoryH = 0;
+        int separatorH = 0;
+        SDL_Rect menuRect{0, 0, 0, 0};
+        int itemStartY = 0;
+    };
+
+    StartMenuLayout computeStartMenuLayout(int contentHLogical) const;
+    void ensureStartMenuHitTargets();
+
     struct TitleButtonRects {
         SDL_Rect close;
         SDL_Rect maximize;
