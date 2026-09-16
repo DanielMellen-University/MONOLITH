@@ -251,6 +251,8 @@
 Historical session rows were trimmed during the 7.1 MCP ship to keep AGENTS.md small.
 Current chunk pointer: [`CURRENT_CHUNK`](CURRENT_CHUNK).
 
+| 2026-09-16 | fix | Kept the Start-menu Escape dismissal gesture shell-owned through key release, added focused input coverage, and updated the architecture and changelog notes. |
+
 | 2026-09-16 | fix | Rendered WindowManager title-bar and taskbar labels through SDL_ttf's UTF-8 API so Unicode filenames match their measured widths; added a render regression and updated architecture/changelog docs. |
 
 | 2026-09-16 | fix | Floored screen-to-logical pointer conversion at negative and header-offset boundaries so outside clicks cannot map onto logical row or column zero; added coordinate regression coverage and updated architecture/changelog docs. |

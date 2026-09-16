@@ -1,5 +1,10 @@
 # Changelog
 
+## 2026-09: Keep Start-menu Escape shell-owned
+
+- Consume the key-up paired with a bare Escape that dismisses the Start menu, preventing the resumed app from interpreting the release as its own prompt cancellation.
+- Add mouse-capture regression coverage for the complete Escape dismissal gesture.
+
 ## 2026-09: Refresh taskbar targets when focus clears
 
 - Invalidate cached taskbar rectangles when minimizing leaves the desktop with no visible focused window, keeping focused-first button ordering aligned before the next render.

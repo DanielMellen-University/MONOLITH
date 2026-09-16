@@ -1,4 +1,6 @@
+#define private public
 #include "../src/window/WindowManager.hpp"
+#undef private
 
 #include <iostream>
 #include <memory>
@@ -293,6 +295,18 @@ int main() {
     wm.handleEvent(escapeRelease);
     check(secondPtr->keyUps == keyUpsBeforeAltRelease,
           "shell-owned Escape release does not reach the focused client");
+
+    const int keyUpsBeforeMenuEscape = secondPtr->keyUps;
+    check(wm.m_showStartMenu,
+          "Ctrl+Escape leaves the Start menu open for bare Escape dismissal");
+    SDL_Event menuEscape = ctrlEscape;
+    menuEscape.key.keysym.mod = KMOD_NONE;
+    wm.handleEvent(menuEscape);
+    SDL_Event menuEscapeRelease = escapeRelease;
+    menuEscapeRelease.key.keysym.mod = KMOD_NONE;
+    wm.handleEvent(menuEscapeRelease);
+    check(!wm.m_showStartMenu && secondPtr->keyUps == keyUpsBeforeMenuEscape,
+          "bare Escape dismissal consumes the matching key release");
 
     SDL_DestroyWindow(hostWindow);
     SDL_Quit();

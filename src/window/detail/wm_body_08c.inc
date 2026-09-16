@@ -213,6 +213,10 @@ bool WindowManager::tryHandleShellHotkeys(const SDL_Event& event) {
         if (key.sym == SDLK_ESCAPE) {
             setStartMenuVisible(false);
             clearDesktopIconSelection();
+            // Keep the complete Escape gesture shell-owned. Without a pending
+            // release, the key-up can reach the newly resumed client after the
+            // menu closes and trigger an unrelated prompt cancellation.
+            m_shellKeyUpsPending.insert(SDLK_ESCAPE);
             return true;
         }
 
