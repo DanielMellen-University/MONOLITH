@@ -181,9 +181,22 @@ void WindowManager::render(SDL_Renderer* renderer) {
     // Desktop icons sit on the wallpaper layer and never fight overlapping windows.
     renderDesktopIcons(renderer);
 
-    // Draw from back to front so the focused window (last in vector) is drawn last and appears on top
-    for (auto it = m_windows.begin(); it != m_windows.end(); ++it) {
-        Window& win = **it;
+    // Draw from back to front so the focused window (last in vector) is drawn
+    // last and appears on top. Rendering is app code too, so keep a stable
+    // identity snapshot and skip windows closed by an earlier render callback.
+    struct RenderTarget {
+        Window* window;
+        int id;
+    };
+    std::vector<RenderTarget> renderTargets;
+    renderTargets.reserve(m_windows.size());
+    for (const auto& window : m_windows) {
+        if (window) renderTargets.push_back({window.get(), window->id});
+    }
+
+    for (const RenderTarget& target : renderTargets) {
+        if (!isLiveWindow(target.window, target.id)) continue;
+        Window& win = *target.window;
 
         if (win.minimized) continue;
 
@@ -214,6 +227,8 @@ void WindowManager::render(SDL_Renderer* renderer) {
             win.app->render(renderer, contentRect);
             SDL_RenderSetClipRect(renderer, hadPreviousClip ? &previousClip : nullptr);
         }
+
+        if (!isLiveWindow(target.window, target.id)) continue;
 
         // === Title bar ===
         bool isFocused = (&win == m_focusedWindow);

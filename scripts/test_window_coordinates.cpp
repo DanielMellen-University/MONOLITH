@@ -42,6 +42,25 @@ public:
     SDL_Rect renderRect{0, 0, 0, 0};
 };
 
+class RenderClosingApp final : public monolith::app::App {
+public:
+    explicit RenderClosingApp(int* observedRenderCalls)
+        : observedRenderCalls(observedRenderCalls) {}
+
+    void render(SDL_Renderer*, const SDL_Rect&) override {
+        if (observedRenderCalls) ++*observedRenderCalls;
+        if (closeOnRender) {
+            closeOnRender = false;
+            if (auto* controller = getController()) controller->close();
+        }
+    }
+
+    bool closeOnRender = false;
+
+private:
+    int* observedRenderCalls = nullptr;
+};
+
 } // namespace
 
 int main() {
@@ -361,6 +380,26 @@ int main() {
             });
         check(taskbarEntriesBeforeClose > 0 && !closedEntryRemains,
               "closing a window invalidates its cached taskbar hit target");
+    }
+
+    if (renderer) {
+        monolith::window::WindowManager renderWm;
+        renderWm.setFont(font);
+        auto survivor = std::make_unique<ProbeApp>();
+        ProbeApp* survivorPtr = survivor.get();
+        renderWm.createWindow("Survivor", 80, 80, 300, 240, std::move(survivor));
+
+        int closingRenderCalls = 0;
+        auto closing = std::make_unique<RenderClosingApp>(&closingRenderCalls);
+        RenderClosingApp* closingPtr = closing.get();
+        renderWm.createWindow("Closing", 420, 80, 300, 240, std::move(closing));
+        closingPtr->closeOnRender = true;
+
+        renderWm.render(renderer);
+        check(closingRenderCalls == 1 && renderWm.m_windows.size() == 1,
+              "render snapshot survives a front app closing during render");
+        check(survivorPtr->renderRect.w > 0,
+              "render continues with the surviving window after callback removal");
     }
 
     if (font) TTF_CloseFont(font);

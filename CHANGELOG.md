@@ -1,5 +1,10 @@
 # Changelog
 
+## 2026-09: Snapshot the render pass
+
+- WindowManager now renders from a live window identity snapshot, so an app can close itself during `render()` without invalidating the frame or leaving the shell to draw a destroyed window.
+- Added renderer-backed coverage for front-window removal during rendering.
+
 ## 2026-09: Guard session restore callbacks
 
 - WindowManager now verifies restored window identity after `onResize()`, so a callback-triggered close cannot make session restore inspect a dead window or report it as successfully restored.
