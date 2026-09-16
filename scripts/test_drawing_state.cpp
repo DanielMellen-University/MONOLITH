@@ -538,6 +538,9 @@ int main() {
         check(cachedSurfaceCount > 0
                   && drawing.m_textSurfaceCache.m_entries.size() == cachedSurfaceCount,
               "Drawing reuses cached text surfaces between frames");
+        drawing.setStatus("cache invalidation");
+        check(drawing.m_textSurfaceCache.m_entries.empty(),
+              "Drawing clears cached text surfaces when status changes");
         drawing.onUiScaleChanged();
         check(drawing.m_textSurfaceCache.m_entries.empty(),
               "Drawing clears cached text surfaces when UI scale changes");

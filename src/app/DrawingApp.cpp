@@ -617,7 +617,9 @@ bool DrawingApp::loadFromPath(const std::string& virtualPath) {
 }
 
 void DrawingApp::setStatus(const std::string& message) {
+    if (m_statusMessage == message) return;
     m_statusMessage = message;
+    m_textSurfaceCache.clear();
 }
 
 void DrawingApp::onBoundFileMoved(const std::string& oldPath,
@@ -1358,6 +1360,9 @@ void DrawingApp::ensureHitTargets() {
 void DrawingApp::render(SDL_Renderer* renderer, const SDL_Rect& contentRect) {
     if (m_clientWidth != contentRect.w || m_clientHeight != contentRect.h) {
         onResize(contentRect.w, contentRect.h);
+    }
+    if (m_pathPromptMode != PathPromptMode::None) {
+        m_textSurfaceCache.clear();
     }
     ensureHitTargets();
 

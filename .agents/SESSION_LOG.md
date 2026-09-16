@@ -1,5 +1,7 @@
 # Session log
 
+| 2026-09-16 | fix | Bounded Text Editor and Drawing dynamic status or prompt text caches, added focused invalidation coverage, and updated app and architecture documentation. |
+
 | 2026-09-16 | fix | Invalidated Filesystem Browser text surfaces when listings or status feedback change, added focused cache lifecycle coverage, and updated Browser and architecture documentation. |
 
 | 2026-09-16 | perf | Cached Terminal scrollback text surfaces, cleared them when output is cleared or trimmed and on UI-scale changes, added renderer coverage, and updated architecture and Terminal documentation. |

@@ -207,6 +207,9 @@ int main() {
             check(cachedSurfaceCount > 0
                       && scaleEditor.m_textSurfaceCache.m_entries.size() == cachedSurfaceCount,
                   "Text Editor reuses cached text surfaces between frames");
+            scaleEditor.setStatus("cache invalidation");
+            check(scaleEditor.m_textSurfaceCache.m_entries.empty(),
+                  "Text Editor clears cached text surfaces when status changes");
             scaleEditor.m_cursorRow = 0;
             scaleEditor.m_cursorCol = 0;
             scaleEditor.insertText("x");

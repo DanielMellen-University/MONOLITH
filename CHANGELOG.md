@@ -1,5 +1,9 @@
 # Changelog
 
+## 2026-09: Bound dynamic editor text caches
+
+- Clear Text Editor and Drawing status or prompt surfaces when their dynamic text changes, preventing old feedback and caret variants from accumulating while preserving repeated static labels between frames.
+
 ## 2026-09: Invalidate Browser text surfaces with listing changes
 
 - Clear cached path, row, menu, and status surfaces when Browser listings or status feedback change, preventing stale text allocations from accumulating across filesystem operations.

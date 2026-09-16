@@ -376,7 +376,9 @@ bool TextEditorApp::saveCurrentFile() {
 }
 
 void TextEditorApp::setStatus(const std::string& message) {
+    if (m_statusMessage == message) return;
     m_statusMessage = message;
+    m_textSurfaceCache.clear();
 }
 
 void TextEditorApp::clearDiscardArm() {
@@ -1067,6 +1069,7 @@ void TextEditorApp::insertText(const char* text) {
         m_cursorCol = c1;
         clampCursor();
         clearSelection();
+        m_textSurfaceCache.clear();
         m_statusMessage.clear();
         ensureCursorVisible();
         return;
@@ -1089,6 +1092,7 @@ void TextEditorApp::insertText(const char* text) {
     m_dirty = true;
     clearDiscardArm();
     clearSelection();
+    m_textSurfaceCache.clear();
     m_statusMessage.clear();
     ensureCursorVisible();
 }
@@ -1370,6 +1374,7 @@ void TextEditorApp::enterFindMode() {
     m_replaceCursorPos = 0;
     m_statusHorizontalScrollPx = 0;
     clearSelection();
+    m_textSurfaceCache.clear();
     m_statusMessage.clear();
 }
 
@@ -1386,6 +1391,7 @@ void TextEditorApp::enterReplaceMode() {
     m_replaceCursorPos = m_replaceText.size();
     m_statusHorizontalScrollPx = 0;
     clearSelection();
+    m_textSurfaceCache.clear();
     m_statusMessage.clear();
     if (!m_findQuery.empty()) {
         updateFindMatches();
@@ -1626,6 +1632,10 @@ void TextEditorApp::render(SDL_Renderer* renderer, const SDL_Rect& contentRect) 
         SDL_SetRenderDrawColor(renderer, 20, 20, 25, 255);
         SDL_RenderFillRect(renderer, &contentRect);
         return;
+    }
+
+    if (m_searchMode != SearchMode::None || m_pathPromptMode != PathPromptMode::None) {
+        m_textSurfaceCache.clear();
     }
 
     const RendererClipState previousClip = captureRendererClip(renderer);

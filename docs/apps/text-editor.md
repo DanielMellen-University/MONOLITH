@@ -151,4 +151,4 @@ When the bound file is renamed in Filesystem Browser, moved with Filesystem Brow
 
 If the bound file or one of its parent directories is deleted, the editor stays open with its current in-memory buffer, releases the deleted file singleton, and becomes a tracked untitled `Editor` window. Any active Save/Open prompt returns to the nearest valid parent. Use Save or Save As to choose a new path; dirty content is not discarded automatically.
 
-The editor caches renderer-independent SDL_ttf surfaces for repeated syntax spans, line numbers, and status text. The cache is cleared when a document is loaded, edited, undone, or redone, and when the shared interface text scale changes. Per-frame SDL textures remain short-lived and are created from the cached surfaces.
+The editor caches renderer-independent SDL_ttf surfaces for repeated syntax spans, line numbers, and status text. The cache is cleared when a document is loaded, edited, undone, or redone, when status feedback changes, when find/replace or a path prompt is rendered, and when the shared interface text scale changes. Per-frame SDL textures remain short-lived and are created from the cached surfaces.
