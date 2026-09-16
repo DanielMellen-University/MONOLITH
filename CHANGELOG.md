@@ -1,5 +1,10 @@
 # Changelog
 
+## 2026-09: Keep client keyboard events owned by focused apps
+
+- Stop keyboard and text-input events after the focused app receives them, preventing a callback-triggered close from bubbling the same event into desktop-icon activation.
+- Add lifecycle coverage for a focused app that closes on Enter while a desktop icon is selected.
+
 ## 2026-09: Invalidate taskbar targets when windows minimize
 
 - Clear cached taskbar hit targets at the minimize transition, so queued input between frames sees the updated window state even when no focus handoff occurs.

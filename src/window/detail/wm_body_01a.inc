@@ -208,7 +208,10 @@ void WindowManager::handleEvent(const SDL_Event& event) {
         && m_focusedWindow->app && !m_showStartMenu &&
         (event.type == SDL_KEYDOWN || event.type == SDL_KEYUP || event.type == SDL_TEXTINPUT)) {
         invokeAppCallback([&]() { m_focusedWindow->app->handleEvent(event); });
-        // Do not return — WM doesn't consume keyboard yet, but apps get first crack
+        // A focused app owns client keyboard input. Shell hotkeys were already
+        // handled above, so do not let a callback that closes this app route the
+        // same event into a newly empty desktop or a selected icon.
+        return;
     }
 
     // === Global UI first: Taskbar + Start Menu (must be checked even if click misses all windows) ===

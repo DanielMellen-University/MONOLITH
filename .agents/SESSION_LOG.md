@@ -1,5 +1,7 @@
 # Session log
 
+| 2026-09-16 | fix | Kept client keyboard events owned by the focused app after shell hotkeys, added callback-close coverage that blocks accidental desktop-icon activation, and updated input-routing documentation. |
+
 | 2026-09-16 | fix | Invalidated cached taskbar targets at the minimize transition, added queued-input coverage before the next render, and updated architecture/changelog notes. |
 
 | 2026-09-16 | fix | Reapplied current usable geometry when restoring minimized maximized windows, added desktop-growth coverage, and updated architecture/changelog notes. |

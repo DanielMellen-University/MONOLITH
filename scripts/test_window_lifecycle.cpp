@@ -22,6 +22,22 @@ public:
     }
 };
 
+class KeyClosingApp final : public monolith::app::App {
+public:
+    void render(SDL_Renderer*, const SDL_Rect&) override {}
+
+    void handleEvent(const SDL_Event& event) override {
+        if (event.type == SDL_KEYDOWN && !closed) {
+            closed = true;
+            if (auto* controller = getController()) {
+                controller->close();
+            }
+        }
+    }
+
+    bool closed = false;
+};
+
 class UpdateProbe final : public monolith::app::App {
 public:
     void render(SDL_Renderer*, const SDL_Rect&) override {}
@@ -525,6 +541,26 @@ int main() {
 
         check(wm.getWindowAt(60, 690) == nullptr,
               "resize callback close removes the target before activation continues");
+    }
+
+    {
+        monolith::window::WindowManager wm;
+        // launchTerminal only stores this pointer until the fallback path is
+        // reached; no render occurs in this regression block.
+        wm.setAppResources(reinterpret_cast<TTF_Font*>(1), nullptr);
+        auto closing = std::make_unique<KeyClosingApp>();
+        wm.createWindow("Closing", 40, 80, 260, 180, std::move(closing));
+        wm.m_desktopIconSelected = 0;
+
+        SDL_Event key{};
+        key.type = SDL_KEYDOWN;
+        key.key.keysym.sym = SDLK_RETURN;
+        wm.handleEvent(key);
+
+        check(wm.m_windows.empty(),
+              "a focused app close does not fall through into desktop-icon launching");
+        check(wm.m_desktopIconSelected == 0,
+              "client keyboard ownership survives a callback-triggered close");
     }
 
     if (failures == 0) {
