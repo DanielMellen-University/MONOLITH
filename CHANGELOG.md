@@ -1,5 +1,10 @@
 # Changelog
 
+## 2026-09: Keep Drawing file singletons coherent
+
+- Drawing Open and Save prompts now focus or reject an existing `.modr` owner before changing the current canvas or binding, matching the Text Editor singleton behavior.
+- Added Drawing state coverage for duplicate Open and Save destinations.
+
 ## 2026-09: Recheck callback-created windows before shutdown
 
 - Shutdown validation now revisits windows opened by an app's `allowClose()` callback before accepting quit, preventing a newly created dirty document from bypassing the close contract.

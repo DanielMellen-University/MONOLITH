@@ -761,23 +761,38 @@ void DrawingApp::finishPathPrompt(bool commit) {
         return;
     }
 
+    std::string path = m_fs ? m_fs->normalize(buffer) : buffer;
+    if (mode == PathPromptMode::Save && !hasCaseInsensitiveSuffix(path, ".modr")) {
+        path += ".modr";
+    }
+
     if (mode == PathPromptMode::Save) {
+        if (path != m_filePath) {
+            if (auto* ctrl = getController(); ctrl && ctrl->focusDrawingForFile(path)) {
+                setStatus("Save failed: file already open");
+                return;
+            }
+        }
         saveToPath(buffer);
     } else if (mode == PathPromptMode::Open) {
-        if (m_discardKind == DiscardKind::Open && m_discardPath != buffer) {
+        if (auto* ctrl = getController(); ctrl && ctrl->focusDrawingForFile(path)) {
+            setStatus("Already open: " + path);
+            return;
+        }
+        if (m_discardKind == DiscardKind::Open && m_discardPath != path) {
             clearDiscardArm();
         }
         if (!requestDiscard(
                 DiscardKind::Open,
                 "Unsaved changes — open again to discard, or save first")) {
-            m_discardPath = buffer;
+            m_discardPath = path;
             m_pathPromptMode = PathPromptMode::Open;
-            m_pathPromptBuffer = buffer;
+            m_pathPromptBuffer = path;
             m_pathPromptCursorPos = m_pathPromptBuffer.size();
             m_pathPromptScrollPx = 0;
             return;
         }
-        if (loadFromPath(buffer)) {
+        if (loadFromPath(path)) {
             clearDiscardArm();
         }
     }

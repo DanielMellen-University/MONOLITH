@@ -1,5 +1,7 @@
 # Session log
 
+| 2026-09-15 | fix | Added Drawing singleton focus/rejection through the window controller, covered duplicate Open and Save destinations, and updated Drawing/architecture/changelog docs. |
+
 | 2026-09-15 | fix | Rechecked callback-created windows during shutdown validation, added coverage for a dirty editor opened from `allowClose()`, and updated architecture/changelog/development docs. |
 
 | 2026-09-15 | fix | Rechecked window identity after `allowClose()` and focus-loss callbacks, added recursive-close lifecycle coverage, and updated architecture/changelog/development docs. |

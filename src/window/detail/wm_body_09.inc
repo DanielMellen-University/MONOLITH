@@ -392,6 +392,10 @@ struct WindowController : public monolith::app::IWindowController {
         return wm ? wm->focusEditorForFile(virtualPath) : false;
     }
 
+    bool focusDrawingForFile(const std::string& virtualPath) override {
+        return wm ? wm->focusDrawingForFile(virtualPath) : false;
+    }
+
     void bindEditorFile(const std::string& virtualPath) override {
         if (wm && targetWindow) {
             wm->associateEditorWithFile(targetWindow, virtualPath);

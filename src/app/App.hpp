@@ -38,6 +38,10 @@ struct IWindowController {
     // Focus an existing editor for this path if one is already open. Returns true if focused.
     virtual bool focusEditorForFile(const std::string& /*virtualPath*/) { return false; }
 
+    // Focus an existing Drawing window for this path if one is already open.
+    // Returns true when the shell handled the request.
+    virtual bool focusDrawingForFile(const std::string& /*virtualPath*/) { return false; }
+
     // Register this editor window as the singleton owner of a virtual file path.
     virtual void bindEditorFile(const std::string& /*virtualPath*/) {}
 

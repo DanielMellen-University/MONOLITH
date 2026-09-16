@@ -21,9 +21,14 @@ namespace {
 
 struct TestController final : monolith::app::IWindowController {
     monolith::app::DrawingApp* drawing = nullptr;
+    std::string occupiedDrawingPath;
 
     void close() override {}
     void setTitle(const std::string&) override {}
+
+    bool focusDrawingForFile(const std::string& path) override {
+        return !occupiedDrawingPath.empty() && occupiedDrawingPath == path;
+    }
 
     void notifyVirtualPathChanged(const std::string& path) override {
         if (drawing) drawing->onVirtualPathChanged(path);
@@ -199,6 +204,29 @@ int main() {
     drawing.finishPathPrompt(true);
     check(drawing.m_filePath == "/drawings/alternate.modr" && !drawing.m_dirty,
           "confirming the changed dirty drawing target loads it");
+
+    std::vector<uint8_t> occupiedPixels(1 * 1 * 4, 128);
+    check(fs.writeFile("/drawings/occupied.modr",
+                       monolith::drawing::encodeModr(1, 1, occupiedPixels)),
+          "write occupied Drawing singleton target");
+    controller.occupiedDrawingPath = "/drawings/occupied.modr";
+    const std::string boundPathBeforeDuplicate = drawing.m_filePath;
+    drawing.beginPathPrompt(monolith::app::DrawingApp::PathPromptMode::Open);
+    drawing.m_pathPromptBuffer = controller.occupiedDrawingPath;
+    drawing.m_pathPromptCursorPos = drawing.m_pathPromptBuffer.size();
+    drawing.finishPathPrompt(true);
+    check(drawing.m_filePath == boundPathBeforeDuplicate
+              && drawing.m_statusMessage == "Already open: /drawings/occupied.modr",
+          "Drawing focuses an existing singleton instead of opening a duplicate");
+
+    drawing.beginPathPrompt(monolith::app::DrawingApp::PathPromptMode::Save);
+    drawing.m_pathPromptBuffer = "/drawings/occupied";
+    drawing.m_pathPromptCursorPos = drawing.m_pathPromptBuffer.size();
+    drawing.finishPathPrompt(true);
+    check(drawing.m_filePath == boundPathBeforeDuplicate
+              && drawing.m_statusMessage == "Save failed: file already open",
+          "Drawing rejects Save As to an existing singleton");
+    controller.occupiedDrawingPath.clear();
 
     drawing.beginPathPrompt(monolith::app::DrawingApp::PathPromptMode::Open);
     drawing.m_pathPromptScrollPx = 42;

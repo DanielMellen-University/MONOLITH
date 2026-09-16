@@ -104,7 +104,7 @@ Headless test of shipped line/rect raster, custom RGB parse, eyedropper pixel re
 g++ -std=c++23 scripts/test_drawing_roadmap.cpp src/app/DrawingRaster.cpp -o build/test_drawing_roadmap && ./build/test_drawing_roadmap
 ```
 
-Headless Drawing state test for clean loads, resize dirty tracking, history reset, font-scaled chrome, and scaled canvas pointer mapping:
+Headless Drawing state test for clean loads, resize dirty tracking, history reset, font-scaled chrome, scaled canvas pointer mapping, and duplicate file singleton rejection:
 
 ```bash
 g++ -std=c++23 scripts/test_drawing_state.cpp src/app/DrawingApp.cpp src/app/DrawingRaster.cpp src/fs/Filesystem.cpp $(pkg-config --cflags --libs sdl2 SDL2_ttf) -o build/test_drawing_state && ./build/test_drawing_state

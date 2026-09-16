@@ -229,6 +229,7 @@ Drawing participates in the same file workflow as the Terminal and Filesystem Br
 - Double-clicking a `.modr` file in the Filesystem Browser opens it in Drawing.
 - The Filesystem Browser can also use **Open with Drawing**; Drawing still rejects paths that are not `.modr` files.
 - Opening a `.modr` file that is already open focuses its existing Drawing window instead of creating a duplicate. A minimized matching window is restored first.
+- Opening an already-open `.modr` from an existing Drawing window focuses the existing owner and leaves the current canvas unchanged. Save prompts also reject a destination owned by another Drawing window instead of creating two canvases for one file.
 - A missing or invalid initial `.modr` falls back to the normal bare `Drawing` title, does not reserve a file binding, and remains eligible for session restore. Correcting the file and opening it again retries the load normally.
 - Saving a bare sketch turns it into a file-backed Drawing and releases its old bare `Drawing` instance number; other bare sketches compact their titles immediately.
 - When Monolith restores a saved desktop session, an open Drawing window keeps its geometry and bound `.modr` path.
