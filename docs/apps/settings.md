@@ -25,6 +25,7 @@ The **APPEARANCE** section at the top lets you change live desktop preferences.
 - Enter a virtual filesystem path to a **BMP**, **PNG**, or **JPEG** file (for example `/Wallpapers/sample.png`) and press **Set**.
 - While the path field is focused, Left/Right/Home/End move the caret, typed text is inserted at the caret, Delete removes the next complete UTF-8 character, and Backspace removes the previous one.
 - Press Tab to complete a directory or image filename (`.bmp`/`.png`/`.jpg`/`.jpeg`). With several matches, completion extends the shared prefix; the caret must be in the final path component.
+- Ambiguous completion stops at a complete UTF-8 codepoint, so filenames that share only leading bytes cannot insert an invalid partial character.
 - Long paths scroll horizontally to keep the caret visible while editing.
 - If a configured wallpaper path moves while the field is focused, the prompt follows the move and preserves the caret's suffix position on a UTF-8 boundary.
 - **Clear** removes the image and returns to solid color only.

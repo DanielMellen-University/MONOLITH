@@ -1,5 +1,7 @@
 # Session log
 
+| 2026-09-15 | fix | Made Drawing and Settings path completion stop at complete UTF-8 codepoints, added ambiguous Unicode coverage for both prompts, and updated their guides and changelog. |
+
 | 2026-09-15 | fix | Canceled Filesystem Browser inline renames before external listing refreshes, added stale-row regression coverage, and updated the browser guide and changelog. |
 
 | 2026-09-15 | fix | Clamped Text Editor horizontal scroll to the current line after wheel input and resize, added widened-client regression coverage, and updated the editor guide and changelog. |

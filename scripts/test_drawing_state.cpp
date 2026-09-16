@@ -77,6 +77,12 @@ int main() {
     check(fs.writeFile("/drawings/resize.modr",
                        monolith::drawing::encodeModr(2, 2, pixels)),
           "write resize drawing");
+    check(fs.createDirectory("/drawings/unicode"),
+          "create Unicode Drawing completion directory");
+    check(fs.writeFile("/drawings/unicode/\xC3\xA9" "clair.modr", "placeholder"),
+          "write first Unicode Drawing completion candidate");
+    check(fs.writeFile("/drawings/unicode/\xC3\xAA" "cole.modr", "placeholder"),
+          "write second Unicode Drawing completion candidate");
 
     check(SDL_Init(SDL_INIT_VIDEO) == 0, "drawing state SDL initialize");
     check(TTF_Init() == 0, "drawing state SDL_ttf initialize");
@@ -100,6 +106,14 @@ int main() {
     check(occupiedSketchNames, "occupy the first 999 default Drawing names");
     check(drawing.defaultSavePath() == "/home/monolith/drawings/sketch_1000.modr",
           "default Drawing save name continues past sketch_999");
+
+    drawing.beginPathPrompt(monolith::app::DrawingApp::PathPromptMode::Open);
+    drawing.m_pathPromptBuffer = "/drawings/unicode/";
+    drawing.m_pathPromptCursorPos = drawing.m_pathPromptBuffer.size();
+    drawing.completePathPrompt();
+    check(drawing.m_pathPromptBuffer == "/drawings/unicode/",
+          "Drawing completion does not insert a partial UTF-8 codepoint");
+    drawing.finishPathPrompt(false);
 
     drawing.onResize(300, 300);
     check(!drawing.m_dirty, "initial blank resize stays clean");

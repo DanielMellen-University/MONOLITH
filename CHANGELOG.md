@@ -1,5 +1,10 @@
 # Changelog
 
+## 2026-09: Keep drawing and settings completion UTF-8 safe
+
+- Drawing and Settings path prompts now stop ambiguous completions at complete UTF-8 codepoints, preventing a shared leading byte from becoming invalid text.
+- Added Unicode ambiguity coverage to both path-completion tests.
+
 ## 2026-09: Cancel stale browser renames after refresh
 
 - Filesystem Browser refreshes now cancel inline rename state before replacing the directory listing, preventing a later Enter from renaming a different row after an external filesystem change.

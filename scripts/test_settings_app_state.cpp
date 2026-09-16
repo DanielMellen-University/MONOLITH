@@ -71,8 +71,14 @@ int main() {
     monolith::fs::Filesystem fs(hostRoot);
     check(fs.initialize(), "settings state filesystem initialize");
     check(fs.createDirectory("/Wallpapers/art"), "create wallpaper completion directories");
+    check(fs.createDirectory("/Wallpapers/unicode"),
+          "create Unicode wallpaper completion directory");
     check(fs.writeFile("/Wallpapers/alpha.bmp", "a"), "create first BMP wallpaper");
     check(fs.writeFile("/Wallpapers/alpine.bmp", "b"), "create second BMP wallpaper");
+    check(fs.writeFile("/Wallpapers/unicode/\xC3\xA9" "clair.png", "a"),
+          "write first Unicode wallpaper completion candidate");
+    check(fs.writeFile("/Wallpapers/unicode/\xC3\xAA" "cole.png", "b"),
+          "write second Unicode wallpaper completion candidate");
     check(fs.writeFile("/Wallpapers/notes.txt", "not a wallpaper"),
           "create non-BMP completion distractor");
 
@@ -122,6 +128,12 @@ int main() {
     key(settings, SDLK_TAB);
     check(settings.m_wallpaperEditBuffer == "/Wallpapers/n",
           "Tab ignores non-BMP files");
+
+    settings.m_wallpaperEditBuffer = "/Wallpapers/unicode/";
+    settings.m_wallpaperCursorPos = settings.m_wallpaperEditBuffer.size();
+    key(settings, SDLK_TAB);
+    check(settings.m_wallpaperEditBuffer == "/Wallpapers/unicode/",
+          "Settings completion does not insert a partial UTF-8 codepoint");
 
     settings.m_wallpaperEditBuffer = "/Wallpapers/alpha.bmp";
     settings.m_wallpaperCursorPos = settings.m_wallpaperEditBuffer.size();
