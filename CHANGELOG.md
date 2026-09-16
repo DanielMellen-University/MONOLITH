@@ -11,6 +11,11 @@
 - Keep Filesystem Browser toolbar and filter geometry cached until resize or UI-scale changes instead of rebuilding it every render.
 - Preserve direct-render resize handling and add coverage for stable hit targets across frames.
 
+## 2026-09: Synchronize direct-render app geometry
+
+- Route direct Text Editor and Terminal render-size changes through their resize clamps so cached client dimensions and scroll bounds cannot lag behind the rendered content.
+- Add focused coverage for both direct-render paths.
+
 ## 2026-09: Cancel Browser rename before pointer actions
 
 - End Filesystem Browser inline rename mode before toolbar or context-menu mouse actions, so Delete and other controls cannot run with stale rename state still armed.

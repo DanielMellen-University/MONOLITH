@@ -125,6 +125,7 @@ Path prompts support Left/Right/Home/End, UTF-8-safe Backspace/Delete, and inser
 - Long lines remain editable without wrapping; horizontal scrolling moves the text viewport in pixel increments while preserving document columns.
 - Horizontal scrolling is clamped to the current line after wheel input and window resizing, so widening the editor cannot leave the text viewport stranded past the line end.
 - Resizing clamps vertical scrollback to the lines that fit in the new editor area. If the client is too short to fit a document row above the status bar, the editor leaves the document area empty instead of claiming rows that cannot be rendered.
+- Direct render-size changes use the same resize path, so client dimensions and scroll bounds stay synchronized even before the next Window Manager resize callback.
 - Mouse selection starts only on complete rendered rows; the unused gap above the status bar is not treated as document content.
 - A captured mouse selection extends to the nearest visible document edge while the pointer is outside the text viewport, matching the shell's pointer-capture behavior for other drag-based apps.
 - Syntax-highlighted spans at the viewport edge are clipped without scaling, so text measurements and cursor geometry stay consistent.

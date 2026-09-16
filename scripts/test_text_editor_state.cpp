@@ -194,6 +194,17 @@ int main() {
                       && restoredClip.w == expectedClip.w
                       && restoredClip.h == expectedClip.h,
                   "Text Editor restores the caller renderer clip after rendering");
+            scaleEditor.m_lines.assign(20, "line");
+            scaleEditor.m_cursorRow = 19;
+            scaleEditor.m_cursorCol = 0;
+            scaleEditor.m_scrollOffset = 19;
+            scaleEditor.render(renderer, {0, 0, 320, 80});
+            const int directRenderVisible = std::max(
+                1, scaleEditor.getVisibleLineCount({0, 0, 320, 80}));
+            check(scaleEditor.m_clientWidth == 320
+                      && scaleEditor.m_clientHeight == 80
+                      && scaleEditor.m_scrollOffset == 20 - directRenderVisible,
+                  "Text Editor direct renders synchronize client geometry and scroll bounds");
             SDL_DestroyRenderer(renderer);
         }
         if (surface) SDL_FreeSurface(surface);

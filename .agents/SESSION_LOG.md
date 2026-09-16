@@ -4,6 +4,8 @@
 
 | 2026-09-16 | cleanup | Cached Filesystem Browser toolbar and filter hit targets between frames, preserved direct-render resize handling, added coverage, and updated the Browser guide and changelog. |
 
+| 2026-09-16 | fix | Synchronized Text Editor and Terminal client geometry during direct renders, kept scroll bounds current, added focused coverage, and updated both app guides and the changelog. |
+
 | 2026-09-16 | fix | Canceled Filesystem Browser inline renames before pointer actions, added toolbar-delete coverage, and updated the Browser guide and changelog. |
 
 | 2026-09-16 | fix | Canceled Filesystem Browser inline renames before wheel scrolling, added stale-row coverage, and updated the Browser guide and changelog. |

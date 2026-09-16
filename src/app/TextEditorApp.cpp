@@ -1608,8 +1608,9 @@ int TextEditorApp::getVisibleLineCount(const SDL_Rect& contentRect) const {
 }
 
 void TextEditorApp::render(SDL_Renderer* renderer, const SDL_Rect& contentRect) {
-    m_clientWidth = contentRect.w;
-    m_clientHeight = contentRect.h;
+    if (m_clientWidth != contentRect.w || m_clientHeight != contentRect.h) {
+        onResize(contentRect.w, contentRect.h);
+    }
 
     if (!m_font) {
         SDL_SetRenderDrawColor(renderer, 20, 20, 25, 255);

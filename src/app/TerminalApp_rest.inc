@@ -332,6 +332,10 @@ std::string TerminalApp::joinPath(const std::string& base, const std::string& na
 }
 
 void TerminalApp::render(SDL_Renderer* renderer, const SDL_Rect& contentRect) {
+    if (m_clientWidth != contentRect.w || m_clientHeight != contentRect.h) {
+        onResize(contentRect.w, contentRect.h);
+    }
+
     if (!m_font) {
         // Fallback: just draw dark background
         SDL_SetRenderDrawColor(renderer, 15, 15, 18, 255);

@@ -115,6 +115,8 @@ History loading accepts both Unix and Windows line endings, so recalled commands
 
 Output scrolling is bounded to the history rows that fit above the input strip. Page Up, Page Down, and the mouse wheel cannot scroll beyond the oldest fully visible output, and resizing or changing the interface text scale clamps the saved scroll position to the new history area. If the client is too short to expose a history row, the Terminal leaves the history area empty instead of painting through the input strip.
 
+Direct render-size changes update the cached client geometry before scroll bounds are calculated.
+
 The input strip remains inside the client rectangle even when a window is resized below its normal text height.
 The history viewport also clamps both width and height to zero for clients smaller than its padding, so narrow windows do not create invalid clip rectangles.
 Terminal intersects its input and history clips with the caller's renderer clip and restores that clip after each region.

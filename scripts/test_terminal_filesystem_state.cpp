@@ -368,6 +368,12 @@ int main() {
                   && restoredClip.w == expectedClip.w
                   && restoredClip.h == expectedClip.h,
               "terminal restores the caller renderer clip after rendering");
+        terminal.m_scrollOffset = 39;
+        terminal.render(renderer, {0, 0, 320, 40});
+        check(terminal.m_clientWidth == 320
+                  && terminal.m_clientHeight == 40
+                  && terminal.getMaxVisibleLines({0, 0, 320, 40}) == 0,
+              "Terminal direct renders synchronize client geometry before scrolling");
         SDL_DestroyRenderer(renderer);
     }
     if (surface) SDL_FreeSurface(surface);
