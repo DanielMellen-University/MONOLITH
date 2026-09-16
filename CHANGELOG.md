@@ -8,6 +8,11 @@
 
 - Extended WindowManager input coverage to assert that `Alt+Tab` and `Ctrl+Escape` keydowns, as well as their releases, stay owned by the shell instead of reaching the focused app.
 
+## 2026-09: Add Settings fragment compressor
+
+- Added the checked-in counterpart to the Settings fragment decompressor, making source edits reproducibly round-trip between readable `.inc` files and tracked `.inc.z64` files.
+- Documented the compressed-source workflow for contributors and agents.
+
 ## 2026-09: Invalidate stale Settings hit targets
 
 - Cleared cached Settings swatch, clock, interface-scale, and wallpaper-control hit rectangles on client resize, interface text-scale changes, and scroll movement, preventing pre-render clicks from activating controls at their old positions.

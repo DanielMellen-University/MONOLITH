@@ -20,6 +20,22 @@ SDL_VIDEODRIVER=dummy SDL_AUDIODRIVER=dummy ./build/test_settings_app_state
 
 Keep the driver variables unset when testing against a real SDL display. The plain-logic checks do not need these variables.
 
+## Compressed Settings Sources
+
+Settings implementation fragments are stored as wrapped base64/zlib files under `src/app/` so large generated bodies stay manageable in the agent workflow. Decompress them before building, or let CMake do it through `monolith_settings_bodies`:
+
+```bash
+python3 src/app/decompress_settings_bodies.py build/generated/settings
+```
+
+After editing a decompressed fragment, regenerate the tracked source representation with the matching compressor:
+
+```bash
+python3 src/app/compress_settings_bodies.py build/generated/settings src/app
+```
+
+The compressor writes deterministic 80-column ASCII output and preserves the `.inc.z64` naming expected by CMake.
+
 ## Drawing Integration Check
 
 Static grep-based check that Drawing is wired into the window manager and Start menu:
