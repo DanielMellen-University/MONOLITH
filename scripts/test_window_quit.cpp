@@ -1,8 +1,15 @@
 // Headless regression test for the Shut Down dirty-document guard.
+#include "../src/fs/Filesystem.hpp"
+#define private public
 #include "../src/window/WindowManager.hpp"
+#undef private
 
+#include <SDL2/SDL_ttf.h>
+
+#include <filesystem>
 #include <iostream>
 #include <memory>
+#include <unistd.h>
 
 namespace {
 
@@ -27,6 +34,27 @@ public:
 private:
     bool m_dirty = false;
     bool m_confirmed = false;
+};
+
+class QuitOpeningApp final : public monolith::app::App {
+public:
+    void render(SDL_Renderer*, const SDL_Rect&) override {}
+
+    bool allowClose() override {
+        ++allowCloseCalls;
+        if (!openedWindow) {
+            openedWindow = true;
+            if (auto* controller = getController()) {
+                controller->openPath("/docs/shutdown-opened.txt");
+            }
+        }
+        return false;
+    }
+
+    int allowCloseCalls = 0;
+
+private:
+    bool openedWindow = false;
 };
 
 } // namespace
@@ -105,6 +133,46 @@ int main() {
         check(wm.shouldQuit(), "confirmed native window close is accepted");
         check(dirtyPtr->allowCloseCalls == 2,
               "confirmed native close checks the app a second time");
+    }
+
+    {
+        const std::filesystem::path hostRoot = std::filesystem::temp_directory_path()
+            / ("monolith-window-quit-snapshot-" + std::to_string(getpid()));
+        std::error_code ec;
+        std::filesystem::remove_all(hostRoot, ec);
+        monolith::fs::Filesystem fs(hostRoot.string());
+        check(fs.initialize(), "shutdown snapshot filesystem initialize");
+        check(fs.createDirectory("/docs"), "shutdown snapshot creates editor directory");
+        check(fs.writeFile("/docs/shutdown-opened.txt", "opened during shutdown"),
+              "shutdown snapshot writes editor source");
+
+        check(TTF_Init() == 0, "shutdown snapshot SDL_ttf initialize");
+        TTF_Font* font = TTF_OpenFont("assets/fonts/DejaVuSans.ttf", 14);
+        check(font != nullptr, "shutdown snapshot loads headless font");
+        if (font) {
+            monolith::window::WindowManager wm;
+            wm.setAppResources(font, &fs);
+
+            auto opener = std::make_unique<QuitOpeningApp>();
+            QuitOpeningApp* openerPtr = opener.get();
+            wm.createWindow("Opener", 40, 40, 260, 180, std::move(opener));
+
+            auto dirty = std::make_unique<QuitProbe>(true);
+            QuitProbe* dirtyPtr = dirty.get();
+            wm.createWindow("Dirty", 340, 40, 260, 180, std::move(dirty));
+
+            wm.requestQuit();
+            check(!wm.shouldQuit(),
+                  "shutdown remains blocked after a callback opens another window");
+            check(openerPtr->allowCloseCalls == 1 && dirtyPtr->allowCloseCalls == 1,
+                  "shutdown snapshot still checks every original app");
+            check(wm.m_windows.size() == 3 && wm.focusEditorForFile("/docs/shutdown-opened.txt"),
+                  "shutdown callback-created editor remains registered");
+
+            TTF_CloseFont(font);
+        }
+        TTF_Quit();
+        std::filesystem::remove_all(hostRoot, ec);
     }
 
     if (failures == 0) {

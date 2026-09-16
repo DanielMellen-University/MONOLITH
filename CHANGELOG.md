@@ -1,5 +1,10 @@
 # Changelog
 
+## 2026-09: Snapshot shutdown validation
+
+- WindowManager now validates `App::allowClose()` through the live-window snapshot, so an app can change the window set during shutdown validation without invalidating the shell's pass.
+- Added regression coverage for an app opening an editor while a dirty sibling is still checked.
+
 ## 2026-09: Keep modal focus handoffs honest
 
 - WindowManager now suppresses focus gains while the host or Start menu is inactive and resumes the current logical window after callback-triggered changes, preventing apps behind the modal menu from receiving active focus early.

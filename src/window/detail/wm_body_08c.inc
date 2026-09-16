@@ -61,11 +61,9 @@ void WindowManager::requestQuit() {
     // Shut Down is still a close operation. Ask every app in this request so
     // multiple dirty documents are armed together instead of serializing them.
     bool allAllowed = true;
-    for (const auto& window : m_windows) {
-        if (window && window->app && !window->app->allowClose()) {
-            allAllowed = false;
-        }
-    }
+    forEachLiveWindow([&allAllowed](Window& window) {
+        if (window.app && !window.app->allowClose()) allAllowed = false;
+    });
     if (!allAllowed) return;
 
     m_quitRequested = true;
