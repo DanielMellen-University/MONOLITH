@@ -216,16 +216,11 @@ void WindowManager::render(SDL_Renderer* renderer) {
 
         // Delegate to the app (if present) so it can draw its own content
         if (win.app) {
-            SDL_Rect previousClip{};
-            SDL_RenderGetClipRect(renderer, &previousClip);
-            const bool hadPreviousClip = previousClip.w > 0 && previousClip.h > 0;
-            SDL_Rect appClip = contentRect;
-            if (hadPreviousClip) {
-                SDL_IntersectRect(&previousClip, &contentRect, &appClip);
-            }
+            const RendererClipState previousClip = captureRendererClip(renderer);
+            const SDL_Rect appClip = intersectRendererClip(contentRect, previousClip);
             SDL_RenderSetClipRect(renderer, &appClip);
             win.app->render(renderer, contentRect);
-            SDL_RenderSetClipRect(renderer, hadPreviousClip ? &previousClip : nullptr);
+            restoreRendererClip(renderer, previousClip);
         }
 
         if (!isLiveWindow(target.window, target.id)) continue;

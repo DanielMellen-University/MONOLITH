@@ -137,7 +137,7 @@ Each frame, `WindowManager::update()` calls `App::update()` on every non-minimiz
 
 Apps can request shell actions through `IWindowController`: `close()`, `setTitle()`, `restoreTrackedInstanceTitle()`, `openInTextEditor` / `openInDrawing` / **`openPath`** (extension-based default), editor/drawing singleton focus and file-binding helpers, virtual path lifecycle notifications for created, changed, moved, and removed entries, the shared virtual filesystem clipboard, desktop background get/set, wallpaper path get/set, taskbar clock 12/24-hour get/set, and interface text scale get/set. Apps do not depend on each other directly. Temporary title overrides (e.g. Drawing after save) restore via `restoreTrackedInstanceTitle()`.
 
-Renderer clip capture, intersection, and restoration live in `src/detail/RendererClip.hpp`, shared by the shell, native apps, and games. Any nested clip must intersect the caller's clip and restore it before returning; this keeps embedded app rendering from leaking into neighboring shell regions.
+Renderer clip capture, intersection, and restoration live in `src/detail/RendererClip.hpp`, shared by the shell, native apps, and games. WindowManager client dispatch and Browser context menus use the same intersection helper as app renderers. Any nested clip must intersect the caller's clip and restore it before returning; this keeps embedded app rendering from leaking into neighboring shell regions.
 
 Text Editor, Drawing, Terminal, and Settings share the UTF-8 editing helpers in `src/app/Utf8.hpp`. Path completion uses the same complete-codepoint common-prefix rule as caret movement and deletion, so ambiguous multibyte filenames cannot leave a partial character in an app prompt.
 

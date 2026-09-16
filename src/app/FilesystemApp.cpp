@@ -20,6 +20,7 @@ constexpr int kStatusBarPadding = 8;
 using monolith::detail::RendererClipState;
 using monolith::detail::captureRendererClip;
 using monolith::detail::restoreRendererClip;
+using monolith::detail::intersectRendererClip;
 
 std::string parentVirtualPath(const std::string& normalizedPath) {
     if (normalizedPath.empty() || normalizedPath == "/") return "/";
@@ -2001,10 +2002,7 @@ void FilesystemApp::drawContextMenu(SDL_Renderer* r, const SDL_Rect& contentRect
 
     SDL_Rect menuRect = {menuX, menuY, m_contextMenuRect.w, m_contextMenuRect.h};
     const RendererClipState previousClip = captureRendererClip(r);
-    SDL_Rect effectiveMenuClip = menuRect;
-    if (previousClip.active) {
-        SDL_IntersectRect(&previousClip.rect, &menuRect, &effectiveMenuClip);
-    }
+    const SDL_Rect effectiveMenuClip = intersectRendererClip(menuRect, previousClip);
     if (effectiveMenuClip.w <= 0 || effectiveMenuClip.h <= 0) return;
     SDL_RenderSetClipRect(r, &effectiveMenuClip);
 

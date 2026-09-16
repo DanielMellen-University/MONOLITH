@@ -1,5 +1,9 @@
 # Changelog
 
+## 2026-09: Use shared clip intersections in shell boundaries
+
+- Routed the WindowManager client boundary and Filesystem Browser context menu through the shared renderer clip intersection helper, removing the last duplicate shell-side intersection logic.
+
 ## 2026-09: Share renderer clip handling across games
 
 - Routed Pong, Snake, Minesweeper, and Breakout text clipping through the shared renderer boundary helper, removing four duplicate capture/intersection/restore implementations.
