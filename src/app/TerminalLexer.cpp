@@ -170,7 +170,10 @@ CompletionContext completionContextAt(const std::string& line, std::size_t curso
     out.replacementStart = valueStart;
     out.prefix = std::move(decoded);
     out.firstWord = firstWord;
-    out.hasToken = inToken && !closedQuoteAtCursor;
+    // Whitespace at the cursor starts an empty token, which lets completion
+    // offer command names for a blank line and entries for `cd ` / `cat `.
+    // A cursor immediately after a closed quote remains outside that token.
+    out.hasToken = !closedQuoteAtCursor && (inToken || cursor == valueStart);
     out.quote = quote;
     return out;
 }

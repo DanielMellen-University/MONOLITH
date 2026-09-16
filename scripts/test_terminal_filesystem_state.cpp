@@ -74,6 +74,10 @@ int main() {
           "create file with an apostrophe");
     check(fs.createDirectory("/home/monolith/quoted dir"),
           "create directory for quoted completion");
+    check(fs.createDirectory("/home/monolith/only-entry"),
+          "create directory for empty-prefix completion");
+    check(fs.writeFile("/home/monolith/only-entry/result.txt", "result"),
+          "create unique empty-prefix completion candidate");
     check(fs.createDirectory("/home/monolith/unicode"),
           "create Unicode completion directory");
     check(fs.writeFile("/home/monolith/unicode/\xC3\xA9" "clair.txt", "a"),
@@ -256,6 +260,13 @@ int main() {
     terminal.handleTabCompletion();
     check(terminal.m_inputBuffer == "cat /home/monolith/unicode/",
           "ambiguous terminal completion does not insert a partial UTF-8 codepoint");
+
+    terminal.m_cwd = "/home/monolith/only-entry";
+    terminal.m_inputBuffer = "cd ";
+    terminal.m_inputCursorPos = static_cast<int>(terminal.m_inputBuffer.size());
+    terminal.handleTabCompletion();
+    check(terminal.m_inputBuffer == "cd result.txt",
+          "empty path prefixes complete from the terminal working directory");
 
     terminal.m_commandHistory = {"first command", "second command"};
     terminal.m_inputBuffer = "draft";

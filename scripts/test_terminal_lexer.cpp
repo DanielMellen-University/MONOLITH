@@ -98,6 +98,14 @@ int main() {
               "completion after a closed quoted token does not reopen it");
     }
 
+    {
+        const CompletionContext context = completionContextAt("cd ", 3);
+        check(context.hasToken && !context.firstWord && context.prefix.empty(),
+              "completion after whitespace exposes an empty path token");
+        check(context.replacementStart == 3,
+              "empty path completion starts at the cursor");
+    }
+
     check(escapeCompletion("my file", '"') == "my file",
           "double-quoted completion keeps spaces literal");
     check(escapeCompletion("a\\b\"c", '"') == "a\\\\b\\\"c",

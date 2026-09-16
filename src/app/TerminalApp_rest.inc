@@ -123,7 +123,7 @@ void TerminalApp::saveCommandHistory() {
 
 void TerminalApp::handleTabCompletion() {
     const CompletionContext context = completionContextAt(m_inputBuffer, m_inputCursorPos);
-    if (!context.hasToken || context.prefix.empty()) return;
+    if (!context.hasToken) return;
 
     std::vector<std::string> matches;
 

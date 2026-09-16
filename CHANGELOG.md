@@ -1,5 +1,10 @@
 # Changelog
 
+## 2026-09: Complete blank Terminal tokens
+
+- Let Tab completion treat the empty token after whitespace as an active command or path slot, so commands such as `cd ` can complete from the current working directory.
+- Added lexer and filesystem-backed coverage for empty-prefix completion while preserving closed-quote behavior.
+
 ## 2026-09: Keep Pong ball speed bounded
 
 - Cap vertical velocity after paddle deflection so repeated edge hits cannot make the ball skip past paddles.
