@@ -1,5 +1,7 @@
 # Session log
 
+| 2026-09-16 | fix | Invalidated taskbar hit targets after arrow and wheel scrolling, with regression coverage for rapid between-frame input. |
+
 | 2026-09-16 | fix | Routed failed-open and file-binding title changes for Editor and Drawing through the shell title/cache helper. |
 
 | 2026-09-16 | fix | Invalidated cached shell hit targets after window creation, focus ordering, close, and title changes, and added between-frame taskbar regression coverage. |

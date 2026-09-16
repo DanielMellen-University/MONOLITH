@@ -1,5 +1,10 @@
 # Changelog
 
+## 2026-09: Invalidate taskbar targets after scrolling
+
+- Cleared cached taskbar rectangles after arrow and wheel scrolling so rapid input cannot activate buttons from the previous viewport before the next render.
+- Added focused coverage for both taskbar scroll paths.
+
 ## 2026-09: Route binding titles through shell cache ownership
 
 - Covered failed opens and file-binding transitions that rename bare Editor or Drawing windows, keeping title textures and taskbar hit targets synchronized there too.

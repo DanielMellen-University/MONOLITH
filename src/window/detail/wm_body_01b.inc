@@ -41,12 +41,14 @@
                 SDL_Point p = {m_mouseX, m_mouseY};
                 if (SDL_PointInRect(&p, &m_taskbarLeftArrowRect)) {
                     m_taskbarScrollOffset = std::max(0, m_taskbarScrollOffset - 120);
+                    invalidateShellHitTargets();
                     setStartMenuVisible(false);
                     return;
                 }
                 if (SDL_PointInRect(&p, &m_taskbarRightArrowRect)) {
                     // Soft upper bound; drawing clamps which buttons stay visible.
                     m_taskbarScrollOffset += 120;
+                    invalidateShellHitTargets();
                     setStartMenuVisible(false);
                     return;
                 }
@@ -97,5 +99,6 @@
             m_taskbarScrollOffset += (event.wheel.y > 0 ? -80 : 80);
             if (m_taskbarScrollOffset < 0) m_taskbarScrollOffset = 0;
             // Upper bound will be soft-limited by drawing (buttons just stop appearing)
+            invalidateShellHitTargets();
             return;
         }

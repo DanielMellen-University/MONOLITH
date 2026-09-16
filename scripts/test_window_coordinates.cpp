@@ -360,6 +360,32 @@ int main() {
         check(readArrowPixel && arrowR == 80 && arrowG == 80 && arrowB == 90,
               "taskbar buttons stay clipped behind the visible right arrow");
 
+        SDL_Event rightArrowDown{};
+        rightArrowDown.type = SDL_MOUSEBUTTONDOWN;
+        rightArrowDown.button.button = SDL_BUTTON_LEFT;
+        rightArrowDown.button.x = wm.m_taskbarRightArrowRect.x + 1;
+        rightArrowDown.button.y = wm.m_taskbarRightArrowRect.y + 1;
+        wm.handleEvent(rightArrowDown);
+        check(wm.m_taskbarEntries.empty()
+                  && !wm.m_taskbarNeedsScroll
+                  && wm.m_taskbarRightArrowRect.w == 0,
+              "taskbar arrow scrolling invalidates stale hit targets");
+        SDL_Event rightArrowUp = rightArrowDown;
+        rightArrowUp.type = SDL_MOUSEBUTTONUP;
+        wm.handleEvent(rightArrowUp);
+
+        wm.render(renderer);
+        wm.m_mouseX = wm.m_taskbarButtonAreaLeft + 4;
+        wm.m_mouseY = wm.logicalToScreenY(wm.getTaskbarRect().y + 4);
+        SDL_Event wheelScroll{};
+        wheelScroll.type = SDL_MOUSEWHEEL;
+        wheelScroll.wheel.y = -1;
+        wm.handleEvent(wheelScroll);
+        check(wm.m_taskbarEntries.empty()
+                  && !wm.m_taskbarNeedsScroll
+                  && wm.m_taskbarRightArrowRect.w == 0,
+              "taskbar wheel scrolling invalidates stale hit targets");
+
         wm.setLogicalDesktopSize(40, 60);
         SDL_SetRenderDrawColor(renderer, 0, 0, 0, 255);
         SDL_RenderClear(renderer);
