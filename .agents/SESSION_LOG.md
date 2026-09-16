@@ -1,5 +1,7 @@
 # Session log
 
+| 2026-09-16 | fix | Re-found the Window Manager close target after focus-loss callbacks so sibling closes cannot invalidate its erase iterator; added lifecycle coverage and architecture notes. |
+
 | 2026-09-16 | fix | Remapped active Editor and Drawing path prompts after directory moves, preserving normalized paths and UTF-8-safe caret positions. |
 
 | 2026-09-16 | fix | Preserved the actual removed directory in bound-file callbacks so Editor and Drawing prompts recover to a surviving parent after recursive deletion. |

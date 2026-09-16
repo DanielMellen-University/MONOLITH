@@ -151,6 +151,26 @@ public:
     bool closedFromFocusLoss = false;
 };
 
+class FocusLossSiblingClosingApp final : public monolith::app::App {
+public:
+    explicit FocusLossSiblingClosingApp(monolith::window::WindowManager* wm)
+        : wm(wm) {}
+
+    void render(SDL_Renderer*, const SDL_Rect&) override {}
+
+    void onFocusLost() override {
+        if (wm && sibling) {
+            wm->closeWindow(sibling);
+            if (siblingCloseRequested) *siblingCloseRequested = true;
+            sibling = nullptr;
+        }
+    }
+
+    monolith::window::WindowManager* wm = nullptr;
+    monolith::window::Window* sibling = nullptr;
+    bool* siblingCloseRequested = nullptr;
+};
+
 class ActivationClosingApp final : public monolith::app::App {
 public:
     void render(SDL_Renderer*, const SDL_Rect&) override {}
@@ -290,6 +310,26 @@ int main() {
               "focus-loss callback can reenter the close operation");
         check(wm.m_windows.size() == 1 && wm.m_windows.front().get() == survivorWindow,
               "outer close stops after focus-loss already removed its target");
+    }
+
+    {
+        monolith::window::WindowManager wm;
+        auto survivor = std::make_unique<UpdateProbe>();
+        auto* survivorWindow = wm.createWindow("Survivor", 40, 80, 260, 180,
+                                               std::move(survivor));
+        bool siblingClosed = false;
+        auto closing = std::make_unique<FocusLossSiblingClosingApp>(&wm);
+        closing->sibling = survivorWindow;
+        closing->siblingCloseRequested = &siblingClosed;
+        auto* closingWindow = wm.createWindow("Focus Close Sibling", 400, 80, 260, 180,
+                                               std::move(closing));
+
+        wm.closeWindow(closingWindow);
+
+        check(siblingClosed,
+              "focus-loss callback can queue a sibling close");
+        check(wm.m_windows.empty(),
+              "outer close re-finds its target after a sibling close invalidates storage");
     }
 
     {

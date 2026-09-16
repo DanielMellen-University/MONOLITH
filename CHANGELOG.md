@@ -1,5 +1,10 @@
 # Changelog
 
+## 2026-09: Reacquire windows after reentrant focus loss
+
+- Re-found the closing window after its `onFocusLost()` callback, so a callback that closes a sibling cannot invalidate the Window Manager's erase iterator.
+- Added lifecycle coverage for sibling closes during focus-loss handling.
+
 ## 2026-09: Follow moved directories in active prompts
 
 - Remapped Text Editor and Drawing Open/Save prompts when a directory in the prompt moves, including normalized paths and UTF-8-safe caret positions.

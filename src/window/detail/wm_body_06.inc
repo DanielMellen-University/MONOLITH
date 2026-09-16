@@ -247,6 +247,13 @@ void WindowManager::closeWindow(Window* window) {
         // already completed all cleanup, so the outer operation must stop here.
         if (!isLiveWindow(window, windowId)) return;
 
+        // A focus-loss callback may close a different window too. That deferred
+        // close can erase from m_windows and invalidate the iterator captured
+        // above, so reacquire it before destroying this window.
+        it = std::find_if(m_windows.begin(), m_windows.end(),
+            [window](const auto& w) { return w.get() == window; });
+        if (it == m_windows.end()) return;
+
         // Drop the app's controller pointer before destroying owned controller + app.
         if (window->app) {
             window->app->setController(nullptr);
