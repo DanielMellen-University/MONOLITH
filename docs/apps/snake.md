@@ -48,6 +48,7 @@ The best score is saved on the host at `~/.monolith/snake_highscore.txt` and sho
 - Food placement uses a private unbiased random stream, so opening or resetting Minesweeper cannot alter Snake's sequence
 
 The board letterboxes inside the window when resized or maximized. If the client area becomes very small, cells compress so the full board remains inside the window instead of covering the HUD.
+Direct render-size changes refresh the cached client geometry before layout, so input and rendering stay aligned even before the next Window Manager resize callback.
 
 ## Current Limitations
 

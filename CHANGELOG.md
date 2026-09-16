@@ -16,6 +16,11 @@
 - Route direct Text Editor and Terminal render-size changes through their resize clamps so cached client dimensions and scroll bounds cannot lag behind the rendered content.
 - Add focused coverage for both direct-render paths.
 
+## 2026-09: Keep game geometry synchronized during direct renders
+
+- Route Pong, Breakout, Snake, and Minesweeper render-size changes through their normal resize lifecycle so cached client geometry cannot lag behind the rendered client area.
+- Add focused Snake and Minesweeper coverage and document the lifecycle guarantee across the game guides.
+
 ## 2026-09: Cancel Browser rename before pointer actions
 
 - End Filesystem Browser inline rename mode before toolbar or context-menu mouse actions, so Delete and other controls cannot run with stale rename state still armed.

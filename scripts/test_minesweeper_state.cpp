@@ -192,7 +192,11 @@ int main() {
     if (minesweeperRenderer) {
         SDL_SetRenderDrawBlendMode(minesweeperRenderer, SDL_BLENDMODE_ADD);
         game.m_state = MinesweeperApp::State::Lost;
+        game.m_clientWidth = 1;
+        game.m_clientHeight = 1;
         game.render(minesweeperRenderer, {0, 0, 240, 240});
+        check(game.m_clientWidth == 240 && game.m_clientHeight == 240,
+              "Minesweeper direct renders synchronize cached client geometry");
         SDL_BlendMode restoredBlend = SDL_BLENDMODE_NONE;
         SDL_GetRenderDrawBlendMode(minesweeperRenderer, &restoredBlend);
         check(restoredBlend == SDL_BLENDMODE_ADD,

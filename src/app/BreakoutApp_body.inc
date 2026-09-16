@@ -60,6 +60,10 @@ void BreakoutApp::fieldToScreen(const SDL_Rect& contentRect, float fx, float fy,
 }
 
 void BreakoutApp::render(SDL_Renderer* renderer, const SDL_Rect& contentRect) {
+    if (m_clientWidth != contentRect.w || m_clientHeight != contentRect.h) {
+        onResize(contentRect.w, contentRect.h);
+    }
+
     SDL_SetRenderDrawColor(renderer, 18, 20, 28, 255);
     SDL_RenderFillRect(renderer, &contentRect);
     const int hudH = hudHeight();

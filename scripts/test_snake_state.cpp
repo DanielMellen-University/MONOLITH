@@ -157,7 +157,11 @@ int main() {
     if (snakeRenderer) {
         SDL_SetRenderDrawBlendMode(snakeRenderer, SDL_BLENDMODE_ADD);
         game.m_state = SnakeApp::State::GameOver;
+        game.m_clientWidth = 1;
+        game.m_clientHeight = 1;
         game.render(snakeRenderer, {0, 0, 240, 240});
+        check(game.m_clientWidth == 240 && game.m_clientHeight == 240,
+              "Snake direct renders synchronize cached client geometry");
         SDL_BlendMode restoredBlend = SDL_BLENDMODE_NONE;
         SDL_GetRenderDrawBlendMode(snakeRenderer, &restoredBlend);
         check(restoredBlend == SDL_BLENDMODE_ADD,

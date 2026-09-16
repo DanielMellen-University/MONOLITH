@@ -381,6 +381,10 @@ void SnakeApp::handleEvent(const SDL_Event& event) {
 }
 
 void SnakeApp::render(SDL_Renderer* renderer, const SDL_Rect& contentRect) {
+    if (m_clientWidth != contentRect.w || m_clientHeight != contentRect.h) {
+        onResize(contentRect.w, contentRect.h);
+    }
+
     layoutBoard(contentRect);
     const int hudH = hudHeight();
     const int fontHeight = m_font ? TTF_FontHeight(m_font) : 16;

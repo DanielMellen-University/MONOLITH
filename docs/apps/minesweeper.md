@@ -62,6 +62,7 @@ Per-difficulty best times are stored on the host at `~/.monolith/minesweeper_bes
 - Overlay line spacing follows the active interface font so scaled text does not overlap on end-state screens
 
 The board letterboxes inside the window. Expert on a small window uses compressed cells so the full board remains inside the client area; maximize for comfort. Tiny cells prioritize keeping the board and footer contained over drawing number glyphs that would not fit.
+Direct render-size changes refresh the cached client geometry before board layout, keeping the drawn controls and client-space hitboxes aligned.
 
 ## Current Limitations
 
