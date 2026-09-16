@@ -162,6 +162,14 @@ int main() {
         game.render(snakeRenderer, {0, 0, 240, 240});
         check(game.m_clientWidth == 240 && game.m_clientHeight == 240,
               "Snake direct renders synchronize cached client geometry");
+        const size_t cachedSurfaceCount = game.m_textSurfaceCache.m_entries.size();
+        game.render(snakeRenderer, {0, 0, 240, 240});
+        check(cachedSurfaceCount > 0
+                  && game.m_textSurfaceCache.m_entries.size() == cachedSurfaceCount,
+              "Snake reuses cached text surfaces between frames");
+        game.onUiScaleChanged();
+        check(game.m_textSurfaceCache.m_entries.empty(),
+              "Snake clears cached text surfaces when UI scale changes");
         SDL_BlendMode restoredBlend = SDL_BLENDMODE_NONE;
         SDL_GetRenderDrawBlendMode(snakeRenderer, &restoredBlend);
         check(restoredBlend == SDL_BLENDMODE_ADD,

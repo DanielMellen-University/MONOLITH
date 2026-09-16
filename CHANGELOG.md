@@ -1,5 +1,9 @@
 # Changelog
 
+## 2026-09: Cache repeated game text surfaces
+
+- Reuse SDL_ttf surfaces across Pong, Breakout, Snake, and Minesweeper frames, including repeated Minesweeper glyphs, and clear them when the interface scale changes.
+
 ## 2026-09: Cache static shell labels
 
 - Reuse taskbar and Start-menu text textures by text and color, including normal and hovered menu rows, while invalidating the shared cache when the interface font changes.

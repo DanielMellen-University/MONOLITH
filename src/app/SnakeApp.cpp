@@ -223,6 +223,10 @@ void SnakeApp::onResize(int clientWidth, int clientHeight) {
     m_clientHeight = clientHeight;
 }
 
+void SnakeApp::onUiScaleChanged() {
+    m_textSurfaceCache.clear();
+}
+
 int SnakeApp::hudHeight() const {
     const int fontHeight = m_font ? TTF_FontHeight(m_font) : 16;
     return std::max(kHudHeight, fontHeight + 12);
@@ -247,7 +251,7 @@ void SnakeApp::drawText(SDL_Renderer* renderer, const char* text, int x, int y,
 int SnakeApp::drawTextReturnWidth(SDL_Renderer* renderer, const char* text, int x, int y,
                                   SDL_Color color, const SDL_Rect* clip) const {
     if (!m_font || !text || !*text) return 0;
-    SDL_Surface* surf = TTF_RenderUTF8_Blended(m_font, text, color);
+    SDL_Surface* surf = m_textSurfaceCache.get(m_font, text, color);
     if (!surf) return 0;
     const int w = surf->w;
     SDL_Texture* tex = SDL_CreateTextureFromSurface(renderer, surf);
@@ -266,7 +270,6 @@ int SnakeApp::drawTextReturnWidth(SDL_Renderer* renderer, const char* text, int 
         }
         SDL_DestroyTexture(tex);
     }
-    SDL_FreeSurface(surf);
     return w;
 }
 
@@ -281,7 +284,7 @@ int SnakeApp::measureTextWidth(const char* text) const {
 void SnakeApp::drawCenteredText(SDL_Renderer* renderer, const char* text,
                                 const SDL_Rect& area, SDL_Color color) const {
     if (!m_font || !text || !*text) return;
-    SDL_Surface* surf = TTF_RenderUTF8_Blended(m_font, text, color);
+    SDL_Surface* surf = m_textSurfaceCache.get(m_font, text, color);
     if (!surf) return;
     SDL_Texture* tex = SDL_CreateTextureFromSurface(renderer, surf);
     if (tex) {
@@ -294,13 +297,12 @@ void SnakeApp::drawCenteredText(SDL_Renderer* renderer, const char* text,
         SDL_RenderCopy(renderer, tex, nullptr, &dst);
         SDL_DestroyTexture(tex);
     }
-    SDL_FreeSurface(surf);
 }
 
 void SnakeApp::drawCenteredLine(SDL_Renderer* renderer, const char* text,
                                 const SDL_Rect& area, int topY, SDL_Color color) const {
     if (!m_font || !text || !*text) return;
-    SDL_Surface* surf = TTF_RenderUTF8_Blended(m_font, text, color);
+    SDL_Surface* surf = m_textSurfaceCache.get(m_font, text, color);
     if (!surf) return;
     SDL_Texture* tex = SDL_CreateTextureFromSurface(renderer, surf);
     if (tex) {
@@ -313,7 +315,6 @@ void SnakeApp::drawCenteredLine(SDL_Renderer* renderer, const char* text,
         SDL_RenderCopy(renderer, tex, nullptr, &dst);
         SDL_DestroyTexture(tex);
     }
-    SDL_FreeSurface(surf);
 }
 
 void SnakeApp::handleEvent(const SDL_Event& event) {

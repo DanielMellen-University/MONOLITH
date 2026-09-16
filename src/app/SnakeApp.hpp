@@ -2,6 +2,7 @@
 
 #include "App.hpp"
 #include "../detail/Random.hpp"
+#include "../detail/TextSurfaceCache.hpp"
 #include <SDL2/SDL.h>
 #include <SDL2/SDL_ttf.h>
 #include <cstdint>
@@ -26,6 +27,7 @@ public:
     void onFocusGained() override;
     void onFocusLost() override;
     void onResize(int clientWidth, int clientHeight) override;
+    void onUiScaleChanged() override;
 
 private:
     enum class Dir { Up, Down, Left, Right };
@@ -64,6 +66,7 @@ private:
     static std::string highScoreHostPath();
 
     TTF_Font* m_font = nullptr;
+    mutable monolith::detail::TextSurfaceCache m_textSurfaceCache;
     monolith::detail::Random m_random;
 
     std::deque<std::pair<int, int>> m_body; // front = head

@@ -372,6 +372,7 @@ void MinesweeperApp::onResize(int clientWidth, int clientHeight) {
 }
 
 void MinesweeperApp::onUiScaleChanged() {
+    m_textSurfaceCache.clear();
     refreshUiMetrics();
 }
 
@@ -477,7 +478,7 @@ void MinesweeperApp::layoutBoard(const SDL_Rect& contentRect) {
 void MinesweeperApp::drawText(SDL_Renderer* renderer, const char* text, int x, int y,
                               SDL_Color color, const SDL_Rect* clip) const {
     if (!m_font || !text || !*text) return;
-    SDL_Surface* surf = TTF_RenderUTF8_Blended(m_font, text, color);
+    SDL_Surface* surf = m_textSurfaceCache.get(m_font, text, color);
     if (!surf) return;
     SDL_Texture* tex = SDL_CreateTextureFromSurface(renderer, surf);
     if (tex) {
@@ -495,13 +496,12 @@ void MinesweeperApp::drawText(SDL_Renderer* renderer, const char* text, int x, i
         }
         SDL_DestroyTexture(tex);
     }
-    SDL_FreeSurface(surf);
 }
 
 void MinesweeperApp::drawCenteredText(SDL_Renderer* renderer, const char* text,
                                       const SDL_Rect& area, SDL_Color color) const {
     if (!m_font || !text || !*text) return;
-    SDL_Surface* surf = TTF_RenderUTF8_Blended(m_font, text, color);
+    SDL_Surface* surf = m_textSurfaceCache.get(m_font, text, color);
     if (!surf) return;
     SDL_Texture* tex = SDL_CreateTextureFromSurface(renderer, surf);
     if (tex) {
@@ -514,13 +514,12 @@ void MinesweeperApp::drawCenteredText(SDL_Renderer* renderer, const char* text,
         SDL_RenderCopy(renderer, tex, nullptr, &dst);
         SDL_DestroyTexture(tex);
     }
-    SDL_FreeSurface(surf);
 }
 
 void MinesweeperApp::drawCenteredLine(SDL_Renderer* renderer, const char* text,
                                       const SDL_Rect& area, int topY, SDL_Color color) const {
     if (!m_font || !text || !*text) return;
-    SDL_Surface* surf = TTF_RenderUTF8_Blended(m_font, text, color);
+    SDL_Surface* surf = m_textSurfaceCache.get(m_font, text, color);
     if (!surf) return;
     SDL_Texture* tex = SDL_CreateTextureFromSurface(renderer, surf);
     if (tex) {
@@ -533,7 +532,6 @@ void MinesweeperApp::drawCenteredLine(SDL_Renderer* renderer, const char* text,
         SDL_RenderCopy(renderer, tex, nullptr, &dst);
         SDL_DestroyTexture(tex);
     }
-    SDL_FreeSurface(surf);
 }
 
 SDL_Color MinesweeperApp::numberColor(int n) const {

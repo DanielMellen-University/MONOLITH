@@ -39,6 +39,10 @@ void BreakoutApp::onResize(int clientWidth, int clientHeight) {
     m_clientHeight = clientHeight;
 }
 
+void BreakoutApp::onUiScaleChanged() {
+    m_textSurfaceCache.clear();
+}
+
 void BreakoutApp::onFocusLost() {
     if (m_game.state == monolith::breakout::State::Playing) {
         m_paused = true;

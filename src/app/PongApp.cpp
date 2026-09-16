@@ -29,6 +29,10 @@ void PongApp::onResize(int clientWidth, int clientHeight) {
     m_clientHeight = clientHeight;
 }
 
+void PongApp::onUiScaleChanged() {
+    m_textSurfaceCache.clear();
+}
+
 void PongApp::onFocusLost() {
     if (m_game.state == monolith::pong::State::Playing) {
         m_paused = true;
@@ -118,7 +122,7 @@ void PongApp::handleEvent(const SDL_Event& event) {
 void PongApp::drawText(SDL_Renderer* renderer, const char* text, int x, int y, SDL_Color color,
                        const SDL_Rect* clip) const {
     if (!m_font || !text || !*text) return;
-    SDL_Surface* surf = TTF_RenderUTF8_Blended(m_font, text, color);
+    SDL_Surface* surf = m_textSurfaceCache.get(m_font, text, color);
     if (!surf) return;
     SDL_Texture* tex = SDL_CreateTextureFromSurface(renderer, surf);
     if (tex) {
@@ -136,12 +140,11 @@ void PongApp::drawText(SDL_Renderer* renderer, const char* text, int x, int y, S
         }
         SDL_DestroyTexture(tex);
     }
-    SDL_FreeSurface(surf);
 }
 
 void PongApp::drawCentered(SDL_Renderer* renderer, const char* text, const SDL_Rect& area, SDL_Color color) const {
     if (!m_font || !text || !*text) return;
-    SDL_Surface* surf = TTF_RenderUTF8_Blended(m_font, text, color);
+    SDL_Surface* surf = m_textSurfaceCache.get(m_font, text, color);
     if (!surf) return;
     SDL_Texture* tex = SDL_CreateTextureFromSurface(renderer, surf);
     if (tex) {
@@ -154,7 +157,6 @@ void PongApp::drawCentered(SDL_Renderer* renderer, const char* text, const SDL_R
         SDL_RenderCopy(renderer, tex, nullptr, &dst);
         SDL_DestroyTexture(tex);
     }
-    SDL_FreeSurface(surf);
 }
 
 void PongApp::fieldToScreen(const SDL_Rect& contentRect, float fx, float fy, int fw, int fh,

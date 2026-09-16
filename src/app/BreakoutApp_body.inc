@@ -1,7 +1,7 @@
 void BreakoutApp::drawText(SDL_Renderer* renderer, const char* text, int x, int y, SDL_Color color,
                            const SDL_Rect* clip) const {
     if (!m_font || !text || !*text) return;
-    SDL_Surface* surf = TTF_RenderUTF8_Blended(m_font, text, color);
+    SDL_Surface* surf = m_textSurfaceCache.get(m_font, text, color);
     if (!surf) return;
     SDL_Texture* tex = SDL_CreateTextureFromSurface(renderer, surf);
     if (tex) {
@@ -19,13 +19,12 @@ void BreakoutApp::drawText(SDL_Renderer* renderer, const char* text, int x, int 
         }
         SDL_DestroyTexture(tex);
     }
-    SDL_FreeSurface(surf);
 }
 
 void BreakoutApp::drawCentered(SDL_Renderer* renderer, const char* text, const SDL_Rect& area,
                                SDL_Color color) const {
     if (!m_font || !text || !*text) return;
-    SDL_Surface* surf = TTF_RenderUTF8_Blended(m_font, text, color);
+    SDL_Surface* surf = m_textSurfaceCache.get(m_font, text, color);
     if (!surf) return;
     SDL_Texture* tex = SDL_CreateTextureFromSurface(renderer, surf);
     if (tex) {
@@ -38,7 +37,6 @@ void BreakoutApp::drawCentered(SDL_Renderer* renderer, const char* text, const S
         SDL_RenderCopy(renderer, tex, nullptr, &dst);
         SDL_DestroyTexture(tex);
     }
-    SDL_FreeSurface(surf);
 }
 
 void BreakoutApp::fieldToScreen(const SDL_Rect& contentRect, float fx, float fy, int fw, int fh,
