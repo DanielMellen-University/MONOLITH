@@ -47,6 +47,17 @@ inline std::size_t utf8ClampToCodepointBoundary(const std::string& value,
     return offset;
 }
 
+// Completion prefixes are built from byte comparisons. Remove a trailing
+// partial codepoint before the prefix is inserted into an editable buffer.
+inline void trimIncompleteUtf8Suffix(std::string& value) {
+    if (value.empty()) return;
+    const std::size_t start = utf8PrevCodepointStart(value, value.size());
+    const std::size_t length = utf8CodepointByteLen(value, start);
+    if (start + length > value.size()) {
+        value.resize(start);
+    }
+}
+
 // Preserve a prompt caret's position after replacing a moved path prefix.
 inline std::size_t remapUtf8CursorAfterPrefix(
     const std::string& oldValue,

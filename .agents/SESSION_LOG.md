@@ -1,5 +1,7 @@
 # Session log
 
+| 2026-09-15 | refactor | Centralized the UTF-8 completion boundary guard in `Utf8.hpp`, switched all four completion clients to it, and added direct helper coverage. |
+
 | 2026-09-15 | fix | Made Terminal path completion stop at complete UTF-8 codepoints, added ambiguous Unicode coverage, and updated the Terminal guide and changelog. |
 
 | 2026-09-15 | fix | Made Drawing and Settings path completion stop at complete UTF-8 codepoints, added ambiguous Unicode coverage for both prompts, and updated their guides and changelog. |

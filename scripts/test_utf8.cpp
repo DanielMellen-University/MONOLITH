@@ -9,6 +9,7 @@ using monolith::app::utf8CodepointByteLen;
 using monolith::app::utf8ClampToCodepointBoundary;
 using monolith::app::utf8NextCodepointStart;
 using monolith::app::utf8PrevCodepointStart;
+using monolith::app::trimIncompleteUtf8Suffix;
 
 int main() {
     int failures = 0;
@@ -32,6 +33,15 @@ int main() {
           "cursor clamp backs out of a continuation byte");
     check(utf8ClampToCodepointBoundary(value, 999) == value.size(),
           "cursor clamp limits offsets past the string");
+
+    std::string incompletePrefix = "A\xC3";
+    trimIncompleteUtf8Suffix(incompletePrefix);
+    check(incompletePrefix == "A",
+          "completion prefix drops a trailing partial UTF-8 codepoint");
+    std::string completePrefix = "A\xC3\xA9";
+    trimIncompleteUtf8Suffix(completePrefix);
+    check(completePrefix == "A\xC3\xA9",
+          "completion prefix keeps complete UTF-8 codepoints");
 
     std::string edited = value;
     popLastUtf8Codepoint(edited);

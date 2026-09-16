@@ -1,5 +1,10 @@
 # Changelog
 
+## 2026-09: Centralize UTF-8 completion safety
+
+- Shared the complete-codepoint completion guard across Terminal, Text Editor, Drawing, and Settings so future path-completion changes keep the same input invariant.
+- Added direct helper coverage to the UTF-8 unit test.
+
 ## 2026-09: Keep terminal completion UTF-8 safe
 
 - Terminal path completion now stops ambiguous shared prefixes at complete UTF-8 codepoints, preventing a shared leading byte from becoming invalid input.
