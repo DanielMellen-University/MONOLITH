@@ -382,16 +382,19 @@ bool TextEditorApp::saveCurrentFile() {
     if (ok) {
         m_dirty = false;
         clearDiscardArm();
-        if (!wasExisting) {
-            if (auto* ctrl = getController()) {
+        if (auto* ctrl = getController()) {
+            // Claim the singleton before broadcasting so a synchronous observer
+            // opening this path focuses this editor instead of creating a duplicate.
+            ctrl->bindEditorFile(m_filePath);
+            if (!wasExisting) {
                 ctrl->notifyVirtualPathCreated(m_filePath);
+            } else {
+                // The shell broadcasts synchronously, including back to this
+                // editor. Do not report our own save as an external overwrite.
+                m_suppressChangedNotification = true;
+                ctrl->notifyVirtualPathChanged(m_filePath);
+                m_suppressChangedNotification = false;
             }
-        } else if (auto* ctrl = getController()) {
-            // The shell broadcasts synchronously, including back to this
-            // editor. Do not report our own save as an external overwrite.
-            m_suppressChangedNotification = true;
-            ctrl->notifyVirtualPathChanged(m_filePath);
-            m_suppressChangedNotification = false;
         }
         setStatus("Saved: " + getDisplayName());
     } else {
@@ -650,9 +653,6 @@ void TextEditorApp::finishPathPrompt(bool commit) {
         m_filePath = path;
         refreshSyntaxMode();
         if (saveCurrentFile()) {
-            if (auto* ctrl = getController()) {
-                ctrl->bindEditorFile(path);
-            }
             updateTitleForPath();
         } else {
             // Keep the current document identity when the destination could not

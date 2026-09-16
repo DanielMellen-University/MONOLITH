@@ -1,5 +1,10 @@
 # Changelog
 
+## 2026-09: Claim new files before notifications
+
+- Text Editor and Drawing now register a newly saved file binding before broadcasting its creation, so synchronous observers focus the saving window instead of opening a duplicate.
+- Added event-order coverage for both apps.
+
 ## 2026-09: Keep Drawing file singletons coherent
 
 - Drawing Open and Save prompts now focus or reject an existing `.modr` owner before changing the current canvas or binding, matching the Text Editor singleton behavior.

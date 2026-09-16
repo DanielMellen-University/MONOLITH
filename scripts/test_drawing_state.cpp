@@ -22,15 +22,25 @@ namespace {
 struct TestController final : monolith::app::IWindowController {
     monolith::app::DrawingApp* drawing = nullptr;
     std::string occupiedDrawingPath;
+    std::vector<std::string> lifecycleEvents;
 
     void close() override {}
     void setTitle(const std::string&) override {}
+
+    void bindDrawingFile(const std::string& path) override {
+        lifecycleEvents.push_back("bind:" + path);
+    }
+
+    void notifyVirtualPathCreated(const std::string& path) override {
+        lifecycleEvents.push_back("created:" + path);
+    }
 
     bool focusDrawingForFile(const std::string& path) override {
         return !occupiedDrawingPath.empty() && occupiedDrawingPath == path;
     }
 
     void notifyVirtualPathChanged(const std::string& path) override {
+        lifecycleEvents.push_back("changed:" + path);
         if (drawing) drawing->onVirtualPathChanged(path);
     }
 };
@@ -249,6 +259,14 @@ int main() {
     drawing.onBoundFileRemoved("/archive/alternate.modr");
     check(drawing.m_pathPromptBuffer == "/archive/",
           "Save prompt returns to a valid parent after deletion");
+
+    controller.lifecycleEvents.clear();
+    check(drawing.saveToPath("/drawings/created"),
+          "Drawing creates a new file through its save path");
+    check(controller.lifecycleEvents.size() >= 2
+              && controller.lifecycleEvents[0] == "bind:/drawings/created.modr"
+              && controller.lifecycleEvents[1] == "created:/drawings/created.modr",
+          "Drawing claims a new file before broadcasting its creation");
 
     SDL_Surface* surface = SDL_CreateRGBSurfaceWithFormat(
         0, 320, 320, 32, SDL_PIXELFORMAT_RGBA32);

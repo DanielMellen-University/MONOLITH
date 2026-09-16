@@ -508,27 +508,29 @@ bool DrawingApp::saveToPath(const std::string& virtualPath) {
         return false;
     }
 
-    if (!wasExisting) {
-        if (auto* ctrl = getController()) {
-            ctrl->notifyVirtualPathCreated(path);
-        }
-    } else if (auto* ctrl = getController()) {
-        // The shell broadcasts synchronously, including back to this Drawing
-        // window. Do not report the window's own save as an external change.
-        m_suppressChangedNotification = true;
-        ctrl->notifyVirtualPathChanged(path);
-        m_suppressChangedNotification = false;
-    }
-
     m_filePath = path;
     m_dirty = false;
     clearDiscardArm();
+
+    if (auto* ctrl = getController()) {
+        // Claim the singleton before broadcasting so a synchronous observer
+        // opening this path focuses this Drawing instead of creating a duplicate.
+        ctrl->bindDrawingFile(path);
+        if (!wasExisting) {
+            ctrl->notifyVirtualPathCreated(path);
+        } else {
+            // The shell broadcasts synchronously, including back to this Drawing
+            // window. Do not report the window's own save as an external change.
+            m_suppressChangedNotification = true;
+            ctrl->notifyVirtualPathChanged(path);
+            m_suppressChangedNotification = false;
+        }
+    }
 
     size_t nameStart = path.find_last_of('/');
     const std::string baseName = (nameStart != std::string::npos) ? path.substr(nameStart + 1) : path;
     if (auto* ctrl = getController()) {
         ctrl->setTitle("Drawing - " + baseName);
-        ctrl->bindDrawingFile(path);
     }
 
     setStatus("Saved: " + path);

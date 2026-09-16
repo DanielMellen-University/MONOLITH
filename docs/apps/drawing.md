@@ -209,7 +209,7 @@ Drawing keeps the live canvas separate from the file path and from editor-sessio
 | Another app overwrites the bound `.modr` | The open canvas stays in memory and is not silently replaced. Use Open to load the external version, or Save to deliberately write the current canvas back. |
 | Close, choose **New**, or open while modified | The first action shows a status-bar warning. Repeat the same action to discard, or save first. |
 
-There is no automatic recovery file. If the process exits before Save succeeds, unsaved pixels and in-memory undo history are lost.
+There is no automatic recovery file. If the process exits before Save succeeds, unsaved pixels and in-memory undo history are lost. A successful first save claims the new `.modr` singleton before notifying other apps that the file was created.
 
 ## Launching
 

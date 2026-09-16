@@ -7,6 +7,7 @@
 #include <iostream>
 #include <string>
 #include <unistd.h>
+#include <vector>
 
 #include "../src/app/App.hpp"
 #include "../src/fs/Filesystem.hpp"
@@ -21,6 +22,7 @@ struct TestController final : monolith::app::IWindowController {
     std::string blockedPath;
     std::string focusedPath;
     std::string boundPath;
+    std::vector<std::string> lifecycleEvents;
     monolith::app::TextEditorApp* editor = nullptr;
 
     void close() override {}
@@ -33,9 +35,15 @@ struct TestController final : monolith::app::IWindowController {
 
     void bindEditorFile(const std::string& path) override {
         boundPath = path;
+        lifecycleEvents.push_back("bind:" + path);
+    }
+
+    void notifyVirtualPathCreated(const std::string& path) override {
+        lifecycleEvents.push_back("created:" + path);
     }
 
     void notifyVirtualPathChanged(const std::string& path) override {
+        lifecycleEvents.push_back("changed:" + path);
         if (editor) editor->onVirtualPathChanged(path);
     }
 };
@@ -187,6 +195,10 @@ int main() {
     check(editor.m_filePath == "/new.txt", "successful Save As updates the file path");
     check(fs.readFile("/new.txt") == "original", "successful Save As writes the document");
     check(controller.boundPath == "/new.txt", "successful Save As updates the shell binding");
+    check(controller.lifecycleEvents.size() >= 2
+              && controller.lifecycleEvents[0] == "bind:/new.txt"
+              && controller.lifecycleEvents[1] == "created:/new.txt",
+          "editor claims a new file before broadcasting its creation");
 
     TestEditor externalEditor(nullptr, &fs, "/new.txt");
     TestController externalController;

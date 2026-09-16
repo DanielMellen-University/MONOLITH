@@ -104,7 +104,7 @@ Headless test of shipped line/rect raster, custom RGB parse, eyedropper pixel re
 g++ -std=c++23 scripts/test_drawing_roadmap.cpp src/app/DrawingRaster.cpp -o build/test_drawing_roadmap && ./build/test_drawing_roadmap
 ```
 
-Headless Drawing state test for clean loads, resize dirty tracking, history reset, font-scaled chrome, scaled canvas pointer mapping, and duplicate file singleton rejection:
+Headless Drawing state test for clean loads, resize dirty tracking, history reset, font-scaled chrome, scaled canvas pointer mapping, duplicate file singleton rejection, and creation-notification binding order:
 
 ```bash
 g++ -std=c++23 scripts/test_drawing_state.cpp src/app/DrawingApp.cpp src/app/DrawingRaster.cpp src/fs/Filesystem.cpp $(pkg-config --cflags --libs sdl2 SDL2_ttf) -o build/test_drawing_state && ./build/test_drawing_state
@@ -142,7 +142,7 @@ Headless test of shared UTF-8 codepoint editing helpers used by Text Editor, Ter
 g++ -std=c++23 scripts/test_utf8.cpp -o build/test_utf8 && ./build/test_utf8
 ```
 
-Headless Text Editor state test for Save As collisions, failed-write recovery, font-scaled status geometry, complete-row mouse hit testing, and resize scroll bounds:
+Headless Text Editor state test for Save As collisions, creation-notification binding order, failed-write recovery, font-scaled status geometry, complete-row mouse hit testing, and resize scroll bounds:
 
 ```bash
 g++ -std=c++23 scripts/test_text_editor_state.cpp src/app/TextEditorApp.cpp src/fs/Filesystem.cpp $(pkg-config --cflags --libs sdl2 SDL2_ttf) -o build/test_text_editor_state && ./build/test_text_editor_state
