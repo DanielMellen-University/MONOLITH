@@ -1,4 +1,5 @@
 #include "PongApp.hpp"
+#include "../detail/RendererClip.hpp"
 #include "../detail/TickMath.hpp"
 
 #include <algorithm>
@@ -12,6 +13,11 @@ constexpr SDL_Color kHud{210, 214, 220, 255};
 constexpr SDL_Color kDim{150, 154, 160, 255};
 constexpr SDL_Color kOverlay{245, 245, 250, 255};
 } // namespace
+
+using monolith::detail::RendererClipState;
+using monolith::detail::captureRendererClip;
+using monolith::detail::restoreRendererClip;
+using monolith::detail::intersectRendererClip;
 
 PongApp::PongApp(TTF_Font* font) : m_font(font) {
     m_game.resetMatch();
@@ -118,21 +124,13 @@ void PongApp::drawText(SDL_Renderer* renderer, const char* text, int x, int y, S
     if (tex) {
         SDL_Rect dst{x, y, surf->w, surf->h};
         if (clip) {
-            SDL_Rect previousClip{};
-            SDL_RenderGetClipRect(renderer, &previousClip);
-            const bool hadPreviousClip = previousClip.w > 0 && previousClip.h > 0;
-            SDL_Rect effectiveClip = *clip;
-            const bool hasEffectiveClip = !hadPreviousClip
-                || SDL_IntersectRect(&previousClip, clip, &effectiveClip);
-            if (hasEffectiveClip && effectiveClip.w > 0 && effectiveClip.h > 0) {
+            const RendererClipState previousClip = captureRendererClip(renderer);
+            const SDL_Rect effectiveClip = intersectRendererClip(*clip, previousClip);
+            if (effectiveClip.w > 0 && effectiveClip.h > 0) {
                 SDL_RenderSetClipRect(renderer, &effectiveClip);
                 SDL_RenderCopy(renderer, tex, nullptr, &dst);
             }
-            if (hadPreviousClip) {
-                SDL_RenderSetClipRect(renderer, &previousClip);
-            } else {
-                SDL_RenderSetClipRect(renderer, nullptr);
-            }
+            restoreRendererClip(renderer, previousClip);
         } else {
             SDL_RenderCopy(renderer, tex, nullptr, &dst);
         }

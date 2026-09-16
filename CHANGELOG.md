@@ -1,5 +1,9 @@
 # Changelog
 
+## 2026-09: Share renderer clip handling across games
+
+- Routed Pong, Snake, Minesweeper, and Breakout text clipping through the shared renderer boundary helper, removing four duplicate capture/intersection/restore implementations.
+
 ## 2026-09: Share Settings renderer clip handling
 
 - Routed Settings' generated clip save, intersection, and restore paths through the shared renderer boundary helper for clipped labels, the wallpaper field, and scrolling content.

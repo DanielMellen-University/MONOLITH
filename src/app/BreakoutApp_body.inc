@@ -7,21 +7,13 @@ void BreakoutApp::drawText(SDL_Renderer* renderer, const char* text, int x, int 
     if (tex) {
         SDL_Rect dst{x, y, surf->w, surf->h};
         if (clip) {
-            SDL_Rect previousClip{};
-            SDL_RenderGetClipRect(renderer, &previousClip);
-            const bool hadPreviousClip = previousClip.w > 0 && previousClip.h > 0;
-            SDL_Rect effectiveClip = *clip;
-            const bool hasEffectiveClip = !hadPreviousClip
-                || SDL_IntersectRect(&previousClip, clip, &effectiveClip);
-            if (hasEffectiveClip && effectiveClip.w > 0 && effectiveClip.h > 0) {
+            const RendererClipState previousClip = captureRendererClip(renderer);
+            const SDL_Rect effectiveClip = intersectRendererClip(*clip, previousClip);
+            if (effectiveClip.w > 0 && effectiveClip.h > 0) {
                 SDL_RenderSetClipRect(renderer, &effectiveClip);
                 SDL_RenderCopy(renderer, tex, nullptr, &dst);
             }
-            if (hadPreviousClip) {
-                SDL_RenderSetClipRect(renderer, &previousClip);
-            } else {
-                SDL_RenderSetClipRect(renderer, nullptr);
-            }
+            restoreRendererClip(renderer, previousClip);
         } else {
             SDL_RenderCopy(renderer, tex, nullptr, &dst);
         }

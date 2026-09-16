@@ -1,6 +1,7 @@
 #include "SnakeApp.hpp"
 
 #include "../detail/AtomicFile.hpp"
+#include "../detail/RendererClip.hpp"
 #include "../detail/TickMath.hpp"
 
 #include <algorithm>
@@ -17,6 +18,11 @@ constexpr SDL_Color kOverlayText{245, 245, 250, 255};
 constexpr SDL_Color kGold{230, 190, 70, 255};
 constexpr SDL_Color kBestText{180, 200, 140, 255};
 } // namespace
+
+using monolith::detail::RendererClipState;
+using monolith::detail::captureRendererClip;
+using monolith::detail::restoreRendererClip;
+using monolith::detail::intersectRendererClip;
 
 std::string SnakeApp::highScoreHostPath() {
     const char* home = std::getenv("HOME");
@@ -245,21 +251,13 @@ int SnakeApp::drawTextReturnWidth(SDL_Renderer* renderer, const char* text, int 
     if (tex) {
         SDL_Rect dst{x, y, surf->w, surf->h};
         if (clip) {
-            SDL_Rect previousClip{};
-            SDL_RenderGetClipRect(renderer, &previousClip);
-            const bool hadPreviousClip = previousClip.w > 0 && previousClip.h > 0;
-            SDL_Rect effectiveClip = *clip;
-            const bool hasEffectiveClip = !hadPreviousClip
-                || SDL_IntersectRect(&previousClip, clip, &effectiveClip);
-            if (hasEffectiveClip && effectiveClip.w > 0 && effectiveClip.h > 0) {
+            const RendererClipState previousClip = captureRendererClip(renderer);
+            const SDL_Rect effectiveClip = intersectRendererClip(*clip, previousClip);
+            if (effectiveClip.w > 0 && effectiveClip.h > 0) {
                 SDL_RenderSetClipRect(renderer, &effectiveClip);
                 SDL_RenderCopy(renderer, tex, nullptr, &dst);
             }
-            if (hadPreviousClip) {
-                SDL_RenderSetClipRect(renderer, &previousClip);
-            } else {
-                SDL_RenderSetClipRect(renderer, nullptr);
-            }
+            restoreRendererClip(renderer, previousClip);
         } else {
             SDL_RenderCopy(renderer, tex, nullptr, &dst);
         }

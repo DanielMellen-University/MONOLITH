@@ -1,4 +1,5 @@
 #include "BreakoutApp.hpp"
+#include "../detail/RendererClip.hpp"
 #include "../detail/TickMath.hpp"
 
 #include <algorithm>
@@ -22,6 +23,11 @@ SDL_Color brickColor(int row) {
     }
 }
 } // namespace
+
+using monolith::detail::RendererClipState;
+using monolith::detail::captureRendererClip;
+using monolith::detail::restoreRendererClip;
+using monolith::detail::intersectRendererClip;
 
 BreakoutApp::BreakoutApp(TTF_Font* font) : m_font(font) {
     m_game.resetMatch();

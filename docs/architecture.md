@@ -137,7 +137,7 @@ Each frame, `WindowManager::update()` calls `App::update()` on every non-minimiz
 
 Apps can request shell actions through `IWindowController`: `close()`, `setTitle()`, `restoreTrackedInstanceTitle()`, `openInTextEditor` / `openInDrawing` / **`openPath`** (extension-based default), editor/drawing singleton focus and file-binding helpers, virtual path lifecycle notifications for created, changed, moved, and removed entries, the shared virtual filesystem clipboard, desktop background get/set, wallpaper path get/set, taskbar clock 12/24-hour get/set, and interface text scale get/set. Apps do not depend on each other directly. Temporary title overrides (e.g. Drawing after save) restore via `restoreTrackedInstanceTitle()`.
 
-Renderer clip capture, intersection, and restoration live in `src/detail/RendererClip.hpp`, shared by the shell and native app renderers. Any nested clip must intersect the caller's clip and restore it before returning; this keeps embedded app rendering from leaking into neighboring shell regions.
+Renderer clip capture, intersection, and restoration live in `src/detail/RendererClip.hpp`, shared by the shell, native apps, and games. Any nested clip must intersect the caller's clip and restore it before returning; this keeps embedded app rendering from leaking into neighboring shell regions.
 
 Text Editor, Drawing, Terminal, and Settings share the UTF-8 editing helpers in `src/app/Utf8.hpp`. Path completion uses the same complete-codepoint common-prefix rule as caret movement and deletion, so ambiguous multibyte filenames cannot leave a partial character in an app prompt.
 
@@ -147,7 +147,7 @@ The Window Manager broadcasts virtual path creation, change, move, and removal e
 
 - The entire environment is rendered inside a single SDL2 window. The shell uses a runtime logical desktop size (1280 × 720 by default) and maps it to the host window; apps receive the resulting client geometry through `onResize`.
 - The Window Manager is responsible for compositing window frames and delegating content drawing to apps.
-- Rendering is clipped to the caller's renderer clip for the full WindowManager frame, then each app is additionally clipped to its window's client rectangle, so tiny or undersized app layouts cannot paint into title bars or the taskbar. Apps and shell overlays that use narrower internal clips must intersect and restore the caller clip; Browser, Settings, Terminal, Text Editor, Drawing, title bars, taskbar buttons, and Alt+Tab follow this rule explicitly. Client rectangles may be zero-sized on an undersized desktop, but are never negative.
+- Rendering is clipped to the caller's renderer clip for the full WindowManager frame, then each app is additionally clipped to its window's client rectangle, so tiny or undersized app layouts cannot paint into title bars or the taskbar. Apps and shell overlays that use narrower internal clips must intersect and restore the caller clip; Browser, Settings, Terminal, Text Editor, Drawing, Pong, Snake, Minesweeper, Breakout, title bars, taskbar buttons, and Alt+Tab follow this rule explicitly. Client rectangles may be zero-sized on an undersized desktop, but are never negative.
 - WindowManager renders from a live identity snapshot, so an app that closes or replaces its window during `render()` cannot invalidate the frame loop or leave the shell drawing through a dead window pointer; newly opened windows render on the next frame.
 - Rendering uses SDL2's accelerated renderer with VSYNC; apps draw text via SDL_ttf and primitives via SDL draw calls.
 

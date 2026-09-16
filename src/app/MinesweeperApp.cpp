@@ -1,6 +1,7 @@
 #include "MinesweeperApp.hpp"
 
 #include "../detail/AtomicFile.hpp"
+#include "../detail/RendererClip.hpp"
 
 #include <algorithm>
 #include <filesystem>
@@ -19,6 +20,11 @@ constexpr SDL_Color kBtnBg{55, 60, 75, 255};
 constexpr SDL_Color kBtnActive{70, 95, 145, 255};
 constexpr SDL_Color kGold{230, 190, 70, 255};
 } // namespace
+
+using monolith::detail::RendererClipState;
+using monolith::detail::captureRendererClip;
+using monolith::detail::restoreRendererClip;
+using monolith::detail::intersectRendererClip;
 
 const MinesweeperApp::DifficultySpec& MinesweeperApp::specFor(Difficulty d) {
     static const DifficultySpec beginner{"Beginner", 9, 9, 10};
@@ -471,21 +477,13 @@ void MinesweeperApp::drawText(SDL_Renderer* renderer, const char* text, int x, i
     if (tex) {
         SDL_Rect dst{x, y, surf->w, surf->h};
         if (clip) {
-            SDL_Rect previousClip{};
-            SDL_RenderGetClipRect(renderer, &previousClip);
-            const bool hadPreviousClip = previousClip.w > 0 && previousClip.h > 0;
-            SDL_Rect effectiveClip = *clip;
-            const bool hasEffectiveClip = !hadPreviousClip
-                || SDL_IntersectRect(&previousClip, clip, &effectiveClip);
-            if (hasEffectiveClip && effectiveClip.w > 0 && effectiveClip.h > 0) {
+            const RendererClipState previousClip = captureRendererClip(renderer);
+            const SDL_Rect effectiveClip = intersectRendererClip(*clip, previousClip);
+            if (effectiveClip.w > 0 && effectiveClip.h > 0) {
                 SDL_RenderSetClipRect(renderer, &effectiveClip);
                 SDL_RenderCopy(renderer, tex, nullptr, &dst);
             }
-            if (hadPreviousClip) {
-                SDL_RenderSetClipRect(renderer, &previousClip);
-            } else {
-                SDL_RenderSetClipRect(renderer, nullptr);
-            }
+            restoreRendererClip(renderer, previousClip);
         } else {
             SDL_RenderCopy(renderer, tex, nullptr, &dst);
         }
