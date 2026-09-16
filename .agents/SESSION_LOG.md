@@ -1,5 +1,7 @@
 # Session log
 
+| 2026-09-15 | fix | Made Terminal single-quoted path completion encode apostrophes safely, close completed file paths, and preserve the resulting argument through the lexer; added focused coverage and updated the Terminal guide. |
+
 | 2026-09-15 | fix | Rejected symlinked and non-regular atomic temporary siblings for virtual files and host snapshots, added target-preservation coverage, and updated the persistence contract. |
 
 | 2026-09-15 | fix | Isolated Snake food and Minesweeper mine placement behind independent bounded random streams, removed process-global RNG coupling, added helper coverage, and updated both game guides plus development docs. |

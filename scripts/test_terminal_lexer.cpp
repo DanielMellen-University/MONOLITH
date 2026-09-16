@@ -102,6 +102,14 @@ int main() {
           "double-quoted completion keeps spaces literal");
     check(escapeCompletion("a\\b\"c", '"') == "a\\\\b\\\"c",
           "double-quoted completion escapes syntax characters");
+    check(escapeCompletion("O'Brien.txt", '\'') == "O'\\''Brien.txt",
+          "single-quoted completion escapes apostrophes by reopening the quote");
+
+    const CommandTokens apostrophePath = tokenizeCommandLine(
+        "cat 'O'\\''Brien.txt'");
+    check(apostrophePath.error.empty()
+              && apostrophePath.args == std::vector<std::string>{"cat", "O'Brien.txt"},
+          "single-quoted apostrophe completion remains one argument");
 
     if (failures == 0) {
         std::cout << "ALL TERMINAL LEXER TESTS PASSED\n";

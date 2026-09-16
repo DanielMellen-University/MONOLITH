@@ -158,8 +158,10 @@ void TerminalApp::handleTabCompletion() {
 
         const bool cursorAtLineEnd = m_inputCursorPos == static_cast<int>(m_inputBuffer.size());
         replacePrefix(newWord);
-        if (context.quote == '"' && !directoryCompletion && cursorAtLineEnd) {
-            m_inputBuffer.insert(static_cast<std::size_t>(m_inputCursorPos), 1, '"');
+        if ((context.quote == '"' || context.quote == '\'')
+            && !directoryCompletion && cursorAtLineEnd) {
+            m_inputBuffer.insert(
+                static_cast<std::size_t>(m_inputCursorPos), 1, context.quote);
             ++m_inputCursorPos;
         }
     } else {

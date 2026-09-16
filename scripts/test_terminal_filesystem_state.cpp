@@ -10,6 +10,7 @@
 
 #include "../src/app/App.hpp"
 #include "../src/fs/Filesystem.hpp"
+#include "../src/app/TerminalLexer.hpp"
 
 #define private public
 #include "../src/app/TerminalApp.hpp"
@@ -69,6 +70,8 @@ int main() {
           "create mixed line-ending file");
     check(fs.writeFile("/home/monolith/my  file.txt", "exact spacing"),
           "create file with repeated spaces");
+    check(fs.writeFile("/home/monolith/O'Brien.txt", "apostrophe path"),
+          "create file with an apostrophe");
     check(fs.createDirectory("/home/monolith/quoted dir"),
           "create directory for quoted completion");
 
@@ -214,6 +217,18 @@ int main() {
     terminal.handleTabCompletion();
     check(terminal.m_inputBuffer == "cat \"/home/monolith/my  file.txt\"",
           "completion after a closed quoted file leaves the command unchanged");
+
+    terminal.m_inputBuffer = "cat '/home/monolith/O";
+    terminal.m_inputCursorPos = static_cast<int>(terminal.m_inputBuffer.size());
+    terminal.handleTabCompletion();
+    check(terminal.m_inputBuffer == "cat '/home/monolith/O'\\''Brien.txt'",
+          "single-quoted completion escapes apostrophes and closes the path");
+    const auto apostropheCommand = monolith::app::tokenizeCommandLine(
+        terminal.m_inputBuffer);
+    check(apostropheCommand.error.empty()
+              && apostropheCommand.args
+                  == std::vector<std::string>{"cat", "/home/monolith/O'Brien.txt"},
+          "single-quoted completion preserves the apostrophe path argument");
 
     terminal.m_commandHistory = {"first command", "second command"};
     terminal.m_inputBuffer = "draft";

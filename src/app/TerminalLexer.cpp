@@ -180,6 +180,14 @@ std::string escapeCompletion(const std::string& value, char quote) {
     escaped.reserve(value.size());
 
     for (const char c : value) {
+        if (quote == '\'' && c == '\'') {
+            // Single-quoted shells cannot escape an apostrophe in place. Close
+            // the quote, emit it through the unquoted backslash rule, then
+            // reopen the quote for the remainder of the completion.
+            escaped += "'\\''";
+            continue;
+        }
+
         bool needsEscape = false;
         if (quote == '"') {
             needsEscape = c == '\\' || c == '"';

@@ -1,5 +1,10 @@
 # Changelog
 
+## 2026-09: Complete apostrophe-safe Terminal paths
+
+- Terminal Tab completion now preserves filenames containing apostrophes inside single-quoted paths and closes completed single-quoted file paths at the line end.
+- Added lexer and Terminal state coverage for the encoded one-argument form.
+
 ## 2026-09: Reject unsafe atomic temp entries
 
 - Virtual file writes and host text snapshots now reject symlinked or non-regular `.tmp` siblings before replacement.
