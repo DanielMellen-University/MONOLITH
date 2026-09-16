@@ -74,6 +74,12 @@ int main() {
           "create file with an apostrophe");
     check(fs.createDirectory("/home/monolith/quoted dir"),
           "create directory for quoted completion");
+    check(fs.createDirectory("/home/monolith/unicode"),
+          "create Unicode completion directory");
+    check(fs.writeFile("/home/monolith/unicode/\xC3\xA9" "clair.txt", "a"),
+          "write first Unicode terminal completion candidate");
+    check(fs.writeFile("/home/monolith/unicode/\xC3\xAA" "cole.txt", "b"),
+          "write second Unicode terminal completion candidate");
 
     check(SDL_Init(SDL_INIT_VIDEO) == 0, "terminal state SDL initialize");
     check(TTF_Init() == 0, "terminal state SDL_ttf initialize");
@@ -229,6 +235,12 @@ int main() {
               && apostropheCommand.args
                   == std::vector<std::string>{"cat", "/home/monolith/O'Brien.txt"},
           "single-quoted completion preserves the apostrophe path argument");
+
+    terminal.m_inputBuffer = "cat /home/monolith/unicode/";
+    terminal.m_inputCursorPos = static_cast<int>(terminal.m_inputBuffer.size());
+    terminal.handleTabCompletion();
+    check(terminal.m_inputBuffer == "cat /home/monolith/unicode/",
+          "ambiguous terminal completion does not insert a partial UTF-8 codepoint");
 
     terminal.m_commandHistory = {"first command", "second command"};
     terminal.m_inputBuffer = "draft";

@@ -1,5 +1,10 @@
 # Changelog
 
+## 2026-09: Keep terminal completion UTF-8 safe
+
+- Terminal path completion now stops ambiguous shared prefixes at complete UTF-8 codepoints, preventing a shared leading byte from becoming invalid input.
+- Added Unicode ambiguity coverage to the Terminal filesystem test.
+
 ## 2026-09: Keep drawing and settings completion UTF-8 safe
 
 - Drawing and Settings path prompts now stop ambiguous completions at complete UTF-8 codepoints, preventing a shared leading byte from becoming invalid text.

@@ -173,6 +173,16 @@ void TerminalApp::handleTabCompletion() {
             common = common.substr(0, len);
         }
 
+        // Completion edits byte offsets, but a shared prefix must never end
+        // inside a multi-byte UTF-8 codepoint.
+        if (!common.empty()) {
+            const std::size_t start = utf8PrevCodepointStart(common, common.size());
+            const std::size_t length = utf8CodepointByteLen(common, start);
+            if (start + length > common.size()) {
+                common.resize(start);
+            }
+        }
+
         if (common.size() > context.prefix.size()) {
             replacePrefix(common);
         } else {
