@@ -1,5 +1,10 @@
 # Changelog
 
+## 2026-09: Stabilize app update dispatch
+
+- WindowManager now snapshots live windows before calling `App::update()`, so an app can close itself through its controller without invalidating the update loop or skipping surviving apps.
+- Added focused lifecycle coverage and documented the dispatch contract.
+
 ## 2026-09: Invalidate closed taskbar targets
 
 - WindowManager now removes a closing window from the cached taskbar hit targets before destroying it, covering app-triggered closes that happen between render frames.

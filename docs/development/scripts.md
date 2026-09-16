@@ -173,6 +173,12 @@ Headless test of keyboard focus handoff when the active window is minimized and 
 g++ -std=c++23 -Ibuild/generated -Ibuild/generated/settings scripts/test_window_focus.cpp src/window/WindowManager.cpp src/window/WallpaperImage.cpp src/app/*.cpp src/fs/Filesystem.cpp src/settings/DesktopSettings.cpp $(pkg-config --cflags --libs sdl2 SDL2_ttf) -o build/test_window_focus && ./build/test_window_focus
 ```
 
+Headless test that app-triggered closes during `App::update()` do not invalidate the WindowManager update pass:
+
+```bash
+g++ -std=c++23 -Ibuild/generated -Ibuild/generated/settings scripts/test_window_lifecycle.cpp src/window/WindowManager.cpp src/window/WallpaperImage.cpp src/app/*.cpp src/fs/Filesystem.cpp src/settings/DesktopSettings.cpp $(pkg-config --cflags --libs sdl2 SDL2_ttf) -o build/test_window_lifecycle && ./build/test_window_lifecycle
+```
+
 Headless test that Shut Down honors app dirty-document guards before allowing the shell to exit:
 
 ```bash
