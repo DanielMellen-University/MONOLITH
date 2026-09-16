@@ -1,5 +1,10 @@
 # Changelog
 
+## 2026-09: Guard reentrant window closes
+
+- WindowManager now rechecks window identity after `allowClose()` and focus-loss callbacks, so an app that closes its own window during either callback cannot leave the outer close operation using a destroyed target.
+- Added lifecycle coverage for both recursive close paths.
+
 ## 2026-09: Guard bound-file remaps
 
 - Editor and Drawing binding updates now verify window identity and the expected old path before invoking callbacks, so a callback-triggered sibling close cannot invalidate the remaining remap or removal pass.

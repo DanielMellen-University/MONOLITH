@@ -137,12 +137,18 @@ void WindowManager::applyResize(Window* window, int mouseX, int mouseY) {
 }
 
 void WindowManager::closeWindow(Window* window) {
-    if (!window) return;
+    if (!isLiveWindow(window)) return;
+
+    const int windowId = window->id;
 
     // Let apps veto close once (dirty document guards). A second close after arming succeeds.
     if (window->app && !window->app->allowClose()) {
         return;
     }
+
+    // allowClose() is app code and may close or replace this window through its
+    // controller. Do not continue with the old address after that callback.
+    if (!isLiveWindow(window, windowId)) return;
 
     endAltTabCycle();
 
@@ -197,6 +203,10 @@ void WindowManager::closeWindow(Window* window) {
         if (wasFocused && m_hostFocused && !m_showStartMenu && window->app) {
             window->app->onFocusLost();
         }
+
+        // Focus-loss callbacks can also close the target. The nested close has
+        // already completed all cleanup, so the outer operation must stop here.
+        if (!isLiveWindow(window, windowId)) return;
 
         // Drop the app's controller pointer before destroying owned controller + app.
         if (window->app) {

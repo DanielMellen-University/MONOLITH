@@ -69,6 +69,39 @@ public:
     bool closeOnResize = false;
 };
 
+class RecursiveAllowCloseApp final : public monolith::app::App {
+public:
+    void render(SDL_Renderer*, const SDL_Rect&) override {}
+
+    bool allowClose() override {
+        if (!reentered) {
+            reentered = true;
+            if (auto* controller = getController()) {
+                controller->close();
+            }
+        }
+        return true;
+    }
+
+    bool reentered = false;
+};
+
+class FocusLossClosingApp final : public monolith::app::App {
+public:
+    void render(SDL_Renderer*, const SDL_Rect&) override {}
+
+    void onFocusLost() override {
+        if (!closedFromFocusLoss) {
+            closedFromFocusLoss = true;
+            if (auto* controller = getController()) {
+                controller->close();
+            }
+        }
+    }
+
+    bool closedFromFocusLoss = false;
+};
+
 class ActivationClosingApp final : public monolith::app::App {
 public:
     void render(SDL_Renderer*, const SDL_Rect&) override {}
@@ -172,6 +205,42 @@ int main() {
               "the update snapshot also handles the focused app closing itself");
         check(wm.getWindowAt(460, 160) == nullptr,
               "the focused app is gone after its controller close");
+    }
+
+    {
+        monolith::window::WindowManager wm;
+        auto recursive = std::make_unique<RecursiveAllowCloseApp>();
+        RecursiveAllowCloseApp* recursivePtr = recursive.get();
+        auto* recursiveWindow = wm.createWindow("Recursive", 40, 80, 260, 180,
+                                                 std::move(recursive));
+        auto survivor = std::make_unique<UpdateProbe>();
+        auto* survivorWindow = wm.createWindow("Survivor", 400, 80, 260, 180,
+                                               std::move(survivor));
+
+        wm.closeWindow(recursiveWindow);
+
+        check(recursivePtr->reentered,
+              "allow-close callback can reenter the close operation");
+        check(wm.m_windows.size() == 1 && wm.m_windows.front().get() == survivorWindow,
+              "outer close stops after allow-close already removed its target");
+    }
+
+    {
+        monolith::window::WindowManager wm;
+        auto survivor = std::make_unique<UpdateProbe>();
+        auto* survivorWindow = wm.createWindow("Survivor", 40, 80, 260, 180,
+                                               std::move(survivor));
+        auto closing = std::make_unique<FocusLossClosingApp>();
+        FocusLossClosingApp* closingPtr = closing.get();
+        auto* closingWindow = wm.createWindow("Focus Close", 400, 80, 260, 180,
+                                               std::move(closing));
+
+        wm.closeWindow(closingWindow);
+
+        check(closingPtr->closedFromFocusLoss,
+              "focus-loss callback can reenter the close operation");
+        check(wm.m_windows.size() == 1 && wm.m_windows.front().get() == survivorWindow,
+              "outer close stops after focus-loss already removed its target");
     }
 
     {
