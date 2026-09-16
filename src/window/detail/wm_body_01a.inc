@@ -153,6 +153,14 @@ void WindowManager::handleEvent(const SDL_Event& event) {
         return;
     }
 
+    if (!m_hostFocused
+        && (event.type == SDL_MOUSEMOTION
+            || event.type == SDL_MOUSEBUTTONDOWN
+            || event.type == SDL_MOUSEBUTTONUP
+            || event.type == SDL_MOUSEWHEEL)) {
+        return;
+    }
+
     if (event.type == SDL_MOUSEMOTION) {
         m_mouseX = event.motion.x;
         m_mouseY = event.motion.y;

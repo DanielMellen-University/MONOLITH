@@ -196,7 +196,14 @@ int main() {
                firstWindow->rect.x + 12,
                firstWindow->rect.y + monolith::window::Window::TITLE_BAR_HEIGHT + 12);
     wm.handleEvent(clientDownAfterFrame);
+    SDL_WarpMouseInWindow(hostWindow,
+                          firstWindow->rect.x + 12,
+                          firstWindow->rect.y + monolith::window::Window::TITLE_BAR_HEIGHT + 12);
+    SDL_PumpEvents();
     const int firstUpsBeforeHostLoss = firstPtr->ups;
+    const int firstDownsBeforeHostLoss = firstPtr->downs;
+    const int firstMotionsBeforeHostLoss = firstPtr->motions;
+    const int firstWheelBeforeHostLoss = firstPtr->wheelEvents;
     SDL_Event focusLost{};
     focusLost.type = SDL_WINDOWEVENT;
     focusLost.window.event = SDL_WINDOWEVENT_FOCUS_LOST;
@@ -206,6 +213,26 @@ int main() {
           "host focus loss synthesizes the captured client release");
     check(firstPtr->focusLost == firstFocusLostBeforeHostLoss + 1,
           "host focus loss notifies the focused client");
+
+    SDL_Event blockedMotion{};
+    blockedMotion.type = SDL_MOUSEMOTION;
+    blockedMotion.motion.x = 120;
+    blockedMotion.motion.y = 150;
+    wm.handleEvent(blockedMotion);
+    SDL_Event blockedDown{};
+    leftButton(blockedDown, SDL_MOUSEBUTTONDOWN, 120, 150);
+    wm.handleEvent(blockedDown);
+    SDL_Event blockedUp = blockedDown;
+    blockedUp.type = SDL_MOUSEBUTTONUP;
+    wm.handleEvent(blockedUp);
+    SDL_Event blockedWheel{};
+    blockedWheel.type = SDL_MOUSEWHEEL;
+    blockedWheel.wheel.y = 1;
+    wm.handleEvent(blockedWheel);
+    check(firstPtr->downs == firstDownsBeforeHostLoss
+              && firstPtr->motions == firstMotionsBeforeHostLoss
+              && firstPtr->wheelEvents == firstWheelBeforeHostLoss,
+          "host-unfocused pointer input does not reach the shell or app");
 
     SDL_Event focusGained{};
     focusGained.type = SDL_WINDOWEVENT;
