@@ -7,12 +7,11 @@
 
     // --- Left: Start button ---
     const int x = taskbarLayout.startX;
-    const int startBtnWidth = taskbarLayout.startButtonWidth;
     const int btnHeight = taskbarLayout.buttonHeight;
     const int btnY = taskbarLayout.buttonY;
 
     SDL_SetRenderDrawColor(renderer, 55, 85, 140, 255);
-    SDL_Rect startBtn = {x, btnY, startBtnWidth, btnHeight};
+    const SDL_Rect startBtn = taskbarLayout.startButtonRect;
     if (startBtn.w > 0 && startBtn.h > 0) {
         SDL_RenderFillRect(renderer, &startBtn);
     }
@@ -37,23 +36,22 @@
     }
 
     // Draw scroll arrows if needed.
-    int buttonsStartX = taskbarLayout.buttonsStartX;
     if (taskbarLayout.needsScroll) {
         // Left arrow
         SDL_SetRenderDrawColor(renderer, 80, 80, 90, 255);
-        SDL_RenderFillRect(renderer, &m_taskbarLeftArrowRect);
+        SDL_RenderFillRect(renderer, &taskbarLayout.leftArrowRect);
         // Simple left triangle using lines
         SDL_SetRenderDrawColor(renderer, 220, 220, 225, 255);
-        int ax = m_taskbarLeftArrowRect.x + static_cast<int>(4 * m_contentScale);
+        int ax = taskbarLayout.leftArrowRect.x + static_cast<int>(4 * m_contentScale);
         int ay = btnY + btnHeight/2;
         SDL_RenderDrawLine(renderer, ax + 6, ay - 5, ax, ay);
         SDL_RenderDrawLine(renderer, ax, ay, ax + 6, ay + 5);
 
         // Right arrow
         SDL_SetRenderDrawColor(renderer, 80, 80, 90, 255);
-        SDL_RenderFillRect(renderer, &m_taskbarRightArrowRect);
+        SDL_RenderFillRect(renderer, &taskbarLayout.rightArrowRect);
         SDL_SetRenderDrawColor(renderer, 220, 220, 225, 255);
-        ax = m_taskbarRightArrowRect.x + static_cast<int>(4 * m_contentScale);
+        ax = taskbarLayout.rightArrowRect.x + static_cast<int>(4 * m_contentScale);
         SDL_RenderDrawLine(renderer, ax, ay - 5, ax + 6, ay);
         SDL_RenderDrawLine(renderer, ax + 6, ay, ax, ay + 5);
     }
@@ -67,7 +65,8 @@
     if (buttonClipRect.w > 0) {
         SDL_RenderSetClipRect(renderer, &effectiveButtonClip);
     }
-    int currentX = logicalToScreenX(buttonsStartX) - static_cast<int>(m_taskbarScrollOffset * m_contentScale);
+    int currentX = logicalToScreenX(taskbarLayout.buttonsStartX)
+        - static_cast<int>(m_taskbarScrollOffset * m_contentScale);
 
     for (size_t i = 0; i < taskbarLayout.buttonOrder.size(); ++i) {
         if (buttonClipRect.w <= 0) break;
@@ -216,7 +215,7 @@
             const int trayY = btnY;
 
             const int buttonAreaRight = logicalToScreenX(
-                buttonsStartX + m_taskbarButtonAreaWidth);
+                taskbarLayout.buttonsStartX + m_taskbarButtonAreaWidth);
             if (trayX >= buttonAreaRight) {
                 SDL_SetRenderDrawColor(renderer, 45, 45, 52, 255);
                 SDL_Rect tray = {trayX, trayY, trayW, trayH};

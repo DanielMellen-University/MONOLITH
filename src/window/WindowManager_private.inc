@@ -57,6 +57,7 @@ private:
         int taskbarY = 0;
         int startX = 0;
         int startButtonWidth = 0;
+        SDL_Rect startButtonRect{0, 0, 0, 0};
         int buttonHeight = 0;
         int buttonY = 0;
         int buttonsStartX = 0;

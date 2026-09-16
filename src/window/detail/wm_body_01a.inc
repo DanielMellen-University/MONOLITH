@@ -221,7 +221,8 @@ void WindowManager::handleEvent(const SDL_Event& event) {
         m_mouseX = event.button.x;
         m_mouseY = event.button.y;
 
-        const SDL_Rect taskbarScreenRect = logicalRectToScreen(getTaskbarRect());
+        const TaskbarLayout taskbarLayout = computeTaskbarLayout();
+        const SDL_Rect taskbarScreenRect = taskbarLayout.taskbarRect;
         const int taskbarScreenY = taskbarScreenRect.y;
         const int taskbarScreenBottom = taskbarScreenRect.y + taskbarScreenRect.h;
 
@@ -231,13 +232,8 @@ void WindowManager::handleEvent(const SDL_Event& event) {
             ensureStartMenuHitTargets();
             clearDesktopIconSelection();
             // Clicking the Start button itself while menu is open should toggle it closed.
-            int startBtnScreenWidth = static_cast<int>(70 * m_contentScale);
-            int startBtnScreenX = logicalToScreenX(8);
-            const int startBtnScreenRight = std::min(
-                startBtnScreenX + startBtnScreenWidth,
-                taskbarScreenRect.x + taskbarScreenRect.w);
-            if (m_mouseX >= startBtnScreenX && m_mouseX < startBtnScreenRight &&
-                m_mouseY >= taskbarScreenY && m_mouseY < taskbarScreenBottom) {
+            SDL_Point startPoint{m_mouseX, m_mouseY};
+            if (SDL_PointInRect(&startPoint, &taskbarLayout.startButtonRect)) {
                 m_shellMouseCapture = true;
                 setStartMenuVisible(!m_showStartMenu);
                 return;

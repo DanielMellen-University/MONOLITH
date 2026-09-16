@@ -162,6 +162,12 @@ WindowManager::TaskbarLayout WindowManager::computeTaskbarLayout() {
         std::max(minimumButtonHeight, fontHeight + static_cast<int>(4 * m_contentScale)));
     layout.buttonY = logicalToScreenY(layout.taskbarY)
         + (layout.taskbarRect.h - layout.buttonHeight) / 2;
+    layout.startButtonRect = {
+        layout.startX,
+        layout.buttonY,
+        layout.startButtonWidth,
+        layout.buttonHeight
+    };
 
     const int clockReserve = 100;
     const int taskbarButtonStart = 8 + 70 + 8;

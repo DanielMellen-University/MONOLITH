@@ -1,5 +1,10 @@
 # Changelog
 
+## 2026-09: Keep taskbar controls aligned with their layout
+
+- Routed Start-button and taskbar-arrow input through the same computed rectangles used by rendering, including scaled and narrow taskbars.
+- Added coordinate coverage for pre-render scaled Start-button input and clicks outside the visible button band.
+
 ## 2026-09: Make taskbar input independent of frame timing
 
 - Rebuilt taskbar button and scroll-arrow hit targets on demand when queued input arrives before the next render.

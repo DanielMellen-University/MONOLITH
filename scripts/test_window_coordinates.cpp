@@ -404,6 +404,38 @@ int main() {
                   && cachedUnicodeTitleWidth == measuredUnicodeTitleWidth
                   && cachedUnicodeTitleHeight == measuredUnicodeTitleHeight,
               "window and taskbar titles render as UTF-8");
+
+        wm.setContentScale(1.25f);
+        wm.setLogicalDesktopSize(320, 200);
+        const auto scaledTaskbarLayout = wm.computeTaskbarLayout();
+        check(scaledTaskbarLayout.startButtonRect.w > 0
+                  && scaledTaskbarLayout.startButtonRect.h > 0,
+              "scaled taskbar exposes a visible Start button rectangle");
+        SDL_Event outsideStartDown{};
+        outsideStartDown.type = SDL_MOUSEBUTTONDOWN;
+        outsideStartDown.button.button = SDL_BUTTON_LEFT;
+        outsideStartDown.button.x = scaledTaskbarLayout.startButtonRect.x
+            + scaledTaskbarLayout.startButtonRect.w / 2;
+        outsideStartDown.button.y = scaledTaskbarLayout.taskbarRect.y;
+        wm.handleEvent(outsideStartDown);
+        check(!wm.m_showStartMenu,
+              "taskbar input ignores the band outside the drawn Start button");
+        SDL_Event outsideStartUp = outsideStartDown;
+        outsideStartUp.type = SDL_MOUSEBUTTONUP;
+        wm.handleEvent(outsideStartUp);
+
+        wm.invalidateShellHitTargets();
+        SDL_Event scaledStartDown = outsideStartDown;
+        scaledStartDown.button.y = scaledTaskbarLayout.startButtonRect.y
+            + scaledTaskbarLayout.startButtonRect.h / 2;
+        wm.handleEvent(scaledStartDown);
+        check(wm.m_showStartMenu,
+              "pre-render scaled Start clicks use the shared button rectangle");
+        SDL_Event scaledStartUp = scaledStartDown;
+        scaledStartUp.type = SDL_MOUSEBUTTONUP;
+        wm.handleEvent(scaledStartUp);
+        wm.setStartMenuVisible(false);
+        wm.setContentScale(1.0f);
         wm.setLogicalDesktopSize(120, 120);
         SDL_SetRenderDrawColor(renderer, 0, 0, 0, 255);
         SDL_RenderClear(renderer);

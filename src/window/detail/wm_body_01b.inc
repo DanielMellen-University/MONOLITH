@@ -33,13 +33,8 @@
             m_shellMouseCapture = true;
             ensureTaskbarHitTargets();
             // Start button (when menu was not open, or after we handled the open case above)
-            int startBtnScreenWidth = static_cast<int>(70 * m_contentScale);
-            int startBtnScreenX = logicalToScreenX(8);
-            const int startBtnScreenRight = std::min(
-                startBtnScreenX + startBtnScreenWidth,
-                taskbarScreenRect.x + taskbarScreenRect.w);
-
-            if (m_mouseX >= startBtnScreenX && m_mouseX < startBtnScreenRight) {
+            SDL_Point startPoint{m_mouseX, m_mouseY};
+            if (SDL_PointInRect(&startPoint, &taskbarLayout.startButtonRect)) {
                 setStartMenuVisible(!m_showStartMenu);
                 return;
             }
@@ -48,13 +43,13 @@
             // unconditional taskbar return — a separate post-return handler never fired.
             if (m_taskbarNeedsScroll) {
                 SDL_Point p = {m_mouseX, m_mouseY};
-                if (SDL_PointInRect(&p, &m_taskbarLeftArrowRect)) {
+                if (SDL_PointInRect(&p, &taskbarLayout.leftArrowRect)) {
                     m_taskbarScrollOffset = std::max(0, m_taskbarScrollOffset - 120);
                     invalidateShellHitTargets();
                     setStartMenuVisible(false);
                     return;
                 }
-                if (SDL_PointInRect(&p, &m_taskbarRightArrowRect)) {
+                if (SDL_PointInRect(&p, &taskbarLayout.rightArrowRect)) {
                     // Soft upper bound; drawing clamps which buttons stay visible.
                     m_taskbarScrollOffset += 120;
                     invalidateShellHitTargets();
@@ -103,7 +98,8 @@
 
     // Mouse wheel over taskbar scrolls the window buttons
     if (event.type == SDL_MOUSEWHEEL) {
-        const SDL_Rect taskbarScreenRect = logicalRectToScreen(getTaskbarRect());
+        const TaskbarLayout taskbarLayout = computeTaskbarLayout();
+        const SDL_Rect taskbarScreenRect = taskbarLayout.taskbarRect;
         const int taskbarScreenY = taskbarScreenRect.y;
         const int taskbarScreenBottom = taskbarScreenRect.y + taskbarScreenRect.h;
         ensureTaskbarHitTargets();
