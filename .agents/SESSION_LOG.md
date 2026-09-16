@@ -1,5 +1,7 @@
 # Session log
 
+| 2026-09-15 | refactor | Centralized renderer clip handling across the shell and native app renderers, and routed compressed Settings completion through the shared UTF-8 prefix helper. |
+
 | 2026-09-15 | refactor | Centralized the UTF-8-safe common completion prefix used by Text Editor, Drawing, and Terminal, with direct ASCII and ambiguous-Unicode helper coverage. |
 
 | 2026-09-15 | refactor | Centralized the UTF-8 completion boundary guard in `Utf8.hpp`, switched all four completion clients to it, and added direct helper coverage. |

@@ -1,5 +1,6 @@
 #include "FilesystemApp.hpp"
 #include "Utf8.hpp"
+#include "../detail/RendererClip.hpp"
 
 #include <algorithm>
 #include <cctype>
@@ -16,21 +17,9 @@ constexpr int kToolbarGap = 6;
 constexpr int kStatusBarHeight = 22;
 constexpr int kStatusBarPadding = 8;
 
-struct RendererClipState {
-    SDL_Rect rect{};
-    bool active = false;
-};
-
-RendererClipState captureRendererClip(SDL_Renderer* renderer) {
-    RendererClipState state;
-    SDL_RenderGetClipRect(renderer, &state.rect);
-    state.active = state.rect.w > 0 && state.rect.h > 0;
-    return state;
-}
-
-void restoreRendererClip(SDL_Renderer* renderer, const RendererClipState& state) {
-    SDL_RenderSetClipRect(renderer, state.active ? &state.rect : nullptr);
-}
+using monolith::detail::RendererClipState;
+using monolith::detail::captureRendererClip;
+using monolith::detail::restoreRendererClip;
 
 std::string parentVirtualPath(const std::string& normalizedPath) {
     if (normalizedPath.empty() || normalizedPath == "/") return "/";

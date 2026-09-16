@@ -2,6 +2,7 @@
 #include "FilePath.hpp"
 #include "DrawingRaster.hpp"
 #include "Utf8.hpp"
+#include "../detail/RendererClip.hpp"
 
 #include <algorithm>
 #include <cmath>
@@ -23,35 +24,16 @@ constexpr uint8_t kCanvasBackgroundR = 245;
 constexpr uint8_t kCanvasBackgroundG = 245;
 constexpr uint8_t kCanvasBackgroundB = 248;
 
-struct RendererClipState {
-    SDL_Rect rect{};
-    bool active = false;
-};
-
-RendererClipState captureRendererClip(SDL_Renderer* renderer) {
-    RendererClipState state;
-    SDL_RenderGetClipRect(renderer, &state.rect);
-    state.active = state.rect.w > 0 && state.rect.h > 0;
-    return state;
-}
-
-void restoreRendererClip(SDL_Renderer* renderer, const RendererClipState& state) {
-    SDL_RenderSetClipRect(renderer, state.active ? &state.rect : nullptr);
-}
-
-SDL_Rect intersectRendererClip(const SDL_Rect& requested, const RendererClipState& state) {
-    SDL_Rect result = requested;
-    if (state.active) {
-        SDL_IntersectRect(&state.rect, &requested, &result);
-    }
-    return result;
-}
-
 bool pointInRect(int x, int y, const SDL_Rect& rect) {
     return x >= rect.x && x < rect.x + rect.w && y >= rect.y && y < rect.y + rect.h;
 }
 
 } // namespace
+
+using monolith::detail::RendererClipState;
+using monolith::detail::captureRendererClip;
+using monolith::detail::restoreRendererClip;
+using monolith::detail::intersectRendererClip;
 
 DrawingApp::DrawingApp(TTF_Font* font, monolith::fs::Filesystem* fs, const std::string& initialPath)
     : m_font(font), m_fs(fs), m_pendingInitialPath(initialPath)

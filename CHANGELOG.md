@@ -1,5 +1,10 @@
 # Changelog
 
+## 2026-09: Share renderer clip handling
+
+- Centralized caller-clip capture, intersection, and restoration for WindowManager, Terminal, Text Editor, Filesystem Browser, and Drawing.
+- Routed Settings completion through the same shared UTF-8 common-prefix helper and regenerated its compressed source fragment.
+
 ## 2026-09: Share UTF-8 completion prefixes
 
 - Centralized complete UTF-8 common-prefix completion in the shared app helper so Text Editor, Drawing, and Terminal use one boundary-safe rule.
