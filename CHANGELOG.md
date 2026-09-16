@@ -1,5 +1,9 @@
 # Changelog
 
+## 2026-09: Document Drawing rendering lifecycle
+
+- Document the Drawing text-surface cache, UI-scale invalidation, and separation from the canvas texture upload path.
+
 ## 2026-09: Cache Drawing text surfaces
 
 - Reuse SDL_ttf surfaces for Drawing toolbar labels and status or prompt text, clearing the cache when the interface scale changes.
