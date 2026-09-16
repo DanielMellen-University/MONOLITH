@@ -140,7 +140,8 @@ public:
     void setUiScalePercent(int percent);
 
     // Session: restore open windows from a host-side file; save current layout on exit.
-    // Format is line-based (see saveSession). Returns true if at least one window was restored.
+    // Format is line-based (see saveSession). Returns true after a valid
+    // session header is accepted, even when no entries can be restored.
     bool loadSession(const std::string& hostPath);
     bool saveSession(const std::string& hostPath) const;
 

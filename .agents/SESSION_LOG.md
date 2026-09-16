@@ -1,5 +1,7 @@
 # Session log
 
+| 2026-09-15 | fix | Preserved valid empty sessions instead of seeding demo windows after stale-entry filtering, updated the load contract, and extended session coverage. |
+
 | 2026-09-15 | fix | Skipped stale file-backed session entries instead of restoring blank apps, added missing-editor and corrupt-Drawing coverage, and updated architecture/changelog/development docs. |
 
 | 2026-09-15 | fix | Claimed new Text Editor and Drawing file bindings before creation notifications, added event-order coverage, and updated app/architecture/changelog docs. |

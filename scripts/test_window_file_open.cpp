@@ -283,9 +283,20 @@ int main() {
         }
         monolith::window::WindowManager staleSessionWm;
         staleSessionWm.setAppResources(font, &fs);
-        check(!staleSessionWm.loadSession(staleSessionPath.string())
+        check(staleSessionWm.loadSession(staleSessionPath.string())
                   && staleSessionWm.m_windows.empty(),
-              "stale file-backed session entries are skipped instead of restoring blank apps");
+              "valid sessions keep stale file-backed entries out without seeding demo apps");
+
+        const auto invalidSessionPath = hostRoot / "invalid-session.txt";
+        {
+            std::ofstream invalidSession(invalidSessionPath);
+            invalidSession << "not-a-session\n";
+        }
+        monolith::window::WindowManager invalidSessionWm;
+        invalidSessionWm.setAppResources(font, &fs);
+        check(!invalidSessionWm.loadSession(invalidSessionPath.string())
+                  && invalidSessionWm.m_windows.empty(),
+              "invalid session headers still request the startup fallback");
     }
 
     {

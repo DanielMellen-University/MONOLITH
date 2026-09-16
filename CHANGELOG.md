@@ -1,5 +1,10 @@
 # Changelog
 
+## 2026-09: Preserve intentionally empty sessions
+
+- A valid session containing only stale or no entries now keeps the desktop empty instead of triggering the demo-window fallback.
+- Session loading still rejects missing files and invalid session headers.
+
 ## 2026-09: Skip stale file-backed session entries
 
 - Session restore now skips missing or invalid file-backed Editor and Drawing entries instead of presenting blank untitled windows as successful restores.

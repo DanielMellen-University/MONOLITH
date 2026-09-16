@@ -99,7 +99,6 @@ bool WindowManager::loadSession(const std::string& hostPath) {
     if (!header.empty() && header.back() == '\r') header.pop_back();
     if (header != "session_v1") return false;
 
-    int restored = 0;
     std::string line;
     while (std::getline(in, line)) {
         if (!line.empty() && line.back() == '\r') line.pop_back();
@@ -148,7 +147,6 @@ bool WindowManager::loadSession(const std::string& hostPath) {
 
         if (m_windows.size() > before) {
             Window* restoredWindow = m_windows.back().get();
-            const int restoredWindowId = restoredWindow->id;
             const bool boundSuccessfully =
                 (!expectsEditorFile && !expectsDrawingFile)
                 || (expectsEditorFile && !restoredWindow->editedFilePath.empty())
@@ -159,8 +157,10 @@ bool WindowManager::loadSession(const std::string& hostPath) {
             }
             applyRestoredGeometry(restoredWindow, x, y, w, h,
                                   minFlag != 0, maxFlag != 0);
-            if (isLiveWindow(restoredWindow, restoredWindowId)) ++restored;
         }
     }
-    return restored > 0;
+    // A valid session can intentionally contain no restorable windows, for
+    // example after the user closed everything before shutting down. Report
+    // that the session was accepted so startup does not seed demo windows.
+    return true;
 }
