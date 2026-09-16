@@ -1773,3 +1773,6 @@ Focused snapshot of Monolith as of the latest `beta` / `main` tip. Older detail 
 - C++23, CMake, SDL2 + SDL2_ttf; see README for package names
 
 Historical feature-by-feature entries were cleared to keep this file short. Use `git log` for full history.
+## 2026-09: Cache Alt+Tab overlay text
+
+- Reuse the WindowManager shell texture cache for the Alt+Tab title overlay, avoiding repeated SDL_ttf rasterization while cycling windows.

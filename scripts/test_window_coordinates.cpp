@@ -254,6 +254,26 @@ int main() {
     wm.setFont(font);
     wm.m_showStartMenu = false;
     wm.invalidateShellHitTargets();
+    wm.m_altTabOrder = {window};
+    wm.m_altTabIndex = 0;
+    wm.m_altTabCycling = true;
+    wm.render(renderer);
+    const std::string altTabTextKey = std::string("Probe")
+        + '\0' + static_cast<char>(235) + static_cast<char>(235)
+        + static_cast<char>(240) + static_cast<char>(255);
+    const auto altTabCacheEntry = wm.m_shellTextCache.find(altTabTextKey);
+    SDL_Texture* firstAltTabTexture = altTabCacheEntry == wm.m_shellTextCache.end()
+        ? nullptr : altTabCacheEntry->second.texture;
+    const size_t altTabCacheSize = wm.m_shellTextCache.size();
+    wm.render(renderer);
+    const auto secondAltTabCacheEntry = wm.m_shellTextCache.find(altTabTextKey);
+    SDL_Texture* secondAltTabTexture = secondAltTabCacheEntry == wm.m_shellTextCache.end()
+        ? nullptr : secondAltTabCacheEntry->second.texture;
+    check(firstAltTabTexture != nullptr
+              && secondAltTabTexture == firstAltTabTexture
+              && wm.m_shellTextCache.size() == altTabCacheSize,
+          "shell text reuses Alt+Tab overlay textures between frames");
+    wm.endAltTabCycle();
     wm.m_desktopIconSelected = 1;
     wm.m_desktopIconLastClickIndex = 1;
     wm.m_desktopIconLastClickTicks = 1000;

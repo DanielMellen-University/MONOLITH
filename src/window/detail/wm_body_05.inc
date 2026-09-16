@@ -57,38 +57,38 @@
         }
         const std::string label = current ? current->title : "(no window)";
         SDL_Color textCol = {235, 235, 240, 255};
-        SDL_Surface* s = TTF_RenderUTF8_Blended(m_font, label.c_str(), textCol);
-        if (s) {
-            SDL_Texture* t = SDL_CreateTextureFromSurface(renderer, s);
-            if (t) {
-                const int logicalTextW = static_cast<int>(std::ceil(
-                    static_cast<float>(s->w) / m_contentScale));
-                const int maxBoxW = std::max(1, m_logicalWidth - 80);
-                const int boxW = std::min(maxBoxW, std::max(220, logicalTextW + 32));
-                const int boxH = 52;
-                SDL_Rect box = {
-                    logicalToScreenX((m_logicalWidth - boxW) / 2),
-                    logicalToScreenY((m_logicalHeight - boxH) / 2 - 20),
-                    static_cast<int>(boxW * m_contentScale),
-                    static_cast<int>(boxH * m_contentScale)
-                };
-                SDL_SetRenderDrawColor(renderer, 28, 30, 40, 240);
-                SDL_RenderFillRect(renderer, &box);
-                SDL_SetRenderDrawColor(renderer, 90, 120, 180, 255);
-                SDL_RenderDrawRect(renderer, &box);
-                SDL_Rect dst = {
-                    box.x + (box.w - s->w) / 2,
-                    box.y + (box.h - s->h) / 2,
-                    s->w,
-                    s->h
-                };
-                const SDL_Rect effectiveBoxClip = intersectRendererClip(box, callerClip);
+        int textW = 0;
+        int textH = 0;
+        SDL_Texture* textTexture = getShellTextTexture(
+            renderer, label.c_str(), textCol, textW, textH);
+        if (textTexture) {
+            const int logicalTextW = static_cast<int>(std::ceil(
+                static_cast<float>(textW) / m_contentScale));
+            const int maxBoxW = std::max(1, m_logicalWidth - 80);
+            const int boxW = std::min(maxBoxW, std::max(220, logicalTextW + 32));
+            const int boxH = 52;
+            SDL_Rect box = {
+                logicalToScreenX((m_logicalWidth - boxW) / 2),
+                logicalToScreenY((m_logicalHeight - boxH) / 2 - 20),
+                static_cast<int>(boxW * m_contentScale),
+                static_cast<int>(boxH * m_contentScale)
+            };
+            SDL_SetRenderDrawColor(renderer, 28, 30, 40, 240);
+            SDL_RenderFillRect(renderer, &box);
+            SDL_SetRenderDrawColor(renderer, 90, 120, 180, 255);
+            SDL_RenderDrawRect(renderer, &box);
+            SDL_Rect dst = {
+                box.x + (box.w - textW) / 2,
+                box.y + (box.h - textH) / 2,
+                textW,
+                textH
+            };
+            const SDL_Rect effectiveBoxClip = intersectRendererClip(box, callerClip);
+            if (effectiveBoxClip.w > 0 && effectiveBoxClip.h > 0) {
                 SDL_RenderSetClipRect(renderer, &effectiveBoxClip);
-                SDL_RenderCopy(renderer, t, nullptr, &dst);
-                restoreRendererClip(renderer, callerClip);
-                SDL_DestroyTexture(t);
+                SDL_RenderCopy(renderer, textTexture, nullptr, &dst);
             }
-            SDL_FreeSurface(s);
+            restoreRendererClip(renderer, callerClip);
         }
     }
 
