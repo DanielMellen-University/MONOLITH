@@ -34,7 +34,6 @@
         #include "wm_start_menu_entries.inc"
         const size_t entryCount = sizeof(entries) / sizeof(entries[0]);
 
-        const int menuWidth = std::min(210, std::max(0, m_logicalWidth));
         const int itemHLogical = 26;
         const int itemGapLogical = 2;
         const int categoryHLogical = 20;
@@ -54,24 +53,13 @@
             }
         }
         contentHLogical += bottomPadLogical;
-        const int menuHeight = headerHLogical + contentHLogical;
-        const SDL_Rect usableDesktop = getUsableDesktopRect();
-        const int visibleMenuHeight = std::min(menuHeight, std::max(0, usableDesktop.h));
-        const int menuXLogical = std::clamp(
-            8, 0, std::max(0, m_logicalWidth - menuWidth));
-        const int menuYLogical = std::max(
-            usableDesktop.y,
-            usableDesktop.y + usableDesktop.h - visibleMenuHeight);
-
-        const int menuX = logicalToScreenX(menuXLogical);
-        const int menuY = logicalToScreenY(menuYLogical);
+        const StartMenuLayout layout = computeStartMenuLayout(contentHLogical);
+        const int menuWidth = layout.menuWidthLogical;
+        const int menuX = layout.menuRect.x;
+        const int menuY = layout.menuRect.y;
 
         // Menu background (slightly more XP-like dark panel)
-        SDL_Rect menuRect = {
-            menuX, menuY,
-            static_cast<int>(menuWidth * m_contentScale),
-            static_cast<int>(visibleMenuHeight * m_contentScale)
-        };
+        const SDL_Rect menuRect = layout.menuRect;
         m_startMenuRect = menuRect;   // save for click hit-testing (popup is above taskbar)
         const SDL_Rect effectiveMenuClip = intersectRendererClip(menuRect, callerClip);
         const bool menuHasRenderArea = menuRect.w > 0 && menuRect.h > 0
