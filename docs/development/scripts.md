@@ -2,6 +2,16 @@
 
 Headless verification scripts for Monolith. These run without a full interactive desktop session and are useful for local sanity checks. There is no automated CI pipeline in-repo yet; treat "CI" as optional future use.
 
+## Complete Headless Suite
+
+Run every static integration check and documented state test with one command:
+
+```bash
+./scripts/run_headless_tests.sh
+```
+
+The runner builds the generated source fragments, compiles the existing tests into `build/`, and executes SDL tests with dummy video and audio drivers by default. Set `BUILD_DIR`, `CXX`, `SDL_VIDEODRIVER`, or `SDL_AUDIODRIVER` to override those defaults. The individual commands below remain useful when iterating on one subsystem.
+
 ## Drawing Integration Check
 
 Static grep-based check that Drawing is wired into the window manager and Start menu:

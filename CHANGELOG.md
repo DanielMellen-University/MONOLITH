@@ -1,5 +1,10 @@
 # Changelog
 
+## 2026-09: Add one-command headless verification
+
+- Added `scripts/run_headless_tests.sh` to build and run the documented static checks and state tests with consistent SDL dummy drivers.
+- Kept the individual development commands documented for focused iteration while making full-suite verification reproducible from the repository root.
+
 ## 2026-09: Keep Snake effects correct across tick wraparound
 
 - Snake's food flash now uses wrap-safe SDL tick deadline arithmetic, so the brief visual effect remains correct when the 32-bit tick counter rolls over.
