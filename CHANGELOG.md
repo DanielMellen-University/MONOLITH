@@ -1,5 +1,10 @@
 # Changelog
 
+## 2026-09: Invalidate stale shell hit targets
+
+- Cleared cached taskbar, clock, and Start-menu hit rectangles when desktop geometry, display scale, or interface font metrics change, preventing a pre-render event from activating a control at its old screen position.
+- Added window-coordinate coverage for content-scale, font-scale, and desktop-resize invalidation.
+
 ## 2026-09: Make Start menu keyboard-complete
 
 - The existing Start menu now supports Up/Down selection, Enter activation, and Escape dismissal after opening with `Ctrl+Escape`.

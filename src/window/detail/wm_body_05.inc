@@ -234,9 +234,22 @@ void WindowManager::setFont(TTF_Font* font) {
     applyUiScaleFont();
 }
 
+void WindowManager::invalidateShellHitTargets() {
+    m_taskbarEntries.clear();
+    m_taskbarNeedsScroll = false;
+    m_taskbarLeftArrowRect = {0, 0, 0, 0};
+    m_taskbarRightArrowRect = {0, 0, 0, 0};
+    m_clockHitRect = {0, 0, 0, 0};
+    m_clockTooltipRect = {0, 0, 0, 0};
+    m_startMenuItems.clear();
+    m_startMenuHoverIndex = -1;
+    m_startMenuRect = {0, 0, 0, 0};
+}
+
 void WindowManager::setLogicalDesktopSize(int width, int height) {
     m_logicalWidth = std::max(1, width);
     m_logicalHeight = std::max(1, height);
+    invalidateShellHitTargets();
 
     // Re-clamp when logical size changes and keep each app's client geometry
     // synchronized when the shell had to move or resize its window. The stable
@@ -267,14 +280,19 @@ void WindowManager::getLogicalDesktopSize(int& width, int& height) const {
 
 void WindowManager::setHeaderOffset(int offsetY) {
     m_headerOffset = offsetY;
+    invalidateShellHitTargets();
 }
 
 void WindowManager::setContentScale(float scale) {
     m_contentScale = scale > 0.0f ? scale : 1.0f;
+    invalidateShellHitTargets();
 }
 
 void WindowManager::applyUiScaleFont() {
-    if (!m_font) return;
+    if (!m_font) {
+        invalidateShellHitTargets();
+        return;
+    }
 
     const int percent = m_desktopSettings.uiScalePercent();
     const int pointSize = std::clamp((kBaseFontPointSize * percent + 50) / 100, 10, 22);
@@ -289,6 +307,7 @@ void WindowManager::applyUiScaleFont() {
     }
     m_titleCache.clear();
     destroyClockTextures();
+    invalidateShellHitTargets();
 }
 
 SDL_Rect WindowManager::getTaskbarRect() const {

@@ -479,6 +479,30 @@ int main() {
         SDL_SetRenderDrawColor(renderer, 0, 0, 0, 255);
         SDL_RenderClear(renderer);
         wm.render(renderer);
+        check(!wm.m_taskbarEntries.empty(),
+              "taskbar render populates screen-space hit targets");
+        wm.setContentScale(1.15f);
+        check(wm.m_taskbarEntries.empty()
+                  && !wm.m_taskbarNeedsScroll
+                  && wm.m_taskbarLeftArrowRect.w == 0
+                  && wm.m_taskbarRightArrowRect.w == 0,
+              "content scaling invalidates stale taskbar hit targets");
+        wm.setUiScalePercent(115);
+        check(wm.m_taskbarEntries.empty()
+                  && wm.m_clockHitRect.w == 0
+                  && wm.m_clockTooltipRect.w == 0,
+              "font scaling invalidates stale taskbar and clock hit targets");
+        wm.setUiScalePercent(100);
+        wm.setLogicalDesktopSize(900, 650);
+        check(wm.m_taskbarEntries.empty()
+                  && wm.m_startMenuItems.empty()
+                  && wm.m_startMenuRect.w == 0,
+              "desktop resizing invalidates stale shell hit targets");
+        wm.setContentScale(1.0f);
+        wm.setLogicalDesktopSize(1000, 700);
+        SDL_SetRenderDrawColor(renderer, 0, 0, 0, 255);
+        SDL_RenderClear(renderer);
+        wm.render(renderer);
         auto findTaskbarWidth = [&]() {
             for (const auto& entry : wm.m_taskbarEntries) {
                 if (entry.window == longTitleWindow) return entry.rect.w;

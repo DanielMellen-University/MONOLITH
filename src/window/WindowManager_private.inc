@@ -160,6 +160,11 @@ private:
     SDL_Rect logicalRectToScreen(const SDL_Rect& rect) const;
     TitleButtonRects getTitleButtonRects(const Window& window) const;
 
+    // These screen-space hit targets are rebuilt during render. Clear them
+    // whenever geometry or font metrics change so an event before the next
+    // frame cannot use coordinates from the previous layout.
+    void invalidateShellHitTargets();
+
     class AppCallbackScope {
     public:
         explicit AppCallbackScope(WindowManager& owner)
