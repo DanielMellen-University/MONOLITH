@@ -1,11 +1,13 @@
 // Headless test of DesktopSettings persistence, including the optional UI scale key.
 
 #include "../src/settings/DesktopSettings.hpp"
+#include "../src/detail/AtomicFile.hpp"
 
 #include <cstdio>
 #include <filesystem>
 #include <fstream>
 #include <iostream>
+#include <stdexcept>
 
 using monolith::settings::DesktopSettings;
 
@@ -91,6 +93,18 @@ int main() {
               && !std::filesystem::exists(blockedPath.string() + ".tmp"),
           "failed settings replacement preserves the target and cleans up");
 
+    const std::filesystem::path throwingPath =
+        std::filesystem::temp_directory_path() / "monolith-desktop-settings-throwing";
+    std::filesystem::remove(throwingPath, ec);
+    check(!monolith::detail::writeTextAtomically(
+              throwingPath,
+              [](std::ostream&) { throw std::runtime_error("serializer failed"); },
+              true),
+          "atomic writer converts serializer exceptions into failure");
+    check(!std::filesystem::exists(throwingPath)
+              && !std::filesystem::exists(throwingPath.string() + ".tmp"),
+          "serializer failure removes its temporary snapshot");
+
     {
         std::ofstream legacy(path, std::ios::trunc);
         legacy << "desktop_background=25,25,30\n"
@@ -162,6 +176,7 @@ int main() {
 
     std::filesystem::remove(path, ec);
     std::filesystem::remove_all(blockedPath, ec);
+    std::filesystem::remove(throwingPath, ec);
     if (failures == 0) {
         std::cout << "ALL DESKTOP SETTINGS TESTS PASSED\n";
         return 0;

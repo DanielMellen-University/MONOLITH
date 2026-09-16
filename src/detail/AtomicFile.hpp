@@ -68,7 +68,14 @@ bool writeTextAtomically(const std::filesystem::path& targetPath,
         }
     }
 
-    std::forward<Writer>(writer)(out);
+    try {
+        std::forward<Writer>(writer)(out);
+    } catch (...) {
+        out.close();
+        std::error_code cleanupError;
+        std::filesystem::remove(tempPath, cleanupError);
+        return false;
+    }
     out.flush();
     if (!out) {
         out.close();

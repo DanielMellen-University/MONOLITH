@@ -1,5 +1,7 @@
 # Session log
 
+| 2026-09-15 | fix | Made shared atomic host snapshots clean up and report failure when a serializer throws, with focused persistence coverage. |
+
 | 2026-09-15 | fix | Intersected every Filesystem Browser text subregion with the caller renderer clip and added pixel-level containment coverage. |
 | 2026-09-15 | refactor | Routed WindowManager client rendering and the Filesystem Browser context menu through the shared renderer clip intersection helper. |
 | 2026-09-15 | refactor | Routed Pong, Snake, Minesweeper, and Breakout text clipping through the shared renderer clip helper. |

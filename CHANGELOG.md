@@ -1,5 +1,10 @@
 # Changelog
 
+## 2026-09: Clean up failed atomic serializers
+
+- Shared host snapshots now convert serializer exceptions into a failed save and remove the temporary sibling, preserving the boolean persistence contract.
+- Added regression coverage for cleanup after a throwing serializer.
+
 ## 2026-09: Keep Browser text inside caller clips
 
 - Intersected Filesystem Browser path, filter, filename, rename-cursor, and status text clips with the caller renderer clip instead of temporarily widening the render boundary.
