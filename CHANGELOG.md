@@ -2,8 +2,8 @@
 
 ## 2026-09: Invalidate stale Settings hit targets
 
-- Cleared cached Settings swatch, clock, interface-scale, and wallpaper-control hit rectangles on client resize and interface text-scale changes, preventing pre-render clicks from activating controls at their old positions.
-- Added Settings state coverage for both invalidation paths.
+- Cleared cached Settings swatch, clock, interface-scale, and wallpaper-control hit rectangles on client resize, interface text-scale changes, and scroll movement, preventing pre-render clicks from activating controls at their old positions.
+- Added Settings state coverage for resize, scale, wheel, Home, and End invalidation paths.
 
 ## 2026-09: Invalidate stale Drawing hit targets
 

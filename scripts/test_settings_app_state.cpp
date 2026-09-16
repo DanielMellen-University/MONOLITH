@@ -209,6 +209,23 @@ int main() {
               && settings.m_wallpaperSetRect.w == 0
               && settings.m_wallpaperClearRect.w == 0,
           "Settings resize invalidates stale hit targets");
+    settings.m_wallpaperFieldFocused = false;
+    settings.m_backgroundSwatches[2] = {10, 10, 20, 20};
+    SDL_Event wheel{};
+    wheel.type = SDL_MOUSEWHEEL;
+    wheel.wheel.y = -1;
+    settings.handleEvent(wheel);
+    check(settings.m_backgroundSwatches[2].w == 0,
+          "Settings wheel scrolling invalidates stale hit targets");
+    settings.m_clockFormatHitRects[0] = {10, 40, 20, 20};
+    key(settings, SDLK_HOME);
+    check(settings.m_clockFormatHitRects[0].w == 0,
+          "Settings Home scrolling invalidates stale hit targets");
+    settings.m_uiScaleHitRects[0] = {10, 70, 20, 20};
+    key(settings, SDLK_END);
+    check(settings.m_uiScaleHitRects[0].w == 0,
+          "Settings End scrolling invalidates stale hit targets");
+    key(settings, SDLK_HOME);
     const SDL_Rect tinyContent{10, 20, 200, 8};
     const SDL_Rect tinyFooter = settings.getFooterRect(tinyContent);
     check(tinyFooter.y >= tinyContent.y

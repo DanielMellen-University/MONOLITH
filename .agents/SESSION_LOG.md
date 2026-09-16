@@ -1,6 +1,6 @@
 # Session log
 
-| 2026-09-16 | fix | Invalidated Settings swatch, clock, interface-scale, and wallpaper-control hit targets after resize and interface-scale changes, with focused Settings state coverage and app-guide/changelog notes. |
+| 2026-09-16 | fix | Invalidated Settings swatch, clock, interface-scale, and wallpaper-control hit targets after resize, interface-scale, or scroll changes, with focused Settings state coverage and app-guide/changelog notes. |
 
 | 2026-09-16 | fix | Invalidated Drawing toolbar and color-swatch hit targets after resize and interface-scale changes, with focused Drawing state coverage and app-guide/changelog notes. |
 
