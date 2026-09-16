@@ -137,6 +137,7 @@ void WindowManager::setClock24Hour(bool enabled) {
         m_clockTexture = nullptr;
     }
     m_clockText.clear();
+    invalidateShellHitTargets();
     if (!m_desktopSettingsHostPath.empty()) {
         m_desktopSettings.saveToHostPath(m_desktopSettingsHostPath);
     }

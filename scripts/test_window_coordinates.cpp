@@ -481,6 +481,13 @@ int main() {
         wm.render(renderer);
         check(!wm.m_taskbarEntries.empty(),
               "taskbar render populates screen-space hit targets");
+        const bool clock24HourBeforeFormatChange = wm.getClock24Hour();
+        wm.setClock24Hour(!clock24HourBeforeFormatChange);
+        check(wm.m_taskbarEntries.empty()
+                  && wm.m_clockHitRect.w == 0
+                  && wm.m_clockTooltipRect.w == 0,
+              "clock format changes invalidate stale shell hit targets");
+        wm.setClock24Hour(clock24HourBeforeFormatChange);
         wm.setContentScale(1.15f);
         check(wm.m_taskbarEntries.empty()
                   && !wm.m_taskbarNeedsScroll

@@ -1,6 +1,6 @@
 # Session log
 
-| 2026-09-15 | fix | Invalidated cached taskbar, clock, and Start-menu hit targets after shell geometry or font-metric changes, with focused window-coordinate coverage and architecture/changelog notes. |
+| 2026-09-16 | fix | Invalidated cached taskbar, clock, and Start-menu hit targets after shell geometry, clock-format, or font-metric changes, with focused window-coordinate coverage and architecture/changelog notes. |
 
 | 2026-09-15 | fix | Completed Start menu keyboard handling with wrapped Up/Down selection, Enter activation, Escape dismissal, and focused shell regression coverage. |
 
