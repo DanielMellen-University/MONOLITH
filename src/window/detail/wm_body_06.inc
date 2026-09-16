@@ -182,6 +182,17 @@ void WindowManager::closeWindow(Window* window) {
             m_resizingWindow = nullptr;
             m_resizeDirection = ResizeDirection::None;
         }
+        // Taskbar hit targets are rebuilt during render, but an app can close
+        // itself from a keyboard event between frames. Remove the destroyed
+        // window before any later event can inspect the cached raw pointer.
+        m_taskbarEntries.erase(
+            std::remove_if(
+                m_taskbarEntries.begin(),
+                m_taskbarEntries.end(),
+                [window](const TaskbarEntry& entry) {
+                    return entry.window == window;
+                }),
+            m_taskbarEntries.end());
 
         // Notify before destruction so apps can clear focus-dependent state (e.g. Snake pause).
         if (wasFocused && window->app) {

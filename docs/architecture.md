@@ -61,6 +61,7 @@ The Window Manager is the most foundational subsystem.
 - When the focused window is closed, focus moves to the topmost non-minimized remaining window (z-order), with `onFocusLost` / `onFocusGained` fired so apps stay consistent. If every survivor is minimized, focus stays clear until the user activates a window.
 - Minimizing the focused window uses the same handoff rule: the topmost non-minimized survivor becomes focused, or focus is cleared when none remain. Minimized apps never receive keyboard events.
 - When many windows are open, the taskbar scrolls horizontally (arrow buttons and mouse wheel). Arrow hit targets are recorded during render (same pattern as taskbar window buttons) and handled in the taskbar click path.
+- Closing a window immediately removes its cached taskbar hit target, so keyboard- or app-triggered closes cannot leave a raw pointer for a later event between renders.
 - Taskbar scrolling is clamped to the measured button strip after arrow controls reserve their space, so repeated input cannot scroll every window button out of view.
 - On narrow logical desktops, the taskbar button viewport is clamped to non-negative space; scroll arrows are shown only when both controls fit, stale scroll offsets reset after a shrink, and button rendering plus hit rectangles are clipped to the visible viewport.
 - The clock tray yields the button strip when the available width is too small for both controls, preventing taskbar status UI from overlapping window-button input.

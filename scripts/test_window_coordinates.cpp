@@ -350,6 +350,17 @@ int main() {
         wm.render(renderer);
         check(findTaskbarWidth() > normalFontButtonWidth,
               "taskbar buttons grow with measured UI text width");
+
+        const size_t taskbarEntriesBeforeClose = wm.m_taskbarEntries.size();
+        wm.closeWindow(longTitleWindow);
+        const bool closedEntryRemains = std::any_of(
+            wm.m_taskbarEntries.begin(),
+            wm.m_taskbarEntries.end(),
+            [longTitleWindow](const auto& entry) {
+                return entry.window == longTitleWindow;
+            });
+        check(taskbarEntriesBeforeClose > 0 && !closedEntryRemains,
+              "closing a window invalidates its cached taskbar hit target");
     }
 
     if (font) TTF_CloseFont(font);

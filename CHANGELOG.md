@@ -1,5 +1,10 @@
 # Changelog
 
+## 2026-09: Invalidate closed taskbar targets
+
+- WindowManager now removes a closing window from the cached taskbar hit targets before destroying it, covering app-triggered closes that happen between render frames.
+- Added regression coverage to verify the stale target is removed.
+
 ## 2026-09: Share game frame timing
 
 - Pong and Breakout now use one wrap-safe SDL tick conversion helper with the same 50 ms stalled-frame cap, removing duplicated timing logic.
