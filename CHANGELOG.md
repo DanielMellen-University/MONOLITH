@@ -1,5 +1,11 @@
 # Changelog
 
+## 2026-09: End app gestures before modal prompts
+
+- Clear an active Text Editor mouse selection when a path prompt starts, so the prompt-owned mouse release cannot leave selection capture armed.
+- Close an active Drawing stroke before Save, Open, or RGB prompts consume pointer input.
+- Add focused state coverage for both prompt transitions.
+
 ## 2026-09: Cancel Browser rename before pointer actions
 
 - End Filesystem Browser inline rename mode before toolbar or context-menu mouse actions, so Delete and other controls cannot run with stale rename state still armed.

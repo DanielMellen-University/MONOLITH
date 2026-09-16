@@ -1,5 +1,7 @@
 # Session log
 
+| 2026-09-16 | fix | Ended active Text Editor selections and Drawing strokes before modal prompts, added focused gesture coverage, and updated both app guides and the changelog. |
+
 | 2026-09-16 | fix | Canceled Filesystem Browser inline renames before pointer actions, added toolbar-delete coverage, and updated the Browser guide and changelog. |
 
 | 2026-09-16 | fix | Canceled Filesystem Browser inline renames before wheel scrolling, added stale-row coverage, and updated the Browser guide and changelog. |

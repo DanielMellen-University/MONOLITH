@@ -745,6 +745,16 @@ void DrawingApp::beginPathPrompt(PathPromptMode mode) {
     // A new prompt is a new user action. Do not carry a discarded confirmation
     // from an earlier Open/New attempt into it.
     clearDiscardArm();
+    // The prompt owns subsequent input, including the matching mouse release.
+    // Close any active stroke before that release is intentionally ignored.
+    if (m_drawing || m_strokeHistoryPending) {
+        m_drawing = false;
+        m_lastCanvasX = -1;
+        m_lastCanvasY = -1;
+        m_shapeAnchorX = -1;
+        m_shapeAnchorY = -1;
+        finishStroke();
+    }
     m_pathPromptMode = mode;
     if (mode == PathPromptMode::Save) {
         m_pathPromptBuffer = m_filePath.empty() ? defaultSavePath() : m_filePath;

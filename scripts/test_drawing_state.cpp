@@ -243,6 +243,22 @@ int main() {
     capturedUp.button.y = capturedPenMotion.motion.y;
     capturedPen.handleEvent(capturedUp);
 
+    TestDrawing promptGestureDrawing(font, &fs);
+    promptGestureDrawing.onResize(300, 300);
+    SDL_Event promptStrokeDown{};
+    promptStrokeDown.type = SDL_MOUSEBUTTONDOWN;
+    promptStrokeDown.button.button = SDL_BUTTON_LEFT;
+    promptStrokeDown.button.x = 20;
+    promptStrokeDown.button.y = promptGestureDrawing.m_canvasTop + 20;
+    promptGestureDrawing.handleEvent(promptStrokeDown);
+    promptGestureDrawing.beginPathPrompt(TestDrawing::PathPromptMode::Open);
+    check(!promptGestureDrawing.m_drawing
+              && !promptGestureDrawing.m_strokeHistoryPending
+              && promptGestureDrawing.m_lastCanvasX == -1
+              && promptGestureDrawing.m_lastCanvasY == -1,
+          "Drawing path prompts end an active mouse stroke");
+    promptGestureDrawing.finishPathPrompt(false);
+
     drawing.m_tool = monolith::app::DrawingApp::Tool::Pen;
     drawing.m_usingCustomColor = true;
     drawing.m_customR = 12;

@@ -161,7 +161,7 @@ Use Filesystem Browser Rename or Terminal `mv`, keeping the complete `.modr` suf
 | Complete a path | **Tab** | Completes a directory or `.modr` filename while Save or Open is active. |
 | Confirm or cancel | **Enter** / **Esc** | Accepts or abandons the active Save, Open, or RGB status-bar prompt. |
 
-The status bar is the active prompt whenever Drawing asks for a path or RGB value. Keep the pointer in the canvas for painting; keyboard shortcuts are handled by the Drawing window while no prompt is active.
+The status bar is the active prompt whenever Drawing asks for a path or RGB value. Keep the pointer in the canvas for painting; keyboard shortcuts are handled by the Drawing window while no prompt is active. Starting a prompt ends an in-progress mouse stroke so its ignored button release cannot leave drawing armed.
 
 ## First Session Walkthrough
 

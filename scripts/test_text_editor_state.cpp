@@ -164,6 +164,20 @@ int main() {
         selectionEnd.button.button = SDL_BUTTON_LEFT;
         scaleEditor.handleEvent(selectionEnd);
 
+        TestEditor promptGestureEditor(nullptr, &fs, "/old.txt");
+        promptGestureEditor.m_lines = {"prompt gesture"};
+        promptGestureEditor.onResize(320, 120);
+        SDL_Event promptSelectionStart{};
+        promptSelectionStart.type = SDL_MOUSEBUTTONDOWN;
+        promptSelectionStart.button.button = SDL_BUTTON_LEFT;
+        promptSelectionStart.button.x = TestEditor::kPadding + TestEditor::kLineNumWidth + 2;
+        promptSelectionStart.button.y = TestEditor::kPadding + 1;
+        promptGestureEditor.handleEvent(promptSelectionStart);
+        promptGestureEditor.beginPathPrompt(TestEditor::PathPromptMode::Open);
+        check(!promptGestureEditor.m_selectingWithMouse,
+              "Text Editor path prompts end an active mouse selection");
+        promptGestureEditor.finishPathPrompt(false);
+
         SDL_Surface* surface = videoReady
             ? SDL_CreateRGBSurfaceWithFormat(0, 240, 200, 32, SDL_PIXELFORMAT_RGBA32)
             : nullptr;
