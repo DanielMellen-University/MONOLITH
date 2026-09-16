@@ -1886,19 +1886,16 @@ void FilesystemApp::updateContextMenuLayout() {
         if (w > maxTextWidth) maxTextWidth = w;
     }
 
+    const int clientWidth = std::max(0, m_clientWidth);
+    const int clientHeight = std::max(0, m_clientHeight);
     int menuWidth = maxTextWidth + padding * 2 + 20;
     int menuHeight = static_cast<int>(m_contextMenuItems.size()) * itemHeight + padding * 2;
-    int menuX = m_contextMenuPos.x;
-    int menuY = m_contextMenuPos.y;
-
-    if (menuX + menuWidth > m_clientWidth) {
-        menuX = m_clientWidth - menuWidth - 4;
-    }
-    if (menuY + menuHeight > m_clientHeight) {
-        menuY = m_clientHeight - menuHeight - 4;
-    }
-    if (menuX < 4) menuX = 4;
-    if (menuY < 4) menuY = 4;
+    menuWidth = std::min(menuWidth, clientWidth);
+    menuHeight = std::min(menuHeight, clientHeight);
+    const int maxX = std::max(0, clientWidth - menuWidth);
+    const int maxY = std::max(0, clientHeight - menuHeight);
+    const int menuX = std::clamp(m_contextMenuPos.x, 0, maxX);
+    const int menuY = std::clamp(m_contextMenuPos.y, 0, maxY);
 
     m_contextMenuRect = {menuX, menuY, menuWidth, menuHeight};
 }
@@ -2008,6 +2005,13 @@ void FilesystemApp::drawContextMenu(SDL_Renderer* r, const SDL_Rect& contentRect
     int menuY = contentRect.y + m_contextMenuRect.y;
 
     SDL_Rect menuRect = {menuX, menuY, m_contextMenuRect.w, m_contextMenuRect.h};
+    const RendererClipState previousClip = captureRendererClip(r);
+    SDL_Rect effectiveMenuClip = menuRect;
+    if (previousClip.active) {
+        SDL_IntersectRect(&previousClip.rect, &menuRect, &effectiveMenuClip);
+    }
+    if (effectiveMenuClip.w <= 0 || effectiveMenuClip.h <= 0) return;
+    SDL_RenderSetClipRect(r, &effectiveMenuClip);
 
     // Background
     SDL_SetRenderDrawColor(r, 38, 40, 48, 255);
@@ -2047,6 +2051,7 @@ void FilesystemApp::drawContextMenu(SDL_Renderer* r, const SDL_Rect& contentRect
 
         itemY += itemHeight;
     }
+    restoreRendererClip(r, previousClip);
 }
 
 } // namespace monolith::app

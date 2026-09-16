@@ -1,5 +1,10 @@
 # Changelog
 
+## 2026-09: Contain Filesystem Browser context menus
+
+- Context menus now clamp to the browser client instead of keeping a fixed minimum width that can extend off-screen in narrow windows.
+- Menu rendering clips long labels and partially visible rows while preserving the caller's renderer clip.
+
 ## 2026-09: Contain the Start menu on undersized desktops
 
 - Start menu geometry now stays within the logical desktop and the usable area above the taskbar, even when a test or future host provides an unusually small desktop.
