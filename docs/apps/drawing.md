@@ -203,7 +203,7 @@ Drawing keeps the live canvas separate from the file path and from editor-sessio
 | Situation | Result |
 |-----------|--------|
 | Start Drawing or choose **New** | A blank, clean canvas is created. The file path is cleared and the normal Drawing instance title returns. |
-| Paint, fill, clear, or resize a loaded sketch | The canvas becomes `[modified]`. The change exists only in memory until Save succeeds; undoing back to the last saved pixels clears the marker. |
+| Paint, fill, clear, or resize a loaded sketch | The canvas becomes `[modified]`. The change exists only in memory until Save succeeds; undoing back to the last saved pixels clears the marker. **New** starts a clean blank canvas with its own undo/redo baseline. |
 | Press **Save** on a new sketch | The status bar opens a path prompt with the next free `/home/monolith/drawings/sketch*.modr` name. |
 | Press **Save** on a loaded sketch | The current `.modr` path is written immediately; Drawing has no separate Save As command. |
 | Save fails | The current canvas and file binding stay open, the failure is shown in the status bar, and any pending discard confirmation is cleared. |

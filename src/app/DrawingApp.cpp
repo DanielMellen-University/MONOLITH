@@ -689,6 +689,7 @@ void DrawingApp::startNewSketch() {
     }
     clearCanvas(false);
     m_filePath.clear();
+    m_savedSnapshot = {m_canvasWidth, m_canvasHeight, m_pixels};
     m_undoStack.clear();
     m_redoStack.clear();
     m_dirty = false; // blank new sketch is clean

@@ -218,6 +218,23 @@ int main() {
               && !drawing.m_suppressChangedNotification,
           "Drawing ignores its own synchronous change notification");
 
+    drawing.startNewSketch();
+    check(drawing.m_filePath.empty() && !drawing.m_dirty
+              && drawing.m_savedSnapshot.pixels == drawing.m_pixels,
+          "New Drawing starts with a clean blank baseline");
+    drawing.pushUndoSnapshot();
+    drawing.setPixel(0, 0, 9, 8, 7);
+    drawing.m_dirty = true;
+    drawing.undoCanvas();
+    check(!drawing.m_dirty,
+          "undoing a new Drawing edit clears the modified state");
+    drawing.redoCanvas();
+    check(drawing.m_dirty,
+          "redoing a new Drawing edit restores the modified state");
+    check(drawing.loadFromPath("/drawings/resize.modr"),
+          "reload Drawing fixture after new-sketch baseline coverage");
+    check(!drawing.m_dirty, "reloaded Drawing remains clean after baseline coverage");
+
     drawing.pushUndoSnapshot();
     drawing.setPixel(0, 0, 1, 2, 3);
     drawing.m_dirty = true;

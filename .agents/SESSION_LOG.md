@@ -274,3 +274,4 @@ Current chunk pointer: [`CURRENT_CHUNK`](CURRENT_CHUNK).
 | 2026-09-16 | fix | Made blank Terminal command/path slots active Tab-completion targets after whitespace; added lexer and filesystem-backed coverage and updated the Terminal guide. |
 | 2026-09-16 | fix | Made Text Editor dirty state compare against the last loaded or saved content so undo/redo clears and restores the marker accurately; added focused coverage and updated the editor guide. |
 | 2026-09-16 | fix | Made Drawing dirty state compare against the last saved canvas so undo/redo clears and restores `[modified]` accurately while resize behavior stays intact; added focused coverage and updated the Drawing guide. |
+| 2026-09-16 | fix | Reset Drawing's saved canvas baseline when **New** creates a blank sketch so undo/redo reports `[modified]` accurately after leaving a file-backed drawing; added focused coverage and updated the Drawing guide. |

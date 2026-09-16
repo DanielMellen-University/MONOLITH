@@ -1,5 +1,10 @@
 # Changelog
 
+## 2026-09: Reset Drawing's saved baseline for New sketches
+
+- Give a blank sketch created by **New** its own saved baseline so undoing a new edit clears `[modified]` instead of comparing against the previous file.
+- Add focused coverage for the New, undo, and redo transition.
+
 ## 2026-09: Keep Drawing's modified marker truthful
 
 - Track the last saved canvas dimensions and pixels so undo and redo clear or restore `[modified]` accurately.
