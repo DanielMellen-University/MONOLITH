@@ -1,5 +1,10 @@
 # Changelog
 
+## 2026-09: Stabilize lifecycle broadcasts
+
+- WindowManager now snapshots live apps before virtual-path and UI-scale callbacks, so an app can close or open windows during a notification without invalidating the broadcast loop.
+- Extended lifecycle regression coverage to include virtual-path notifications and documented the callback contract.
+
 ## 2026-09: Stabilize app update dispatch
 
 - WindowManager now snapshots live windows before calling `App::update()`, so an app can close itself through its controller without invalidating the update loop or skipping surviving apps.

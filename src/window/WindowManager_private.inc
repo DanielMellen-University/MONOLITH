@@ -154,6 +154,39 @@ private:
     SDL_Rect logicalRectToScreen(const SDL_Rect& rect) const;
     TitleButtonRects getTitleButtonRects(const Window& window) const;
 
+    // Dispatch lifecycle notifications from a stable snapshot. App callbacks
+    // may close or open windows through their controllers, so never iterate
+    // m_windows directly while invoking one.
+    template <typename Callback>
+    void forEachLiveApp(Callback&& callback) {
+        struct Target {
+            Window* window;
+            int id;
+        };
+
+        std::vector<Target> targets;
+        targets.reserve(m_windows.size());
+        for (const auto& window : m_windows) {
+            if (window) targets.push_back({window.get(), window->id});
+        }
+
+        for (const Target& target : targets) {
+            const auto live = std::find_if(
+                m_windows.begin(),
+                m_windows.end(),
+                [&target](const auto& candidate) {
+                    return candidate.get() == target.window
+                        && candidate->id == target.id;
+                });
+            if (live == m_windows.end()) continue;
+
+            Window* window = live->get();
+            if (window->app) {
+                callback(*window->app);
+            }
+        }
+    }
+
     // Claims the lowest available positive instance number for the given app base
     // ("Terminal", "Filesystem", "Settings", "Editor" for bare editors, etc.).
     // Reserves it in m_activeAppInstances, computes the display title

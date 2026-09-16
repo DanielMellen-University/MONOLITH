@@ -189,11 +189,9 @@ void WindowManager::notifyVirtualPathMoved(const std::string& oldPath,
         if (window->app) window->app->onBoundFileMoved(previous, next);
     }
 
-    for (const auto& windowPtr : m_windows) {
-        if (windowPtr && windowPtr->app) {
-            windowPtr->app->onVirtualPathMoved(oldNormalized, newNormalized);
-        }
-    }
+    forEachLiveApp([&](monolith::app::App& app) {
+        app.onVirtualPathMoved(oldNormalized, newNormalized);
+    });
 }
 
 void WindowManager::notifyVirtualPathCreated(const std::string& virtualPath) {
@@ -202,11 +200,9 @@ void WindowManager::notifyVirtualPathCreated(const std::string& virtualPath) {
     const std::string created = m_fs->normalize(virtualPath);
     if (created.empty() || created == "/") return;
 
-    for (const auto& windowPtr : m_windows) {
-        if (windowPtr && windowPtr->app) {
-            windowPtr->app->onVirtualPathCreated(created);
-        }
-    }
+    forEachLiveApp([&](monolith::app::App& app) {
+        app.onVirtualPathCreated(created);
+    });
 }
 
 void WindowManager::notifyVirtualPathChanged(const std::string& virtualPath) {
@@ -221,11 +217,9 @@ void WindowManager::notifyVirtualPathChanged(const std::string& virtualPath) {
         m_wallpaperLoadedPath.clear();
     }
 
-    for (const auto& windowPtr : m_windows) {
-        if (windowPtr && windowPtr->app) {
-            windowPtr->app->onVirtualPathChanged(changed);
-        }
-    }
+    forEachLiveApp([&](monolith::app::App& app) {
+        app.onVirtualPathChanged(changed);
+    });
 }
 
 void WindowManager::notifyVirtualPathRemoved(const std::string& virtualPath) {
@@ -281,11 +275,9 @@ void WindowManager::notifyVirtualPathRemoved(const std::string& virtualPath) {
         if (window->app) window->app->onBoundFileRemoved(removedPath);
     }
 
-    for (const auto& windowPtr : m_windows) {
-        if (windowPtr && windowPtr->app) {
-            windowPtr->app->onVirtualPathRemoved(removed);
-        }
-    }
+    forEachLiveApp([&](monolith::app::App& app) {
+        app.onVirtualPathRemoved(removed);
+    });
 }
 
 bool WindowManager::getFilesystemClipboard(std::vector<std::string>& paths, bool& isCut) const {

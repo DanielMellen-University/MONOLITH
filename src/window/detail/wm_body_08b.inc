@@ -152,11 +152,9 @@ void WindowManager::setUiScalePercent(int percent) {
 
     m_desktopSettings.setUiScalePercent(percent);
     applyUiScaleFont();
-    for (auto& windowPtr : m_windows) {
-        if (windowPtr && windowPtr->app) {
-            windowPtr->app->onUiScaleChanged();
-        }
-    }
+    forEachLiveApp([](monolith::app::App& app) {
+        app.onUiScaleChanged();
+    });
     if (!m_desktopSettingsHostPath.empty()) {
         m_desktopSettings.saveToHostPath(m_desktopSettingsHostPath);
     }

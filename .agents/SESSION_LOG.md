@@ -1,5 +1,7 @@
 # Session log
 
+| 2026-09-15 | fix | Made virtual-path and UI-scale app callbacks use a live window snapshot, preventing app-triggered lifecycle changes from invalidating broadcasts; extended lifecycle coverage and updated architecture/changelog/development docs. |
+
 | 2026-09-15 | fix | Made WindowManager app-update dispatch resilient to controller-driven self-closes with a live pointer snapshot; added lifecycle coverage and updated architecture/changelog/development docs. |
 
 | 2026-09-15 | fix | Removed closing windows from cached taskbar hit targets before destruction, preventing stale raw pointers after app-triggered closes; added WindowManager coverage and updated architecture/changelog docs. |
