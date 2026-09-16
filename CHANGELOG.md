@@ -1,5 +1,10 @@
 # Changelog
 
+## 2026-09: Invalidate stale browser hit targets
+
+- Cleared cached Filesystem Browser toolbar and filter hit rectangles on client resize and interface text-scale changes, preventing pre-render clicks from activating controls at their old positions.
+- Added browser state coverage for both invalidation paths.
+
 ## 2026-09: Invalidate stale shell hit targets
 
 - Cleared cached taskbar, clock, and Start-menu hit rectangles when desktop geometry, display scale, clock format, or interface font metrics change, preventing a pre-render event from activating a control at its old screen position.

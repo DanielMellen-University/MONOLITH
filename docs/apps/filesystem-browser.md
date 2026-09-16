@@ -153,6 +153,7 @@ Right-clicking an already selected row keeps the current multi-selection, so con
 - Paste skips items whose names already exist in the destination, same-folder sources, and folders pasted into themselves (`isSameOrDescendant`).
 - Backspace in rename and filter prompts removes one UTF-8 codepoint at a time.
 - The path bar, toolbar buttons, list start, and status bar follow the shared interface font with stable minimums, so scaled labels keep their hit targets and the listing below them.
+- Toolbar and filter hit rectangles are cleared immediately when the client resizes or the shared interface text scale changes; they are rebuilt on the next render so an event between frames cannot activate a control at its old position.
 - The path-bar filter control stays inside the client width; in a very narrow window it shrinks below its normal minimum instead of moving partly off-screen.
 - Context menus clamp to the current client rectangle and clip long labels or partially visible rows inside the popup, including when the browser is narrower or shorter than the normal menu.
 - Internal path, list, and status text clips restore the caller's renderer clip, keeping Browser inside the shell's visible client intersection.

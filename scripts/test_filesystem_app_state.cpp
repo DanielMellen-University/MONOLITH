@@ -268,23 +268,36 @@ int main() {
     const int statusBarBeforeScale = browser.getStatusBarHeight();
     check(TTF_SetFontSize(font, 20) == 0, "browser state applies larger test font");
     browser.m_filterScrollPx = 42;
+    browser.m_btnUp = {1, 1, 20, 20};
+    browser.m_btnFilter = {2, 2, 20, 20};
+    browser.m_filterHitRect = {3, 3, 20, 20};
     browser.onUiScaleChanged();
     check(browser.m_contextMenuRect.h > menuBeforeScale.h
               && browser.m_contextMenuRect.w >= menuBeforeScale.w,
           "open context menu relayouts after UI scale changes");
-    check(browser.m_filterScrollPx == 0,
-          "filter prompt resets its cached offset after UI scale changes");
+    check(browser.m_filterScrollPx == 0
+              && browser.m_btnUp.w == 0
+              && browser.m_btnFilter.w == 0
+              && browser.m_filterHitRect.w == 0,
+          "browser invalidates stale toolbar and filter hit targets after UI scaling");
     check(browser.getPathBarHeight() > pathBarBeforeScale
               && browser.getToolbarButtonHeight() > toolbarBeforeScale
               && browser.getStatusBarHeight() > statusBarBeforeScale,
           "browser chrome bands grow with the shared interface font");
     browser.m_contextMenuPos = {36, 28};
+    browser.m_btnUp = {1, 1, 20, 20};
+    browser.m_btnFilter = {2, 2, 20, 20};
+    browser.m_filterHitRect = {3, 3, 20, 20};
     browser.onResize(40, 36);
     check(browser.m_contextMenuRect.x >= 0
               && browser.m_contextMenuRect.y >= 0
               && browser.m_contextMenuRect.x + browser.m_contextMenuRect.w <= 40
               && browser.m_contextMenuRect.y + browser.m_contextMenuRect.h <= 36,
           "context menu stays inside an undersized browser client");
+    check(browser.m_btnUp.w == 0
+              && browser.m_btnFilter.w == 0
+              && browser.m_filterHitRect.w == 0,
+          "browser invalidates stale toolbar and filter hit targets after resize");
     browser.onResize(400, 240);
     const SDL_Rect narrowFilter = browser.getFilterRect({0, 0, 16, 80});
     check(narrowFilter.x >= 0 && narrowFilter.w >= 0

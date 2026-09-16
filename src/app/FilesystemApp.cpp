@@ -1721,6 +1721,7 @@ void FilesystemApp::render(SDL_Renderer* renderer, const SDL_Rect& contentRect) 
 void FilesystemApp::onResize(int clientWidth, int clientHeight) {
     m_clientWidth = clientWidth;
     m_clientHeight = clientHeight;
+    invalidateHitTargets();
     clampSelection();
     if (m_showContextMenu) {
         updateContextMenuLayout();
@@ -1731,6 +1732,7 @@ void FilesystemApp::onUiScaleChanged() {
     // The filter prompt stores its horizontal position in pixels; remeasure it
     // against the new font on the next render.
     m_filterScrollPx = 0;
+    invalidateHitTargets();
     clampSelection();
     if (m_showContextMenu) {
         updateContextMenuLayout();
@@ -1781,6 +1783,16 @@ void FilesystemApp::closeContextMenu() {
     m_contextMenuHoverIndex = -1;
     m_contextMenuTarget = -1;
     m_contextMenuRect = {0, 0, 0, 0};
+}
+
+void FilesystemApp::invalidateHitTargets() {
+    m_btnUp = {0, 0, 0, 0};
+    m_btnNewFolder = {0, 0, 0, 0};
+    m_btnNewFile = {0, 0, 0, 0};
+    m_btnDelete = {0, 0, 0, 0};
+    m_btnRename = {0, 0, 0, 0};
+    m_btnFilter = {0, 0, 0, 0};
+    m_filterHitRect = {0, 0, 0, 0};
 }
 
 void FilesystemApp::executeContextMenuAction(int menuIndex) {

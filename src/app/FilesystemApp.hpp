@@ -100,6 +100,7 @@ private:
     void executeContextMenuAction(int menuIndex);
     void updateContextMenuLayout();
     int contextMenuItemAt(int x, int y) const;
+    void invalidateHitTargets();
     void setStatus(const std::string& message);
 
     TTF_Font* m_font = nullptr;

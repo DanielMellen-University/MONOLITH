@@ -1,5 +1,7 @@
 # Session log
 
+| 2026-09-16 | fix | Invalidated Filesystem Browser toolbar and filter hit targets after resize and interface-scale changes, with focused browser state coverage and app-guide/changelog notes. |
+
 | 2026-09-16 | fix | Invalidated cached taskbar, clock, and Start-menu hit targets after shell geometry, clock-format, or font-metric changes, with focused window-coordinate coverage and architecture/changelog notes. |
 
 | 2026-09-15 | fix | Completed Start menu keyboard handling with wrapped Up/Down selection, Enter activation, Escape dismissal, and focused shell regression coverage. |
