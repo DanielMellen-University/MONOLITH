@@ -1,5 +1,10 @@
 # Changelog
 
+## 2026-09: Own SDL text input lifecycle
+
+- Explicitly started SDL text input for the executable and stopped it during shutdown, ensuring printable input reaches native apps without relying on inherited SDL state.
+- Added the matching deterministic compressor for compressed main-loop body fragments.
+
 ## 2026-09: Clarify focused SDL verification
 
 - Documented the dummy SDL video and audio drivers needed when running an individual SDL-linked headless test outside the complete verification runner.

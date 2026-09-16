@@ -1,5 +1,7 @@
 # Session log
 
+| 2026-09-16 | fix | Started and stopped SDL text input in the executable lifecycle, added the deterministic main-body compressor, and documented both compressed-source workflows. |
+
 | 2026-09-16 | docs | Clarified dummy SDL driver usage for focused headless tests so individual SDL-linked commands match the complete verification runner. |
 
 | 2026-09-16 | test | Covered both keydown and keyup sides of shell-owned Alt+Tab and Ctrl+Escape gestures in the WindowManager mouse-capture regression suite. |

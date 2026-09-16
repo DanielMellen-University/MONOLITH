@@ -152,6 +152,7 @@ All app callbacks enter through a small lifecycle scope. If a callback requests 
 - Rendering is clipped to the caller's renderer clip for the full WindowManager frame, then each app is additionally clipped to its window's client rectangle, so tiny or undersized app layouts cannot paint into title bars or the taskbar. Apps and shell overlays that use narrower internal clips must intersect and restore the caller clip; Browser text and context menus, Settings, Terminal, Text Editor, Drawing, Pong, Snake, Minesweeper, Breakout, title bars, taskbar buttons, and Alt+Tab follow this rule explicitly. Client rectangles may be zero-sized on an undersized desktop, but are never negative.
 - WindowManager renders from a live identity snapshot, so an app that closes or replaces its window during `render()` cannot invalidate the frame loop or leave the shell drawing through a dead window pointer; newly opened windows render on the next frame.
 - Rendering uses SDL2's accelerated renderer with VSYNC; apps draw text via SDL_ttf and primitives via SDL draw calls.
+- The main loop explicitly starts SDL text input after the renderer is created and stops it before SDL shutdown, so Terminal, Text Editor, Drawing, and Settings receive printable UTF-8 input through the same owned lifecycle.
 
 ### 4. Input System
 

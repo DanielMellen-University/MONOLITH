@@ -36,6 +36,14 @@ python3 src/app/compress_settings_bodies.py build/generated/settings src/app
 
 The compressor writes deterministic 80-column ASCII output and preserves the `.inc.z64` naming expected by CMake.
 
+## Compressed Main Sources
+
+The main loop uses the same format. After editing `build/generated/main/main_body_*.inc`, regenerate its tracked source representation with:
+
+```bash
+python3 src/compress_main_bodies.py build/generated/main src
+```
+
 ## Drawing Integration Check
 
 Static grep-based check that Drawing is wired into the window manager and Start menu:
