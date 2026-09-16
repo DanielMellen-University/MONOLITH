@@ -1,5 +1,7 @@
 # Session log
 
+| 2026-09-16 | perf | Cached Drawing toolbar and status or prompt text surfaces, cleared them on UI-scale changes, added renderer coverage, and updated architecture and changelog notes. |
+
 | 2026-09-16 | perf | Cached Filesystem Browser text surfaces for paths, rows, status, and menus, cleared them on UI-scale changes, added renderer coverage, and updated architecture and changelog notes. |
 
 | 2026-09-16 | perf | Added a renderer-independent SDL_ttf surface cache for Pong, Breakout, Snake, and Minesweeper, cleared it on UI-scale changes, added Snake coverage, and documented the lifecycle. |

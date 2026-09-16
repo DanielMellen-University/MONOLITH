@@ -1107,7 +1107,7 @@ void DrawingApp::drawToolbar(SDL_Renderer* renderer, const SDL_Rect& contentRect
 
         if (m_font) {
             SDL_Color col = {225, 228, 235, 255};
-            SDL_Surface* surf = TTF_RenderUTF8_Blended(m_font, label, col);
+            SDL_Surface* surf = m_textSurfaceCache.get(m_font, label, col);
             if (surf) {
                 SDL_Texture* tex = SDL_CreateTextureFromSurface(renderer, surf);
                 if (tex) {
@@ -1120,7 +1120,6 @@ void DrawingApp::drawToolbar(SDL_Renderer* renderer, const SDL_Rect& contentRect
                     SDL_RenderCopy(renderer, tex, nullptr, &dst);
                     SDL_DestroyTexture(tex);
                 }
-                SDL_FreeSurface(surf);
             }
         }
     };
@@ -1207,7 +1206,7 @@ void DrawingApp::drawStatusBar(SDL_Renderer* renderer, const SDL_Rect& contentRe
     }
 
     SDL_Color col = {170, 175, 185, 255};
-    SDL_Surface* surf = TTF_RenderUTF8_Blended(m_font, text.c_str(), col);
+    SDL_Surface* surf = m_textSurfaceCache.get(m_font, text.c_str(), col);
     if (surf) {
         SDL_Texture* tex = SDL_CreateTextureFromSurface(renderer, surf);
         if (tex) {
@@ -1239,7 +1238,6 @@ void DrawingApp::drawStatusBar(SDL_Renderer* renderer, const SDL_Rect& contentRe
             restoreRendererClip(renderer, previousClip);
             SDL_DestroyTexture(tex);
         }
-        SDL_FreeSurface(surf);
     }
 }
 
@@ -1283,6 +1281,7 @@ void DrawingApp::onResize(int clientWidth, int clientHeight) {
 }
 
 void DrawingApp::onUiScaleChanged() {
+    m_textSurfaceCache.clear();
     updateLayoutMetrics();
     invalidateHitTargets();
     // The path prompt stores its horizontal position in pixels; remeasure it

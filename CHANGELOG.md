@@ -1,5 +1,9 @@
 # Changelog
 
+## 2026-09: Cache Drawing text surfaces
+
+- Reuse SDL_ttf surfaces for Drawing toolbar labels and status or prompt text, clearing the cache when the interface scale changes.
+
 ## 2026-09: Cache Filesystem Browser text surfaces
 
 - Reuse SDL_ttf surfaces for browser paths, toolbar labels, directory rows, status text, and context-menu items, clearing the cache when the interface scale changes.

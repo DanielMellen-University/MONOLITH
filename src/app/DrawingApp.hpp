@@ -1,6 +1,7 @@
 #pragma once
 
 #include "App.hpp"
+#include "../detail/TextSurfaceCache.hpp"
 #include "../fs/Filesystem.hpp"
 #include <SDL2/SDL.h>
 #include <SDL2/SDL_ttf.h>
@@ -112,6 +113,7 @@ private:
 
     TTF_Font* m_font = nullptr;
     monolith::fs::Filesystem* m_fs = nullptr;
+    mutable monolith::detail::TextSurfaceCache m_textSurfaceCache;
 
     std::vector<uint8_t> m_pixels; // R,G,B,A byte order per pixel
     CanvasSnapshot m_savedSnapshot;
