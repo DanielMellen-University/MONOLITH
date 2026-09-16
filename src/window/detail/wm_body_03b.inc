@@ -71,7 +71,7 @@
                     hovered = true;
                     m_startMenuHoverIndex = static_cast<int>(m_startMenuItems.size() - 1);
                 }
-                const bool keyboardSelected = visibleItem
+                const bool keyboardSelected = visibleItem && !hovered
                     && itemIndex == m_startMenuKeyboardIndex;
 
                 if (hovered || keyboardSelected) {
