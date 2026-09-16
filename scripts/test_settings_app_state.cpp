@@ -172,6 +172,12 @@ int main() {
     const int baseFieldHeight = settings.getFieldHeight();
     const int baseFooterHeight = settings.getFooterHeight();
     const int baseContentHeight = settings.m_contentHeight;
+    settings.m_backgroundSwatches[0] = {10, 10, 20, 20};
+    settings.m_clockFormatHitRects[0] = {10, 40, 20, 20};
+    settings.m_uiScaleHitRects[0] = {10, 70, 20, 20};
+    settings.m_wallpaperFieldRect = {10, 100, 80, 20};
+    settings.m_wallpaperSetRect = {95, 100, 30, 20};
+    settings.m_wallpaperClearRect = {130, 100, 40, 20};
     check(TTF_SetFontSize(font, 22) == 0, "settings state applies larger test font");
     settings.onUiScaleChanged();
     check(settings.m_wallpaperScrollPx == 0,
@@ -182,6 +188,27 @@ int main() {
               && settings.getFooterHeight() > baseFooterHeight
               && settings.m_contentHeight > baseContentHeight,
           "Settings layout bands grow with the shared interface font");
+    check(settings.m_backgroundSwatches[0].w == 0
+              && settings.m_clockFormatHitRects[0].w == 0
+              && settings.m_uiScaleHitRects[0].w == 0
+              && settings.m_wallpaperFieldRect.w == 0
+              && settings.m_wallpaperSetRect.w == 0
+              && settings.m_wallpaperClearRect.w == 0,
+          "Settings scaling invalidates stale hit targets");
+    settings.m_backgroundSwatches[1] = {10, 10, 20, 20};
+    settings.m_clockFormatHitRects[1] = {10, 40, 20, 20};
+    settings.m_uiScaleHitRects[1] = {10, 70, 20, 20};
+    settings.m_wallpaperFieldRect = {10, 100, 80, 20};
+    settings.m_wallpaperSetRect = {95, 100, 30, 20};
+    settings.m_wallpaperClearRect = {130, 100, 40, 20};
+    settings.onResize(420, 240);
+    check(settings.m_backgroundSwatches[1].w == 0
+              && settings.m_clockFormatHitRects[1].w == 0
+              && settings.m_uiScaleHitRects[1].w == 0
+              && settings.m_wallpaperFieldRect.w == 0
+              && settings.m_wallpaperSetRect.w == 0
+              && settings.m_wallpaperClearRect.w == 0,
+          "Settings resize invalidates stale hit targets");
     const SDL_Rect tinyContent{10, 20, 200, 8};
     const SDL_Rect tinyFooter = settings.getFooterRect(tinyContent);
     check(tinyFooter.y >= tinyContent.y

@@ -49,11 +49,27 @@ SDL_Rect SettingsApp::getFooterRect(const SDL_Rect& contentRect) const {
 }
 
 void SettingsApp::onUiScaleChanged() {
+    invalidateHitTargets();
     // The wallpaper prompt stores its horizontal position in pixels; discard
     // that stale offset so the next render measures it with the new font.
     m_wallpaperScrollPx = 0;
     m_contentHeight = computeContentHeight();
     clampScrollOffset();
+}
+
+void SettingsApp::invalidateHitTargets() {
+    for (SDL_Rect& rect : m_backgroundSwatches) {
+        rect = {0, 0, 0, 0};
+    }
+    for (SDL_Rect& rect : m_clockFormatHitRects) {
+        rect = {0, 0, 0, 0};
+    }
+    for (SDL_Rect& rect : m_uiScaleHitRects) {
+        rect = {0, 0, 0, 0};
+    }
+    m_wallpaperFieldRect = {0, 0, 0, 0};
+    m_wallpaperSetRect = {0, 0, 0, 0};
+    m_wallpaperClearRect = {0, 0, 0, 0};
 }
 
 } // namespace monolith::app

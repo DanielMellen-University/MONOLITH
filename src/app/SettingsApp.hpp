@@ -65,6 +65,7 @@ private:
     int getFooterHeight() const;
     SDL_Rect getFooterRect(const SDL_Rect& contentRect) const;
     void syncWallpaperBufferFromShell();
+    void invalidateHitTargets();
 
     static constexpr int kPresetCount = 6;
     static constexpr std::array<BackgroundPreset, kPresetCount> kBackgroundPresets{{
