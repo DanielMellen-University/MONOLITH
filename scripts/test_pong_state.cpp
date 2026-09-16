@@ -53,6 +53,16 @@ int main() {
     check(g.state == State::Playing, "Restart returns to Playing");
     check(g.playerScore == 0 && g.aiScore == 0, "Restart clears scores");
 
+    g.playerY = 80.f;
+    g.ballX = 18.f;
+    g.ballY = 100.f;
+    g.ballVX = -160.f;
+    g.ballVY = 200.f;
+    g.tick(0.01f);
+    check(g.ballVX > 0.f, "player paddle sends the ball back toward the AI");
+    check(g.ballVY <= Game::kMaxBallVerticalSpeed,
+          "paddle deflection caps vertical ball speed");
+
     if (failures == 0) {
         std::cout << "ALL PONG STATE TESTS PASSED\n";
         return 0;

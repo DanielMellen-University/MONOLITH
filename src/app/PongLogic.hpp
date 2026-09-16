@@ -18,6 +18,7 @@ struct Game {
     static constexpr int kWinScore = 5;
     static constexpr float kPaddleSpeed = 220.f;
     static constexpr float kBallSpeed = 160.f;
+    static constexpr float kMaxBallVerticalSpeed = 220.f;
 
     State state = State::Playing;
     float playerY = 80.f;

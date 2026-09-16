@@ -26,6 +26,7 @@ Focusing another window or opening the Start menu auto-pauses. Resume with Space
 
 - Player paddle on the left, simple AI on the right
 - Ball bounces off top/bottom walls and paddles
+- Paddle deflection changes the vertical angle but caps vertical speed so the ball stays catchable
 - Point if the ball leaves the opponent's side
 - First to 5 ends the match (You win / AI wins)
 

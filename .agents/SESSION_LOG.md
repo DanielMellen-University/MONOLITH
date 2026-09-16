@@ -270,3 +270,4 @@ Current chunk pointer: [`CURRENT_CHUNK`](CURRENT_CHUNK).
 | 2026-09-12 | cleanup | Sized Snake and Minesweeper overlay spacing from active font metrics to prevent scaled-text overlap. |
 | 2026-09-12 | cleanup | Fixed session restore focus handoff when the last restored entry is minimized and covered focus notifications. |
 | 2026-09-12 | cleanup | Isolated taskbar and Start-menu pointer releases from client apps and covered the shell capture path. |
+| 2026-09-16 | fix | Capped Pong vertical ball speed after paddle deflection so repeated edge hits cannot make the ball skip past paddles; added focused coverage and updated the Pong guide. |

@@ -80,13 +80,15 @@ void Game::tick(float dtSeconds) {
         ballVX = std::abs(ballVX);
         const float hit = (ballY + static_cast<float>(kBallSize) * 0.5f)
             - (playerY + static_cast<float>(kPaddleH) * 0.5f);
-        ballVY += hit * 4.f;
+        ballVY = std::clamp(ballVY + hit * 4.f,
+                            -kMaxBallVerticalSpeed, kMaxBallVerticalSpeed);
     } else if (ballVX > 0.f && overlapsPaddle(aiX, aiY)) {
         ballX = aiX - static_cast<float>(kBallSize);
         ballVX = -std::abs(ballVX);
         const float hit = (ballY + static_cast<float>(kBallSize) * 0.5f)
             - (aiY + static_cast<float>(kPaddleH) * 0.5f);
-        ballVY += hit * 4.f;
+        ballVY = std::clamp(ballVY + hit * 4.f,
+                            -kMaxBallVerticalSpeed, kMaxBallVerticalSpeed);
     }
 
     if (ballX + static_cast<float>(kBallSize) < 0.f) {

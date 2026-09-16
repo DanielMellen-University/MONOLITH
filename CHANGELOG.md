@@ -1,5 +1,10 @@
 # Changelog
 
+## 2026-09: Keep Pong ball speed bounded
+
+- Cap vertical velocity after paddle deflection so repeated edge hits cannot make the ball skip past paddles.
+- Add headless coverage for the rebound direction and speed ceiling.
+
 ## 2026-09: Keep Terminal reverse search moving backward
 
 - Preserved the active reverse-search match while extending a query, so repeated `Ctrl+R` now walks older matching commands instead of resetting to the newest result.
