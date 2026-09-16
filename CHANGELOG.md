@@ -1,5 +1,10 @@
 # Changelog
 
+## 2026-09: Cancel Browser rename before pointer actions
+
+- End Filesystem Browser inline rename mode before toolbar or context-menu mouse actions, so Delete and other controls cannot run with stale rename state still armed.
+- Add focused coverage for arming Delete from the toolbar during an inline rename.
+
 ## 2026-09: Block shell hotkeys while host-unfocused
 
 - Apply the host-focus guard before shell-hotkey routing, preventing queued Ctrl+Escape and Alt+Tab events from changing menu or focus state after focus loss while preserving Escape dismissal of an already-open Start menu.

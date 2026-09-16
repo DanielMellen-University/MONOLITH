@@ -154,6 +154,18 @@ int main() {
     check(fs.isFile("/home/monolith/a.txt")
               && !fs.exists("/home/monolith/direct-renamed.txt"),
           "direct inline rename can rename the entry back");
+
+    browser.selectEntryNamed("a.txt", false);
+    browser.startRenameSelected();
+    browser.ensureHitTargets();
+    SDL_MouseButtonEvent deleteDuringRename{};
+    deleteDuringRename.button = SDL_BUTTON_LEFT;
+    deleteDuringRename.x = browser.m_btnDelete.x + browser.m_btnDelete.w / 2;
+    deleteDuringRename.y = browser.m_btnDelete.y + browser.m_btnDelete.h / 2;
+    browser.handleMouseButton(deleteDuringRename);
+    check(!browser.m_renaming && browser.m_confirmingDelete,
+          "toolbar actions cancel inline rename before arming delete");
+    browser.cancelPendingDelete();
     browser.setController(nullptr);
 
     check(fs.writeFile("/home/monolith/external-create.txt", "created"),

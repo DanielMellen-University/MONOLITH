@@ -956,6 +956,12 @@ void FilesystemApp::handleMouseButton(const SDL_MouseButtonEvent& e) {
 
     ensureHitTargets();
 
+    // Any pointer action outside the inline name editor ends rename mode before
+    // the toolbar or context menu can start another operation.
+    if (m_renaming) {
+        finishRename(false);
+    }
+
     // === Context menu handling (takes priority) ===
     if (m_showContextMenu) {
         if (e.button == SDL_BUTTON_LEFT) {
@@ -1043,11 +1049,6 @@ void FilesystemApp::handleMouseButton(const SDL_MouseButtonEvent& e) {
     if (SDL_PointInRect(&pt, &m_filterHitRect)) {
         beginFilter();
         return;
-    }
-
-    // If we click anywhere while renaming, finish (cancel) the rename
-    if (m_renaming) {
-        finishRename(false);
     }
 
     // Path bar + toolbar area is above the list

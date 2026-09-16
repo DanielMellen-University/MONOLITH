@@ -74,7 +74,7 @@ The browser starts at `/home/monolith` when that path exists.
 
 ### Rename Mode
 
-Press **F2** or choose Rename from the context menu. The caret starts at the end of the existing name. Use Left/Right/Home/End to move it, type to insert, Backspace/Delete to remove complete UTF-8 characters, then press **Enter** to commit or **Esc** to cancel. Names that contain `/` (or that are empty, `.`, or `..`) are rejected so rename cannot create a nested path.
+Press **F2** or choose Rename from the context menu. The caret starts at the end of the existing name. Use Left/Right/Home/End to move it, type to insert, Backspace/Delete to remove complete UTF-8 characters, then press **Enter** to commit or **Esc** to cancel. Clicking another browser control cancels the inline edit before that control's action runs. Names that contain `/` (or that are empty, `.`, or `..`) are rejected so rename cannot create a nested path.
 
 After a successful rename, the new name remains selected and the status bar reports the completed rename even while other open apps refresh synchronously.
 
