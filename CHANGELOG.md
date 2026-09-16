@@ -1,5 +1,10 @@
 # Changelog
 
+## 2026-09: Keep Browser controls responsive across layout changes
+
+- Rebuilt Filesystem Browser toolbar and filter hit targets on demand when input arrives after a resize or interface-scale change but before the next render.
+- Shared the toolbar geometry between drawing and input, with focused coverage for a pre-render scaled Filter click.
+
 ## 2026-09: Keep taskbar controls aligned with their layout
 
 - Routed Start-button and taskbar-arrow input through the same computed rectangles used by rendering, including scaled and narrow taskbars.

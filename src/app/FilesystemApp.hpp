@@ -100,6 +100,7 @@ private:
     void executeContextMenuAction(int menuIndex);
     void updateContextMenuLayout();
     int contextMenuItemAt(int x, int y) const;
+    void ensureHitTargets();
     void invalidateHitTargets();
     void setStatus(const std::string& message);
 
@@ -126,6 +127,7 @@ private:
     SDL_Rect m_btnRename{0,0,0,0};
     SDL_Rect m_btnFilter{0,0,0,0};
     SDL_Rect m_filterHitRect{0,0,0,0};
+    bool m_hitTargetsValid = false;
 
     // Rename state
     bool m_renaming = false;

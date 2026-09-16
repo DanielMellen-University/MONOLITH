@@ -1,5 +1,7 @@
 # Session log
 
+| 2026-09-16 | fix | Rebuilt Filesystem Browser toolbar and filter targets before queued post-scale input, shared their geometry between rendering and events, added focused coverage, and updated the Browser guide. |
+
 | 2026-09-16 | refactor | Routed Start-button and taskbar-arrow input through the shared rendered taskbar layout, added scaled pre-render coverage, and updated shell architecture notes. |
 
 | 2026-09-16 | fix | Shared taskbar geometry between rendering and hit testing, rebuilt taskbar targets before queued clicks, added pre-render activation coverage, and updated shell architecture notes. |

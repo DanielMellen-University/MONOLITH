@@ -954,6 +954,8 @@ void FilesystemApp::handleMouseButton(const SDL_MouseButtonEvent& e) {
     const int mx = e.x;
     const int my = e.y;
 
+    ensureHitTargets();
+
     // === Context menu handling (takes priority) ===
     if (m_showContextMenu) {
         if (e.button == SDL_BUTTON_LEFT) {
@@ -1387,7 +1389,6 @@ void FilesystemApp::drawPathBar(SDL_Renderer* r, const SDL_Rect& contentRect, in
     SDL_RenderFillRect(r, &bar);
 
     // Current path text
-    m_filterHitRect = getFilterRect(contentRect);
     if (m_font) {
         SDL_Color pathColor = {180, 190, 200, 255};
         SDL_Surface* surf = TTF_RenderUTF8_Blended(m_font, m_currentPath.c_str(), pathColor);
@@ -1494,21 +1495,13 @@ void FilesystemApp::drawPathBar(SDL_Renderer* r, const SDL_Rect& contentRect, in
 }
 
 void FilesystemApp::drawToolbar(SDL_Renderer* r, const SDL_Rect& contentRect) {
-    const int toolbarY = getToolbarY();
-    const int toolbarButtonHeight = getToolbarButtonHeight();
-    // Store button rects in relative coordinates (for hit testing with relative mouse events)
-    int relX = kToolbarPadding;
-
-    auto drawButton = [&](SDL_Rect& outRect, const char* label, int w) {
-        // Store relative rect for input
-        outRect = {relX, toolbarY, w, toolbarButtonHeight};
-
+    auto drawButton = [&](const SDL_Rect& hitRect, const char* label) {
         // Draw using absolute screen coordinates
         SDL_Rect drawRect = {
-            contentRect.x + relX,
-            contentRect.y + toolbarY,
-            w,
-            toolbarButtonHeight
+            contentRect.x + hitRect.x,
+            contentRect.y + hitRect.y,
+            hitRect.w,
+            hitRect.h
         };
 
         // Button background
@@ -1537,15 +1530,14 @@ void FilesystemApp::drawToolbar(SDL_Renderer* r, const SDL_Rect& contentRect) {
             }
         }
 
-        relX += w + kToolbarGap;
     };
 
-    drawButton(m_btnUp, "Up", 48);
-    drawButton(m_btnNewFolder, "New Folder", 92);
-    drawButton(m_btnNewFile, "New File", 80);
-    drawButton(m_btnRename, "Rename", 68);
-    drawButton(m_btnDelete, "Delete", 68);
-    drawButton(m_btnFilter, "Filter", 56);
+    drawButton(m_btnUp, "Up");
+    drawButton(m_btnNewFolder, "New Folder");
+    drawButton(m_btnNewFile, "New File");
+    drawButton(m_btnRename, "Rename");
+    drawButton(m_btnDelete, "Delete");
+    drawButton(m_btnFilter, "Filter");
 }
 
 void FilesystemApp::drawList(SDL_Renderer* r, const SDL_Rect& contentRect, int listTopY) {
@@ -1710,6 +1702,8 @@ void FilesystemApp::drawList(SDL_Renderer* r, const SDL_Rect& contentRect, int l
 void FilesystemApp::render(SDL_Renderer* renderer, const SDL_Rect& contentRect) {
     m_clientWidth = contentRect.w;
     m_clientHeight = contentRect.h;
+    invalidateHitTargets();
+    ensureHitTargets();
 
     // Main background
     SDL_SetRenderDrawColor(renderer, 20, 20, 24, 255);
@@ -1798,6 +1792,7 @@ void FilesystemApp::closeContextMenu() {
 }
 
 void FilesystemApp::invalidateHitTargets() {
+    m_hitTargetsValid = false;
     m_btnUp = {0, 0, 0, 0};
     m_btnNewFolder = {0, 0, 0, 0};
     m_btnNewFile = {0, 0, 0, 0};
@@ -1805,6 +1800,28 @@ void FilesystemApp::invalidateHitTargets() {
     m_btnRename = {0, 0, 0, 0};
     m_btnFilter = {0, 0, 0, 0};
     m_filterHitRect = {0, 0, 0, 0};
+}
+
+void FilesystemApp::ensureHitTargets() {
+    if (m_hitTargetsValid) return;
+
+    m_filterHitRect = getFilterRect({0, 0, m_clientWidth, m_clientHeight});
+
+    const int toolbarY = getToolbarY();
+    const int buttonHeight = getToolbarButtonHeight();
+    int x = kToolbarPadding;
+    auto placeButton = [&](SDL_Rect& rect, int width) {
+        rect = {x, toolbarY, width, buttonHeight};
+        x += width + kToolbarGap;
+    };
+
+    placeButton(m_btnUp, 48);
+    placeButton(m_btnNewFolder, 92);
+    placeButton(m_btnNewFile, 80);
+    placeButton(m_btnRename, 68);
+    placeButton(m_btnDelete, 68);
+    placeButton(m_btnFilter, 56);
+    m_hitTargetsValid = true;
 }
 
 void FilesystemApp::executeContextMenuAction(int menuIndex) {

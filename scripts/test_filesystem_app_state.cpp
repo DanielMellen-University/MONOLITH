@@ -429,6 +429,18 @@ int main() {
         browser.getVisibleRowCount({0, 0, browser.m_clientWidth, browser.m_clientHeight}));
     check(browser.m_scrollOffset == static_cast<int>(browser.m_entries.size()) - scaledVisibleRows,
           "browser text scaling clamps scrollback to the new listing area");
+    browser.ensureHitTargets();
+    check(browser.m_btnFilter.w > 0 && browser.m_filterHitRect.w > 0,
+          "browser rebuilds toolbar hit targets before the next render");
+    SDL_MouseButtonEvent preRenderFilterClick{};
+    preRenderFilterClick.button = SDL_BUTTON_LEFT;
+    preRenderFilterClick.clicks = 1;
+    preRenderFilterClick.x = browser.m_btnFilter.x + browser.m_btnFilter.w / 2;
+    preRenderFilterClick.y = browser.m_btnFilter.y + browser.m_btnFilter.h / 2;
+    browser.handleMouseButton(preRenderFilterClick);
+    check(browser.m_filtering,
+          "browser accepts a scaled toolbar click before the next render");
+    key(browser, SDLK_ESCAPE);
 
     SDL_Surface* surface = SDL_CreateRGBSurfaceWithFormat(
         0, 240, 240, 32, SDL_PIXELFORMAT_RGBA32);
