@@ -120,11 +120,15 @@ public:
 
 class RecursiveAllowCloseApp final : public monolith::app::App {
 public:
+    explicit RecursiveAllowCloseApp(bool* reenteredState)
+        : reenteredState(reenteredState) {}
+
     void render(SDL_Renderer*, const SDL_Rect&) override {}
 
     bool allowClose() override {
         if (!reentered) {
             reentered = true;
+            if (reenteredState) *reenteredState = true;
             if (auto* controller = getController()) {
                 controller->close();
             }
@@ -133,15 +137,20 @@ public:
     }
 
     bool reentered = false;
+    bool* reenteredState = nullptr;
 };
 
 class FocusLossClosingApp final : public monolith::app::App {
 public:
+    explicit FocusLossClosingApp(bool* closedState)
+        : closedState(closedState) {}
+
     void render(SDL_Renderer*, const SDL_Rect&) override {}
 
     void onFocusLost() override {
         if (!closedFromFocusLoss) {
             closedFromFocusLoss = true;
+            if (closedState) *closedState = true;
             if (auto* controller = getController()) {
                 controller->close();
             }
@@ -149,6 +158,7 @@ public:
     }
 
     bool closedFromFocusLoss = false;
+    bool* closedState = nullptr;
 };
 
 class FocusLossSiblingClosingApp final : public monolith::app::App {
@@ -278,8 +288,8 @@ int main() {
 
     {
         monolith::window::WindowManager wm;
-        auto recursive = std::make_unique<RecursiveAllowCloseApp>();
-        RecursiveAllowCloseApp* recursivePtr = recursive.get();
+        bool reentered = false;
+        auto recursive = std::make_unique<RecursiveAllowCloseApp>(&reentered);
         auto* recursiveWindow = wm.createWindow("Recursive", 40, 80, 260, 180,
                                                  std::move(recursive));
         auto survivor = std::make_unique<UpdateProbe>();
@@ -288,7 +298,7 @@ int main() {
 
         wm.closeWindow(recursiveWindow);
 
-        check(recursivePtr->reentered,
+        check(reentered,
               "allow-close callback can reenter the close operation");
         check(wm.m_windows.size() == 1 && wm.m_windows.front().get() == survivorWindow,
               "outer close stops after allow-close already removed its target");
@@ -299,14 +309,14 @@ int main() {
         auto survivor = std::make_unique<UpdateProbe>();
         auto* survivorWindow = wm.createWindow("Survivor", 40, 80, 260, 180,
                                                std::move(survivor));
-        auto closing = std::make_unique<FocusLossClosingApp>();
-        FocusLossClosingApp* closingPtr = closing.get();
+        bool closedFromFocusLoss = false;
+        auto closing = std::make_unique<FocusLossClosingApp>(&closedFromFocusLoss);
         auto* closingWindow = wm.createWindow("Focus Close", 400, 80, 260, 180,
                                                std::move(closing));
 
         wm.closeWindow(closingWindow);
 
-        check(closingPtr->closedFromFocusLoss,
+        check(closedFromFocusLoss,
               "focus-loss callback can reenter the close operation");
         check(wm.m_windows.size() == 1 && wm.m_windows.front().get() == survivorWindow,
               "outer close stops after focus-loss already removed its target");

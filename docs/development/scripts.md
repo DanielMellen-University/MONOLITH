@@ -213,6 +213,8 @@ g++ -std=c++23 -Ibuild/generated -Ibuild/generated/settings scripts/test_window_
 
 The same lifecycle test also covers virtual-path notification dispatch, bound-file remaps, resize callbacks, session restore geometry, click activation, and reentrant close callbacks, including apps closing themselves while the shell broadcasts an event, remaps bindings, reapplies desktop geometry, restores a session entry, finishes focusing an input target, or is already inside `allowClose()` / `onFocusLost()`; it also verifies that a sibling close during focus loss cannot invalidate the outer close.
 
+The lifecycle assertions record callback activity outside the app objects they destroy, so the test can also be run under AddressSanitizer without depending on freed app state.
+
 Headless test that Shut Down honors app dirty-document guards before allowing the shell to exit, including an app opening another window while the close contract is checked and a callback-created editor becoming dirty before validation completes:
 
 ```bash

@@ -1,5 +1,9 @@
 # Changelog
 
+## 2026-09: Keep lifecycle regressions sanitizer-clean
+
+- Moved reentrant close assertions onto external test state so lifecycle coverage never reads an app after its window has been destroyed.
+
 ## 2026-09: Reacquire windows after reentrant focus loss
 
 - Re-found the closing window after its `onFocusLost()` callback, so a callback that closes a sibling cannot invalidate the Window Manager's erase iterator.

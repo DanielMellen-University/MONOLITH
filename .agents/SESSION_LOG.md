@@ -1,5 +1,7 @@
 # Session log
 
+| 2026-09-16 | test | Made reentrant lifecycle assertions observe external state instead of destroyed app objects, keeping the close regression sanitizer-clean. |
+
 | 2026-09-16 | fix | Re-found the Window Manager close target after focus-loss callbacks so sibling closes cannot invalidate its erase iterator; added lifecycle coverage and architecture notes. |
 
 | 2026-09-16 | fix | Remapped active Editor and Drawing path prompts after directory moves, preserving normalized paths and UTF-8-safe caret positions. |
