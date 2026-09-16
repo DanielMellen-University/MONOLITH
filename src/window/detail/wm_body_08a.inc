@@ -60,7 +60,8 @@ void WindowManager::openPath(const std::string& virtualPath) {
 
 void WindowManager::applyRestoredGeometry(Window* window, int x, int y, int w, int h,
                                           bool minimized, bool maximized) {
-    if (!window) return;
+    if (!isLiveWindow(window)) return;
+    const int windowId = window->id;
     w = std::max(w, Window::MIN_WIDTH);
     h = std::max(h, Window::MIN_HEIGHT + Window::TITLE_BAR_HEIGHT);
     window->rect = {x, y, w, h};
@@ -76,6 +77,10 @@ void WindowManager::applyRestoredGeometry(Window* window, int x, int y, int w, i
         const int clientH = window->rect.h - Window::TITLE_BAR_HEIGHT;
         window->app->onResize(window->rect.w, clientH > 0 ? clientH : 0);
     }
+
+    // Restored apps can reject or close themselves from their first geometry
+    // callback. Do not inspect the old address after that callback returns.
+    if (!isLiveWindow(window, windowId)) return;
 
     // A session entry is created focused, then its saved minimized state is
     // applied. Do not leave keyboard focus attached to that hidden window.
@@ -133,9 +138,11 @@ bool WindowManager::loadSession(const std::string& hostPath) {
         }
 
         if (m_windows.size() > before) {
-            applyRestoredGeometry(m_windows.back().get(), x, y, w, h,
+            Window* restoredWindow = m_windows.back().get();
+            const int restoredWindowId = restoredWindow->id;
+            applyRestoredGeometry(restoredWindow, x, y, w, h,
                                   minFlag != 0, maxFlag != 0);
-            ++restored;
+            if (isLiveWindow(restoredWindow, restoredWindowId)) ++restored;
         }
     }
     return restored > 0;

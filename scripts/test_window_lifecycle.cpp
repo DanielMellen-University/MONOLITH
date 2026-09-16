@@ -1,5 +1,7 @@
 // Headless regression test for app-triggered window closes during update().
+#define private public
 #include "../src/window/WindowManager.hpp"
+#undef private
 #include "../src/fs/Filesystem.hpp"
 
 #include <filesystem>
@@ -191,6 +193,19 @@ int main() {
 
         check(wm.getWindowAt(300, 250) == nullptr,
               "a window closed from logical resize is removed safely");
+    }
+
+    {
+        monolith::window::WindowManager wm;
+        auto closing = std::make_unique<ResizeClosingApp>();
+        ResizeClosingApp* closingPtr = closing.get();
+        auto* closingWindow = wm.createWindow("Closing", 40, 80, 260, 180,
+                                               std::move(closing));
+        closingPtr->closeOnResize = true;
+        wm.applyRestoredGeometry(closingWindow, 120, 140, 300, 220, false, false);
+
+        check(wm.getWindowAt(120, 160) == nullptr,
+              "session restore removes a window closed from its resize callback");
     }
 
     {

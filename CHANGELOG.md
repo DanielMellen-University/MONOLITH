@@ -1,5 +1,10 @@
 # Changelog
 
+## 2026-09: Guard session restore callbacks
+
+- WindowManager now verifies restored window identity after `onResize()`, so a callback-triggered close cannot make session restore inspect a dead window or report it as successfully restored.
+- Added lifecycle coverage for session geometry callbacks that remove their window.
+
 ## 2026-09: Snapshot shutdown validation
 
 - WindowManager now validates `App::allowClose()` through the live-window snapshot, so an app can change the window set during shutdown validation without invalidating the shell's pass.

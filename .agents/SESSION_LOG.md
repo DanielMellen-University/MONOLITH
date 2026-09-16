@@ -1,5 +1,7 @@
 # Session log
 
+| 2026-09-15 | fix | Guarded session restore geometry callbacks and counted only live restored entries; added resize-close coverage and updated architecture/changelog/development docs. |
+
 | 2026-09-15 | fix | Routed shutdown allow-close validation through the live window snapshot; added coverage for callback-created editor windows and updated architecture/changelog/development docs. |
 
 | 2026-09-15 | fix | Kept focus callbacks aligned with actual host and Start-menu activity, deferred modal handoffs across callback-triggered closes, and added focused Start-menu regression coverage with updated architecture/changelog/development docs. |
