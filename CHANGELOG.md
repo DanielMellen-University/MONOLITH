@@ -1,5 +1,10 @@
 # Changelog
 
+## 2026-09: Recheck callback-created windows before shutdown
+
+- Shutdown validation now revisits windows opened by an app's `allowClose()` callback before accepting quit, preventing a newly created dirty document from bypassing the close contract.
+- Added a regression that opens and dirties an editor during shutdown validation.
+
 ## 2026-09: Guard reentrant window closes
 
 - WindowManager now rechecks window identity after `allowClose()` and focus-loss callbacks, so an app that closes its own window during either callback cannot leave the outer close operation using a destroyed target.

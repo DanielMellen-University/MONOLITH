@@ -60,10 +60,21 @@ void WindowManager::requestQuit() {
 
     // Shut Down is still a close operation. Ask every app in this request so
     // multiple dirty documents are armed together instead of serializing them.
+    // A callback can open another window, so continue with newly observed IDs
+    // before accepting quit. IDs are monotonic, which also prevents rechecking
+    // an original app after a callback changes the window set.
     bool allAllowed = true;
-    forEachLiveWindow([&allAllowed](Window& window) {
-        if (window.app && !window.app->allowClose()) allAllowed = false;
-    });
+    std::set<int> checkedWindowIds;
+    while (allAllowed) {
+        bool checkedNewWindow = false;
+        forEachLiveWindow([&](Window& window) {
+            const int windowId = window.id;
+            if (!checkedWindowIds.insert(windowId).second) return;
+            checkedNewWindow = true;
+            if (window.app && !window.app->allowClose()) allAllowed = false;
+        });
+        if (!checkedNewWindow) break;
+    }
     if (!allAllowed) return;
 
     m_quitRequested = true;

@@ -1,12 +1,15 @@
 // Headless regression test for the Shut Down dirty-document guard.
 #include "../src/fs/Filesystem.hpp"
+#include "../src/app/TextEditorApp.hpp"
 #define private public
 #include "../src/window/WindowManager.hpp"
 #undef private
 
 #include <SDL2/SDL_ttf.h>
 
+#include <algorithm>
 #include <filesystem>
+#include <cstring>
 #include <iostream>
 #include <memory>
 #include <unistd.h>
@@ -54,6 +57,42 @@ public:
     int allowCloseCalls = 0;
 
 private:
+    bool openedWindow = false;
+};
+
+class QuitOpeningDirtyEditorApp final : public monolith::app::App {
+public:
+    explicit QuitOpeningDirtyEditorApp(monolith::window::WindowManager* wm)
+        : wm(wm) {}
+
+    void render(SDL_Renderer*, const SDL_Rect&) override {}
+
+    bool allowClose() override {
+        ++allowCloseCalls;
+        if (openedWindow) return true;
+
+        openedWindow = true;
+        if (auto* controller = getController()) {
+            controller->openPath("/docs/shutdown-opened.txt");
+        }
+
+        if (!wm) return true;
+        const auto editor = std::find_if(
+            wm->m_windows.begin(), wm->m_windows.end(),
+            [](const auto& window) {
+                return window && window->editedFilePath == "/docs/shutdown-opened.txt";
+            });
+        if (editor == wm->m_windows.end() || !(*editor)->app) return true;
+
+        SDL_Event text{};
+        text.type = SDL_TEXTINPUT;
+        std::strncpy(text.text.text, "x", SDL_TEXTINPUTEVENT_TEXT_SIZE - 1);
+        (*editor)->app->handleEvent(text);
+        return true;
+    }
+
+    monolith::window::WindowManager* wm = nullptr;
+    int allowCloseCalls = 0;
     bool openedWindow = false;
 };
 
@@ -169,6 +208,46 @@ int main() {
             check(wm.m_windows.size() == 3 && wm.focusEditorForFile("/docs/shutdown-opened.txt"),
                   "shutdown callback-created editor remains registered");
 
+            TTF_CloseFont(font);
+        }
+        TTF_Quit();
+        std::filesystem::remove_all(hostRoot, ec);
+    }
+
+    {
+        const std::filesystem::path hostRoot = std::filesystem::temp_directory_path()
+            / ("monolith-window-quit-new-app-" + std::to_string(getpid()));
+        std::error_code ec;
+        std::filesystem::remove_all(hostRoot, ec);
+        monolith::fs::Filesystem fs(hostRoot.string());
+        check(fs.initialize(), "new-app shutdown filesystem initialize");
+        check(fs.createDirectory("/docs"), "new-app shutdown creates editor directory");
+        check(fs.writeFile("/docs/shutdown-opened.txt", "opened during shutdown"),
+              "new-app shutdown writes editor source");
+
+        check(TTF_Init() == 0, "new-app shutdown SDL_ttf initialize");
+        TTF_Font* font = TTF_OpenFont("assets/fonts/DejaVuSans.ttf", 14);
+        check(font != nullptr, "new-app shutdown loads headless font");
+        if (font) {
+            monolith::window::WindowManager wm;
+            wm.setAppResources(font, &fs);
+
+            auto opener = std::make_unique<QuitOpeningDirtyEditorApp>(&wm);
+            QuitOpeningDirtyEditorApp* openerPtr = opener.get();
+            wm.createWindow("Opener", 40, 40, 260, 180, std::move(opener));
+
+            wm.requestQuit();
+            check(!wm.shouldQuit(),
+                  "shutdown checks a dirty window opened during allow-close");
+            check(openerPtr->allowCloseCalls == 1,
+                  "new-app shutdown checks the original app once");
+            check(wm.m_windows.size() == 2
+                      && wm.focusEditorForFile("/docs/shutdown-opened.txt"),
+                  "new dirty editor remains registered after shutdown is blocked");
+
+            wm.requestQuit();
+            check(wm.shouldQuit(),
+                  "confirmed shutdown accepts the callback-created dirty editor");
             TTF_CloseFont(font);
         }
         TTF_Quit();
