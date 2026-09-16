@@ -160,6 +160,24 @@ int main() {
           "reverse search keeps walking older matching commands");
     key(SDLK_ESCAPE);
 
+    terminal.m_commandHistory = {"echo foo", "echo foobar"};
+    terminal.m_inputBuffer.clear();
+    terminal.m_inputCursorPos = 0;
+    key(SDLK_r, KMOD_CTRL);
+    text("foo");
+    check(terminal.m_searchMatchIndex == 1,
+          "reverse search finds the newest initial query match");
+    text("b");
+    check(terminal.m_searchBuffer == "foob" && terminal.m_searchMatchIndex == 1,
+          "refining reverse search keeps a still-matching current entry");
+    key(SDLK_BACKSPACE);
+    check(terminal.m_searchBuffer == "foo" && terminal.m_searchMatchIndex == 1,
+          "shortening reverse search reselects the newest matching entry");
+    key(SDLK_r, KMOD_CTRL);
+    check(terminal.m_searchMatchIndex == 0,
+          "Ctrl+R still walks older matches after query editing");
+    key(SDLK_ESCAPE);
+
     terminal.m_inputBuffer = "echo saved command";
     terminal.m_inputCursorPos = 5;
     key(SDLK_r, KMOD_CTRL);

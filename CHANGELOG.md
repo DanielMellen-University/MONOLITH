@@ -1,5 +1,10 @@
 # Changelog
 
+## 2026-09: Keep refined reverse searches on matching entries
+
+- Restart Terminal reverse-search matching from the newest entry after query edits, so adding or removing text does not skip a command that still matches.
+- Keep repeated `Ctrl+R` as the explicit older-match traversal and add regression coverage for query refinement.
+
 ## 2026-09: Preserve renderer blend state across game overlays
 
 - Restore the caller's SDL draw blend mode after Snake and Minesweeper render translucent end-state overlays instead of forcing it to `NONE`.
