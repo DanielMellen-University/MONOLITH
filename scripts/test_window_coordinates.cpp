@@ -349,6 +349,30 @@ int main() {
         auto* longTitleWindow = wm.createWindow(
             "Editor - an unusually long document title.txt", 420, 100, 300, 240,
             std::move(longTitleApp));
+        auto unicodeTitleApp = std::make_unique<ProbeApp>();
+        auto* unicodeTitleWindow = wm.createWindow(
+            "Editor - caf\xC3\xA9.txt", 120, 100, 300, 240,
+            std::move(unicodeTitleApp));
+        wm.setLogicalDesktopSize(1000, 700);
+        SDL_SetRenderDrawColor(renderer, 0, 0, 0, 255);
+        SDL_RenderClear(renderer);
+        wm.render(renderer);
+        int measuredUnicodeTitleWidth = 0;
+        int measuredUnicodeTitleHeight = 0;
+        const bool measuredUnicodeTitle = font
+            && TTF_SizeUTF8(font, unicodeTitleWindow->title.c_str(),
+                            &measuredUnicodeTitleWidth, &measuredUnicodeTitleHeight) == 0;
+        int cachedUnicodeTitleWidth = 0;
+        int cachedUnicodeTitleHeight = 0;
+        const auto unicodeCache = wm.m_titleCache.find(unicodeTitleWindow->id);
+        const bool cachedUnicodeTitle = unicodeCache != wm.m_titleCache.end()
+            && unicodeCache->second.texture
+            && SDL_QueryTexture(unicodeCache->second.texture, nullptr, nullptr,
+                                &cachedUnicodeTitleWidth, &cachedUnicodeTitleHeight) == 0;
+        check(measuredUnicodeTitle && cachedUnicodeTitle
+                  && cachedUnicodeTitleWidth == measuredUnicodeTitleWidth
+                  && cachedUnicodeTitleHeight == measuredUnicodeTitleHeight,
+              "window and taskbar titles render as UTF-8");
         wm.setLogicalDesktopSize(120, 120);
         SDL_SetRenderDrawColor(renderer, 0, 0, 0, 255);
         SDL_RenderClear(renderer);

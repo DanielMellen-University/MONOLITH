@@ -202,7 +202,7 @@
         // Title text (clipped)
         if (m_font) {
             SDL_Color textCol = isMin ? SDL_Color{170,170,175,255} : SDL_Color{235,235,240,255};
-            SDL_Surface* s = TTF_RenderText_Blended(m_font, win->title.c_str(), textCol);
+            SDL_Surface* s = TTF_RenderUTF8_Blended(m_font, win->title.c_str(), textCol);
             if (s) {
                 SDL_Texture* t = SDL_CreateTextureFromSurface(renderer, s);
                 if (t) {

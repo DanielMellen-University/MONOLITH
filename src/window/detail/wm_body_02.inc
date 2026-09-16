@@ -253,7 +253,7 @@ void WindowManager::render(SDL_Renderer* renderer) {
                 SDL_Color textColor = isFocused ? SDL_Color{230, 230, 235, 255}
                                                 : SDL_Color{180, 180, 185, 255};
 
-                SDL_Surface* surface = TTF_RenderText_Blended(m_font, win.title.c_str(), textColor);
+                SDL_Surface* surface = TTF_RenderUTF8_Blended(m_font, win.title.c_str(), textColor);
                 if (surface) {
                     cache.texture = SDL_CreateTextureFromSurface(renderer, surface);
                     SDL_FreeSurface(surface);

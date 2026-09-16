@@ -1,5 +1,10 @@
 # Changelog
 
+## 2026-09: Render shell titles as UTF-8
+
+- Switched window-title and taskbar-label rendering to SDL_ttf's UTF-8 API so Unicode filenames display consistently with their measured widths.
+- Added render-level coverage for a non-ASCII file-backed title.
+
 ## 2026-09: Keep outside pointer coordinates outside the desktop
 
 - Floored scaled screen-to-logical pointer conversion so positions just above a host header or left of the desktop cannot hit an edge window.
