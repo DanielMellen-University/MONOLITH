@@ -508,8 +508,16 @@ int main() {
         browser.ensureHitTargets();
         const int cachedDeleteX = browser.m_btnDelete.x;
         browser.render(renderer, {0, 0, browser.m_clientWidth, browser.m_clientHeight});
+        const size_t cachedSurfaceCount = browser.m_textSurfaceCache.m_entries.size();
+        browser.render(renderer, {0, 0, browser.m_clientWidth, browser.m_clientHeight});
         check(browser.m_hitTargetsValid && browser.m_btnDelete.x == cachedDeleteX,
               "browser retains stable hit targets across render frames");
+        check(cachedSurfaceCount > 0
+                  && browser.m_textSurfaceCache.m_entries.size() == cachedSurfaceCount,
+              "browser reuses cached text surfaces between frames");
+        browser.onUiScaleChanged();
+        check(browser.m_textSurfaceCache.m_entries.empty(),
+              "browser clears cached text surfaces when UI scale changes");
         SDL_DestroyRenderer(renderer);
     }
     if (surface) SDL_FreeSurface(surface);

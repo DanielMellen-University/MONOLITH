@@ -1398,7 +1398,7 @@ void FilesystemApp::drawPathBar(SDL_Renderer* r, const SDL_Rect& contentRect, in
     // Current path text
     if (m_font) {
         SDL_Color pathColor = {180, 190, 200, 255};
-        SDL_Surface* surf = TTF_RenderUTF8_Blended(m_font, m_currentPath.c_str(), pathColor);
+        SDL_Surface* surf = m_textSurfaceCache.get(m_font, m_currentPath.c_str(), pathColor);
         if (surf) {
             SDL_Texture* tex = SDL_CreateTextureFromSurface(r, surf);
             if (tex) {
@@ -1425,7 +1425,6 @@ void FilesystemApp::drawPathBar(SDL_Renderer* r, const SDL_Rect& contentRect, in
                 }
                 SDL_DestroyTexture(tex);
             }
-            SDL_FreeSurface(surf);
         }
 
         SDL_Rect filterDraw = {
@@ -1458,7 +1457,7 @@ void FilesystemApp::drawPathBar(SDL_Renderer* r, const SDL_Rect& contentRect, in
         SDL_Color filterCol = m_filterQuery.empty() && !m_filtering
             ? SDL_Color{120, 125, 130, 255}
             : SDL_Color{210, 215, 220, 255};
-        SDL_Surface* fs = TTF_RenderUTF8_Blended(m_font, filterLabel.c_str(), filterCol);
+        SDL_Surface* fs = m_textSurfaceCache.get(m_font, filterLabel.c_str(), filterCol);
         if (fs) {
             SDL_Texture* ft = SDL_CreateTextureFromSurface(r, fs);
             if (ft) {
@@ -1494,7 +1493,6 @@ void FilesystemApp::drawPathBar(SDL_Renderer* r, const SDL_Rect& contentRect, in
                 }
                 SDL_DestroyTexture(ft);
             }
-            SDL_FreeSurface(fs);
         }
     }
 
@@ -1521,7 +1519,7 @@ void FilesystemApp::drawToolbar(SDL_Renderer* r, const SDL_Rect& contentRect) {
 
         if (m_font) {
             SDL_Color col = {210, 215, 220, 255};
-            SDL_Surface* surf = TTF_RenderUTF8_Blended(m_font, label, col);
+            SDL_Surface* surf = m_textSurfaceCache.get(m_font, label, col);
             if (surf) {
                 SDL_Texture* tex = SDL_CreateTextureFromSurface(r, surf);
                 if (tex) {
@@ -1533,7 +1531,6 @@ void FilesystemApp::drawToolbar(SDL_Renderer* r, const SDL_Rect& contentRect) {
                     SDL_RenderCopy(r, tex, nullptr, &dst);
                     SDL_DestroyTexture(tex);
                 }
-                SDL_FreeSurface(surf);
             }
         }
 
@@ -1575,7 +1572,7 @@ void FilesystemApp::drawList(SDL_Renderer* r, const SDL_Rect& contentRect, int l
     if (m_entries.empty()) {
         SDL_Color dim = {140, 145, 150, 255};
         const char* emptyMsg = m_filterQuery.empty() ? "(empty directory)" : "(no matching items)";
-        SDL_Surface* surf = TTF_RenderUTF8_Blended(m_font, emptyMsg, dim);
+        SDL_Surface* surf = m_textSurfaceCache.get(m_font, emptyMsg, dim);
         if (surf) {
             SDL_Texture* tex = SDL_CreateTextureFromSurface(r, surf);
             if (tex) {
@@ -1583,7 +1580,6 @@ void FilesystemApp::drawList(SDL_Renderer* r, const SDL_Rect& contentRect, int l
                 SDL_RenderCopy(r, tex, nullptr, &dst);
                 SDL_DestroyTexture(tex);
             }
-            SDL_FreeSurface(surf);
         }
         return;
     }
@@ -1635,7 +1631,7 @@ void FilesystemApp::drawList(SDL_Renderer* r, const SDL_Rect& contentRect, int l
 
         // Indicator
         {
-            SDL_Surface* s = TTF_RenderUTF8_Blended(m_font, indicator, indColor);
+            SDL_Surface* s = m_textSurfaceCache.get(m_font, indicator, indColor);
             if (s) {
                 SDL_Texture* t = SDL_CreateTextureFromSurface(r, s);
                 if (t) {
@@ -1643,7 +1639,6 @@ void FilesystemApp::drawList(SDL_Renderer* r, const SDL_Rect& contentRect, int l
                     SDL_RenderCopy(r, t, nullptr, &d);
                     SDL_DestroyTexture(t);
                 }
-                SDL_FreeSurface(s);
             }
         }
 
@@ -1670,7 +1665,7 @@ void FilesystemApp::drawList(SDL_Renderer* r, const SDL_Rect& contentRect, int l
                 ? std::clamp(prefixW - cursorMargin, 0, maxTextOffset)
                 : 0;
 
-            SDL_Surface* s = TTF_RenderUTF8_Blended(m_font, displayText.c_str(), nameCol);
+            SDL_Surface* s = m_textSurfaceCache.get(m_font, displayText.c_str(), nameCol);
             if (s) {
                 SDL_Texture* t = SDL_CreateTextureFromSurface(r, s);
                 if (t) {
@@ -1684,7 +1679,6 @@ void FilesystemApp::drawList(SDL_Renderer* r, const SDL_Rect& contentRect, int l
                     }
                     SDL_DestroyTexture(t);
                 }
-                SDL_FreeSurface(s);
             }
 
             // Draw a simple cursor when renaming
@@ -1745,6 +1739,7 @@ void FilesystemApp::onResize(int clientWidth, int clientHeight) {
 }
 
 void FilesystemApp::onUiScaleChanged() {
+    m_textSurfaceCache.clear();
     // The filter prompt stores its horizontal position in pixels; remeasure it
     // against the new font on the next render.
     m_filterScrollPx = 0;
@@ -2023,7 +2018,7 @@ void FilesystemApp::drawStatusBar(SDL_Renderer* r, const SDL_Rect& contentRect) 
     }
 
     SDL_Color textCol = {160, 165, 175, 255};
-    SDL_Surface* surf = TTF_RenderUTF8_Blended(m_font, status.c_str(), textCol);
+    SDL_Surface* surf = m_textSurfaceCache.get(m_font, status.c_str(), textCol);
     if (surf) {
         SDL_Texture* tex = SDL_CreateTextureFromSurface(r, surf);
         if (tex) {
@@ -2048,7 +2043,6 @@ void FilesystemApp::drawStatusBar(SDL_Renderer* r, const SDL_Rect& contentRect) 
             }
             SDL_DestroyTexture(tex);
         }
-        SDL_FreeSurface(surf);
     }
 }
 
@@ -2093,7 +2087,8 @@ void FilesystemApp::drawContextMenu(SDL_Renderer* r, const SDL_Rect& contentRect
         }
 
         SDL_Color textCol = hovered ? SDL_Color{230, 235, 245, 255} : SDL_Color{200, 205, 215, 255};
-        SDL_Surface* surf = TTF_RenderUTF8_Blended(m_font, m_contextMenuItems[i].c_str(), textCol);
+        SDL_Surface* surf = m_textSurfaceCache.get(
+            m_font, m_contextMenuItems[i].c_str(), textCol);
         if (surf) {
             SDL_Texture* tex = SDL_CreateTextureFromSurface(r, surf);
             if (tex) {
@@ -2105,7 +2100,6 @@ void FilesystemApp::drawContextMenu(SDL_Renderer* r, const SDL_Rect& contentRect
                 SDL_RenderCopy(r, tex, nullptr, &dst);
                 SDL_DestroyTexture(tex);
             }
-            SDL_FreeSurface(surf);
         }
 
         itemY += itemHeight;

@@ -2,6 +2,7 @@
 
 #include "App.hpp"
 #include "../fs/Filesystem.hpp"
+#include "../detail/TextSurfaceCache.hpp"
 #include <SDL2/SDL.h>
 #include <SDL2/SDL_ttf.h>
 #include <set>
@@ -106,6 +107,7 @@ private:
 
     TTF_Font* m_font = nullptr;
     monolith::fs::Filesystem* m_fs = nullptr;
+    mutable monolith::detail::TextSurfaceCache m_textSurfaceCache;
 
     std::string m_currentPath = "/home/monolith";
     std::vector<monolith::fs::Filesystem::DirEntry> m_entries;
