@@ -199,6 +199,23 @@ int main() {
 
     wm.setLogicalDesktopSize(500, 400);
     wm.render(renderer);
+    wm.m_showStartMenu = true;
+    wm.render(renderer);
+    SDL_Texture* firstStartMenuHeader = wm.m_startMenuHeaderTexture;
+    wm.render(renderer);
+    check(firstStartMenuHeader != nullptr
+              && wm.m_startMenuHeaderTexture == firstStartMenuHeader
+              && wm.m_startMenuHeaderTexW > 0
+              && wm.m_startMenuHeaderTexH > 0,
+          "Start menu reuses its static header texture between frames");
+    wm.setFont(nullptr);
+    check(wm.m_startMenuHeaderTexture == nullptr
+              && wm.m_startMenuHeaderTexW == 0
+              && wm.m_startMenuHeaderTexH == 0,
+          "font changes invalidate the cached Start-menu header texture");
+    wm.setFont(font);
+    wm.m_showStartMenu = false;
+    wm.invalidateShellHitTargets();
     wm.m_desktopIconSelected = 1;
     wm.m_desktopIconLastClickIndex = 1;
     wm.m_desktopIconLastClickTicks = 1000;

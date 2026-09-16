@@ -1,5 +1,9 @@
 # Changelog
 
+## 2026-09: Cache static Start-menu text
+
+- Reuse the Start-menu "Monolith" header texture between frames and invalidate it with the shared font, avoiding repeated SDL_ttf surface and texture creation while the menu is open.
+
 ## 2026-09: End app gestures before modal prompts
 
 - Clear an active Text Editor mouse selection when a path prompt starts, so the prompt-owned mouse release cannot leave selection capture armed.

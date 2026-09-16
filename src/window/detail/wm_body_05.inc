@@ -513,6 +513,7 @@ void WindowManager::setFont(TTF_Font* font) {
         }
         m_titleCache.clear();
         destroyClockTextures();
+        destroyStartMenuHeaderTexture();
     }
     m_font = font;
     applyUiScaleFont();
@@ -589,6 +590,7 @@ void WindowManager::setContentScale(float scale) {
 
 void WindowManager::applyUiScaleFont() {
     if (!m_font) {
+        destroyStartMenuHeaderTexture();
         invalidateShellHitTargets();
         return;
     }
@@ -606,6 +608,7 @@ void WindowManager::applyUiScaleFont() {
     }
     m_titleCache.clear();
     destroyClockTextures();
+    destroyStartMenuHeaderTexture();
     invalidateShellHitTargets();
 }
 

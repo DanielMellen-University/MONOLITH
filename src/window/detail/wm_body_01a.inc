@@ -19,6 +19,7 @@ WindowManager::~WindowManager() {
     }
     m_titleCache.clear();
     destroyClockTextures();
+    destroyStartMenuHeaderTexture();
     destroyWallpaperTexture();
 }
 
@@ -37,6 +38,15 @@ void WindowManager::destroyClockTextures() {
     m_clockDateText.clear();
     m_clockDateTexW = 0;
     m_clockDateTexH = 0;
+}
+
+void WindowManager::destroyStartMenuHeaderTexture() {
+    if (m_startMenuHeaderTexture) {
+        SDL_DestroyTexture(m_startMenuHeaderTexture);
+        m_startMenuHeaderTexture = nullptr;
+    }
+    m_startMenuHeaderTexW = 0;
+    m_startMenuHeaderTexH = 0;
 }
 
 Window* WindowManager::createWindow(const std::string& title, int x, int y, int w, int h,

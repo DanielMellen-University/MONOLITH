@@ -1,5 +1,7 @@
 # Session log
 
+| 2026-09-16 | perf | Cached the static Start-menu header texture across frames, invalidated it with font changes, and added renderer coverage plus architecture and changelog notes. |
+
 | 2026-09-16 | fix | Ended active Text Editor selections and Drawing strokes before modal prompts, added focused gesture coverage, and updated both app guides and the changelog. |
 
 | 2026-09-16 | fix | Ended Text Editor and Drawing gestures and cleared Minesweeper pressed previews on focus loss, added focused coverage, and updated architecture and app documentation. |
