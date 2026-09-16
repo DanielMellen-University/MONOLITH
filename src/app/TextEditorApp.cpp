@@ -932,6 +932,8 @@ void TextEditorApp::pasteClipboard() {
     if (hasSelection() && selectedText() == cleaned) {
         int r0 = 0, c0 = 0, r1 = 0, c1 = 0;
         getOrderedSelection(r0, c0, r1, c1);
+        (void)r0;
+        (void)c0;
         m_cursorRow = r1;
         m_cursorCol = c1;
         clampCursor();
@@ -1048,6 +1050,8 @@ void TextEditorApp::insertText(const char* text) {
     if (hasSelection() && selectedText() == filtered) {
         int r0 = 0, c0 = 0, r1 = 0, c1 = 0;
         getOrderedSelection(r0, c0, r1, c1);
+        (void)r0;
+        (void)c0;
         m_cursorRow = r1;
         m_cursorCol = c1;
         clampCursor();
