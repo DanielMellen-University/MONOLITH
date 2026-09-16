@@ -1,4 +1,5 @@
 #include "BreakoutApp.hpp"
+#include "../detail/TickMath.hpp"
 
 #include <algorithm>
 #include <cstdio>
@@ -49,10 +50,8 @@ int BreakoutApp::hudHeight() const {
 
 void BreakoutApp::update() {
     const Uint32 now = SDL_GetTicks();
-    float dt = static_cast<float>(now - m_lastTickMs) / 1000.f;
+    const float dt = monolith::detail::tickDeltaSeconds(now, m_lastTickMs);
     m_lastTickMs = now;
-    if (dt < 0.f) dt = 0.f;
-    if (dt > 0.05f) dt = 0.05f;
 
     if (m_game.state != monolith::breakout::State::Playing || m_paused) return;
 

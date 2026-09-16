@@ -1,5 +1,10 @@
 # Changelog
 
+## 2026-09: Share game frame timing
+
+- Pong and Breakout now use one wrap-safe SDL tick conversion helper with the same 50 ms stalled-frame cap, removing duplicated timing logic.
+- Added focused coverage for normal intervals, the 32-bit tick wrap boundary, unchanged ticks, and long stalls.
+
 ## 2026-09: Complete apostrophe-safe Terminal paths
 
 - Terminal Tab completion now preserves filenames containing apostrophes inside single-quoted paths and closes completed single-quoted file paths at the line end.

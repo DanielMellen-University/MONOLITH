@@ -128,7 +128,7 @@ The Window Manager also acts as a small "desktop shell". It provides launcher me
 
 The Start menu keeps most apps as top-level entries. Games that clearly form a group (**Snake**, **Minesweeper**, **Pong**, **Breakout**) sit under a non-clickable **Games** category header with a slight indent; only categories that make sense are introduced this way.
 
-Each frame, `WindowManager::update()` calls `App::update()` on every non-minimized window's app. Most apps leave this as a no-op; games use it for fixed-rate ticks and timers.
+Each frame, `WindowManager::update()` calls `App::update()` on every non-minimized window's app. Most apps leave this as a no-op; games use it for fixed-rate ticks and timers. Pong and Breakout convert SDL's wrapping 32-bit tick counter through the shared `detail::tickDeltaSeconds()` helper, which caps a stalled frame at 50 ms before passing it to their rule engines.
 
 Apps can request shell actions through `IWindowController`: `close()`, `setTitle()`, `restoreTrackedInstanceTitle()`, `openInTextEditor` / `openInDrawing` / **`openPath`** (extension-based default), editor/drawing file binding helpers, virtual path lifecycle notifications for created, changed, moved, and removed entries, the shared virtual filesystem clipboard, desktop background get/set, wallpaper path get/set, taskbar clock 12/24-hour get/set, and interface text scale get/set. Apps do not depend on each other directly. Temporary title overrides (e.g. Drawing after save) restore via `restoreTrackedInstanceTitle()`.
 

@@ -32,7 +32,7 @@ Focusing another window or opening the Start menu auto-pauses. Resume with Space
 
 ## Presentation
 
-The playfield scales to the window. Score, lives, and remaining bricks appear in a font-aware HUD whose height follows the shared interface text scale. The HUD clips at the client boundary when the window is narrow. Session restore reopens Breakout windows.
+The playfield scales to the window. Score, lives, and remaining bricks appear in a font-aware HUD whose height follows the shared interface text scale. The HUD clips at the client boundary when the window is narrow. Frame timing uses the shared wrap-safe SDL tick helper and caps a stalled update at 50 ms. Session restore reopens Breakout windows.
 
 ## Developer Notes
 

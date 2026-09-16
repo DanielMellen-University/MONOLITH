@@ -1,5 +1,7 @@
 # Session log
 
+| 2026-09-15 | fix | Shared Pong and Breakout frame timing through a wrap-safe SDL tick helper with a 50 ms stall cap; added boundary coverage and updated the game, architecture, and developer documentation. |
+
 | 2026-09-15 | fix | Made Terminal single-quoted path completion encode apostrophes safely, close completed file paths, and preserve the resulting argument through the lexer; added focused coverage and updated the Terminal guide. |
 
 | 2026-09-15 | fix | Rejected symlinked and non-regular atomic temporary siblings for virtual files and host snapshots, added target-preservation coverage, and updated the persistence contract. |
