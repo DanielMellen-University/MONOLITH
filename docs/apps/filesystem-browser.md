@@ -76,6 +76,8 @@ The browser starts at `/home/monolith` when that path exists.
 
 Press **F2** or choose Rename from the context menu. The caret starts at the end of the existing name. Use Left/Right/Home/End to move it, type to insert, Backspace/Delete to remove complete UTF-8 characters, then press **Enter** to commit or **Esc** to cancel. Names that contain `/` (or that are empty, `.`, or `..`) are rejected so rename cannot create a nested path.
 
+After a successful rename, the new name remains selected and the status bar reports the completed rename even while other open apps refresh synchronously.
+
 If the renamed entry is open in Text Editor or Drawing, the shell updates that window's bound virtual path, title, session record, and singleton focus binding. Renaming a directory also updates open files and drawings below it, plus any Terminal or Filesystem Browser currently inside the directory.
 
 ### Filter / search
@@ -148,6 +150,7 @@ Right-clicking an already selected row keeps the current multi-selection, so con
 - External creations from Terminal, Text Editor, Drawing, or another Filesystem Browser refresh the folder currently being viewed, including ancestor folders when a write also creates missing parents, so new rows appear without pressing Refresh.
 - External changes to an existing direct child use the same refresh path, keeping listings current after an overwrite.
 - External refreshes cancel an active inline rename, so a stale row index cannot rename a different entry after the listing changes.
+- A successful inline rename clears its edit state before filesystem notifications are delivered, so the originating browser keeps the new row selected during synchronous refreshes.
 - A change event for the directory currently being viewed refreshes that directory too, which keeps the open listing current after recursive tree merges.
 - The shared virtual clipboard follows a successful rename or move made by another Filesystem Browser or Terminal, including sources nested under a moved directory.
 - Paste skips items whose names already exist in the destination, same-folder sources, and folders pasted into themselves (`isSameOrDescendant`).

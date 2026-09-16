@@ -783,24 +783,36 @@ void FilesystemApp::finishRename(bool commit) {
     }
 
     const auto& entry = m_entries[m_renameIndex];
-    std::string oldName = entry.name;
-    bool wasDirectory = entry.isDirectory;
+    const std::string oldName = entry.name;
+    const bool wasDirectory = entry.isDirectory;
+    const std::string newName = m_renameBuffer;
 
-    if (commit && m_renameBuffer.empty()) {
+    if (commit && newName.empty()) {
         setStatus("Rename failed: name cannot be empty");
-    } else if (commit && !monolith::fs::Filesystem::isValidEntryName(m_renameBuffer)) {
+    } else if (commit && !monolith::fs::Filesystem::isValidEntryName(newName)) {
         setStatus("Rename failed: name cannot contain /");
-    } else if (commit && m_renameBuffer != entry.name) {
-        if (m_fs->exists(fullPathFor(m_renameBuffer))) {
+    } else if (commit && newName != oldName) {
+        if (m_fs->exists(fullPathFor(newName))) {
             setStatus("Rename failed: name already exists");
-        } else if (m_fs->renameEntry(m_currentPath, oldName, m_renameBuffer)) {
+        } else if (m_fs->renameEntry(m_currentPath, oldName, newName)) {
+            const std::string oldPath = fullPathFor(oldName);
+            const std::string newPath = fullPathFor(newName);
+
+            // Notifications are synchronous and include this Browser. Clear
+            // the edit state first so its own refresh cannot cancel the
+            // successful rename or erase the destination name.
+            m_renaming = false;
+            m_renameIndex = -1;
+            m_renameBuffer.clear();
+            m_renameCursorPos = 0;
+
             if (auto* ctrl = getController()) {
-                ctrl->notifyVirtualPathMoved(
-                    fullPathFor(oldName), fullPathFor(m_renameBuffer));
+                ctrl->notifyVirtualPathMoved(oldPath, newPath);
             }
             refreshEntries();
-            selectEntryNamed(m_renameBuffer, wasDirectory);
-            setStatus("Renamed " + oldName + " to " + m_renameBuffer);
+            selectEntryNamed(newName, wasDirectory);
+            setStatus("Renamed " + oldName + " to " + newName);
+            return;
         } else {
             setStatus("Rename failed: " + oldName);
         }

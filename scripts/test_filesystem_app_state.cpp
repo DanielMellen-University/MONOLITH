@@ -31,6 +31,31 @@ void text(monolith::app::FilesystemApp& app, const char* value) {
     app.handleEvent(event);
 }
 
+class TestFilesystemApp final : public monolith::app::FilesystemApp {
+public:
+    using monolith::app::FilesystemApp::FilesystemApp;
+    using monolith::app::App::setController;
+};
+
+class ReentrantRenameController final : public monolith::app::IWindowController {
+public:
+    explicit ReentrantRenameController(monolith::app::FilesystemApp* app)
+        : m_app(app) {}
+
+    void close() override {}
+    void setTitle(const std::string&) override {}
+
+    void notifyVirtualPathMoved(const std::string& oldPath,
+                                const std::string& newPath) override {
+        if (m_app) {
+            m_app->onVirtualPathMoved(oldPath, newPath);
+        }
+    }
+
+private:
+    monolith::app::FilesystemApp* m_app;
+};
+
 } // namespace
 
 int main() {
@@ -70,7 +95,7 @@ int main() {
         return 1;
     }
 
-    monolith::app::FilesystemApp browser(font, &fs);
+    TestFilesystemApp browser(font, &fs);
     browser.onResize(400, 240);
     check(browser.m_entries.size() == 15, "browser loads the complete directory listing");
 
@@ -107,6 +132,29 @@ int main() {
     check(fs.rename("/home/monolith/renamed-a.txt", "/home/monolith/a.txt"),
           "restore the renamed browser test entry");
     browser.onVirtualPathMoved("/home/monolith/renamed-a.txt", "/home/monolith/a.txt");
+
+    ReentrantRenameController renameController(&browser);
+    browser.setController(&renameController);
+    check(browser.selectEntryNamed("a.txt", false),
+          "select an entry before a direct inline rename");
+    browser.startRenameSelected();
+    browser.m_renameBuffer = "direct-renamed.txt";
+    browser.finishRename(true);
+    check(fs.isFile("/home/monolith/direct-renamed.txt")
+              && !fs.exists("/home/monolith/a.txt"),
+          "direct inline rename changes the backing filesystem entry");
+    check(!browser.m_renaming && browser.m_renameBuffer.empty()
+              && browser.m_statusMessage == "Renamed a.txt to direct-renamed.txt",
+          "direct inline rename survives its synchronous self-notification");
+    check(browser.selectEntryNamed("direct-renamed.txt", false),
+          "direct inline rename keeps the renamed entry selectable");
+    browser.startRenameSelected();
+    browser.m_renameBuffer = "a.txt";
+    browser.finishRename(true);
+    check(fs.isFile("/home/monolith/a.txt")
+              && !fs.exists("/home/monolith/direct-renamed.txt"),
+          "direct inline rename can rename the entry back");
+    browser.setController(nullptr);
 
     check(fs.writeFile("/home/monolith/external-create.txt", "created"),
           "create a direct child outside the browser");

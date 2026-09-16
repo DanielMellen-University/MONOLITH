@@ -1,5 +1,10 @@
 # Changelog
 
+## 2026-09: Preserve direct Browser renames
+
+- Cleared inline rename state before broadcasting a successful rename, preventing the originating Browser's synchronous refresh from canceling the operation or losing its new selection and status message.
+- Added regression coverage for direct renames through a re-entrant filesystem notification.
+
 ## 2026-09: Block app input while the host is unfocused
 
 - Stopped queued key, text-input, motion, button, and wheel events from reaching the focused app or shell after the SDL host window loses focus, while preserving shell-owned key-release cleanup and focus recovery.
