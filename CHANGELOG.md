@@ -1,5 +1,10 @@
 # Changelog
 
+## 2026-09: Refresh taskbar targets when focus clears
+
+- Invalidate cached taskbar rectangles when minimizing leaves the desktop with no visible focused window, keeping focused-first button ordering aligned before the next render.
+- Add geometry coverage for minimizing the last visible taskbar window while other windows remain minimized.
+
 ## 2026-09: Keep client keyboard events owned by focused apps
 
 - Stop keyboard and text-input events after the focused app receives them, preventing a callback-triggered close from bubbling the same event into desktop-icon activation.

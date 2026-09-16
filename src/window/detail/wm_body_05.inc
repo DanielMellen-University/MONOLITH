@@ -486,6 +486,10 @@ void WindowManager::focusTopmostVisibleWindow() {
         && previousFocused && previousFocused->app) {
         invokeAppCallback([&]() { previousFocused->app->onFocusLost(); });
     }
+    // Clearing focus changes taskbar button ordering because the focused
+    // window normally receives the first slot. Rebuild before queued input
+    // can use rectangles from the focused layout.
+    invalidateShellHitTargets();
 }
 
 bool WindowManager::isInTitleBar(const Window& window, int x, int y) const {

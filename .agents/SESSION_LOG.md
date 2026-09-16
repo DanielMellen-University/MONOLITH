@@ -1,5 +1,7 @@
 # Session log
 
+| 2026-09-16 | fix | Invalidated taskbar targets when focus clears after the last visible window is minimized, added no-render-gap coverage, and updated shell architecture/changelog notes. |
+
 | 2026-09-16 | fix | Kept client keyboard events owned by the focused app after shell hotkeys, added callback-close coverage that blocks accidental desktop-icon activation, and updated input-routing documentation. |
 
 | 2026-09-16 | fix | Invalidated cached taskbar targets at the minimize transition, added queued-input coverage before the next render, and updated architecture/changelog notes. |

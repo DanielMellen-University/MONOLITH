@@ -773,6 +773,40 @@ int main() {
         wm.handleEvent(preRenderTaskbarRelease);
     }
 
+    {
+        monolith::window::WindowManager taskbarWm;
+        taskbarWm.setLogicalDesktopSize(900, 600);
+        auto hiddenApp = std::make_unique<ProbeApp>();
+        auto* hiddenWindow = taskbarWm.createWindow(
+            "Hidden survivor", 40, 40, 280, 220, std::move(hiddenApp));
+        hiddenWindow->minimized = true;
+        auto activeApp = std::make_unique<ProbeApp>();
+        auto* activeWindow = taskbarWm.createWindow(
+            "Active taskbar window", 360, 40, 280, 220, std::move(activeApp));
+        taskbarWm.render(renderer);
+
+        SDL_Rect activeTaskbarRect{0, 0, 0, 0};
+        for (const auto& entry : taskbarWm.m_taskbarEntries) {
+            if (entry.window == activeWindow) {
+                activeTaskbarRect = entry.rect;
+                break;
+            }
+        }
+        SDL_Event minimizeFromTaskbar{};
+        minimizeFromTaskbar.type = SDL_MOUSEBUTTONDOWN;
+        minimizeFromTaskbar.button.button = SDL_BUTTON_LEFT;
+        minimizeFromTaskbar.button.x = activeTaskbarRect.x + activeTaskbarRect.w / 2;
+        minimizeFromTaskbar.button.y = activeTaskbarRect.y + activeTaskbarRect.h / 2;
+        taskbarWm.handleEvent(minimizeFromTaskbar);
+        check(activeTaskbarRect.w > 0 && activeWindow->minimized
+                  && taskbarWm.m_focusedWindow == nullptr
+                  && !taskbarWm.m_taskbarHitTargetsValid,
+              "clearing focus after the last visible taskbar window invalidates hit targets");
+        SDL_Event taskbarMinimizeRelease = minimizeFromTaskbar;
+        taskbarMinimizeRelease.type = SDL_MOUSEBUTTONUP;
+        taskbarWm.handleEvent(taskbarMinimizeRelease);
+    }
+
     if (renderer) {
         monolith::window::WindowManager renderWm;
         renderWm.setFont(font);
