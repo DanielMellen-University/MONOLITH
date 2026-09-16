@@ -1,5 +1,10 @@
 # Changelog
 
+## 2026-09: Invalidate taskbar targets after window changes
+
+- Cleared cached taskbar and shell hit targets when windows are created, focused, closed, or renamed, preventing between-frame clicks from using obsolete window geometry.
+- Centralized window-title updates so taskbar text caches and hit targets stay synchronized.
+
 ## 2026-09: Own SDL text input lifecycle
 
 - Explicitly started SDL text input for the executable and stopped it during shutdown, ensuring printable input reaches native apps without relying on inherited SDL state.

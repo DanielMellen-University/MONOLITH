@@ -85,6 +85,9 @@ public:
     // Close a specific window
     void closeWindow(Window* window);
 
+    // Update a window title through the shell bridge and invalidate cached taskbar geometry.
+    void setWindowTitle(Window* window, const std::string& title);
+
     // Handle button clicks in title bar
     bool handleTitleBarButtons(Window* window, int mouseX, int mouseY);
 

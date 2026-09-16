@@ -369,16 +369,14 @@ struct WindowController : public monolith::app::IWindowController {
     }
 
     void setTitle(const std::string& title) override {
-        if (targetWindow) {
-            targetWindow->title = title;
-        }
+        if (wm && targetWindow) wm->setWindowTitle(targetWindow, title);
     }
 
     void restoreTrackedInstanceTitle() override {
         if (!targetWindow) return;
         const std::string title = formatTrackedInstanceTitle(targetWindow);
         if (!title.empty()) {
-            targetWindow->title = title;
+            if (wm) wm->setWindowTitle(targetWindow, title);
         }
     }
 

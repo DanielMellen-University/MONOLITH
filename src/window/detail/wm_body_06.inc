@@ -263,6 +263,7 @@ void WindowManager::closeWindow(Window* window) {
         }
 
         m_windows.erase(it);
+        invalidateShellHitTargets();
 
         // Keep keyboard / client input working: promote the topmost non-minimized
         // survivor. Without this, m_focusedWindow stayed null until the next click.

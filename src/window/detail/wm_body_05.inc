@@ -183,6 +183,7 @@ void WindowManager::bringToFront(Window* window) {
 
         // When active window changes, reset taskbar scroll so the new leftmost (active) button is visible
         m_taskbarScrollOffset = 0;
+        invalidateShellHitTargets();
     }
 }
 
@@ -244,6 +245,20 @@ void WindowManager::invalidateShellHitTargets() {
     m_startMenuItems.clear();
     m_startMenuHoverIndex = -1;
     m_startMenuRect = {0, 0, 0, 0};
+}
+
+void WindowManager::setWindowTitle(Window* window, const std::string& title) {
+    if (!isLiveWindow(window) || window->title == title) return;
+
+    window->title = title;
+    auto cacheIt = m_titleCache.find(window->id);
+    if (cacheIt != m_titleCache.end()) {
+        if (cacheIt->second.texture) {
+            SDL_DestroyTexture(cacheIt->second.texture);
+        }
+        m_titleCache.erase(cacheIt);
+    }
+    invalidateShellHitTargets();
 }
 
 void WindowManager::setLogicalDesktopSize(int width, int height) {

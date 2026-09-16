@@ -534,6 +534,27 @@ int main() {
             });
         check(taskbarEntriesBeforeClose > 0 && !closedEntryRemains,
               "closing a window invalidates its cached taskbar hit target");
+        check(!wm.m_taskbarNeedsScroll
+                  && wm.m_taskbarLeftArrowRect.w == 0
+                  && wm.m_taskbarRightArrowRect.w == 0,
+              "closing a window clears stale taskbar scroll targets");
+
+        wm.render(renderer);
+        const size_t entriesBeforeNewWindow = wm.m_taskbarEntries.size();
+        auto addedApp = std::make_unique<ProbeApp>();
+        auto* addedWindow = wm.createWindow(
+            "Added window with a title that changes the taskbar", 120, 100, 300, 240,
+            std::move(addedApp));
+        check(addedWindow && wm.m_taskbarEntries.empty()
+                  && wm.m_taskbarLeftArrowRect.w == 0
+                  && wm.m_taskbarRightArrowRect.w == 0
+                  && entriesBeforeNewWindow > 0,
+              "creating and focusing a window clears stale taskbar targets");
+        wm.setWindowTitle(addedWindow, "Renamed taskbar window with a longer title");
+        check(wm.m_taskbarEntries.empty()
+                  && wm.m_taskbarLeftArrowRect.w == 0
+                  && wm.m_taskbarRightArrowRect.w == 0,
+              "renaming a window clears stale taskbar targets");
     }
 
     if (renderer) {

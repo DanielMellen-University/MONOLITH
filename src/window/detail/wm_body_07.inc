@@ -106,18 +106,7 @@ void WindowManager::compactAppInstances(const std::string& base) {
 
         const bool titleChanged = (w->title != newTitle);
         w->appInstanceNumber = newN;
-        w->title = newTitle;
-
-        if (titleChanged) {
-            // Force the title texture to be regenerated on next render
-            auto cacheIt = m_titleCache.find(w->id);
-            if (cacheIt != m_titleCache.end()) {
-                if (cacheIt->second.texture) {
-                    SDL_DestroyTexture(cacheIt->second.texture);
-                }
-                m_titleCache.erase(cacheIt);
-            }
-        }
+        if (titleChanged) setWindowTitle(w, newTitle);
 
         used.insert(newN);
         ++newN;

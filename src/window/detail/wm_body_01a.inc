@@ -62,6 +62,7 @@ Window* WindowManager::createWindow(const std::string& title, int x, int y, int 
     Window* ptr = window.get();
     const int windowId = ptr->id;
     m_windows.push_back(std::move(window));
+    invalidateShellHitTargets();
     clampSingleWindow(*ptr);
 
     // Attach controller to the app (if any) so it can request window operations

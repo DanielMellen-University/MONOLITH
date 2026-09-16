@@ -1,5 +1,7 @@
 # Session log
 
+| 2026-09-16 | fix | Invalidated cached shell hit targets after window creation, focus ordering, close, and title changes, and added between-frame taskbar regression coverage. |
+
 | 2026-09-16 | fix | Started and stopped SDL text input in the executable lifecycle, added the deterministic main-body compressor, and documented both compressed-source workflows. |
 
 | 2026-09-16 | docs | Clarified dummy SDL driver usage for focused headless tests so individual SDL-linked commands match the complete verification runner. |
