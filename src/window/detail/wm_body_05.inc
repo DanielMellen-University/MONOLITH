@@ -133,6 +133,17 @@ bool WindowManager::isLiveWindow(const Window* window, int expectedId) const {
         }) != m_windows.end();
 }
 
+bool WindowManager::isStartMenuSuspended(const Window* window) const {
+    return window
+        && window == m_startMenuSuspendedWindow
+        && isLiveWindow(window, m_startMenuSuspendedWindowId);
+}
+
+void WindowManager::clearStartMenuSuspension() {
+    m_startMenuSuspendedWindow = nullptr;
+    m_startMenuSuspendedWindowId = -1;
+}
+
 void WindowManager::bringToFront(Window* window) {
     if (!isLiveWindow(window)) return;
 
@@ -165,17 +176,31 @@ void WindowManager::bringToFront(Window* window) {
         Window* previousFocused = m_focusedWindow;
         const int newFocusedId = newFocused->id;
         const bool focusChanged = previousFocused != newFocused;
+        const bool previousWasStartMenuSuspended = focusChanged
+            && isStartMenuSuspended(previousFocused);
+        const bool sameWasStartMenuSuspended = !focusChanged
+            && isStartMenuSuspended(newFocused);
+
+        // A menu-close handoff may already have suspended the previous app.
+        // Consume that marker before callbacks so the old app is not told it
+        // lost focus twice, and so a one-window Alt+Tab still resumes it.
+        if (m_startMenuSuspendedWindow
+            && (focusChanged || sameWasStartMenuSuspended)) {
+            clearStartMenuSuspension();
+        }
 
         // Publish the new focus before callbacks. A focus callback can close
         // its own window; closeWindow must then perform the handoff without
         // this stack frame restoring a destroyed pointer afterward.
         m_focusedWindow = newFocused;
         if (focusChanged && m_hostFocused && !m_showStartMenu
+            && !previousWasStartMenuSuspended
             && previousFocused && previousFocused->app) {
             invokeAppCallback([&]() { previousFocused->app->onFocusLost(); });
         }
 
-        if (focusChanged && m_hostFocused && !m_showStartMenu
+        if ((focusChanged || sameWasStartMenuSuspended)
+            && m_hostFocused && !m_showStartMenu
             && m_focusedWindow == newFocused
             && isLiveWindow(newFocused, newFocusedId) && newFocused->app) {
             invokeAppCallback([&]() { newFocused->app->onFocusGained(); });
@@ -202,8 +227,11 @@ void WindowManager::focusTopmostVisibleWindow() {
     }
 
     Window* previousFocused = m_focusedWindow;
+    const bool previousWasStartMenuSuspended = isStartMenuSuspended(previousFocused);
+    clearStartMenuSuspension();
     m_focusedWindow = nullptr;
     if (m_hostFocused && !m_showStartMenu
+        && !previousWasStartMenuSuspended
         && previousFocused && previousFocused->app) {
         invokeAppCallback([&]() { previousFocused->app->onFocusLost(); });
     }

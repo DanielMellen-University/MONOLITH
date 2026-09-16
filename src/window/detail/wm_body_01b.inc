@@ -15,9 +15,17 @@
                 return;
             }
 
-            // Click was completely outside the menu → close it (but do not return yet,
-            // so the click can still be processed by windows or other UI below).
-            setStartMenuVisible(false);
+            // Click was completely outside the menu. If it targets another
+            // window, let the normal focus path consume the suspension marker
+            // instead of briefly resuming the old app first.
+            const Window* clickedWindow = getWindowAt(m_mouseX, m_mouseY);
+            const bool clickChangesFocus = clickedWindow
+                && clickedWindow != m_focusedWindow;
+            const bool clickIsOnTaskbar = m_mouseY >= taskbarScreenY
+                && m_mouseY < taskbarScreenBottom;
+            if (!clickIsOnTaskbar) {
+                setStartMenuVisible(false, !clickChangesFocus);
+            }
         }
 
         if (m_mouseY >= taskbarScreenY && m_mouseY < taskbarScreenBottom) {
@@ -58,6 +66,9 @@
             for (const auto& entry : m_taskbarEntries) {
                 SDL_Point p = {m_mouseX, m_mouseY};
                 if (SDL_PointInRect(&p, &entry.rect)) {
+                    // Close the modal boundary before the taskbar action so
+                    // bringToFront can deliver the new focus callback.
+                    setStartMenuVisible(false, false);
                     if (entry.window) {
                         if (entry.window->minimized) {
                             entry.window->minimized = false;
@@ -70,7 +81,6 @@
                             bringToFront(entry.window);
                         }
                     }
-                    setStartMenuVisible(false);
                     return;
                 }
             }

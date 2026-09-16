@@ -179,6 +179,35 @@ int main() {
     check(firstPtr->focusGained == firstFocusGainedBeforeMinimize + 1,
           "visible survivor receives focus-gained notification");
 
+    {
+        monolith::window::WindowManager menuClickWm;
+        auto menuFirst = std::make_unique<FocusProbe>();
+        FocusProbe* menuFirstPtr = menuFirst.get();
+        auto* menuFirstWindow = menuClickWm.createWindow(
+            "Menu First", 80, 80, 300, 240, std::move(menuFirst));
+        auto menuSecond = std::make_unique<FocusProbe>();
+        FocusProbe* menuSecondPtr = menuSecond.get();
+        menuClickWm.createWindow("Menu Second", 420, 80, 300, 240,
+                                 std::move(menuSecond));
+
+        const int menuSecondLostBefore = menuSecondPtr->focusLost;
+        const int menuSecondGainedBefore = menuSecondPtr->focusGained;
+        const int menuFirstGainedBefore = menuFirstPtr->focusGained;
+        SDL_Event menuOpen = openStartMenu;
+        menuClickWm.handleEvent(menuOpen);
+        SDL_Event menuOutsideClick{};
+        menuOutsideClick.type = SDL_MOUSEBUTTONDOWN;
+        menuOutsideClick.button.button = SDL_BUTTON_LEFT;
+        menuOutsideClick.button.x = menuFirstWindow->rect.x + 20;
+        menuOutsideClick.button.y = menuFirstWindow->rect.y
+            + monolith::window::Window::TITLE_BAR_HEIGHT + 20;
+        menuClickWm.handleEvent(menuOutsideClick);
+        check(menuSecondPtr->focusLost == menuSecondLostBefore + 1
+                  && menuSecondPtr->focusGained == menuSecondGainedBefore
+                  && menuFirstPtr->focusGained == menuFirstGainedBefore + 1,
+              "closing Start on another window hands off focus without a resume-lost pair");
+    }
+
     check(wm.focusEditorForFile("/docs/note.txt"),
           "file bridge finds the existing editor");
     check(!secondWindow->minimized, "reopening an editor restores its minimized window");

@@ -87,13 +87,16 @@ void WindowManager::endAltTabCycle() {
     m_altTabOrder.clear();
 }
 
-void WindowManager::setStartMenuVisible(bool visible) {
+void WindowManager::setStartMenuVisible(bool visible, bool resumeFocusedApp) {
     if (m_showStartMenu == visible) return;
 
     if (visible) {
         m_showStartMenu = true;
+        clearStartMenuSuspension();
         if (m_hostFocused && m_focusedWindow && m_focusedWindow->app
             && !m_focusedWindow->minimized) {
+            m_startMenuSuspendedWindow = m_focusedWindow;
+            m_startMenuSuspendedWindowId = m_focusedWindow->id;
             invokeAppCallback([&]() { m_focusedWindow->app->onFocusLost(); });
         }
         return;
@@ -102,17 +105,22 @@ void WindowManager::setStartMenuVisible(bool visible) {
     Window* resumedWindow = m_focusedWindow;
     const int resumedWindowId = resumedWindow ? resumedWindow->id : -1;
     m_showStartMenu = false;
-    if (m_hostFocused && isLiveWindow(resumedWindow, resumedWindowId)
+    if (resumeFocusedApp && m_hostFocused && isLiveWindow(resumedWindow, resumedWindowId)
         && resumedWindow->app && !resumedWindow->minimized) {
+        clearStartMenuSuspension();
         // Resume whichever window owns logical focus now. The suspended app
         // may have closed or opened another window from onFocusLost().
         invokeAppCallback([&]() { resumedWindow->app->onFocusGained(); });
+    } else if (resumeFocusedApp || !isStartMenuSuspended(m_startMenuSuspendedWindow)) {
+        clearStartMenuSuspension();
     }
     m_startMenuKeyboardIndex = -1;
 }
 
 void WindowManager::activateStartMenuItem(int action) {
-    setStartMenuVisible(false);
+    // Launch while the menu is still modal. The new window becomes focused
+    // without waking the suspended app, then closing the menu resumes the
+    // actual focused window exactly once.
     switch (action) {
         case 0: launchTerminal(); break;
         case 1: launchTextEditor(); break;
@@ -126,6 +134,7 @@ void WindowManager::activateStartMenuItem(int action) {
         case 9: requestQuit(); break;
         default: break;
     }
+    setStartMenuVisible(false);
 }
 
 void WindowManager::cycleFocus(int direction) {
@@ -177,7 +186,9 @@ bool WindowManager::tryHandleShellHotkeys(const SDL_Event& event) {
     const bool ctrl = (key.mod & KMOD_CTRL) != 0;
 
     if (alt && key.sym == SDLK_TAB) {
-        setStartMenuVisible(false);
+        // cycleFocus performs the actual focus handoff after the modal menu
+        // closes, so let it consume the suspension marker.
+        setStartMenuVisible(false, false);
         const int dir = (key.mod & KMOD_SHIFT) ? -1 : 1;
         cycleFocus(dir);
         m_shellKeyUpsPending.insert(SDLK_TAB);

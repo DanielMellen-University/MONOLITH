@@ -56,6 +56,10 @@ private:
     int m_startMenuHoverIndex = -1;
     int m_startMenuKeyboardIndex = -1;
     SDL_Rect m_startMenuRect{0, 0, 0, 0};  // screen coords, updated during render when visible
+    // The app that was suspended when the modal menu opened. Keeping its
+    // identity lets a direct handoff skip a duplicate focus-lost callback.
+    Window* m_startMenuSuspendedWindow = nullptr;
+    int m_startMenuSuspendedWindowId = -1;
 
     // Quit request (from Shut Down etc.)
     bool m_quitRequested = false;
@@ -146,6 +150,8 @@ private:
     // possibly stale pointer before continuing the operation.
     bool isLiveWindow(const Window* window) const;
     bool isLiveWindow(const Window* window, int expectedId) const;
+    bool isStartMenuSuspended(const Window* window) const;
+    void clearStartMenuSuspension();
 
     // Move keyboard focus to the topmost non-minimized survivor, or clear it
     // when every window is minimized.
@@ -266,7 +272,7 @@ private:
                                bool minimized, bool maximized);
 
     bool tryHandleShellHotkeys(const SDL_Event& event);
-    void setStartMenuVisible(bool visible);
+    void setStartMenuVisible(bool visible, bool resumeFocusedApp = true);
     void activateStartMenuItem(int action);
     void cycleFocus(int direction);
     void endAltTabCycle();

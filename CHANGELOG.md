@@ -1,5 +1,10 @@
 # Changelog
 
+## 2026-09: Keep Start-menu focus handoffs single-step
+
+- Prevented Start-menu dismissal from briefly resuming the previously focused app before a click, taskbar action, or Alt+Tab hands focus to another window.
+- Added focused lifecycle coverage for cross-window menu dismissal and documented the modal focus callback contract.
+
 ## 2026-09: Retry wallpapers after file creation
 
 - Invalidated the cached wallpaper load when a missing configured image or one of its parent directories is created.
