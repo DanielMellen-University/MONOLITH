@@ -1,5 +1,10 @@
 # Changelog
 
+## 2026-09: Keep no-op Drawing clears clean
+
+- Treat Clear on an already blank canvas as a no-op, preserving the clean marker and undo history.
+- Add focused Drawing state coverage and document the behavior.
+
 ## 2026-09: Keep no-op Text Editor replaces clean
 
 - Treat Replace and Replace All operations whose replacement equals the find text as no-ops, so they do not create undo entries or a false dirty marker.

@@ -84,6 +84,21 @@ void DrawingApp::resizeCanvas(int width, int height, bool preserveContent) {
 }
 
 void DrawingApp::clearCanvas(bool recordUndo) {
+    bool changed = false;
+    for (size_t i = 0; i + 3 < m_pixels.size(); i += 4) {
+        if (m_pixels[i + 0] != kCanvasBackgroundR
+            || m_pixels[i + 1] != kCanvasBackgroundG
+            || m_pixels[i + 2] != kCanvasBackgroundB
+            || m_pixels[i + 3] != 255) {
+            changed = true;
+            break;
+        }
+    }
+    if (!changed) {
+        if (recordUndo) setStatus("Canvas already clear.");
+        return;
+    }
+
     if (recordUndo) {
         pushUndoSnapshot();
     }

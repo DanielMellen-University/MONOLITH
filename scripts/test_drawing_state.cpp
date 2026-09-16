@@ -129,6 +129,12 @@ int main() {
 
     drawing.onResize(300, 300);
     check(!drawing.m_dirty, "initial blank resize stays clean");
+    const size_t clearUndoCount = drawing.m_undoStack.size();
+    drawing.clearCanvas();
+    check(!drawing.m_dirty
+              && drawing.m_undoStack.size() == clearUndoCount
+              && drawing.m_statusMessage == "Canvas already clear.",
+          "clearing an already blank Drawing stays clean and out of undo history");
     drawing.m_usingCustomColor = true;
     drawing.m_customR = 12;
     drawing.m_customG = 34;

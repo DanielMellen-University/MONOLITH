@@ -296,7 +296,7 @@ The **S**, **M**, and **L** buttons select brush radii of 2, 5, and 10 pixels. T
 | Pick | Click one pixel to copy its RGB value, then return to Pen | No canvas change |
 | Line | Drag from one endpoint to the other | One undo state per drag |
 | Rect | Drag the two opposite corners | One undo state per drag |
-| Clear | Clear the entire canvas | One undo state per clear |
+| Clear | Clear the entire canvas | One undo state per changed clear; blank canvases are unchanged |
 
 Pen and Eraser interpolate between mouse events, so fast drags remain continuous. Line and Rect commit when the mouse button is released; releasing outside the canvas uses the last canvas point reached.
 
