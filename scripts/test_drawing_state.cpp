@@ -180,6 +180,69 @@ int main() {
     redoDrawing.redoCanvas();
     check(redoDrawing.m_dirty && redoDrawing.m_redoStack.empty(),
           "preserved Drawing redo history still reapplies the stroke");
+
+    TestDrawing capturedLine(font, &fs);
+    capturedLine.onResize(300, 300);
+    capturedLine.m_tool = monolith::app::DrawingApp::Tool::Line;
+    SDL_Event capturedDown{};
+    capturedDown.type = SDL_MOUSEBUTTONDOWN;
+    capturedDown.button.button = SDL_BUTTON_LEFT;
+    capturedDown.button.x = 20;
+    capturedDown.button.y = capturedLine.m_canvasTop + 20;
+    capturedLine.handleEvent(capturedDown);
+    int expectedLineX = 0;
+    int expectedLineY = 0;
+    capturedLine.canvasPointFromClient(
+        capturedLine.m_clientWidth + 80,
+        capturedLine.m_canvasTop + 40,
+        expectedLineX,
+        expectedLineY);
+    SDL_Event capturedMotion = capturedDown;
+    capturedMotion.type = SDL_MOUSEMOTION;
+    capturedMotion.motion.x = capturedLine.m_clientWidth + 80;
+    capturedMotion.motion.y = capturedLine.m_canvasTop + 40;
+    capturedLine.handleEvent(capturedMotion);
+    check(capturedLine.m_lastCanvasX == expectedLineX
+              && capturedLine.m_lastCanvasY == expectedLineY,
+          "Drawing clamps captured shape motion to the canvas edge");
+    SDL_Event capturedUp{};
+    capturedUp.type = SDL_MOUSEBUTTONUP;
+    capturedUp.button.button = SDL_BUTTON_LEFT;
+    capturedUp.button.x = capturedMotion.motion.x;
+    capturedUp.button.y = capturedMotion.motion.y;
+    capturedLine.handleEvent(capturedUp);
+    const size_t lineEdgePixel =
+        (static_cast<size_t>(expectedLineY) * static_cast<size_t>(capturedLine.m_canvasWidth)
+         + static_cast<size_t>(expectedLineX)) * 4;
+    check(capturedLine.m_pixels[lineEdgePixel] != 245
+              || capturedLine.m_pixels[lineEdgePixel + 1] != 245
+              || capturedLine.m_pixels[lineEdgePixel + 2] != 248,
+          "Drawing commits a captured shape at the clamped endpoint");
+
+    TestDrawing capturedPen(font, &fs);
+    capturedPen.onResize(300, 300);
+    capturedPen.m_tool = monolith::app::DrawingApp::Tool::Pen;
+    capturedPen.m_brush = monolith::app::DrawingApp::BrushSize::Small;
+    capturedPen.handleEvent(capturedDown);
+    int expectedPenX = 0;
+    int expectedPenY = 0;
+    capturedPen.canvasPointFromClient(
+        -40,
+        capturedPen.m_canvasTop + 30,
+        expectedPenX,
+        expectedPenY);
+    SDL_Event capturedPenMotion = capturedDown;
+    capturedPenMotion.type = SDL_MOUSEMOTION;
+    capturedPenMotion.motion.x = -40;
+    capturedPenMotion.motion.y = capturedPen.m_canvasTop + 30;
+    capturedPen.handleEvent(capturedPenMotion);
+    check(capturedPen.m_lastCanvasX == expectedPenX
+              && capturedPen.m_lastCanvasY == expectedPenY,
+          "Drawing clamps captured pen motion to the canvas edge");
+    capturedUp.button.x = capturedPenMotion.motion.x;
+    capturedUp.button.y = capturedPenMotion.motion.y;
+    capturedPen.handleEvent(capturedUp);
+
     drawing.m_tool = monolith::app::DrawingApp::Tool::Pen;
     drawing.m_usingCustomColor = true;
     drawing.m_customR = 12;

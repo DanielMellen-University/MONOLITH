@@ -298,7 +298,7 @@ The **S**, **M**, and **L** buttons select brush radii of 2, 5, and 10 pixels. T
 | Rect | Drag the two opposite corners | One undo state per changed drag |
 | Clear | Clear the entire canvas | One undo state per changed clear; blank canvases are unchanged |
 
-Pen and Eraser interpolate between mouse events, so fast drags remain continuous. Line and Rect commit when the mouse button is released; releasing outside the canvas uses the last canvas point reached. A stroke that leaves every pixel unchanged does not mark the sketch modified or consume an undo state.
+Pen and Eraser interpolate between mouse events, so fast drags remain continuous. Captured drags clamp pointer positions to the nearest canvas edge when the pointer leaves the canvas. Line and Rect commit when the mouse button is released, using that clamped endpoint. A stroke that leaves every pixel unchanged does not mark the sketch modified or consume an undo state.
 
 ## Canvas Behavior
 

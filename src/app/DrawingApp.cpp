@@ -1452,13 +1452,9 @@ void DrawingApp::handleEvent(const SDL_Event& event) {
     if (event.type == SDL_MOUSEBUTTONUP && event.button.button == SDL_BUTTON_LEFT) {
         if (m_drawing && (m_tool == Tool::Line || m_tool == Tool::Rect)
             && m_shapeAnchorX >= 0 && m_shapeAnchorY >= 0) {
-            int cx = m_lastCanvasX;
-            int cy = m_lastCanvasY;
-            const int x = event.button.x;
-            const int y = event.button.y;
-            if (isInCanvas(x, y)) {
-                canvasPointFromClient(x, y, cx, cy);
-            }
+            int cx = 0;
+            int cy = 0;
+            canvasPointFromClient(event.button.x, event.button.y, cx, cy);
             if (commitShape(m_shapeAnchorX, m_shapeAnchorY, cx, cy)) {
                 recordStrokeChange();
                 m_dirty = true;
@@ -1476,13 +1472,9 @@ void DrawingApp::handleEvent(const SDL_Event& event) {
     }
 
     if (event.type == SDL_MOUSEMOTION && m_drawing && m_tool != Tool::Fill) {
-        const int x = event.motion.x;
-        const int y = event.motion.y;
-        if (!isInCanvas(x, y)) return;
-
         int cx = 0;
         int cy = 0;
-        canvasPointFromClient(x, y, cx, cy);
+        canvasPointFromClient(event.motion.x, event.motion.y, cx, cy);
 
         if (m_tool == Tool::Line || m_tool == Tool::Rect) {
             m_lastCanvasX = cx;

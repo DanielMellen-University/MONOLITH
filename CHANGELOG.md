@@ -1,5 +1,10 @@
 # Changelog
 
+## 2026-09: Clamp Drawing drags at the canvas edge
+
+- Keep captured Pen, Eraser, Line, and Rect drags continuous when the pointer leaves the canvas by mapping outside motion and release coordinates to the nearest canvas pixel.
+- Add focused Drawing state coverage for captured shape and pen endpoints.
+
 ## 2026-09: Extend Text Editor selections to captured edges
 
 - Keep mouse selection active while captured motion leaves the text viewport, clamping the cursor to the nearest visible document edge instead of stopping early.
