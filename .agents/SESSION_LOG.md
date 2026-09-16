@@ -1,5 +1,7 @@
 # Session log
 
+| 2026-09-16 | fix | Refreshed SDL pointer state for wheel routing and added coverage for stationary-pointer scrolling over a client. |
+
 | 2026-09-16 | fix | Enforced the caller renderer clip across the complete WindowManager frame and added pixel-level containment coverage for shell drawing. |
 
 | 2026-09-16 | fix | Invalidated taskbar hit targets after arrow and wheel scrolling, with regression coverage for rapid between-frame input. |

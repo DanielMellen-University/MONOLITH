@@ -181,6 +181,16 @@ void WindowManager::handleEvent(const SDL_Event& event) {
         }
     }
 
+    if (event.type == SDL_MOUSEWHEEL) {
+        // SDL2 wheel events do not carry pointer coordinates. Refresh the
+        // host position before deriving logical coordinates for wheel routing.
+        int mouseX = 0;
+        int mouseY = 0;
+        SDL_GetMouseState(&mouseX, &mouseY);
+        m_mouseX = mouseX;
+        m_mouseY = mouseY;
+    }
+
     const int logicalMouseX = screenToLogicalX(m_mouseX);
     const int logicalMouseY = screenToLogicalY(m_mouseY);
 

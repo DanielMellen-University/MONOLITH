@@ -166,7 +166,7 @@ All app callbacks enter through a small lifecycle scope. If a callback requests 
 - Taskbar and Start-menu left-button presses use a separate shell capture, so their release is consumed by the shell and never appears as an orphaned client mouse-up.
 - Shell and window-frame presses also suppress client motion until a client owns a press; dragging a title bar or moving across the desktop cannot inject hover motion into an app.
 - If the host SDL window loses focus during a drag, the shell synthesizes the captured client release, clears frame capture, and sends focus callbacks; regaining host focus restores the focused app callback without reviving stale pointer state.
-- The shell records the latest pointer position from motion and button events, so wheel routing does not reuse a stale position after a release outside a client.
+- The shell records the latest pointer position from motion and button events, and refreshes it from SDL for wheel events, so scrolling with a stationary pointer does not reuse a stale position.
 - Screen-space taskbar, clock, and Start-menu hit targets are rebuilt during render and invalidated whenever desktop geometry, display scale, header offset, clock format, interface font metrics, window creation, z-order, close, title, or taskbar-scroll changes, so an event before the next frame cannot use coordinates from the previous layout.
 - App callbacks may close or replace their window while shell input is being dispatched. Activation and initial sizing verify the original window identity before continuing, so stale event pointers are never dereferenced after a callback.
 - Window frame interactions (dragging, resizing, buttons) are handled by the Window Manager.

@@ -71,6 +71,22 @@ int main() {
         }
     };
 
+    if (SDL_Init(SDL_INIT_VIDEO) != 0) {
+        std::cerr << "FAIL: SDL video initialize: " << SDL_GetError() << '\n';
+        return 1;
+    }
+    SDL_Window* hostWindow = SDL_CreateWindow(
+        "window mouse capture test", SDL_WINDOWPOS_UNDEFINED, SDL_WINDOWPOS_UNDEFINED,
+        1000, 700, SDL_WINDOW_SHOWN);
+    if (!hostWindow) {
+        std::cerr << "FAIL: SDL host window create: " << SDL_GetError() << '\n';
+        SDL_Quit();
+        return 1;
+    }
+    SDL_ShowWindow(hostWindow);
+    SDL_RaiseWindow(hostWindow);
+    SDL_SetWindowInputFocus(hostWindow);
+
     monolith::window::WindowManager wm;
     wm.setLogicalDesktopSize(1000, 700);
 
@@ -114,6 +130,15 @@ int main() {
     wm.handleEvent(wheel);
     check(firstPtr->wheelEvents == 0 && secondPtr->wheelEvents == 0,
           "wheel routing uses the latest button-up pointer position");
+
+    SDL_WarpMouseInWindow(hostWindow, 520, 150);
+    SDL_PumpEvents();
+    SDL_Event stationaryWheel{};
+    stationaryWheel.type = SDL_MOUSEWHEEL;
+    stationaryWheel.wheel.y = 1;
+    wm.handleEvent(stationaryWheel);
+    check(firstPtr->wheelEvents == 0 && secondPtr->wheelEvents == 1,
+          "wheel routing refreshes the host pointer position");
 
     SDL_Event taskbarDown{};
     leftButton(taskbarDown, SDL_MOUSEBUTTONDOWN, 50, 680);
@@ -241,6 +266,9 @@ int main() {
     wm.handleEvent(escapeRelease);
     check(secondPtr->keyUps == keyUpsBeforeAltRelease,
           "shell-owned Escape release does not reach the focused client");
+
+    SDL_DestroyWindow(hostWindow);
+    SDL_Quit();
 
     if (failures == 0) {
         std::cout << "ALL WINDOW MOUSE CAPTURE TESTS PASSED\n";

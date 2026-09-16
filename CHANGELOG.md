@@ -1,5 +1,10 @@
 # Changelog
 
+## 2026-09: Refresh wheel routing from the host pointer
+
+- Updated WindowManager wheel handling to refresh SDL's current pointer position before deciding whether the taskbar or focused client owns the scroll.
+- Added SDL-backed regression coverage for scrolling over a client without a preceding motion event.
+
 ## 2026-09: Enforce the shell render clip
 
 - Applied the caller renderer clip across wallpaper, desktop icons, window chrome, and taskbar drawing instead of only restoring it after nested rendering.

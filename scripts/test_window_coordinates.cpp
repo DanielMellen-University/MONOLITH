@@ -83,7 +83,11 @@ int main() {
         0, 1280, 720, 32, SDL_PIXELFORMAT_RGBA32);
     SDL_Renderer* renderer = surface ? SDL_CreateSoftwareRenderer(surface) : nullptr;
     SDL_PixelFormat* rgbaFormat = SDL_AllocFormat(SDL_PIXELFORMAT_RGBA32);
+    SDL_Window* hostWindow = SDL_CreateWindow(
+        "window coordinate test", SDL_WINDOWPOS_UNDEFINED, SDL_WINDOWPOS_UNDEFINED,
+        2048, 1536, SDL_WINDOW_HIDDEN);
     check(renderer != nullptr, "software renderer initializes for taskbar geometry checks");
+    check(hostWindow != nullptr, "SDL host window initializes for pointer-position checks");
 
     monolith::window::WindowManager wm;
     wm.setLogicalDesktopSize(1000, 700);
@@ -391,8 +395,12 @@ int main() {
         wm.handleEvent(rightArrowUp);
 
         wm.render(renderer);
-        wm.m_mouseX = wm.m_taskbarButtonAreaLeft + 4;
-        wm.m_mouseY = wm.logicalToScreenY(wm.getTaskbarRect().y + 4);
+        const int wheelX = wm.m_taskbarButtonAreaLeft + 4;
+        const int wheelY = wm.logicalToScreenY(wm.getTaskbarRect().y + 4);
+        if (hostWindow) {
+            SDL_WarpMouseInWindow(hostWindow, wheelX, wheelY);
+            SDL_PumpEvents();
+        }
         SDL_Event wheelScroll{};
         wheelScroll.type = SDL_MOUSEWHEEL;
         wheelScroll.wheel.y = -1;
@@ -624,6 +632,7 @@ int main() {
     if (renderer) SDL_DestroyRenderer(renderer);
     if (surface) SDL_FreeSurface(surface);
     if (rgbaFormat) SDL_FreeFormat(rgbaFormat);
+    if (hostWindow) SDL_DestroyWindow(hostWindow);
     SDL_Quit();
 
     if (failures == 0) {
