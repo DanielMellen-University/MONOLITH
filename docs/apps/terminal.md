@@ -121,6 +121,8 @@ The input strip remains inside the client rectangle even when a window is resize
 The history viewport also clamps both width and height to zero for clients smaller than its padding, so narrow windows do not create invalid clip rectangles.
 Terminal intersects its input and history clips with the caller's renderer clip and restores that clip after each region.
 
+Terminal caches renderer-independent SDL_ttf surfaces for visible scrollback lines. The cache is cleared when `clear` removes the output, when the scrollback cap trims old lines, and when the shared interface text scale changes. Prompt and reverse-search fragments stay short-lived because their contents change with the caret and query.
+
 ## Argument Quoting
 
 Whitespace splits arguments unless you quote them:

@@ -368,6 +368,21 @@ int main() {
                   && restoredClip.w == expectedClip.w
                   && restoredClip.h == expectedClip.h,
               "terminal restores the caller renderer clip after rendering");
+        const size_t cachedSurfaceCount = terminal.m_historyTextSurfaceCache.m_entries.size();
+        terminal.render(renderer, {0, 0, 200, 200});
+        check(cachedSurfaceCount > 0
+                  && terminal.m_historyTextSurfaceCache.m_entries.size() == cachedSurfaceCount,
+              "Terminal reuses cached scrollback text surfaces between frames");
+        terminal.executeCommand("clear");
+        check(terminal.m_historyTextSurfaceCache.m_entries.empty(),
+              "Terminal clears cached scrollback surfaces when output is cleared");
+        terminal.addOutput("output");
+        terminal.render(renderer, {0, 0, 200, 200});
+        check(!terminal.m_historyTextSurfaceCache.m_entries.empty(),
+              "Terminal repopulates cached scrollback text after output resumes");
+        terminal.onUiScaleChanged();
+        check(terminal.m_historyTextSurfaceCache.m_entries.empty(),
+              "Terminal clears cached scrollback text when UI scale changes");
         terminal.m_scrollOffset = 39;
         terminal.render(renderer, {0, 0, 320, 40});
         check(terminal.m_clientWidth == 320

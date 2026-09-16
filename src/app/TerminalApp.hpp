@@ -1,6 +1,7 @@
 #pragma once
 
 #include "App.hpp"
+#include "../detail/TextSurfaceCache.hpp"
 #include "../fs/Filesystem.hpp"
 #include <SDL2/SDL.h>
 #include <SDL2/SDL_ttf.h>
@@ -71,6 +72,7 @@ private:
     TTF_Font* m_font = nullptr;
 
     monolith::fs::Filesystem* m_fs = nullptr;
+    mutable monolith::detail::TextSurfaceCache m_historyTextSurfaceCache;
     std::string m_cwd = "/home/monolith";
 
     std::vector<std::string> m_history;          // Output history (what is displayed)

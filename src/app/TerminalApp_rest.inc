@@ -491,7 +491,7 @@ void TerminalApp::render(SDL_Renderer* renderer, const SDL_Rect& contentRect) {
         for (int i = startIdx; i >= 0 && y >= historyRect.y; --i) {
             const std::string& line = m_history[i];
 
-            SDL_Surface* surf = TTF_RenderUTF8_Blended(m_font, line.c_str(), textColor);
+            SDL_Surface* surf = m_historyTextSurfaceCache.get(m_font, line.c_str(), textColor);
             if (surf) {
                 SDL_Texture* tex = SDL_CreateTextureFromSurface(renderer, surf);
                 if (tex) {
@@ -504,7 +504,6 @@ void TerminalApp::render(SDL_Renderer* renderer, const SDL_Rect& contentRect) {
                     SDL_RenderCopy(renderer, tex, nullptr, &dst);
                     SDL_DestroyTexture(tex);
                 }
-                SDL_FreeSurface(surf);
             }
 
             y -= lineHeight;
@@ -524,6 +523,7 @@ void TerminalApp::onResize(int clientWidth, int clientHeight) {
 }
 
 void TerminalApp::onUiScaleChanged() {
+    m_historyTextSurfaceCache.clear();
     m_scrollOffset = std::clamp(m_scrollOffset, 0, getMaxScrollOffset());
 
     // Font metrics changed, so pixel-based horizontal offsets must be measured

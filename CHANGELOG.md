@@ -1,5 +1,9 @@
 # Changelog
 
+## 2026-09: Cache Terminal scrollback text surfaces
+
+- Reuse SDL_ttf surfaces for visible scrollback lines, clearing them when output is cleared, the scrollback cap trims old lines, or the interface scale changes.
+
 ## 2026-09: Cache Text Editor text surfaces
 
 - Reuse SDL_ttf surfaces for syntax spans, line numbers, and status text, clearing them after document changes, undo or redo, loads, and interface-scale changes.
