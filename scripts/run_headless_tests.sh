@@ -91,6 +91,7 @@ compile_sdl test_minesweeper_state scripts/test_minesweeper_state.cpp src/app/Mi
 compile_plain test_pong_state scripts/test_pong_state.cpp src/app/PongLogic.cpp
 compile_plain test_breakout_state scripts/test_breakout_state.cpp src/app/BreakoutLogic.cpp
 compile_plain test_desktop_icons scripts/test_desktop_icons.cpp "${SDL_FLAGS[@]}"
+compile_plain test_app_registry scripts/test_app_registry.cpp "${SDL_FLAGS[@]}"
 compile_window_manager test_window_file_open scripts/test_window_file_open.cpp
 compile_window_manager test_window_coordinates scripts/test_window_coordinates.cpp
 compile_window_manager test_window_mouse_capture scripts/test_window_mouse_capture.cpp
@@ -118,6 +119,7 @@ run_sdl test_minesweeper_state
 run_plain test_pong_state
 run_plain test_breakout_state
 run_sdl test_desktop_icons
+run_sdl test_app_registry
 run_sdl test_window_file_open
 run_sdl test_window_coordinates
 run_sdl test_window_mouse_capture
