@@ -1,29 +1,17 @@
 #pragma once
 
+#include "AppRegistry.hpp"
+
 #include <SDL2/SDL.h>
+
 #include <algorithm>
 #include <cstddef>
 #include <vector>
 
 namespace monolith::window {
 
-// Start-menu action ids reused by desktop icons (Games stay in Start only).
-enum class DesktopIconAction : int {
-    Terminal = 0,
-    TextEditor = 1,
-    Filesystem = 2,
-    Settings = 3,
-    Drawing = 4,
-};
-
-struct DesktopIconDef {
-    const char* label;
-    const char* glyph; // single letter drawn in the icon tile
-    DesktopIconAction action;
-    Uint8 r;
-    Uint8 g;
-    Uint8 b;
-};
+// Desktop icons reuse AppAction ids from the shared registry.
+using DesktopIconAction = AppAction;
 
 struct DesktopIconPlacement {
     SDL_Rect rect; // full hit target (tile + label band), logical pixels
@@ -35,17 +23,6 @@ struct DesktopIconPlacement {
     Uint8 g;
     Uint8 b;
 };
-
-inline constexpr DesktopIconDef kDefaultDesktopIcons[] = {
-    {"Terminal", "T", DesktopIconAction::Terminal, 55, 85, 140},
-    {"Filesystem", "F", DesktopIconAction::Filesystem, 70, 120, 90},
-    {"Editor", "E", DesktopIconAction::TextEditor, 120, 95, 70},
-    {"Drawing", "D", DesktopIconAction::Drawing, 140, 80, 110},
-    {"Settings", "S", DesktopIconAction::Settings, 90, 90, 110},
-};
-
-inline constexpr int kDesktopIconCount =
-    static_cast<int>(sizeof(kDefaultDesktopIcons) / sizeof(kDefaultDesktopIcons[0]));
 
 inline constexpr int kDesktopIconTile = 48;
 inline constexpr int kDesktopIconCellW = 112;
@@ -63,16 +40,17 @@ inline std::vector<DesktopIconPlacement> layoutDesktopIcons(
     std::vector<DesktopIconPlacement> out;
     if (usableWidth <= 0 || usableHeight <= 0) return out;
 
+    const auto defs = collectDesktopIconDefs();
     const int iconH = kDesktopIconTile + kDesktopIconLabelBand;
     const int remainingAfterFirst = usableHeight - kDesktopIconMargin - iconH;
     const int maxRows = remainingAfterFirst < 0
         ? 0
         : 1 + remainingAfterFirst / kDesktopIconCellH;
-    const int count = std::min(kDesktopIconCount, maxRows);
+    const int count = std::min(static_cast<int>(defs.size()), maxRows);
     out.reserve(static_cast<size_t>(count));
 
     for (int i = 0; i < count; ++i) {
-        const DesktopIconDef& def = kDefaultDesktopIcons[i];
+        const DesktopIconDef& def = defs[static_cast<size_t>(i)];
         const int x = kDesktopIconMargin;
         const int y = kDesktopIconMargin + i * kDesktopIconCellH;
         if (x + kDesktopIconCellW > usableWidth) break;

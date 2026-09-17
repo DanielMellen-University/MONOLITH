@@ -13,33 +13,7 @@ bool WindowManager::saveSession(const std::string& hostPath) const {
                 std::string kind;
                 std::string path = "-";
 
-                if (!w.editedFilePath.empty()) {
-                    kind = "editor";
-                    path = w.editedFilePath;
-                } else if (!w.drawingFilePath.empty()) {
-                    kind = "drawing";
-                    path = w.drawingFilePath;
-                } else if (w.appBaseTitle == "Terminal") {
-                    kind = "terminal";
-                } else if (w.appBaseTitle == "Filesystem") {
-                    kind = "filesystem";
-                } else if (w.appBaseTitle == "Settings") {
-                    kind = "settings";
-                } else if (w.appBaseTitle == "Snake") {
-                    kind = "snake";
-                } else if (w.appBaseTitle == "Minesweeper") {
-                    kind = "minesweeper";
-                } else if (w.appBaseTitle == "Pong") {
-                    kind = "pong";
-                } else if (w.appBaseTitle == "Breakout") {
-                    kind = "breakout";
-                } else if (w.appBaseTitle == "Editor") {
-                    kind = "editor";
-                } else if (w.appBaseTitle == "Drawing") {
-                    kind = "drawing";
-                } else {
-                    continue; // unknown / placeholder windows are not restored
-                }
+                #include "wm_session_kind.inc"
 
                 // Prefer pre-maximize geometry when maximized so restore is faithful.
                 SDL_Rect r = w.maximized ? w.previousRect : w.rect;
@@ -120,25 +94,7 @@ void WindowManager::setStartMenuVisible(bool visible, bool resumeFocusedApp) {
     m_startMenuKeyboardIndex = -1;
 }
 
-void WindowManager::activateStartMenuItem(int action) {
-    // Launch while the menu is still modal. The new window becomes focused
-    // without waking the suspended app, then closing the menu resumes the
-    // actual focused window exactly once.
-    switch (action) {
-        case 0: launchTerminal(); break;
-        case 1: launchTextEditor(); break;
-        case 2: launchFilesystem(); break;
-        case 3: launchSettings(); break;
-        case 4: launchDrawing(); break;
-        case 5: launchSnake(); break;
-        case 6: launchMinesweeper(); break;
-        case 7: launchPong(); break;
-        case 8: launchBreakout(); break;
-        case 9: requestQuit(); break;
-        default: break;
-    }
-    setStartMenuVisible(false);
-}
+#include "wm_body_08c_launch.inc"
 
 void WindowManager::cycleFocus(int direction) {
     if (m_windows.empty()) return;
