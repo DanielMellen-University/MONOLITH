@@ -14,14 +14,7 @@ void WindowManager::destroyDesktopIconTextCache() {
 }
 
 void WindowManager::activateDesktopIcon(DesktopIconAction action) {
-    switch (action) {
-        case DesktopIconAction::Terminal: launchTerminal(); break;
-        case DesktopIconAction::TextEditor: launchTextEditor(); break;
-        case DesktopIconAction::Filesystem: launchFilesystem(); break;
-        case DesktopIconAction::Settings: launchSettings(); break;
-        case DesktopIconAction::Drawing: launchDrawing(); break;
-        default: break;
-    }
+    launchByAction(action);
     clearDesktopIconSelection();
 }
 
