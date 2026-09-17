@@ -126,6 +126,9 @@ public:
     void launchPong();
     void launchBreakout();
 
+    // Shared Start-menu / desktop-icon / session dispatch.
+    void launchByAction(AppAction action, const std::string& path = "");
+
     // Open a virtual path with the default app for its type (.modr → Drawing, else Editor).
     void openPath(const std::string& virtualPath);
 
