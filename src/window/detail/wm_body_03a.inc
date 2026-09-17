@@ -24,35 +24,10 @@
     m_startMenuRect = {0, 0, 0, 0};
 
     if (m_showStartMenu) {
-        // Layout: top-level apps, then a Games category (Snake / Minesweeper), then Shut Down.
-        // action: >=0 launch/quit, -1 category header (not clickable), -2 separator (not clickable).
-        struct MenuEntry {
-            const char* label;
-            int action;
-            int indent;  // 0 top-level, 1 nested under a category
-        };
-        #include "wm_start_menu_entries.inc"
-        const size_t entryCount = sizeof(entries) / sizeof(entries[0]);
-
-        const int itemHLogical = 26;
-        const int itemGapLogical = 2;
-        const int categoryHLogical = 20;
-        const int separatorHLogical = 10;
+        // Layout comes from AppRegistry (apps, Games category, Shut Down).
+        // action: >=0 launch/quit, -1 category header (not clickable), -2 separator.
         const int headerHLogical = 22;
-        const int topPadLogical = 6;
-        const int bottomPadLogical = 8;
-
-        int contentHLogical = topPadLogical;
-        for (size_t i = 0; i < entryCount; ++i) {
-            if (entries[i].action == -2) {
-                contentHLogical += separatorHLogical;
-            } else if (entries[i].action == -1) {
-                contentHLogical += categoryHLogical + itemGapLogical;
-            } else {
-                contentHLogical += itemHLogical + itemGapLogical;
-            }
-        }
-        contentHLogical += bottomPadLogical;
+        #include "wm_start_menu_rows.inc"
         const StartMenuLayout layout = computeStartMenuLayout(contentHLogical);
         const int menuWidth = layout.menuWidthLogical;
         const int menuX = layout.menuRect.x;
