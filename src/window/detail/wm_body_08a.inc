@@ -128,27 +128,9 @@ bool WindowManager::loadSession(const std::string& hostPath) {
         // App callbacks during creation may open another window, so the last
         // vector element is not necessarily the window being restored.
         const int launchedWindowId = m_nextId;
-        if (kind == "terminal") {
-            launchTerminal();
-        } else if (kind == "filesystem") {
-            launchFilesystem();
-        } else if (kind == "settings") {
-            launchSettings();
-        } else if (kind == "snake") {
-            launchSnake();
-        } else if (kind == "minesweeper") {
-            launchMinesweeper();
-        } else if (kind == "pong") {
-            launchPong();
-        } else if (kind == "breakout") {
-            launchBreakout();
-        } else if (kind == "editor") {
-            launchTextEditor(path);
-        } else if (kind == "drawing") {
-            launchDrawing(path);
-        } else {
-            continue;
-        }
+        const AppRegistryEntry* reg = findAppBySessionKey(kind);
+        if (!reg) continue;
+        launchByAction(reg->action, path);
 
         Window* restoredWindow = nullptr;
         for (const auto& windowPtr : m_windows) {
