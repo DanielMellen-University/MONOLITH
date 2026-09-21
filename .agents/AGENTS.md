@@ -30,10 +30,11 @@ The human funds token budget and lives in the desktop. You:
 
 ## Current state snapshot
 
-**CURRENT_CHUNK:** `shell-polish` (shell debt / soft polish)
+**CURRENT_CHUNK:** `await-5.x-unpark` (Phase 5 language parked until unpark)
 
 | When | Kind | Note |
 |------|------|------|
+| 2026-09-20 | shell-polish | Start menu hit targets share AppRegistry rows; hardcoded entries table retired; CURRENT_CHUNK now await-5.x-unpark |
 | 2026-09-17 | 7.4 | App registry drives Start menu, desktop icons, session kinds; CURRENT_CHUNK now shell-polish |
 | 2026-09-15 | 7.3 | Desktop icons under wallpaper; windows win hit-testing; CURRENT_CHUNK now 7.4 |
 | 2026-09-14 | 7.2 | Breakout under Start -> Games; CURRENT_CHUNK now 7.3 |
@@ -43,11 +44,11 @@ Older recent-work rows: [`SESSION_LOG.md`](SESSION_LOG.md).
 
 ## Priority order for "next / continue"
 
-1. Soft polish / debt on shell (`shell-polish`)
-2. **5.x** language only after they unpark it
-3. **6.x** IDE only after a `run` loop exists
+1. **5.x** language only after they unpark it (`await-5.x-unpark`)
+2. **6.x** IDE only after a `run` loop exists
+3. Further shell soft polish only when a concrete debt is listed
 
-**Cut order if scope tight:** shell polish first. Never cut core shell work for another game.
+**Cut order if scope tight:** never cut core shell work for another game.
 
 ## Phase 4 - Living-inside-it
 
@@ -78,6 +79,7 @@ Older recent-work rows: [`SESSION_LOG.md`](SESSION_LOG.md).
 | 7.2 | Fourth game (Breakout) | done | Same Start -> Games pattern + `verify_games_integration.sh` |
 | 7.3 | Desktop icons | done | Left-column icons under wallpaper; windows win hit-testing; see `docs/notes/7.3-desktop-icons.md` |
 | 7.4 | App registry | done | `AppRegistry` drives Start menu, desktop icons, session kinds; see `docs/notes/7.4-app-registry.md` |
+| shell-polish | Start menu hit unify | done | Hit targets rebuild from AppRegistry rows; hardcoded entries table retired; see `docs/notes/shell-polish.md` |
 
 ## Commit voice
 
