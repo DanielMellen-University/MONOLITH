@@ -33,4 +33,13 @@ grep -q 'AppAction::TextEditor' src/window/AppRegistry.hpp || fail "Editor regis
 grep -q 'AppAction::Drawing' src/window/AppRegistry.hpp || fail "Drawing registry entry missing"
 grep -q 'AppAction::Settings' src/window/AppRegistry.hpp || fail "Settings registry entry missing"
 
+
+grep -q 'wm_start_menu_rows.inc' src/window/detail/wm_start_menu_entries.inc \
+  || fail "Start menu hit include must rebuild from registry rows"
+grep -q 'buildStartMenuRows\|wm_start_menu_rows.inc' src/window/detail/wm_start_menu_entries.inc \
+  || fail "hit-target include must call AppRegistry rows"
+if grep -E -q '\{"Terminal", 0, 0\}' src/window/detail/wm_start_menu_entries.inc; then
+  fail "hardcoded Start menu entries table must stay retired"
+fi
+
 ok "all desktop icon static integration checks passed"

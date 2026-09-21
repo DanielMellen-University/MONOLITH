@@ -79,4 +79,9 @@ grep -q 'kWinScore' src/app/PongLogic.hpp || fail "Pong win score missing"
 grep -q 'State::Won' src/app/BreakoutLogic.cpp || fail "Breakout Won state missing"
 grep -q 'kStartLives' src/app/BreakoutLogic.hpp || fail "Breakout start lives missing"
 
+grep -q 'wm_start_menu_rows.inc' src/window/detail/wm_start_menu_entries.inc \
+  || fail "Start menu hit targets must rebuild from registry rows"
+if grep -E -q '\{"Snake", 5, 1\}' src/window/detail/wm_start_menu_entries.inc; then
+  fail "hardcoded Start menu entries table must stay retired"
+fi
 ok "all games static integration checks passed"
