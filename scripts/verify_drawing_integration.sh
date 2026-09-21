@@ -21,7 +21,9 @@ python3 src/decompress_main_bodies.py "$main_body_dir" >/dev/null \
   || fail "main body fragments could not be decompressed"
 grep -R -q 'drawings' "$main_body_dir" \
   || fail "drawings dir seed missing in main body fragments"
-grep -R -q '{"Drawing", 4, 0}' src/window || fail "Start menu Drawing entry missing"
+grep -q 'AppAction::Drawing' src/window/AppRegistry.hpp || fail "Drawing registry entry missing"
+grep -q 'wm_start_menu_rows.inc' src/window/detail/wm_start_menu_entries.inc \
+  || fail "Start menu hit path must use registry rows"
 grep -R -q 'SDL_MOUSEBUTTONUP' src/window || fail "mouse-up forwarding missing"
 
 grep -R -q 'claimNextAppInstanceTitle("Drawing")' src/window \
