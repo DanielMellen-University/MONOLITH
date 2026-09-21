@@ -1,1 +1,5 @@
-PLACEHOLDER_TOO_LARGE_USE_PUSH
+#include "wm_body_09_00.inc"
+#include "wm_body_09_01.inc"
+#include "wm_body_09_02.inc"
+#include "wm_body_09_03.inc"
+#include "wm_body_09_04.inc"
