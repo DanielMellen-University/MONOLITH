@@ -142,6 +142,8 @@ public:
     void setDesktopBackground(uint8_t r, uint8_t g, uint8_t b);
     std::string getWallpaperPath() const;
     void setWallpaperPath(const std::string& virtualPath);
+    std::string getWallpaperFit() const;
+    void setWallpaperFit(const std::string& fit);
     bool getClock24Hour() const;
     void setClock24Hour(bool enabled);
     int getUiScalePercent() const;

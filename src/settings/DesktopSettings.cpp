@@ -56,12 +56,24 @@ bool DesktopSettings::isSupportedUiScalePercent(int percent) {
     return percent == 90 || percent == 100 || percent == 115;
 }
 
+bool DesktopSettings::isSupportedWallpaperFit(std::string_view fit) {
+    return fit == "cover" || fit == "contain" || fit == "center";
+}
+
+std::string DesktopSettings::canonicalizeWallpaperFit(std::string_view fit) {
+    if (isSupportedWallpaperFit(fit)) {
+        return std::string(fit);
+    }
+    return kDefaultWallpaperFit;
+}
+
 bool DesktopSettings::loadFromHostPath(const std::string& hostPath) {
     std::ifstream in(hostPath);
     if (!in) return false;
 
     RGB nextBackground = kDefaultDesktopBackground;
     std::string nextWallpaperPath;
+    std::string nextWallpaperFit = kDefaultWallpaperFit;
     bool nextClock24Hour = false;
     int nextUiScalePercent = 100;
     bool loadedAny = false;
@@ -82,6 +94,13 @@ bool DesktopSettings::loadFromHostPath(const std::string& hostPath) {
         const std::string wallpaperKey = "wallpaper_path=";
         if (line.rfind(wallpaperKey, 0) == 0) {
             nextWallpaperPath = line.substr(wallpaperKey.size());
+            loadedAny = true;
+            continue;
+        }
+
+        const std::string wallpaperFitKey = "wallpaper_fit=";
+        if (line.rfind(wallpaperFitKey, 0) == 0) {
+            nextWallpaperFit = canonicalizeWallpaperFit(line.substr(wallpaperFitKey.size()));
             loadedAny = true;
             continue;
         }
@@ -110,6 +129,7 @@ bool DesktopSettings::loadFromHostPath(const std::string& hostPath) {
     if (loadedAny) {
         m_desktopBackground = nextBackground;
         m_wallpaperPath = std::move(nextWallpaperPath);
+        m_wallpaperFit = std::move(nextWallpaperFit);
         m_clock24Hour = nextClock24Hour;
         m_uiScalePercent = nextUiScalePercent;
     }
@@ -125,6 +145,7 @@ bool DesktopSettings::saveToHostPath(const std::string& hostPath) const {
                 << static_cast<int>(m_desktopBackground.g) << ','
                 << static_cast<int>(m_desktopBackground.b) << '\n';
             out << "wallpaper_path=" << m_wallpaperPath << '\n';
+            out << "wallpaper_fit=" << m_wallpaperFit << '\n';
             out << "clock_24_hour=" << (m_clock24Hour ? "1" : "0") << '\n';
             out << "ui_scale_percent=" << m_uiScalePercent << '\n';
         });

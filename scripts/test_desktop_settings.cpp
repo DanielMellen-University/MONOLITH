@@ -1,4 +1,4 @@
-// Headless test of DesktopSettings persistence, including the optional UI scale key.
+// Headless test of DesktopSettings persistence, including UI scale and wallpaper fit.
 
 #include "../src/settings/DesktopSettings.hpp"
 #include "../src/detail/AtomicFile.hpp"
@@ -30,9 +30,10 @@ int main() {
     DesktopSettings saved;
     saved.setDesktopBackground({18, 24, 42});
     saved.setWallpaperPath("/Wallpapers/sample.bmp");
+    saved.setWallpaperFit("contain");
     saved.setClock24Hour(true);
     saved.setUiScalePercent(115);
-    check(saved.saveToHostPath(path.string()), "save settings with UI scale");
+    check(saved.saveToHostPath(path.string()), "save settings with UI scale and wallpaper fit");
     check(!std::filesystem::exists(path.string() + ".tmp"),
           "successful settings save removes its temporary snapshot");
 
@@ -42,6 +43,7 @@ int main() {
     check(background.r == 18 && background.g == 24 && background.b == 42,
           "background round-trip");
     check(loaded.wallpaperPath() == "/Wallpapers/sample.bmp", "wallpaper round-trip");
+    check(loaded.wallpaperFit() == "contain", "wallpaper fit round-trip");
     check(loaded.clock24Hour(), "clock format round-trip");
     check(loaded.uiScalePercent() == 115, "UI scale round-trip");
 
@@ -114,16 +116,19 @@ int main() {
     DesktopSettings older;
     check(older.loadFromHostPath(path.string()), "load legacy settings file");
     check(older.uiScalePercent() == 100, "legacy settings default to 100 percent");
+    check(older.wallpaperFit() == "cover", "legacy settings default wallpaper fit to cover");
 
     DesktopSettings reused;
     reused.setDesktopBackground({1, 2, 3});
     reused.setWallpaperPath("/old/wallpaper.bmp");
+    reused.setWallpaperFit("center");
     reused.setClock24Hour(true);
     reused.setUiScalePercent(115);
     check(reused.loadFromHostPath(path.string()),
           "reload legacy settings into an existing object");
     check(reused.wallpaperPath().empty() && !reused.clock24Hour()
-              && reused.uiScalePercent() == 100,
+              && reused.uiScalePercent() == 100
+              && reused.wallpaperFit() == "cover",
           "omitted legacy fields reset to defaults");
 
     {
@@ -148,6 +153,23 @@ int main() {
           "programmatic unsupported UI scale is ignored");
 
     {
+        std::ofstream badFit(path, std::ios::trunc);
+        badFit << "wallpaper_fit=stretch\n";
+    }
+    DesktopSettings badFitLoaded;
+    check(badFitLoaded.loadFromHostPath(path.string()), "load unsupported wallpaper fit file");
+    check(badFitLoaded.wallpaperFit() == "cover",
+          "unsupported wallpaper fit coerces to cover");
+    badFitLoaded.setWallpaperFit("zoom");
+    check(badFitLoaded.wallpaperFit() == "cover",
+          "programmatic unsupported wallpaper fit coerces to cover");
+    badFitLoaded.setWallpaperFit("center");
+    check(badFitLoaded.wallpaperFit() == "center", "center wallpaper fit is accepted");
+    badFitLoaded.setWallpaperFit("COVER");
+    check(badFitLoaded.wallpaperFit() == "cover",
+          "case-mismatched wallpaper fit coerces to cover");
+
+    {
         std::ofstream malformed(path, std::ios::trunc);
         malformed << "desktop_background=18,24,42oops\n";
     }
@@ -161,6 +183,7 @@ int main() {
         std::ofstream windows(path, std::ios::trunc | std::ios::binary);
         windows << "desktop_background=18,24,42\r\n"
                 << "wallpaper_path=/Wallpapers/sample.bmp\r\n"
+                << "wallpaper_fit=center\r\n"
                 << "clock_24_hour=1\r\n"
                 << "ui_scale_percent=115\r\n";
     }
@@ -170,6 +193,7 @@ int main() {
     const auto windowsBackground = windowsLineEndings.desktopBackground();
     check(windowsBackground.r == 18 && windowsBackground.g == 24 && windowsBackground.b == 42
               && windowsLineEndings.wallpaperPath() == "/Wallpapers/sample.bmp"
+              && windowsLineEndings.wallpaperFit() == "center"
               && windowsLineEndings.clock24Hour()
               && windowsLineEndings.uiScalePercent() == 115,
           "CRLF settings preserve every persisted value");

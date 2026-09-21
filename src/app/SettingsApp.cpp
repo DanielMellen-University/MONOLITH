@@ -92,6 +92,21 @@ void SettingsApp::ensureHitTargets() {
         return width > 0 ? width : fallback;
     };
 
+    int fitX = kPadX;
+    const int fitHeight = getControlSize();
+    for (int i = 0; i < kWallpaperFitCount; ++i) {
+        const int optionWidth = textWidthOr(kWallpaperFitOptions[static_cast<size_t>(i)].label, 50)
+            + 10 * 2;
+        m_wallpaperFitHitRects[static_cast<size_t>(i)] = {
+            fitX, y, optionWidth, fitHeight
+        };
+        fitX += optionWidth + kSwatchGap;
+    }
+
+    y += fitHeight + 8;
+    y += getLineHeight() + 8;
+    y += getLineHeight() + 6;
+
     int optionX = kPadX;
     const int optionHeight = getControlSize();
     for (int i = 0; i < 2; ++i) {
@@ -140,6 +155,9 @@ void SettingsApp::invalidateHitTargets() {
         rect = {0, 0, 0, 0};
     }
     for (SDL_Rect& rect : m_uiScaleHitRects) {
+        rect = {0, 0, 0, 0};
+    }
+    for (SDL_Rect& rect : m_wallpaperFitHitRects) {
         rect = {0, 0, 0, 0};
     }
     m_wallpaperFieldRect = {0, 0, 0, 0};

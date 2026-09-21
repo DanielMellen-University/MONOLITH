@@ -51,6 +51,21 @@ void WindowManager::setWallpaperPath(const std::string& virtualPath) {
     }
 }
 
+std::string WindowManager::getWallpaperFit() const {
+    return m_desktopSettings.wallpaperFit();
+}
+
+void WindowManager::setWallpaperFit(const std::string& fit) {
+    const std::string next = monolith::settings::DesktopSettings::canonicalizeWallpaperFit(fit);
+    if (m_desktopSettings.wallpaperFit() == next) {
+        return;
+    }
+    m_desktopSettings.setWallpaperFit(next);
+    if (!m_desktopSettingsHostPath.empty()) {
+        m_desktopSettings.saveToHostPath(m_desktopSettingsHostPath);
+    }
+}
+
 void WindowManager::destroyWallpaperTexture() {
     if (m_wallpaperTexture) {
         SDL_DestroyTexture(m_wallpaperTexture);
@@ -103,10 +118,21 @@ void WindowManager::renderWallpaper(SDL_Renderer* renderer) {
         return;
     }
 
-    // Cover-scale: fill the logical desktop, cropping overflow, centered.
+    // cover: fill desktop, crop overflow (default)
+    // contain: entire image visible, letterbox/pillarbox over solid bg
+    // center: natural 1:1 centered; clip if larger than desktop
     const float scaleX = static_cast<float>(m_logicalWidth) / static_cast<float>(m_wallpaperTexW);
     const float scaleY = static_cast<float>(m_logicalHeight) / static_cast<float>(m_wallpaperTexH);
-    const float scale = scaleX > scaleY ? scaleX : scaleY;
+    const std::string& fit = m_desktopSettings.wallpaperFit();
+    float scale = 1.0f;
+    if (fit == "contain") {
+        scale = scaleX < scaleY ? scaleX : scaleY;
+    } else if (fit == "center") {
+        scale = 1.0f;
+    } else {
+        // cover (and any unexpected value)
+        scale = scaleX > scaleY ? scaleX : scaleY;
+    }
 
     const int drawW = static_cast<int>(m_wallpaperTexW * scale);
     const int drawH = static_cast<int>(m_wallpaperTexH * scale);
@@ -119,7 +145,21 @@ void WindowManager::renderWallpaper(SDL_Renderer* renderer) {
         static_cast<int>(drawW * m_contentScale),
         static_cast<int>(drawH * m_contentScale)
     };
-    SDL_RenderCopy(renderer, m_wallpaperTexture, nullptr, &dst);
+
+    // Clip to the logical desktop so contain/center overflow stays behind windows.
+    const RendererClipState previousClip = captureRendererClip(renderer);
+    const SDL_Rect desktopClip = {
+        logicalToScreenX(0),
+        logicalToScreenY(0),
+        static_cast<int>(m_logicalWidth * m_contentScale),
+        static_cast<int>(m_logicalHeight * m_contentScale)
+    };
+    const SDL_Rect effectiveClip = intersectRendererClip(desktopClip, previousClip);
+    if (effectiveClip.w > 0 && effectiveClip.h > 0) {
+        SDL_RenderSetClipRect(renderer, &effectiveClip);
+        SDL_RenderCopy(renderer, m_wallpaperTexture, nullptr, &dst);
+    }
+    restoreRendererClip(renderer, previousClip);
 }
 
 bool WindowManager::getClock24Hour() const {

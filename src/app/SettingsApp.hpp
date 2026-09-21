@@ -45,6 +45,11 @@ private:
         int percent;
     };
 
+    struct WallpaperFitOption {
+        const char* label;
+        const char* fit;
+    };
+
     void buildInfoLines();
     int renderAppearanceSection(SDL_Renderer* renderer, const SDL_Rect& contentRect, int clientY);
     int renderInfoLines(SDL_Renderer* renderer, const SDL_Rect& contentRect, int clientY);
@@ -54,6 +59,8 @@ private:
     void applyClock24Hour(bool enabled);
     void applyUiScale(int percent);
     int activeUiScaleIndex() const;
+    void applyWallpaperFit(const std::string& fit);
+    int activeWallpaperFitIndex() const;
     void applyWallpaperPath();
     void clearWallpaperPath();
     void completeWallpaperPath();
@@ -86,6 +93,13 @@ private:
         {"Large (115%)", 115},
     }};
 
+    static constexpr int kWallpaperFitCount = 3;
+    static constexpr std::array<WallpaperFitOption, kWallpaperFitCount> kWallpaperFitOptions{{
+        {"Cover", "cover"},
+        {"Contain", "contain"},
+        {"Center", "center"},
+    }};
+
     TTF_Font* m_font = nullptr;
     monolith::fs::Filesystem* m_fs = nullptr;
     mutable monolith::detail::TextSurfaceCache m_textSurfaceCache;
@@ -94,6 +108,7 @@ private:
     std::array<SDL_Rect, kPresetCount> m_backgroundSwatches{};
     std::array<SDL_Rect, 2> m_clockFormatHitRects{}; // 0 = 12-hour, 1 = 24-hour
     std::array<SDL_Rect, kUiScaleCount> m_uiScaleHitRects{};
+    std::array<SDL_Rect, kWallpaperFitCount> m_wallpaperFitHitRects{};
 
     SDL_Rect m_wallpaperFieldRect{0, 0, 0, 0}; // client-local hit rect
     SDL_Rect m_wallpaperSetRect{0, 0, 0, 0};

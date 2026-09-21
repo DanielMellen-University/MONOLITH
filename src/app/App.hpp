@@ -111,6 +111,10 @@ struct IWindowController {
     virtual std::string getWallpaperPath() const { return {}; }
     virtual void setWallpaperPath(const std::string& virtualPath) { (void)virtualPath; }
 
+    // Wallpaper display fit: cover (default), contain, or center.
+    virtual std::string getWallpaperFit() const { return "cover"; }
+    virtual void setWallpaperFit(const std::string& fit) { (void)fit; }
+
     // Future extensions:
     // virtual void minimize() = 0;
     // virtual void maximize() = 0;

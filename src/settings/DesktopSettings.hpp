@@ -2,6 +2,7 @@
 
 #include <cstdint>
 #include <string>
+#include <string_view>
 
 namespace monolith::settings {
 
@@ -14,8 +15,12 @@ struct RGB {
 class DesktopSettings {
 public:
     static constexpr RGB kDefaultDesktopBackground{25, 25, 30};
+    static constexpr const char* kDefaultWallpaperFit = "cover";
 
     static bool isSupportedUiScalePercent(int percent);
+    static bool isSupportedWallpaperFit(std::string_view fit);
+    // Unsupported or empty values become "cover".
+    static std::string canonicalizeWallpaperFit(std::string_view fit);
 
     RGB desktopBackground() const { return m_desktopBackground; }
     void setDesktopBackground(RGB color) { m_desktopBackground = color; }
@@ -34,6 +39,12 @@ public:
     const std::string& wallpaperPath() const { return m_wallpaperPath; }
     void setWallpaperPath(std::string path) { m_wallpaperPath = std::move(path); }
 
+    // cover (default) | contain | center. Unsupported values coerce to cover.
+    const std::string& wallpaperFit() const { return m_wallpaperFit; }
+    void setWallpaperFit(std::string fit) {
+        m_wallpaperFit = canonicalizeWallpaperFit(fit);
+    }
+
     bool loadFromHostPath(const std::string& hostPath);
     bool saveToHostPath(const std::string& hostPath) const;
 
@@ -42,6 +53,7 @@ private:
     bool m_clock24Hour = false;
     int m_uiScalePercent = 100;
     std::string m_wallpaperPath;
+    std::string m_wallpaperFit = kDefaultWallpaperFit;
 };
 
 } // namespace monolith::settings
