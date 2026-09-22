@@ -1,7 +1,7 @@
 // AppRegistry-backed Start menu hit rebuild.
 // Replaces the former hardcoded MenuEntry table. Included from
 // ensureStartMenuHitTargets after a local MenuEntry struct declaration.
-// Does the real rebuild from buildStartMenuRows(), then returns. A tiny
+// Does the real rebuild from filtered AppRegistry rows, then returns. A tiny
 // dummy entries array keeps the unreachable caller-side sizeof/loop valid.
 {
     #include "wm_start_menu_rows.inc"
