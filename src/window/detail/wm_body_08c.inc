@@ -66,9 +66,11 @@ void WindowManager::setStartMenuVisible(bool visible, bool resumeFocusedApp) {
 
     if (visible) {
         m_showStartMenu = true;
+        m_startMenuFilter.clear();
         m_startMenuItems.clear();
         m_startMenuRect = {0, 0, 0, 0};
         m_startMenuHoverIndex = -1;
+        m_startMenuKeyboardIndex = -1;
         clearStartMenuSuspension();
         if (m_hostFocused && m_focusedWindow && m_focusedWindow->app
             && !m_focusedWindow->minimized) {
@@ -82,6 +84,7 @@ void WindowManager::setStartMenuVisible(bool visible, bool resumeFocusedApp) {
     Window* resumedWindow = m_focusedWindow;
     const int resumedWindowId = resumedWindow ? resumedWindow->id : -1;
     m_showStartMenu = false;
+    m_startMenuFilter.clear();
     if (resumeFocusedApp && m_hostFocused && isLiveWindow(resumedWindow, resumedWindowId)
         && resumedWindow->app && !resumedWindow->minimized) {
         clearStartMenuSuspension();
@@ -92,6 +95,23 @@ void WindowManager::setStartMenuVisible(bool visible, bool resumeFocusedApp) {
         clearStartMenuSuspension();
     }
     m_startMenuKeyboardIndex = -1;
+}
+
+void WindowManager::invalidateStartMenuHitTargets() {
+    m_startMenuItems.clear();
+    m_startMenuRect = {0, 0, 0, 0};
+    m_startMenuHoverIndex = -1;
+}
+
+void WindowManager::applyStartMenuFilterEdit() {
+    invalidateStartMenuHitTargets();
+    ensureStartMenuHitTargets();
+    const int count = static_cast<int>(m_startMenuItems.size());
+    if (count <= 0) {
+        m_startMenuKeyboardIndex = -1;
+    } else if (m_startMenuKeyboardIndex >= count) {
+        m_startMenuKeyboardIndex = count - 1;
+    }
 }
 
 #include "wm_body_08c_launch.inc"
@@ -138,6 +158,26 @@ bool WindowManager::tryHandleShellHotkeys(const SDL_Event& event) {
         return false;
     }
 
+    if (m_showStartMenu && event.type == SDL_TEXTINPUT) {
+        const char* text = event.text.text;
+        if (text && text[0] != '\0') {
+            // Ignore control characters; printable type-ahead only.
+            bool usable = false;
+            for (const char* p = text; *p; ++p) {
+                const unsigned char c = static_cast<unsigned char>(*p);
+                if (c >= 32 && c != 127) {
+                    usable = true;
+                    break;
+                }
+            }
+            if (usable) {
+                m_startMenuFilter.append(text);
+                applyStartMenuFilterEdit();
+            }
+        }
+        return true;
+    }
+
     if (event.type != SDL_KEYDOWN) return false;
 
     const SDL_Keysym& key = event.key.keysym;
@@ -167,12 +207,36 @@ bool WindowManager::tryHandleShellHotkeys(const SDL_Event& event) {
     if (m_showStartMenu) {
         ensureStartMenuHitTargets();
         if (key.sym == SDLK_ESCAPE) {
+            if (!m_startMenuFilter.empty()) {
+                m_startMenuFilter.clear();
+                applyStartMenuFilterEdit();
+                // Keep the complete Escape gesture shell-owned even when it
+                // only clears the filter and leaves the menu open.
+                m_shellKeyUpsPending.insert(SDLK_ESCAPE);
+                return true;
+            }
             setStartMenuVisible(false);
             clearDesktopIconSelection();
             // Keep the complete Escape gesture shell-owned. Without a pending
             // release, the key-up can reach the newly resumed client after the
             // menu closes and trigger an unrelated prompt cancellation.
             m_shellKeyUpsPending.insert(SDLK_ESCAPE);
+            return true;
+        }
+
+        if (key.sym == SDLK_BACKSPACE) {
+            if (!m_startMenuFilter.empty()) {
+                // Pop one UTF-8 code point (ASCII labels are the common case).
+                std::size_t i = m_startMenuFilter.size() - 1;
+                while (i > 0
+                       && (static_cast<unsigned char>(m_startMenuFilter[i]) & 0xC0)
+                              == 0x80) {
+                    --i;
+                }
+                m_startMenuFilter.erase(i);
+                applyStartMenuFilterEdit();
+            }
+            m_shellKeyUpsPending.insert(SDLK_BACKSPACE);
             return true;
         }
 
