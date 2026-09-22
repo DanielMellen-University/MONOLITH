@@ -26,7 +26,8 @@
     if (m_showStartMenu) {
         // Layout comes from AppRegistry (apps, Games category, Shut Down).
         // action: >=0 launch/quit, -1 category header (not clickable), -2 separator.
-        const int headerHLogical = 22;
+        // Filtered by m_startMenuFilter when type-ahead is active.
+        const int headerHLogical = m_startMenuFilter.empty() ? 22 : 36;
         #include "wm_start_menu_rows.inc"
         const StartMenuLayout layout = computeStartMenuLayout(contentHLogical);
         const int menuWidth = layout.menuWidthLogical;
@@ -69,5 +70,21 @@
                     headerW, headerH
                 };
                 SDL_RenderCopy(renderer, headerTexture, nullptr, &dst);
+            }
+            // Active type-ahead filter (muted) so the user sees what they typed.
+            if (!m_startMenuFilter.empty()) {
+                SDL_Color filterCol = {190, 200, 220, 255};
+                int filterW = 0;
+                int filterH = 0;
+                SDL_Texture* filterTexture = getShellTextTexture(
+                    renderer, m_startMenuFilter.c_str(), filterCol, filterW, filterH);
+                if (filterTexture) {
+                    SDL_Rect dst = {
+                        menuX + static_cast<int>(10 * m_contentScale),
+                        menuY + static_cast<int>(20 * m_contentScale),
+                        filterW, filterH
+                    };
+                    SDL_RenderCopy(renderer, filterTexture, nullptr, &dst);
+                }
             }
         }
