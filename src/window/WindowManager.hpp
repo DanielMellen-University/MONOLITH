@@ -188,4 +188,10 @@ public:
     int logicalToScreenX(int logicalX) const { return static_cast<int>(logicalX * m_contentScale); }
     int logicalToScreenY(int logicalY) const { return static_cast<int>(logicalY * m_contentScale + m_headerOffset); }
 
+private:
+    // Type-ahead filter while Start is open (cleared on close).
+    std::string m_startMenuFilter;
+    void invalidateStartMenuHitTargets();
+    void applyStartMenuFilterEdit();
+
 #include "WindowManager_private.inc"
