@@ -29,7 +29,16 @@
         // Filtered by m_startMenuFilter when type-ahead is active.
         const int headerHLogical = m_startMenuFilter.empty() ? 22 : 36;
         #include "wm_start_menu_rows.inc"
-        const StartMenuLayout layout = computeStartMenuLayout(contentHLogical);
+        StartMenuLayout layout = computeStartMenuLayout(contentHLogical);
+        // Keep layout chrome height in sync with the drawn filter header.
+        if (layout.headerHLogical != headerHLogical) {
+            const int delta = headerHLogical - layout.headerHLogical;
+            layout.headerHLogical = headerHLogical;
+            layout.menuRect.y -= static_cast<int>(delta * m_contentScale);
+            layout.menuRect.h += static_cast<int>(delta * m_contentScale);
+            layout.itemStartY = layout.menuRect.y + static_cast<int>(
+                (layout.headerHLogical + layout.topPadLogical) * m_contentScale);
+        }
         const int menuWidth = layout.menuWidthLogical;
         const int menuX = layout.menuRect.x;
         const int menuY = layout.menuRect.y;
