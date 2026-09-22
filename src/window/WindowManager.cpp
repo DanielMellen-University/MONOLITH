@@ -1,5 +1,6 @@
 #include "WindowManager.hpp"
 #include "DesktopIcons.hpp"
+#include "StartMenuFilter.hpp"
 #include "WallpaperImage.hpp"
 #include "SessionFormat.hpp"
 #include "../app/App.hpp"
