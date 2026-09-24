@@ -16,6 +16,7 @@ grep -q 'layoutDesktopIcons' src/window/DesktopIcons.hpp || fail "layoutDesktopI
 grep -q 'hitTestDesktopIcon' src/window/DesktopIcons.hpp || fail "hitTestDesktopIcon missing"
 grep -q 'isDesktopIconDoubleClick' src/window/DesktopIcons.hpp || fail "isDesktopIconDoubleClick missing"
 grep -q 'collectDesktopIconDefs' src/window/DesktopIcons.hpp || fail "collectDesktopIconDefs missing"
+grep -q 'kDesktopIconColStep' src/window/DesktopIcons.hpp || fail "multi-column col step missing"
 grep -q 'showDesktopIcon' src/window/AppRegistry.hpp || fail "registry desktop-icon flag missing"
 
 grep -q 'DesktopIcons.hpp' src/window/WindowManager.cpp || fail "DesktopIcons.hpp not included in WM"
