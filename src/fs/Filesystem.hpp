@@ -91,6 +91,17 @@ public:
                         const FileChunkConsumer& consumeChunk) const;
 
     /**
+     * Reads at most the final maxBytes of a regular file in bounded 16 KiB chunks.
+     * outPrefixSkipped reports whether earlier bytes were omitted; the first chunk
+     * may begin inside a logical record. Return false from the consumer to stop early
+     * successfully; path, open, seek, read, or callback failures return false.
+     */
+    bool readFileTailChunks(const std::string& virtualPath,
+                            std::uint64_t maxBytes,
+                            const FileChunkConsumer& consumeChunk,
+                            bool& outPrefixSkipped) const;
+
+    /**
      * Byte size of a regular file. Returns false if missing or not a regular file.
      */
     bool fileSize(const std::string& virtualPath, std::uint64_t& outBytes) const;

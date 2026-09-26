@@ -287,6 +287,35 @@ int main() {
     check(streamed && streamedContent == chunkedContent
               && streamedChunks == 3 && largestChunk <= 16 * 1024,
           "chunk reader preserves binary bytes in bounded pieces");
+    std::string streamedTail;
+    size_t tailChunks = 0;
+    size_t largestTailChunk = 0;
+    bool tailPrefixSkipped = false;
+    const size_t tailByteLimit = 16 * 1024 + 8;
+    const std::string expectedTail = chunkedContent.substr(
+        chunkedContent.size() - tailByteLimit);
+    check(fs.readFileTailChunks(
+              "/src/chunked.bin", tailByteLimit, [&](std::string_view chunk) {
+                  ++tailChunks;
+                  largestTailChunk = std::max(largestTailChunk, chunk.size());
+                  streamedTail.append(chunk);
+                  return true;
+              }, tailPrefixSkipped)
+              && tailPrefixSkipped
+              && streamedTail == expectedTail
+              && tailChunks == 2
+              && largestTailChunk <= 16 * 1024,
+          "tail chunk reader seeks to a bounded binary suffix with embedded NUL data");
+    std::string completeTail;
+    bool completeTailPrefixSkipped = true;
+    check(fs.readFileTailChunks(
+              "/src/chunked.bin", chunkedContent.size(), [&](std::string_view chunk) {
+                  completeTail.append(chunk);
+                  return true;
+              }, completeTailPrefixSkipped)
+              && !completeTailPrefixSkipped
+              && completeTail == chunkedContent,
+          "tail chunk reader reports when no prefix was omitted");
     std::string firstChunk;
     check(fs.readFileChunks("/src/chunked.bin", [&](std::string_view chunk) {
               firstChunk.assign(chunk);
@@ -305,6 +334,11 @@ int main() {
               return true;
           }),
           "chunk reader reports a missing file");
+    bool missingTailPrefixSkipped = false;
+    check(!fs.readFileTailChunks("/src/missing.txt", 16, [](std::string_view) {
+              return true;
+          }, missingTailPrefixSkipped),
+          "tail chunk reader reports a missing file");
 
     std::uint64_t emptySize = 99;
     check(fs.fileSize("/src/empty.txt", emptySize) && emptySize == 0,

@@ -521,6 +521,51 @@ bool Filesystem::readFileChunks(const std::string& virtualPath,
     }
 }
 
+bool Filesystem::readFileTailChunks(const std::string& virtualPath,
+                                    std::uint64_t maxBytes,
+                                    const FileChunkConsumer& consumeChunk,
+                                    bool& outPrefixSkipped) const {
+    outPrefixSkipped = false;
+    if (!consumeChunk) return false;
+
+    try {
+        const stdfs::path hostPath = toHostPath(virtualPath);
+        if (!stdfs::is_regular_file(hostPath)) return false;
+
+        std::ifstream file(hostPath, std::ios::binary);
+        if (!file) return false;
+        file.seekg(0, std::ios::end);
+        const std::streampos end = file.tellg();
+        if (!file || end == std::streampos(-1)) return false;
+
+        const std::streamoff endOffset = static_cast<std::streamoff>(end);
+        if (endOffset < 0) return false;
+        const std::uint64_t fileBytes = static_cast<std::uint64_t>(endOffset);
+        const std::uint64_t startOffset = fileBytes > maxBytes ? fileBytes - maxBytes : 0;
+        outPrefixSkipped = startOffset > 0;
+        file.seekg(static_cast<std::streamoff>(startOffset), std::ios::beg);
+        if (!file) return false;
+
+        std::array<char, 16 * 1024> chunk{};
+        std::uint64_t remainingBytes = fileBytes - startOffset;
+        while (remainingBytes > 0) {
+            const auto requested = static_cast<std::streamsize>(
+                std::min<std::uint64_t>(remainingBytes, chunk.size()));
+            file.read(chunk.data(), requested);
+            const std::streamsize count = file.gcount();
+            if (count != requested) return false;
+            if (!consumeChunk(std::string_view(
+                    chunk.data(), static_cast<std::size_t>(count)))) {
+                return true;
+            }
+            remainingBytes -= static_cast<std::uint64_t>(count);
+        }
+        return true;
+    } catch (...) {
+        return false;
+    }
+}
+
 bool Filesystem::fileSize(const std::string& virtualPath, std::uint64_t& outBytes) const {
     try {
         stdfs::path hostPath = toHostPath(virtualPath);

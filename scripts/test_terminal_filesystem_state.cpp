@@ -227,6 +227,26 @@ int main() {
                   <= monolith::app::TerminalApp::kMaxCommandHistoryBytes,
           "streamed history loading keeps newest entries bounded and migrates oversized files");
 
+    std::string trailingOversizedHistory;
+    for (int i = 0; i < 600; ++i) {
+        trailingOversizedHistory += "echo fallback " + std::to_string(i) + '\n';
+    }
+    trailingOversizedHistory += std::string(
+        monolith::app::TerminalApp::kMaxCommandHistoryReadBytes + 1, 'x') + '\n';
+    check(fs.writeFile(monolith::app::TerminalApp::HISTORY_FILE, trailingOversizedHistory),
+          "write history with an oversized final legacy command");
+    TestTerminal fallbackHistoryTerminal(font, &fs);
+    check(fallbackHistoryTerminal.m_commandHistory.size()
+                  == monolith::app::TerminalApp::kMaxCommandHistory
+              && fallbackHistoryTerminal.m_commandHistory.front() == "echo fallback 100"
+              && fallbackHistoryTerminal.m_commandHistory.back() == "echo fallback 599",
+          "history loader recovers older valid commands behind an oversized file tail");
+    std::uint64_t fallbackHistoryBytes = 0;
+    check(fs.fileSize(monolith::app::TerminalApp::HISTORY_FILE, fallbackHistoryBytes)
+              && fallbackHistoryBytes
+                  <= monolith::app::TerminalApp::kMaxCommandHistoryBytes,
+          "history fallback rewrites the file inside its byte budget");
+
     auto key = [&](SDL_Keycode sym, SDL_Keymod mod = KMOD_NONE) {
         SDL_Keysym keysym{};
         keysym.sym = sym;

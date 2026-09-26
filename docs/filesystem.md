@@ -52,7 +52,7 @@ The `monolith::fs::Filesystem` class provides:
 
 - `exists`, `isFile`, `isDirectory`
 - `createDirectory`, `remove`, `removeRecursive`, `rename`, `renameEntry`
-- `readFile`, `readFileChunks`, `writeFile`, `fileSize` (`readFile(path, out)` reports read success separately from empty content)
+- `readFile`, `readFileChunks`, `readFileTailChunks`, `writeFile`, `fileSize` (`readFile(path, out)` reports read success separately from empty content)
 - `copyRecursive` (file or directory tree; blocks copy into self/descendant)
 - `copyItemsInto` (multi-source paste into a directory, via `copyRecursive`)
 - `moveItemsInto` (multi-source cut/paste into a directory, via non-overwriting rename)
@@ -65,7 +65,7 @@ The `monolith::fs::Filesystem` class provides:
 
 Implementation: `src/fs/Filesystem.hpp`, `src/fs/Filesystem.cpp`.
 
-`readFile()` materializes the entire file. Consumers that can process data incrementally can use `readFileChunks()`, which passes at most 16 KiB at a time as a temporary `string_view`. The view is valid only during its callback. Returning `false` from the callback stops reading early and counts as success; path, open, read, or callback failures return `false` from the method.
+`readFile()` materializes the entire file. Consumers that can process data incrementally can use `readFileChunks()`, which passes at most 16 KiB at a time as a temporary `string_view`. `readFileTailChunks()` seeks to the last requested number of bytes before streaming, and reports whether it skipped a prefix; the first chunk may start inside a logical record. Views are valid only during their callback. Returning `false` from the callback stops reading early and counts as success; path, open, read, or callback failures return `false` from either method.
 
 ### Recursive operations
 

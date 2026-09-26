@@ -101,6 +101,11 @@ void TerminalApp::loadCommandHistory() {
     size_t retainedBytes = 0;
     std::string pendingLine;
     bool skipOversizedLine = false;
+    bool skipLeadingPartialLine = false;
+    bool prefixWasSkipped = false;
+    bool firstChunk = true;
+    bool leadingFragmentHadBytes = false;
+    bool sawOversizedLine = false;
     std::uint64_t historyFileBytes = 0;
     bool historyNeedsSave = m_fs->fileSize(HISTORY_FILE, historyFileBytes)
         && historyFileBytes > kMaxCommandHistoryBytes;
@@ -110,6 +115,7 @@ void TerminalApp::loadCommandHistory() {
         if (line.empty()) return;
         if (line.size() > kMaxCommandHistoryEntryBytes) {
             historyNeedsSave = true;
+            sawOversizedLine = true;
             return;
         }
 
@@ -125,8 +131,22 @@ void TerminalApp::loadCommandHistory() {
         newestCommands.push_back(std::move(line));
     };
 
-    const bool read = m_fs->readFileChunks(HISTORY_FILE, [&](std::string_view chunk) {
+    auto consumeChunk = [&](std::string_view chunk, bool prefixSkipped) {
+        if (firstChunk) {
+            skipLeadingPartialLine = prefixSkipped;
+            firstChunk = false;
+        }
+
         for (const char ch : chunk) {
+            if (skipLeadingPartialLine) {
+                if (ch == '\n') {
+                    skipLeadingPartialLine = false;
+                } else if (ch != '\r') {
+                    leadingFragmentHadBytes = true;
+                }
+                continue;
+            }
+
             if (ch == '\n') {
                 if (!skipOversizedLine) retainLine(std::move(pendingLine));
                 pendingLine.clear();
@@ -136,14 +156,43 @@ void TerminalApp::loadCommandHistory() {
                     pendingLine.clear();
                     skipOversizedLine = true;
                     historyNeedsSave = true;
+                    sawOversizedLine = true;
                 } else {
                     pendingLine.push_back(ch);
                 }
             }
         }
         return true;
-    });
+    };
+
+    const bool read = m_fs->readFileTailChunks(
+        HISTORY_FILE, kMaxCommandHistoryReadBytes,
+        [&](std::string_view chunk) { return consumeChunk(chunk, prefixWasSkipped); },
+        prefixWasSkipped);
     if (!read) return;
+    historyNeedsSave = historyNeedsSave || prefixWasSkipped;
+
+    if (prefixWasSkipped && newestCommands.empty()
+        && (leadingFragmentHadBytes || sawOversizedLine)) {
+        newestCommands.clear();
+        retainedBytes = 0;
+        pendingLine.clear();
+        skipOversizedLine = false;
+        skipLeadingPartialLine = false;
+        prefixWasSkipped = false;
+        firstChunk = true;
+        leadingFragmentHadBytes = false;
+        sawOversizedLine = false;
+        historyNeedsSave = true;
+        bool recoveryPrefixSkipped = false;
+        const bool recoveryRead = m_fs->readFileTailChunks(
+            HISTORY_FILE, kMaxCommandHistoryRecoveryReadBytes,
+            [&](std::string_view chunk) { return consumeChunk(chunk, recoveryPrefixSkipped); },
+            recoveryPrefixSkipped);
+        if (!recoveryRead) return;
+        historyNeedsSave = historyNeedsSave || recoveryPrefixSkipped;
+    }
+
     if (!skipOversizedLine && !pendingLine.empty()) retainLine(std::move(pendingLine));
 
     m_commandHistory.assign(newestCommands.begin(), newestCommands.end());

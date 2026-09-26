@@ -1,5 +1,11 @@
 # Changelog
 
+## 2026-09: Seek directly to Terminal history tail
+
+- Add bounded tail-chunk reads to the virtual filesystem and seek past unused history prefixes at startup.
+- Preserve legacy history before a trailing oversized command with one recovery tail capped at 16 MiB.
+- Cover tail offsets, chunk bounds, and oversized-history recovery.
+
 ## 2026-09: Bound Terminal command history memory
 
 - Cap persistent command history at 500 entries and 2 MiB, with a 64 KiB per-command limit; evict oldest entries first.

@@ -84,6 +84,9 @@ private:
     static constexpr size_t kMaxCommandHistory = 500;
     static constexpr size_t kMaxCommandHistoryBytes = 2 * 1024 * 1024;
     static constexpr size_t kMaxCommandHistoryEntryBytes = 64 * 1024;
+    static constexpr size_t kMaxCommandHistoryReadBytes =
+        kMaxCommandHistoryBytes + kMaxCommandHistoryEntryBytes + 1;
+    static constexpr size_t kMaxCommandHistoryRecoveryReadBytes = 16 * 1024 * 1024;
     static constexpr size_t kMaxCatLines = 5000;
     size_t m_historyBytes = 0;
     std::string m_inputBuffer;

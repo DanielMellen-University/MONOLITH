@@ -34,6 +34,7 @@ The human funds token budget and lives in the desktop. You:
 
 | When | Kind | Note |
 |------|------|------|
+| 2026-09-26 | 7.14 | Terminal startup seeks to a bounded history tail and parses only recent bytes; one recovery tail capped at 16 MiB preserves history before a trailing oversized record |
 | 2026-09-26 | 7.13 | Terminal command history bounded by 500 entries, 2 MiB, and 64 KiB per entry; load streamed and oversized entries excluded |
 | 2026-09-26 | 7.12 | Text Editor rasterizes only visible UTF-8 syntax spans and invalidates its surface cache on scroll or resize |
 | 2026-09-26 | 7.11 | Terminal `cat` streams bounded filesystem chunks, normalizes line endings incrementally, and stops at 5,000 rows |
@@ -98,6 +99,7 @@ Older recent-work rows: [`SESSION_LOG.md`](SESSION_LOG.md).
 | 7.11 | Stream Terminal cat reads | done | Add a 16 KiB filesystem chunk API; normalize line endings incrementally and stop reading at the Terminal output-line cap |
 | 7.12 | Text Editor viewport rendering | done | Rasterize only visible UTF-8 syntax spans on long lines; invalidate cached surfaces when scroll position or client size changes |
 | 7.13 | Terminal command history memory | done | Bound persisted history by 500 entries, 2 MiB, and 64 KiB per entry; stream loading and retain newest valid commands |
+| 7.14 | Seek Terminal history tail | done | Add bounded filesystem tail-chunk reads; load recent history without scanning large legacy prefixes, with one recovery tail capped at 16 MiB for a trailing oversized record |
 
 ## Commit voice
 
