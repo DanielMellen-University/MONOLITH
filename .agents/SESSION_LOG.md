@@ -1,5 +1,7 @@
 # Session log
 
+| 2026-09-26 | chore | Added GitHub Actions verification for the full Monolith build and headless suite on main/beta pushes and pull requests; restored executable modes for the runner and its direct integration checks. |
+
 | 2026-09-16 | perf | Reused the WindowManager shell text cache for the Alt+Tab title overlay, added renderer reuse coverage, and documented the shell rendering lifecycle. |
 
 | 2026-09-16 | perf | Cached Settings labels, options, information lines, and footer text surfaces, bounded wallpaper prompt variants, added renderer reuse coverage, and updated Settings and architecture documentation. |

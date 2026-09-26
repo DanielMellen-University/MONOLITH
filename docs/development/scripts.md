@@ -1,6 +1,6 @@
 # Development Scripts
 
-Headless verification scripts for Monolith. These run without a full interactive desktop session and are useful for local sanity checks. There is no automated CI pipeline in-repo yet; treat "CI" as optional future use.
+Headless verification scripts for Monolith. These run without a full interactive desktop session and are useful for local sanity checks. GitHub Actions runs the application build and complete headless suite for pushes to `main` or `beta`, pull requests targeting either branch, and manual dispatches. The job uses an Ubuntu runner with SDL's dummy video and audio drivers; it does not need a physical display.
 
 ## Complete Headless Suite
 
@@ -11,6 +11,8 @@ Run every static integration check and documented state test with one command:
 ```
 
 The runner builds the generated source fragments, compiles the existing tests into `build/`, and executes SDL tests with dummy video and audio drivers by default. Set `BUILD_DIR`, `CXX`, `SDL_VIDEODRIVER`, or `SDL_AUDIODRIVER` to override those defaults. The individual commands below remain useful when iterating on one subsystem.
+
+The cloud job also configures and builds the complete `monolith` executable before running this suite. A green workflow therefore covers both application compilation and the headless state, renderer, lifecycle, and integration checks.
 
 The focused SDL commands below only show the compile step and binary name to keep them readable. When running them without a display, use the same drivers as the suite, for example:
 

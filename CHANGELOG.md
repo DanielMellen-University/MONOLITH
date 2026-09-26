@@ -1,5 +1,10 @@
 # Changelog
 
+## 2026-09: Run headless verification in GitHub Actions
+
+- Build Monolith and run the complete headless verification suite on pushes to `main` or `beta`, pull requests targeting either branch, and manual workflow dispatches.
+- Restore executable permissions for the headless runner and the integration checks it invokes directly.
+
 ## 2026-09: Cache Settings text surfaces
 
 - Reuse Settings labels, options, information lines, and footer surfaces between frames while clearing them at scale, resize, wallpaper-path, and active-prompt boundaries.
