@@ -105,7 +105,7 @@ Normalization only changes the path spelling. It does not make a missing file va
 | Canvas | Opaque raster pixels sized to the Drawing client area |
 | Default folder | `/home/monolith/drawings/` in the internal filesystem |
 | File type | `.modr`, matched case-insensitively when opening |
-| Editing model | Direct pixel edits with up to 32 in-memory undo states |
+| Editing model | Direct pixel edits with up to 32 combined in-memory undo/redo states, capped at 64 MiB |
 | Prompts | Inline in the status bar, with caret editing and Tab completion for paths |
 | Persistence | Pixels and canvas dimensions are saved; tools, colors, and history are not |
 | Startup defaults | Pen tool, medium brush, black swatch, and a new blank sketch |
@@ -525,7 +525,7 @@ Drawing stores a capped history of canvas snapshots.
 - Opening a file clears history.
 - Resizing the canvas clears history so old snapshots are not applied to the wrong canvas size.
 
-The current cap is 32 history states.
+Undo and redo share a combined limit of 32 history states and 64 MiB of pixel snapshots. The oldest undo states are discarded first when either limit is reached. A changed edit on a canvas larger than the byte budget clears history instead of allocating an oversized snapshot. Snapshots move between the undo and redo stacks, so undo and redo do not duplicate their pixel buffers.
 
 ## File Format
 
@@ -597,7 +597,7 @@ Canceling a dirty Open prompt also clears its pending confirmation, so a later O
 - The editor is raster-only: there are no layers, selections, transforms, zoom controls, or vector objects.
 - No clipboard import/export yet.
 - Dirty guards use status-bar double-confirm, not a modal dialog.
-- Undo history is in memory only and resets when a drawing file is opened, the canvas is resized, or the app exits.
+- Undo history is in memory only, shares a 64 MiB budget across undo and redo, and resets when a drawing file is opened, the canvas is resized, or the app exits.
 
 ## Developer Notes
 

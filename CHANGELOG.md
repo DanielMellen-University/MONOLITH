@@ -1,5 +1,11 @@
 # Changelog
 
+## 2026-09: Bound Drawing undo memory
+
+- Limit combined Drawing undo and redo history to 32 states and 64 MiB, evicting the oldest undo states first.
+- Move full-canvas buffers between undo and redo instead of copying them during history traversal.
+- Add regression coverage for the state-count and memory limits.
+
 ## 2026-09: Run headless verification in GitHub Actions
 
 - Build Monolith and run the complete headless verification suite on pushes to `main` or `beta`, pull requests targeting either branch, and manual workflow dispatches.

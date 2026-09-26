@@ -65,12 +65,12 @@ private:
     void markTextureDirty();
     void syncTexture(SDL_Renderer* renderer);
     void pushUndoSnapshot();
-    void pushUndoSnapshot(const CanvasSnapshot& snapshot);
+    void pushUndoSnapshot(CanvasSnapshot snapshot);
     void beginStroke();
     void recordStrokeChange();
     void finishStroke();
     void endActiveStroke();
-    void restoreCanvasSnapshot(const CanvasSnapshot& snapshot);
+    void restoreCanvasSnapshot(CanvasSnapshot&& snapshot);
     void undoCanvas();
     void redoCanvas();
     void refreshDirtyState();

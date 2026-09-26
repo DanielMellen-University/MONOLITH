@@ -7,7 +7,9 @@
 #include <algorithm>
 #include <cmath>
 #include <cstring>
+#include <limits>
 #include <sstream>
+#include <utility>
 #include <vector>
 
 namespace monolith::app {
@@ -20,6 +22,7 @@ constexpr int kStatusBarHeight = 22;
 constexpr int kSwatchSize = 18;
 constexpr int kSwatchGap = 4;
 constexpr size_t kMaxHistoryStates = 32;
+constexpr size_t kMaxHistoryBytes = 64 * 1024 * 1024;
 constexpr uint8_t kCanvasBackgroundR = 245;
 constexpr uint8_t kCanvasBackgroundG = 245;
 constexpr uint8_t kCanvasBackgroundB = 248;
@@ -122,29 +125,61 @@ void DrawingApp::markTextureDirty() {
 }
 
 void DrawingApp::pushUndoSnapshot() {
+    if (m_pixels.size() > kMaxHistoryBytes) {
+        m_undoStack.clear();
+        m_redoStack.clear();
+        return;
+    }
     pushUndoSnapshot({m_canvasWidth, m_canvasHeight, m_pixels});
 }
 
-void DrawingApp::pushUndoSnapshot(const CanvasSnapshot& snapshot) {
-    if (snapshot.pixels.empty() || snapshot.width <= 0 || snapshot.height <= 0) return;
+void DrawingApp::pushUndoSnapshot(CanvasSnapshot snapshot) {
+    if (snapshot.width <= 0 || snapshot.height <= 0) return;
+    const size_t width = static_cast<size_t>(snapshot.width);
+    const size_t height = static_cast<size_t>(snapshot.height);
+    if (width > std::numeric_limits<size_t>::max() / height / 4
+        || snapshot.pixels.size() != width * height * 4) {
+        return;
+    }
 
-    if (m_undoStack.size() >= kMaxHistoryStates) {
+    m_redoStack.clear();
+    if (snapshot.pixels.size() > kMaxHistoryBytes) {
+        m_undoStack.clear();
+        return;
+    }
+
+    size_t historyBytes = 0;
+    for (const auto& state : m_undoStack) {
+        historyBytes += state.pixels.size();
+    }
+    const size_t availableBytes = kMaxHistoryBytes - snapshot.pixels.size();
+    while (!m_undoStack.empty()
+           && (m_undoStack.size() >= kMaxHistoryStates || historyBytes > availableBytes)) {
+        historyBytes -= m_undoStack.front().pixels.size();
         m_undoStack.erase(m_undoStack.begin());
     }
 
-    m_undoStack.push_back(snapshot);
-    m_redoStack.clear();
+    m_undoStack.push_back(std::move(snapshot));
 }
 
 void DrawingApp::beginStroke() {
-    m_strokeStartSnapshot = {m_canvasWidth, m_canvasHeight, m_pixels};
+    if (m_pixels.size() <= kMaxHistoryBytes) {
+        m_strokeStartSnapshot = {m_canvasWidth, m_canvasHeight, m_pixels};
+    } else {
+        m_strokeStartSnapshot = {};
+    }
     m_strokeHistoryPending = true;
     m_strokeChanged = false;
 }
 
 void DrawingApp::recordStrokeChange() {
     if (!m_strokeHistoryPending || m_strokeChanged) return;
-    pushUndoSnapshot(m_strokeStartSnapshot);
+    if (m_strokeStartSnapshot.pixels.empty()) {
+        m_undoStack.clear();
+        m_redoStack.clear();
+    } else {
+        pushUndoSnapshot(std::move(m_strokeStartSnapshot));
+    }
     m_strokeChanged = true;
 }
 
@@ -163,12 +198,12 @@ void DrawingApp::endActiveStroke() {
     finishStroke();
 }
 
-void DrawingApp::restoreCanvasSnapshot(const CanvasSnapshot& snapshot) {
+void DrawingApp::restoreCanvasSnapshot(CanvasSnapshot&& snapshot) {
     if (snapshot.width <= 0 || snapshot.height <= 0 || snapshot.pixels.empty()) return;
 
     m_canvasWidth = snapshot.width;
     m_canvasHeight = snapshot.height;
-    m_pixels = snapshot.pixels;
+    m_pixels = std::move(snapshot.pixels);
     refreshDirtyState();
     clearDiscardArm();
     markTextureDirty();
@@ -186,10 +221,12 @@ void DrawingApp::undoCanvas() {
         return;
     }
 
-    m_redoStack.push_back({m_canvasWidth, m_canvasHeight, m_pixels});
+    CanvasSnapshot current{m_canvasWidth, m_canvasHeight, {}};
+    current.pixels.swap(m_pixels);
+    m_redoStack.push_back(std::move(current));
     CanvasSnapshot snapshot = std::move(m_undoStack.back());
     m_undoStack.pop_back();
-    restoreCanvasSnapshot(snapshot);
+    restoreCanvasSnapshot(std::move(snapshot));
     setStatus("Undo.");
 }
 
@@ -199,14 +236,12 @@ void DrawingApp::redoCanvas() {
         return;
     }
 
-    if (m_undoStack.size() >= kMaxHistoryStates) {
-        m_undoStack.erase(m_undoStack.begin());
-    }
-
-    m_undoStack.push_back({m_canvasWidth, m_canvasHeight, m_pixels});
+    CanvasSnapshot current{m_canvasWidth, m_canvasHeight, {}};
+    current.pixels.swap(m_pixels);
+    m_undoStack.push_back(std::move(current));
     CanvasSnapshot snapshot = std::move(m_redoStack.back());
     m_redoStack.pop_back();
-    restoreCanvasSnapshot(snapshot);
+    restoreCanvasSnapshot(std::move(snapshot));
     setStatus("Redo.");
 }
 

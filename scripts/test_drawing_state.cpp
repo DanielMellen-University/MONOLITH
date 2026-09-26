@@ -8,6 +8,7 @@
 #include <iostream>
 #include <string>
 #include <unistd.h>
+#include <utility>
 #include <vector>
 
 #include "../src/app/App.hpp"
@@ -180,6 +181,33 @@ int main() {
     redoDrawing.redoCanvas();
     check(redoDrawing.m_dirty && redoDrawing.m_redoStack.empty(),
           "preserved Drawing redo history still reapplies the stroke");
+
+    TestDrawing stateLimitedHistory(font, &fs);
+    stateLimitedHistory.onResize(300, 300);
+    for (int i = 0; i < 40; ++i) stateLimitedHistory.pushUndoSnapshot();
+    for (int i = 0; i < 20; ++i) stateLimitedHistory.undoCanvas();
+    check(stateLimitedHistory.m_undoStack.size() + stateLimitedHistory.m_redoStack.size() == 32,
+          "Drawing keeps undo and redo within 32 combined history states");
+
+    TestDrawing byteLimitedHistory(font, &fs);
+    byteLimitedHistory.onResize(3072, 2166);
+    constexpr int historyWidth = 3072;
+    constexpr int historyHeight = 2048;
+    constexpr size_t historyStateBytes = 24 * 1024 * 1024;
+    for (uint8_t value = 1; value <= 3; ++value) {
+        std::vector<uint8_t> historyPixels(historyStateBytes, value);
+        byteLimitedHistory.pushUndoSnapshot({historyWidth, historyHeight,
+                                             std::move(historyPixels)});
+    }
+    size_t retainedHistoryBytes = 0;
+    for (const auto& snapshot : byteLimitedHistory.m_undoStack) {
+        retainedHistoryBytes += snapshot.pixels.size();
+    }
+    check(byteLimitedHistory.m_undoStack.size() == 2
+              && byteLimitedHistory.m_undoStack[0].pixels[0] == 2
+              && byteLimitedHistory.m_undoStack[1].pixels[0] == 3
+              && retainedHistoryBytes <= 64 * 1024 * 1024,
+          "Drawing evicts oldest full-canvas snapshots at the 64 MiB budget");
 
     TestDrawing capturedLine(font, &fs);
     capturedLine.onResize(300, 300);
