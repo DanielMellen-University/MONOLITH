@@ -1,5 +1,11 @@
 # Changelog
 
+## 2026-09: Reuse Terminal text textures
+
+- Cache scrollback rows, normal command-input fragments, and reverse-search text in a renderer-aware 256-entry LRU with an estimated 16 MiB budget.
+- Reuse unchanged text across output changes, scrolling, and resizing instead of recreating SDL_ttf surfaces and renderer textures every frame.
+- Cover input/history and reverse-search texture reuse, UTF-8-safe long-row bounds, scroll reuse, resize reuse, and scale invalidation.
+
 ## 2026-09: Reuse Text Editor text textures
 
 - Cache syntax spans, line numbers, and status text in a renderer-aware 256-entry LRU with an estimated 16 MiB budget, avoiding texture creation and destruction on every frame.

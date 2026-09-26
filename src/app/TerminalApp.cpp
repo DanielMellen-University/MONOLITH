@@ -112,7 +112,6 @@ void TerminalApp::addOutput(const std::string& line, bool lineWasTruncated) {
             m_history.begin(),
             m_history.begin() + static_cast<std::vector<std::string>::difference_type>(excess));
     }
-    m_historyTextSurfaceCache.clear();
     m_scrollOffset = 0;   // auto-scroll to bottom on new output
 }
 
@@ -172,7 +171,6 @@ void TerminalApp::executeCommand(const std::string& commandLine) {
     else if (cmd == "clear") {
         m_history.clear();
         m_historyBytes = 0;
-        m_historyTextSurfaceCache.clear();
         m_scrollOffset = 0;
     }
     else if (cmd == "help") {

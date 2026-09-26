@@ -121,7 +121,7 @@ The input strip remains inside the client rectangle even when a window is resize
 The history viewport also clamps both width and height to zero for clients smaller than its padding, so narrow windows do not create invalid clip rectangles.
 Terminal intersects its input and history clips with the caller's renderer clip and restores that clip after each region.
 
-Terminal measures each scrollback row against the history viewport and rasterizes only the visible UTF-8 prefix, so an off-screen tail cannot allocate a screen-sized text surface. Renderer-independent SDL_ttf surfaces are cached only for the current view and cleared when output, scroll position, client size, or the shared interface text scale changes. Prompt and reverse-search fragments stay short-lived because their contents change with the caret and query.
+Terminal measures each scrollback row against the history viewport and rasterizes only the visible UTF-8 prefix, so an off-screen tail cannot allocate a screen-sized texture. Scrollback rows, command-input fragments, and reverse-search text share a renderer-aware 256-entry LRU with an estimated 16 MiB budget. Text, font, and color are part of each key, so unchanged rows and prompt fragments survive output changes, scrolling, and resizing; renderer switches and shared interface text-scale changes clear the cache.
 
 ## Argument Quoting
 

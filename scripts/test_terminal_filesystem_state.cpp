@@ -527,22 +527,52 @@ int main() {
                   && restoredClip.w == expectedClip.w
                   && restoredClip.h == expectedClip.h,
               "terminal restores the caller renderer clip after rendering");
-        const size_t cachedSurfaceCount = terminal.m_historyTextSurfaceCache.m_entries.size();
+        const SDL_Color terminalTextColor{200, 205, 210, 255};
+        const auto firstOutputTexture = terminal.m_textTextureCache.get(
+            renderer, font, "output", terminalTextColor);
+        const std::string inputBeforeCursor = terminal.getInputPrompt()
+            + terminal.m_inputBuffer.substr(0, terminal.m_inputCursorPos);
+        const auto firstInputTexture = terminal.m_textTextureCache.get(
+            renderer, font, inputBeforeCursor.c_str(), terminalTextColor);
+        const size_t cachedTextureCount = terminal.m_textTextureCache.size();
         terminal.render(renderer, {0, 0, 200, 200});
-        check(cachedSurfaceCount > 0
-                  && terminal.m_historyTextSurfaceCache.m_entries.size() == cachedSurfaceCount,
-              "Terminal reuses cached scrollback text surfaces between frames");
+        const auto repeatedOutputTexture = terminal.m_textTextureCache.get(
+            renderer, font, "output", terminalTextColor);
+        const auto repeatedInputTexture = terminal.m_textTextureCache.get(
+            renderer, font, inputBeforeCursor.c_str(), terminalTextColor);
+        check(firstOutputTexture && firstInputTexture
+                  && repeatedOutputTexture.handle == firstOutputTexture.handle
+                  && repeatedInputTexture.handle == firstInputTexture.handle
+                  && terminal.m_textTextureCache.size() == cachedTextureCount,
+              "Terminal reuses input and scrollback textures between frames");
+        terminal.m_searchMode = true;
+        terminal.m_searchBuffer = "second";
+        terminal.m_searchCursorPos = 3;
+        terminal.m_searchMatchIndex = -1;
+        const std::string reverseSearchText =
+            "(reverse-i-search)`second': (no match)";
+        const size_t beforeReverseSearch = terminal.m_textTextureCache.size();
+        terminal.render(renderer, {0, 0, 200, 200});
+        const auto reverseSearchTexture = terminal.m_textTextureCache.get(
+            renderer, font, reverseSearchText.c_str(), terminalTextColor);
+        check(reverseSearchTexture
+                  && terminal.m_textTextureCache.size() > beforeReverseSearch,
+              "Terminal caches reverse-search text between frames");
+        terminal.m_searchMode = false;
+        const size_t beforeClear = terminal.m_textTextureCache.size();
         terminal.executeCommand("clear");
-        check(terminal.m_historyTextSurfaceCache.m_entries.empty()
+        check(terminal.m_textTextureCache.size() == beforeClear
                   && terminal.m_historyBytes == 0,
-              "Terminal clears cached scrollback surfaces when output is cleared");
+              "Terminal keeps bounded text textures when output is cleared");
         terminal.addOutput("output");
         terminal.render(renderer, {0, 0, 200, 200});
-        check(!terminal.m_historyTextSurfaceCache.m_entries.empty(),
-              "Terminal repopulates cached scrollback text after output resumes");
+        const auto outputAfterClear = terminal.m_textTextureCache.get(
+            renderer, font, "output", terminalTextColor);
+        check(outputAfterClear.handle == firstOutputTexture.handle,
+              "Terminal reuses scrollback text after output resumes");
         terminal.onUiScaleChanged();
-        check(terminal.m_historyTextSurfaceCache.m_entries.empty(),
-              "Terminal clears cached scrollback text when UI scale changes");
+        check(terminal.m_textTextureCache.size() == 0,
+              "Terminal clears renderer textures when UI scale changes");
 
         std::string longUnicodeLine;
         for (int i = 0; i < 5000; ++i) {
@@ -555,12 +585,19 @@ int main() {
         const SDL_Rect historyRect = terminal.getHistoryRect({0, 0, 200, 200});
         size_t largestCachedTextBytes = 0;
         bool cachedPrefixesAreCompleteUtf8 = true;
-        bool cachedSurfacesFitViewport = true;
-        for (const auto& [key, cachedSurface]
-             : terminal.m_historyTextSurfaceCache.m_entries) {
-            const size_t textBytes = key.size() >= 5 ? key.size() - 5 : 0;
+        bool cachedTexturesFitViewport = true;
+        bool foundLongLinePrefix = false;
+        for (const auto& [key, cachedTexture] : terminal.m_textTextureCache.m_entries) {
+            const size_t textOffset = sizeof(TTF_Font*);
+            if (key.size() < textOffset + 5) continue;
+            const size_t textBytes = key.size() - textOffset - 5;
+            std::string cachedText = key.substr(textOffset, textBytes);
+            if (cachedText.size() < 2
+                || cachedText.compare(0, 2, longUnicodeLine, 0, 2) != 0) {
+                continue;
+            }
+            foundLongLinePrefix = true;
             largestCachedTextBytes = std::max(largestCachedTextBytes, textBytes);
-            std::string cachedText = key.substr(0, textBytes);
             for (size_t pos = 0; pos < cachedText.size();) {
                 const size_t charBytes = monolith::app::utf8CodepointByteLen(cachedText, pos);
                 if (charBytes == 0 || pos + charBytes > cachedText.size()) {
@@ -569,27 +606,36 @@ int main() {
                 }
                 pos += charBytes;
             }
-            if (cachedSurface && cachedSurface->w > historyRect.w) {
-                cachedSurfacesFitViewport = false;
+            if (cachedTexture.width > historyRect.w) {
+                cachedTexturesFitViewport = false;
             }
         }
-        check(!terminal.m_historyTextSurfaceCache.m_entries.empty()
-                  && cachedSurfacesFitViewport
+        check(foundLongLinePrefix
+                  && cachedTexturesFitViewport
                   && largestCachedTextBytes < longUnicodeLine.size() / 10
                   && cachedPrefixesAreCompleteUtf8,
-              "terminal caches viewport-sized, complete UTF-8 prefixes of long rows");
+              "Terminal caches viewport-sized, complete UTF-8 prefixes of long rows");
 
         terminal.m_history.assign(40, "output");
         terminal.m_historyBytes = 40 * std::string("output").size();
         terminal.m_scrollOffset = 0;
         terminal.render(renderer, {0, 0, 200, 200});
+        const auto outputBeforeScroll = terminal.m_textTextureCache.get(
+            renderer, font, "output", terminalTextColor);
+        const size_t beforeScrollCount = terminal.m_textTextureCache.size();
         terminal.scrollHistory(1);
-        check(terminal.m_historyTextSurfaceCache.m_entries.empty(),
-              "terminal invalidates cached scrollback when the viewed rows change");
+        check(terminal.m_textTextureCache.size() == beforeScrollCount
+                  && terminal.m_textTextureCache.get(
+                         renderer, font, "output", terminalTextColor).handle
+                      == outputBeforeScroll.handle,
+              "Terminal retains unchanged text textures when scrolling history");
         terminal.render(renderer, {0, 0, 200, 200});
+        check(terminal.m_textTextureCache.size() == beforeScrollCount,
+              "Terminal reuses repeated rows after scrolling");
         terminal.onResize(210, 200);
-        check(terminal.m_historyTextSurfaceCache.m_entries.empty(),
-              "terminal invalidates cached scrollback when its client size changes");
+        terminal.render(renderer, {0, 0, 210, 200});
+        check(terminal.m_textTextureCache.size() == beforeScrollCount,
+              "Terminal reuses text textures after resizing the client");
 
         terminal.m_scrollOffset = 39;
         terminal.render(renderer, {0, 0, 320, 40});
@@ -597,6 +643,7 @@ int main() {
                   && terminal.m_clientHeight == 40
                   && terminal.getMaxVisibleLines({0, 0, 320, 40}) == 0,
               "Terminal direct renders synchronize client geometry before scrolling");
+        terminal.m_textTextureCache.clear();
         SDL_DestroyRenderer(renderer);
     }
     if (surface) SDL_FreeSurface(surface);

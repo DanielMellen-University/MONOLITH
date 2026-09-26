@@ -5,7 +5,6 @@ void TerminalApp::scrollHistory(int delta) {
         static_cast<long long>(getMaxScrollOffset())));
     if (nextOffset == m_scrollOffset) return;
     m_scrollOffset = nextOffset;
-    m_historyTextSurfaceCache.clear();
 }
 
 void TerminalApp::handleMouseWheel(const SDL_MouseWheelEvent& e) {
@@ -511,29 +510,25 @@ void TerminalApp::render(SDL_Renderer* renderer, const SDL_Rect& contentRect) {
         const int inputViewportWidth = std::max(1, inputBar.w - padding * 2);
         const int cursorWidth = 8;
 
-        SDL_Surface* surf = TTF_RenderUTF8_Blended(m_font, full.c_str(), textColor);
-        if (surf) {
-            SDL_Texture* tex = SDL_CreateTextureFromSurface(renderer, surf);
-            if (tex) {
-                if (cursorPrefixWidth + cursorWidth
-                    > m_searchHorizontalScrollPx + inputViewportWidth) {
-                    m_searchHorizontalScrollPx = cursorPrefixWidth + cursorWidth - inputViewportWidth;
-                } else if (cursorPrefixWidth < m_searchHorizontalScrollPx) {
-                    m_searchHorizontalScrollPx = cursorPrefixWidth;
-                }
-                const int maxScroll = std::max(0, surf->w - inputViewportWidth);
-                m_searchHorizontalScrollPx = std::clamp(
-                    m_searchHorizontalScrollPx, 0, maxScroll);
-                SDL_Rect dst = {
-                    contentRect.x + padding - m_searchHorizontalScrollPx,
-                    inputLineY,
-                    surf->w,
-                    surf->h
-                };
-                SDL_RenderCopy(renderer, tex, nullptr, &dst);
-                SDL_DestroyTexture(tex);
+        const auto texture = m_textTextureCache.get(
+            renderer, m_font, full.c_str(), textColor);
+        if (texture) {
+            if (cursorPrefixWidth + cursorWidth
+                > m_searchHorizontalScrollPx + inputViewportWidth) {
+                m_searchHorizontalScrollPx = cursorPrefixWidth + cursorWidth - inputViewportWidth;
+            } else if (cursorPrefixWidth < m_searchHorizontalScrollPx) {
+                m_searchHorizontalScrollPx = cursorPrefixWidth;
             }
-            SDL_FreeSurface(surf);
+            const int maxScroll = std::max(0, texture.width - inputViewportWidth);
+            m_searchHorizontalScrollPx = std::clamp(
+                m_searchHorizontalScrollPx, 0, maxScroll);
+            SDL_Rect dst = {
+                contentRect.x + padding - m_searchHorizontalScrollPx,
+                inputLineY,
+                texture.width,
+                texture.height
+            };
+            SDL_RenderCopy(renderer, texture.handle, nullptr, &dst);
         }
 
         // Cursor on the search buffer part.
@@ -563,17 +558,18 @@ void TerminalApp::render(SDL_Renderer* renderer, const SDL_Rect& contentRect) {
         const int textOriginX = contentRect.x + padding - m_inputHorizontalScrollPx;
 
         // Draw text before cursor
-        SDL_Surface* surf = TTF_RenderUTF8_Blended(m_font, beforeCursor.c_str(), textColor);
+        const auto beforeTexture = m_textTextureCache.get(
+            renderer, m_font, beforeCursor.c_str(), textColor);
         int cursorX = textOriginX;
-        if (surf) {
-            SDL_Texture* tex = SDL_CreateTextureFromSurface(renderer, surf);
-            if (tex) {
-                SDL_Rect dst = {cursorX, inputLineY, surf->w, surf->h};
-                SDL_RenderCopy(renderer, tex, nullptr, &dst);
-                cursorX += surf->w;
-                SDL_DestroyTexture(tex);
-            }
-            SDL_FreeSurface(surf);
+        if (beforeTexture) {
+            SDL_Rect dst = {
+                cursorX,
+                inputLineY,
+                beforeTexture.width,
+                beforeTexture.height
+            };
+            SDL_RenderCopy(renderer, beforeTexture.handle, nullptr, &dst);
+            cursorX += beforeTexture.width;
         }
 
         // Draw cursor block
@@ -583,15 +579,16 @@ void TerminalApp::render(SDL_Renderer* renderer, const SDL_Rect& contentRect) {
 
         // Draw text after cursor
         if (!afterCursor.empty()) {
-            SDL_Surface* surf2 = TTF_RenderUTF8_Blended(m_font, afterCursor.c_str(), textColor);
-            if (surf2) {
-                SDL_Texture* tex2 = SDL_CreateTextureFromSurface(renderer, surf2);
-                if (tex2) {
-                    SDL_Rect dst2 = {cursorX + cursorWidth, inputLineY, surf2->w, surf2->h};
-                    SDL_RenderCopy(renderer, tex2, nullptr, &dst2);
-                    SDL_DestroyTexture(tex2);
-                }
-                SDL_FreeSurface(surf2);
+            const auto afterTexture = m_textTextureCache.get(
+                renderer, m_font, afterCursor.c_str(), textColor);
+            if (afterTexture) {
+                SDL_Rect dst2 = {
+                    cursorX + cursorWidth,
+                    inputLineY,
+                    afterTexture.width,
+                    afterTexture.height
+                };
+                SDL_RenderCopy(renderer, afterTexture.handle, nullptr, &dst2);
             }
         }
     }
@@ -631,19 +628,16 @@ void TerminalApp::render(SDL_Renderer* renderer, const SDL_Rect& contentRect) {
                 displayText = visibleLine.c_str();
             }
 
-            SDL_Surface* surf = m_historyTextSurfaceCache.get(m_font, displayText, textColor);
-            if (surf) {
-                SDL_Texture* tex = SDL_CreateTextureFromSurface(renderer, surf);
-                if (tex) {
-                    SDL_Rect dst = {
-                        historyRect.x,
-                        y,
-                        surf->w,
-                        surf->h
-                    };
-                    SDL_RenderCopy(renderer, tex, nullptr, &dst);
-                    SDL_DestroyTexture(tex);
-                }
+            const auto texture = m_textTextureCache.get(
+                renderer, m_font, displayText, textColor);
+            if (texture) {
+                SDL_Rect dst = {
+                    historyRect.x,
+                    y,
+                    texture.width,
+                    texture.height
+                };
+                SDL_RenderCopy(renderer, texture.handle, nullptr, &dst);
             }
 
             y -= lineHeight;
@@ -656,9 +650,6 @@ void TerminalApp::render(SDL_Renderer* renderer, const SDL_Rect& contentRect) {
 }
 
 void TerminalApp::onResize(int clientWidth, int clientHeight) {
-    if (m_clientWidth != clientWidth || m_clientHeight != clientHeight) {
-        m_historyTextSurfaceCache.clear();
-    }
     m_clientWidth = clientWidth;
     m_clientHeight = clientHeight;
     // Keep scroll within bounds after resize
@@ -666,7 +657,7 @@ void TerminalApp::onResize(int clientWidth, int clientHeight) {
 }
 
 void TerminalApp::onUiScaleChanged() {
-    m_historyTextSurfaceCache.clear();
+    m_textTextureCache.clear();
     m_scrollOffset = std::clamp(m_scrollOffset, 0, getMaxScrollOffset());
 
     // Font metrics changed, so pixel-based horizontal offsets must be measured
