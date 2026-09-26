@@ -1,5 +1,7 @@
 # Session log
 
+| 2026-09-26 | perf | Rasterized only viewport-intersecting UTF-8 syntax spans in the Text Editor and invalidated cached surfaces when the scroll position or client size changes; covered long-line surface bounds and scroll invalidation. |
+
 | 2026-09-26 | perf | Added a bounded 16 KiB filesystem chunk reader and changed Terminal `cat` to normalize CRLF/lone-CR while streaming, cap its active row, and stop at the 5,000-line limit. |
 
 | 2026-09-26 | perf | Bounded Terminal scrollback to 2,000 rows, 8 MiB, and 64 KiB per row; rasterized viewport-fitting UTF-8 prefixes and invalidated the view cache on output, scroll, resize, and scale changes. |

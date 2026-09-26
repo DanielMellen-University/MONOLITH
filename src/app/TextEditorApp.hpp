@@ -206,6 +206,10 @@ private:
     // Cached for layout
     int m_clientWidth = 0;
     int m_clientHeight = 0;
+    int m_surfaceCacheScrollOffset = -1;
+    int m_surfaceCacheHorizontalScrollOffset = -1;
+    int m_surfaceCacheClientWidth = -1;
+    int m_surfaceCacheClientHeight = -1;
 };
 
 } // namespace monolith::app

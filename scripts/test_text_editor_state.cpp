@@ -3,6 +3,7 @@
 #include <SDL2/SDL.h>
 #include <SDL2/SDL_ttf.h>
 
+#include <algorithm>
 #include <filesystem>
 #include <iostream>
 #include <string>
@@ -218,6 +219,38 @@ int main() {
             scaleEditor.onUiScaleChanged();
             check(scaleEditor.m_textSurfaceCache.m_entries.empty(),
                   "Text Editor clears cached text surfaces when UI scale changes");
+
+            TestEditor longLineEditor(scaleFont, &fs, "/long.txt");
+            std::string longLine;
+            longLine.reserve(12000);
+            for (int i = 0; i < 1200; ++i) longLine += "abcdefghi\xC3\xA9";
+            longLineEditor.m_lines = {longLine};
+            longLineEditor.onResize(200, 160);
+            longLineEditor.render(renderer, {0, 0, 200, 160});
+            const int longLineViewportWidth = 200
+                - 2 * TestEditor::kPadding - TestEditor::kLineNumWidth;
+            auto firstViewportText = std::find_if(
+                longLineEditor.m_textSurfaceCache.m_entries.begin(),
+                longLineEditor.m_textSurfaceCache.m_entries.end(),
+                [&longLine](const auto& entry) {
+                    return entry.first.compare(0, 9, longLine, 0, 9) == 0;
+                });
+            check(firstViewportText != longLineEditor.m_textSurfaceCache.m_entries.end()
+                      && firstViewportText->first.size() < longLine.size() / 20
+                      && firstViewportText->second->w
+                          < longLineViewportWidth + 2 * TTF_FontHeight(scaleFont),
+                  "Text Editor rasterizes only viewport-sized portions of very long lines");
+
+            const std::string firstViewportKey = firstViewportText
+                != longLineEditor.m_textSurfaceCache.m_entries.end()
+                ? firstViewportText->first
+                : std::string{};
+            longLineEditor.m_horizontalScrollOffset = 60;
+            longLineEditor.render(renderer, {0, 0, 200, 160});
+            check(!firstViewportKey.empty()
+                      && longLineEditor.m_textSurfaceCache.m_entries.count(firstViewportKey) == 0,
+                  "Text Editor discards old line surfaces after horizontal scrolling");
+
             scaleEditor.m_lines.assign(20, "line");
             scaleEditor.m_cursorRow = 19;
             scaleEditor.m_cursorCol = 0;

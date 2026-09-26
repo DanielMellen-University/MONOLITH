@@ -1,5 +1,11 @@
 # Changelog
 
+## 2026-09: Rasterize only visible Text Editor spans
+
+- Render and cache only UTF-8 syntax-span slices that intersect the horizontal text viewport, avoiding full-width surfaces for long lines.
+- Invalidate editor text surfaces when scroll position or client size changes, while retaining reuse between unchanged frames.
+- Cover viewport-bounded surfaces and horizontal-scroll cache invalidation.
+
 ## 2026-09: Stream Terminal cat reads
 
 - Add a bounded 16 KiB filesystem chunk reader with early-stop support and binary-safe views.

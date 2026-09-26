@@ -251,21 +251,53 @@ std::vector<TextEditorApp::ColoredSpan> TextEditorApp::tokenizeLine(const std::s
 
 void TextEditorApp::drawColoredLine(SDL_Renderer* renderer, const std::string& line, int x, int y,
                                     int maxWidth) const {
-    if (!m_font || line.empty()) return;
+    if (!m_font || line.empty() || maxWidth <= 0) return;
+
+    int hiddenWidth = 0;
+    int hiddenCharacters = 0;
+    if (TTF_MeasureUTF8(m_font, line.c_str(), m_horizontalScrollOffset,
+                        &hiddenWidth, &hiddenCharacters) != 0) {
+        return;
+    }
+
+    size_t firstVisibleByte = 0;
+    for (int i = 0; i < hiddenCharacters && firstVisibleByte < line.size(); ++i) {
+        firstVisibleByte = utf8NextCodepointStart(line, firstVisibleByte);
+    }
+
+    const int partialCharacterWidth = std::max(0, m_horizontalScrollOffset - hiddenWidth);
+    int visibleCharacters = 0;
+    int visibleWidth = 0;
+    const long long requestedMeasureWidth = static_cast<long long>(maxWidth)
+        + partialCharacterWidth;
+    const int measureWidth = static_cast<int>(std::min<long long>(
+        requestedMeasureWidth, std::numeric_limits<int>::max()));
+    if (TTF_MeasureUTF8(m_font, line.c_str() + firstVisibleByte, measureWidth,
+                        &visibleWidth, &visibleCharacters) != 0) {
+        return;
+    }
+
+    size_t visibleEndByte = firstVisibleByte;
+    const int characterLimit = visibleCharacters + 1;
+    for (int i = 0; i < characterLimit && visibleEndByte < line.size(); ++i) {
+        visibleEndByte = utf8NextCodepointStart(line, visibleEndByte);
+    }
+    if (visibleEndByte <= firstVisibleByte) return;
 
     const auto spans = tokenizeLine(line);
-    int curX = x;
+    int curX = x + hiddenWidth - m_horizontalScrollOffset;
     const int rightEdge = x + maxWidth;
 
     for (const auto& span : spans) {
         if (curX >= rightEdge) break;
         if (span.start >= line.size()) continue;
 
-        const size_t available = line.size() - span.start;
-        const size_t len = std::min(span.length, available);
-        if (len == 0) continue;
+        const size_t spanEnd = span.start + std::min(span.length, line.size() - span.start);
+        const size_t visibleStart = std::max(span.start, firstVisibleByte);
+        const size_t visibleEnd = std::min(spanEnd, visibleEndByte);
+        if (visibleEnd <= visibleStart) continue;
 
-        const std::string text = line.substr(span.start, len);
+        const std::string text = line.substr(visibleStart, visibleEnd - visibleStart);
         SDL_Surface* surf = m_textSurfaceCache.get(m_font, text.c_str(), span.color);
         if (!surf) continue;
 
@@ -1631,6 +1663,17 @@ void TextEditorApp::render(SDL_Renderer* renderer, const SDL_Rect& contentRect) 
         onResize(contentRect.w, contentRect.h);
     }
 
+    if (m_surfaceCacheScrollOffset != m_scrollOffset
+        || m_surfaceCacheHorizontalScrollOffset != m_horizontalScrollOffset
+        || m_surfaceCacheClientWidth != m_clientWidth
+        || m_surfaceCacheClientHeight != m_clientHeight) {
+        m_textSurfaceCache.clear();
+        m_surfaceCacheScrollOffset = m_scrollOffset;
+        m_surfaceCacheHorizontalScrollOffset = m_horizontalScrollOffset;
+        m_surfaceCacheClientWidth = m_clientWidth;
+        m_surfaceCacheClientHeight = m_clientHeight;
+    }
+
     if (!m_font) {
         SDL_SetRenderDrawColor(renderer, 20, 20, 25, 255);
         SDL_RenderFillRect(renderer, &contentRect);
@@ -1765,9 +1808,9 @@ void TextEditorApp::render(SDL_Renderer* renderer, const SDL_Rect& contentRect) 
         drawColoredLine(
             renderer,
             line,
-            textStartX - m_horizontalScrollOffset,
+            textStartX,
             y,
-            textRight - (textStartX - m_horizontalScrollOffset)
+            textWidth
         );
 
         // Draw cursor if on this line

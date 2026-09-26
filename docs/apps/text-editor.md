@@ -124,6 +124,7 @@ Path prompts support Left/Right/Home/End, UTF-8-safe Backspace/Delete, and inser
 - Highlighting is per-line only (no multiline strings or block comments).
 - No multiple buffers/tabs.
 - Long lines remain editable without wrapping; horizontal scrolling moves the text viewport in pixel increments while preserving document columns.
+- Long-line rendering rasterizes only UTF-8 syntax-span slices near the visible text viewport. Cached text surfaces are invalidated when scrolling or client size changes, but reused between unchanged frames.
 - Horizontal scrolling is clamped to the current line after wheel input and window resizing, so widening the editor cannot leave the text viewport stranded past the line end.
 - Resizing clamps vertical scrollback to the lines that fit in the new editor area. If the client is too short to fit a document row above the status bar, the editor leaves the document area empty instead of claiming rows that cannot be rendered.
 - Direct render-size changes use the same resize path, so client dimensions and scroll bounds stay synchronized even before the next Window Manager resize callback.
@@ -151,6 +152,6 @@ When the bound file is renamed in Filesystem Browser, moved with Filesystem Brow
 
 If the bound file or one of its parent directories is deleted, the editor stays open with its current in-memory buffer, releases the deleted file singleton, and becomes a tracked untitled `Editor` window. Any active Save/Open prompt returns to the nearest valid parent. Use Save or Save As to choose a new path; dirty content is not discarded automatically.
 
-The editor caches renderer-independent SDL_ttf surfaces for repeated syntax spans, line numbers, and status text. The cache is cleared when a document is loaded, edited, undone, or redone, when status feedback changes, when find/replace or a path prompt is rendered, and when the shared interface text scale changes. Per-frame SDL textures remain short-lived and are created from the cached surfaces.
+The editor caches renderer-independent SDL_ttf surfaces for visible syntax-span slices, line numbers, and status text. Long lines are measured to the horizontal viewport and only intersecting UTF-8 spans are rasterized; the cache is cleared when the visible scroll position or client size changes, as well as when a document is loaded, edited, undone, or redone, when status feedback changes, when find/replace or a path prompt is rendered, and when the shared interface text scale changes. Per-frame SDL textures remain short-lived and are created from the cached surfaces.
 
 Undo and redo move document line buffers between the active editor and their history stacks. Snapshot accounting includes the line vector and its string storage; it is an estimate used to keep retained history bounded, not a limit on the active document itself.
