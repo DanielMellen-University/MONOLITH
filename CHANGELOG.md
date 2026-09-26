@@ -1,5 +1,11 @@
 # Changelog
 
+## 2026-09: Stream recursive file copies
+
+- Copy regular files through bounded 16 KiB reads into the atomic destination writer instead of materializing the complete source in memory.
+- Keep file-size consistency checks, destination permissions, and failed-write cleanup intact.
+- Cover embedded-NUL data across chunk boundaries and direct-copy replacement.
+
 ## 2026-09: Rasterize only visible window-title text
 
 - Measure the title area before rendering and cache only the complete UTF-8 prefix that fits before the title buttons.

@@ -65,7 +65,7 @@ The `monolith::fs::Filesystem` class provides:
 
 Implementation: `src/fs/Filesystem.hpp`, `src/fs/Filesystem.cpp`.
 
-`readFile()` materializes the entire file. Consumers that can process data incrementally can use `readFileChunks()`, which passes at most 16 KiB at a time as a temporary `string_view`. `readFileTailChunks()` seeks to the last requested number of bytes before streaming, and reports whether it skipped a prefix; the first chunk may start inside a logical record. Views are valid only during their callback. Returning `false` from the callback stops reading early and counts as success; path, open, read, or callback failures return `false` from either method.
+`readFile()` materializes the entire file. Consumers that can process data incrementally can use `readFileChunks()`, which passes at most 16 KiB at a time as a temporary `string_view`. `readFileTailChunks()` seeks to the last requested number of bytes before streaming, and reports whether it skipped a prefix; the first chunk may start inside a logical record. Views are valid only during their callback. Returning `false` from the callback stops reading early and counts as success; path, open, read, or callback failures return `false` from either method. `copyRecursive()` streams regular files through the same 16 KiB chunk reader and atomic replacement path instead of buffering each complete source file in memory.
 
 ### Recursive operations
 

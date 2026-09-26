@@ -9,6 +9,7 @@
 #include <fstream>
 #include <iostream>
 #include <sstream>
+#include <stdexcept>
 
 namespace stdfs = std::filesystem;
 
@@ -254,16 +255,25 @@ bool Filesystem::copyRecursive(const std::string& srcVirtualPath, const std::str
     if (isFile(src)) {
         std::uint64_t expectedBytes = 0;
         if (!fileSize(src, expectedBytes)) return false;
-        std::string content;
-        if (!readFile(src, content)) return false;
-        if (content.size() != expectedBytes) return false;
-
-        // Directory copies create their destination tree before descending;
-        // direct file copies need the same parent-directory contract.
-        const size_t slash = dst.find_last_of('/');
-        const std::string parent = slash <= 0 ? "/" : dst.substr(0, slash);
-        if (!createDirectory(parent) && !isDirectory(parent)) return false;
-        return writeFile(dst, content);
+        return writeFileWithProducer(dst, [&](std::ostream& out) {
+            std::uint64_t copiedBytes = 0;
+            bool sourceValid = true;
+            const bool readSucceeded = readFileChunks(src, [&](std::string_view chunk) {
+                if (copiedBytes > expectedBytes
+                    || chunk.size() > expectedBytes - copiedBytes) {
+                    sourceValid = false;
+                    return false;
+                }
+                out.write(chunk.data(), static_cast<std::streamsize>(chunk.size()));
+                if (!out) {
+                    sourceValid = false;
+                    return false;
+                }
+                copiedBytes += static_cast<std::uint64_t>(chunk.size());
+                return true;
+            });
+            return readSucceeded && sourceValid && copiedBytes == expectedBytes;
+        });
     }
     if (!isDirectory(src)) {
         return false;
@@ -421,7 +431,11 @@ std::vector<Filesystem::DirEntry> Filesystem::filterEntries(const std::vector<Di
     return out;
 }
 
-bool Filesystem::writeFile(const std::string& virtualPath, const std::string& content) {
+bool Filesystem::writeFileWithProducer(
+    const std::string& virtualPath,
+    const std::function<bool(std::ostream&)>& produceContent) {
+    if (!produceContent) return false;
+
     try {
         const std::string hostPathString = toHostPath(virtualPath);
         if (hostPathString.empty()) return false;
@@ -452,15 +466,24 @@ bool Filesystem::writeFile(const std::string& virtualPath, const std::string& co
 
         return monolith::detail::writeAtomically(
             writePath,
-            [&content](std::ostream& out) {
-                out.write(content.data(), static_cast<std::streamsize>(content.size()));
+            [&produceContent](std::ostream& out) {
+                if (!produceContent(out)) {
+                    throw std::runtime_error("file content producer failed");
+                }
             },
             true,
             std::ios_base::out | std::ios_base::binary);
     } catch (const std::exception& e) {
-        std::cerr << "writeFile failed: " << e.what() << std::endl;
+        std::cerr << "writeFileWithProducer failed: " << e.what() << std::endl;
         return false;
     }
+}
+
+bool Filesystem::writeFile(const std::string& virtualPath, const std::string& content) {
+    return writeFileWithProducer(virtualPath, [&content](std::ostream& out) {
+        out.write(content.data(), static_cast<std::streamsize>(content.size()));
+        return static_cast<bool>(out);
+    });
 }
 
 std::string Filesystem::readFile(const std::string& virtualPath) const {

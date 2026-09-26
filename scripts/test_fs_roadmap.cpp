@@ -356,6 +356,13 @@ int main() {
     check(fs.isDirectory("/dst/folder"), "pasted folder");
     check(fs.isFile("/dst/folder/c.txt") && fs.readFile("/dst/folder/c.txt") == "charlie",
           "pasted nested file via copyRecursive");
+    check(fs.copyRecursive("/src/chunked.bin", "/dst/chunked-copy.bin")
+              && fs.readFile("/dst/chunked-copy.bin") == chunkedContent,
+          "recursive copy streams binary content across chunk boundaries");
+    check(fs.writeFile("/dst/chunked-overwrite.bin", "old")
+              && fs.copyRecursive("/src/chunked.bin", "/dst/chunked-overwrite.bin")
+              && fs.readFile("/dst/chunked-overwrite.bin") == chunkedContent,
+          "streamed recursive copy atomically replaces an existing file");
     check(fs.copyRecursive("/src/empty.txt", "/dst/empty.txt"),
           "copy empty file");
     std::uint64_t copiedEmptySize = 99;

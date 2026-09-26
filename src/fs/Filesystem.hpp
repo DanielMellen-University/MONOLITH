@@ -2,6 +2,7 @@
 
 #include <cstdint>
 #include <functional>
+#include <iosfwd>
 #include <string>
 #include <string_view>
 #include <vector>
@@ -184,6 +185,9 @@ public:
 
 private:
     bool isWithinHostRoot(const std::string& hostPath) const;
+    bool writeFileWithProducer(
+        const std::string& virtualPath,
+        const std::function<bool(std::ostream&)>& produceContent);
 
     std::string m_hostRoot;
 };
