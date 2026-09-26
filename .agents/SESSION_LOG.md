@@ -1,5 +1,7 @@
 # Session log
 
+| 2026-09-26 | perf | Added a bounded 16 KiB filesystem chunk reader and changed Terminal `cat` to normalize CRLF/lone-CR while streaming, cap its active row, and stop at the 5,000-line limit. |
+
 | 2026-09-26 | perf | Bounded Terminal scrollback to 2,000 rows, 8 MiB, and 64 KiB per row; rasterized viewport-fitting UTF-8 prefixes and invalidated the view cache on output, scroll, resize, and scale changes. |
 
 | 2026-09-26 | perf | Capped Text Editor undo/redo history at 50 states and estimated 64 MiB, preserved typing coalescing, and moved document buffers during history traversal. |

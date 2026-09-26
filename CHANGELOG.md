@@ -1,5 +1,11 @@
 # Changelog
 
+## 2026-09: Stream Terminal cat reads
+
+- Add a bounded 16 KiB filesystem chunk reader with early-stop support and binary-safe views.
+- Stream `cat` line parsing, normalize CRLF/lone-CR in place, cap the active row, and stop at the configured output-line limit without materializing or normalizing a second full-file copy.
+- Cover chunk boundaries, binary data, empty files, early termination, and Terminal line limits.
+
 ## 2026-09: Bound Terminal scrollback and text rendering
 
 - Cap scrollback at 2,000 rows and 8 MiB, with a 64 KiB per-row limit and a visible truncation marker.

@@ -28,7 +28,7 @@ public:
     void onVirtualPathRemoved(const std::string& path) override;
 
 private:
-    void addOutput(const std::string& line);
+    void addOutput(const std::string& line, bool lineWasTruncated = false);
     void submitInput();
     void executeCommand(const std::string& commandLine);
     void processTextInput(const char* text);

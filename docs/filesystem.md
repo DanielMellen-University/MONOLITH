@@ -52,7 +52,7 @@ The `monolith::fs::Filesystem` class provides:
 
 - `exists`, `isFile`, `isDirectory`
 - `createDirectory`, `remove`, `removeRecursive`, `rename`, `renameEntry`
-- `readFile`, `writeFile`, `fileSize` (`readFile(path, out)` reports read success separately from empty content)
+- `readFile`, `readFileChunks`, `writeFile`, `fileSize` (`readFile(path, out)` reports read success separately from empty content)
 - `copyRecursive` (file or directory tree; blocks copy into self/descendant)
 - `copyItemsInto` (multi-source paste into a directory, via `copyRecursive`)
 - `moveItemsInto` (multi-source cut/paste into a directory, via non-overwriting rename)
@@ -64,6 +64,8 @@ The `monolith::fs::Filesystem` class provides:
 `toHostPath()` returns an empty string when an existing symlink in the virtual path resolves outside the configured host root. `exists()` treats an in-root dangling symlink as an existing directory entry, so it can be removed or protected as a rename destination.
 
 Implementation: `src/fs/Filesystem.hpp`, `src/fs/Filesystem.cpp`.
+
+`readFile()` materializes the entire file. Consumers that can process data incrementally can use `readFileChunks()`, which passes at most 16 KiB at a time as a temporary `string_view`. The view is valid only during its callback. Returning `false` from the callback stops reading early and counts as success; path, open, read, or callback failures return `false` from the method.
 
 ### Recursive operations
 

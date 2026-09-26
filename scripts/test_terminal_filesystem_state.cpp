@@ -70,6 +70,23 @@ int main() {
     check(fs.writeFile("/home/monolith/note.txt", "hello"), "create regular file");
     check(fs.writeFile("/home/monolith/line-endings.txt", "first\r\nsecond\rthird\r"),
           "create mixed line-ending file");
+    std::string chunkBoundaryContent(16 * 1024 - 1, 'a');
+    chunkBoundaryContent += "\r\nb\r";
+    check(fs.writeFile("/home/monolith/chunk-boundary.txt", chunkBoundaryContent),
+          "create Terminal chunk-boundary line endings");
+    std::string manyCatLines;
+    for (int i = 0; i < 5001; ++i) {
+        manyCatLines += "line " + std::to_string(i);
+        if (i + 1 < 5001) manyCatLines.push_back('\n');
+    }
+    check(fs.writeFile("/home/monolith/many-lines.txt", manyCatLines),
+          "create Terminal cat line-limit fixture");
+    check(fs.writeFile("/home/monolith/long-line.txt",
+                       std::string(monolith::app::TerminalApp::kMaxScrollbackLineBytes + 100,
+                                   'z')),
+          "create Terminal long-line fixture");
+    check(fs.writeFile("/home/monolith/empty.txt", ""),
+          "create empty Terminal cat fixture");
     check(fs.writeFile("/home/monolith/my  file.txt", "exact spacing"),
           "create file with repeated spaces");
     check(fs.writeFile("/home/monolith/O'Brien.txt", "apostrophe path"),
@@ -273,6 +290,35 @@ int main() {
     terminal.executeCommand("cat /home/monolith/line-endings.txt");
     check(terminal.m_history == std::vector<std::string>{"first", "second", "third", ""},
           "cat normalizes CRLF and lone-CR line endings");
+
+    terminal.m_history.clear();
+    terminal.m_historyBytes = 0;
+    terminal.executeCommand("cat /home/monolith/chunk-boundary.txt");
+    check(terminal.m_history
+              == std::vector<std::string>{std::string(16 * 1024 - 1, 'a'), "b", ""},
+          "cat normalizes CRLF when its bytes cross a read-chunk boundary");
+
+    terminal.m_history.clear();
+    terminal.m_historyBytes = 0;
+    terminal.executeCommand("cat /home/monolith/long-line.txt");
+    check(terminal.m_history.size() == 1
+              && terminal.m_history.back().size()
+                  <= monolith::app::TerminalApp::kMaxScrollbackLineBytes
+              && terminal.m_history.back().rfind("[truncated] ", 0) == 0,
+          "cat truncates an oversized streamed row within the scrollback byte limit");
+
+    terminal.m_history.clear();
+    terminal.m_historyBytes = 0;
+    terminal.executeCommand("cat /home/monolith/empty.txt");
+    check(terminal.m_history == std::vector<std::string>{""},
+          "cat displays an empty row for an empty file");
+
+    terminal.m_history.clear();
+    terminal.m_historyBytes = 0;
+    terminal.executeCommand("cat /home/monolith/many-lines.txt");
+    check(terminal.m_history.size() == monolith::app::TerminalApp::kMaxScrollbackLines
+              && terminal.m_history.back() == "… cat: output truncated at 5000 lines",
+          "cat stops its chunk reader at the configured line limit");
 
     terminal.m_history.clear();
     terminal.m_historyBytes = 0;

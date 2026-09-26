@@ -8,6 +8,7 @@
 #include <ctime>
 #include <iomanip>
 #include <sstream>
+#include <string_view>
 #include <utility>
 
 namespace monolith::app {
@@ -30,22 +31,6 @@ void notifyChangedTree(IWindowController* controller,
             fs->join(sourcePath, entry.name),
             fs->join(destinationPath, entry.name));
     }
-}
-
-std::string normalizeLineEndings(const std::string& text) {
-    std::string normalized;
-    normalized.reserve(text.size());
-    for (size_t i = 0; i < text.size(); ++i) {
-        if (text[i] == '\r') {
-            if (i + 1 < text.size() && text[i + 1] == '\n') {
-                ++i;
-            }
-            normalized.push_back('\n');
-        } else {
-            normalized.push_back(text[i]);
-        }
-    }
-    return normalized;
 }
 
 } // namespace
@@ -97,11 +82,11 @@ void TerminalApp::onVirtualPathRemoved(const std::string& path) {
     addOutput("Working directory removed; moved to " + m_cwd);
 }
 
-void TerminalApp::addOutput(const std::string& line) {
+void TerminalApp::addOutput(const std::string& line, bool lineWasTruncated) {
     constexpr char truncationPrefix[] = "[truncated] ";
     constexpr size_t truncationPrefixBytes = sizeof(truncationPrefix) - 1;
     std::string storedLine;
-    if (line.size() > kMaxScrollbackLineBytes) {
+    if (lineWasTruncated || line.size() > kMaxScrollbackLineBytes) {
         const size_t contentLimit = kMaxScrollbackLineBytes - truncationPrefixBytes;
         const size_t contentBytes = utf8ClampToCodepointBoundary(line, contentLimit);
         storedLine.reserve(kMaxScrollbackLineBytes);
@@ -381,30 +366,70 @@ void TerminalApp::executeCommand(const std::string& commandLine) {
             if (!m_fs->isFile(path)) {
                 addOutput("cat: " + operand + ": No such file");
             } else {
-                std::string content;
-                if (!m_fs->readFile(path, content)) {
+                std::string line;
+                line.reserve(4096);
+                size_t linesOut = 0;
+                bool hasInput = false;
+                bool endedWithSeparator = false;
+                bool pendingCarriageReturn = false;
+                bool lineWasTruncated = false;
+                const bool readSucceeded = m_fs->readFileChunks(
+                    path,
+                    [&](std::string_view chunk) {
+                        hasInput = hasInput || !chunk.empty();
+                        size_t cursor = 0;
+                        while (cursor < chunk.size()) {
+                            if (pendingCarriageReturn) {
+                                pendingCarriageReturn = false;
+                                if (chunk[cursor] == '\n') {
+                                    ++cursor;
+                                    continue;
+                                }
+                            }
+
+                            const size_t separator = chunk.find_first_of("\r\n", cursor);
+                            const size_t segmentEnd = separator == std::string_view::npos
+                                ? chunk.size()
+                                : separator;
+                            const size_t segmentBytes = segmentEnd - cursor;
+                            if (segmentBytes > 0) {
+                                endedWithSeparator = false;
+                                const size_t availableBytes =
+                                    kMaxScrollbackLineBytes - line.size();
+                                const size_t storedBytes =
+                                    std::min(availableBytes, segmentBytes);
+                                if (storedBytes > 0) {
+                                    line.append(chunk.data() + cursor, storedBytes);
+                                }
+                                lineWasTruncated = lineWasTruncated
+                                    || storedBytes < segmentBytes;
+                            }
+
+                            if (separator == std::string_view::npos) break;
+                            const char lineEnding = chunk[separator];
+                            addOutput(line, lineWasTruncated);
+                            line.clear();
+                            lineWasTruncated = false;
+                            ++linesOut;
+                            endedWithSeparator = true;
+                            pendingCarriageReturn = lineEnding == '\r';
+                            cursor = separator + 1;
+                            if (linesOut >= kMaxCatLines) {
+                                addOutput("… cat: output truncated at "
+                                          + std::to_string(kMaxCatLines) + " lines");
+                                return false;
+                            }
+                        }
+                        return true;
+                    });
+                if (!readSucceeded) {
                     addOutput("cat: " + operand + ": Could not read file");
                     return;
                 }
-                content = normalizeLineEndings(content);
-                // Split into scrollback lines so multi-line files render correctly.
-                size_t linesOut = 0;
-                size_t start = 0;
-                while (start <= content.size()) {
-                    size_t nl = content.find('\n', start);
-                    if (nl == std::string::npos) {
-                        addOutput(content.substr(start));
-                        ++linesOut;
-                        break;
-                    }
-                    addOutput(content.substr(start, nl - start));
-                    ++linesOut;
-                    start = nl + 1;
-                    if (linesOut >= kMaxCatLines) {
-                        addOutput("… cat: output truncated at "
-                                  + std::to_string(kMaxCatLines) + " lines");
-                        break;
-                    }
+                if (!hasInput) addOutput("");
+                else if (linesOut < kMaxCatLines) {
+                    if (endedWithSeparator) addOutput("");
+                    else addOutput(line, lineWasTruncated);
                 }
             }
         } else if (!m_fs) {

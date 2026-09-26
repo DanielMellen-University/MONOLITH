@@ -61,6 +61,10 @@ int main() {
         std::string escapedContent;
         check(!fs.readFile("/escape/secret.txt", escapedContent),
               "read rejects outside symlink target");
+        check(!fs.readFileChunks("/escape/secret.txt", [](std::string_view) {
+                  return true;
+              }),
+              "chunk reader rejects outside symlink target");
         check(!fs.writeFile("/escape/new.txt", "blocked"),
               "write rejects outside symlink target");
         const auto rootEntries = fs.list("/");
@@ -264,6 +268,44 @@ int main() {
           "explicit read returns file content");
     check(!fs.readFile("/src/missing.txt", explicitRead),
           "explicit read reports missing file");
+
+    std::string chunkedContent(16 * 1024 * 2 + 7, 'q');
+    chunkedContent[16 * 1024 - 1] = '\0';
+    check(fs.writeFile("/src/chunked.bin", chunkedContent),
+          "write chunked binary file");
+    std::string streamedContent;
+    size_t streamedChunks = 0;
+    size_t largestChunk = 0;
+    const bool streamed = fs.readFileChunks(
+        "/src/chunked.bin",
+        [&](std::string_view chunk) {
+            ++streamedChunks;
+            largestChunk = std::max(largestChunk, chunk.size());
+            streamedContent.append(chunk);
+            return true;
+        });
+    check(streamed && streamedContent == chunkedContent
+              && streamedChunks == 3 && largestChunk <= 16 * 1024,
+          "chunk reader preserves binary bytes in bounded pieces");
+    std::string firstChunk;
+    check(fs.readFileChunks("/src/chunked.bin", [&](std::string_view chunk) {
+              firstChunk.assign(chunk);
+              return false;
+          })
+              && firstChunk == chunkedContent.substr(0, 16 * 1024),
+          "chunk reader treats an early consumer stop as success");
+    size_t emptyFileChunks = 0;
+    check(fs.readFileChunks("/src/empty.txt", [&](std::string_view) {
+              ++emptyFileChunks;
+              return true;
+          })
+              && emptyFileChunks == 0,
+          "chunk reader distinguishes an empty file from a read failure");
+    check(!fs.readFileChunks("/src/missing.txt", [](std::string_view) {
+              return true;
+          }),
+          "chunk reader reports a missing file");
+
     std::uint64_t emptySize = 99;
     check(fs.fileSize("/src/empty.txt", emptySize) && emptySize == 0,
           "empty file reports zero bytes");

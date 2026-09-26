@@ -3,6 +3,7 @@
 #include "../detail/AtomicFile.hpp"
 
 #include <algorithm>
+#include <array>
 #include <cctype>
 #include <filesystem>
 #include <fstream>
@@ -487,6 +488,34 @@ bool Filesystem::readFile(const std::string& virtualPath, std::string& outConten
 
         outContent = std::move(buffer);
         return true;
+    } catch (...) {
+        return false;
+    }
+}
+
+bool Filesystem::readFileChunks(const std::string& virtualPath,
+                                const FileChunkConsumer& consumeChunk) const {
+    if (!consumeChunk) return false;
+
+    try {
+        const stdfs::path hostPath = toHostPath(virtualPath);
+        if (!stdfs::is_regular_file(hostPath)) return false;
+
+        std::ifstream file(hostPath, std::ios::binary);
+        if (!file) return false;
+
+        std::array<char, 16 * 1024> chunk{};
+        while (true) {
+            file.read(chunk.data(), static_cast<std::streamsize>(chunk.size()));
+            const std::streamsize count = file.gcount();
+            if (count > 0
+                && !consumeChunk(std::string_view(
+                    chunk.data(), static_cast<std::size_t>(count)))) {
+                return true;
+            }
+            if (file.eof()) return true;
+            if (!file) return false;
+        }
     } catch (...) {
         return false;
     }

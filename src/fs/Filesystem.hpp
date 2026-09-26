@@ -1,7 +1,9 @@
 #pragma once
 
 #include <cstdint>
+#include <functional>
 #include <string>
+#include <string_view>
 #include <vector>
 
 namespace monolith::fs {
@@ -16,6 +18,8 @@ namespace monolith::fs {
  */
 class Filesystem {
 public:
+    using FileChunkConsumer = std::function<bool(std::string_view)>;
+
     /**
      * Constructs a filesystem rooted at the given host directory.
      * The directory will be created if it doesn't exist when initialize() is called.
@@ -77,6 +81,14 @@ public:
 
     /** Reads a file while preserving the distinction between empty content and failure. */
     bool readFile(const std::string& virtualPath, std::string& outContent) const;
+
+    /**
+     * Reads a regular file in bounded 16 KiB chunks. The chunk view is valid only
+     * during the callback. Return false from the consumer to stop early; an early
+     * stop is successful, while path, open, read, or callback failures return false.
+     */
+    bool readFileChunks(const std::string& virtualPath,
+                        const FileChunkConsumer& consumeChunk) const;
 
     /**
      * Byte size of a regular file. Returns false if missing or not a regular file.

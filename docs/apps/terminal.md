@@ -91,7 +91,7 @@ Completion replaces only the token text before the cursor. Opening quotes remain
 
 When the cursor is immediately after a closed quoted token, Tab does nothing. The existing closing quote is already part of a complete command, so completion does not rewrite it or reopen the quote.
 
-`cat` prints one scrollback line per file line (truncated after many lines so huge files cannot flood the terminal). CRLF and lone-CR separators are normalized to LF before output. It reports a read failure separately from a valid empty file.
+`cat` reads in bounded 16 KiB chunks instead of copying the entire file before displaying it. CRLF and lone-CR separators are normalized as they are read, including when CRLF crosses a chunk boundary. It stops at 5,000 output lines, keeps at most 64 KiB of an in-progress row, and reports read failure separately from an empty file.
 
 After a successful `mv`, any open Text Editor or Drawing window bound to the source path follows the normalized destination path. Moving a directory also updates bindings for open files beneath it, and any Terminal or Filesystem Browser currently inside that directory follows the new location.
 
