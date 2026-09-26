@@ -171,8 +171,9 @@ bool WindowManager::tryHandleShellHotkeys(const SDL_Event& event) {
                 }
             }
             if (usable) {
-                m_startMenuFilter.append(text);
-                applyStartMenuFilterEdit();
+                if (appendStartMenuFilterInput(m_startMenuFilter, text) > 0) {
+                    applyStartMenuFilterEdit();
+                }
             }
         }
         return true;

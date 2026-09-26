@@ -12,6 +12,8 @@ grep -q 'filterStartMenuRows' src/window/StartMenuFilter.hpp \
   || fail "filterStartMenuRows missing from StartMenuFilter.hpp"
 grep -q 'startMenuLabelMatches' src/window/StartMenuFilter.hpp \
   || fail "startMenuLabelMatches missing"
+grep -q 'appendStartMenuFilterInput' src/window/StartMenuFilter.hpp \
+  || fail "bounded Start-menu filter input helper missing"
 
 if ! grep -q 'm_startMenuFilter' src/window/WindowManager_private.inc \
    && ! grep -q 'm_startMenuFilter' src/window/WindowManager.hpp; then
@@ -33,6 +35,8 @@ grep -q 'm_startMenuFilter' src/window/detail/wm_start_menu_rows.inc \
 
 grep -q 'SDL_TEXTINPUT' src/window/detail/wm_body_08c.inc \
   || fail "TEXTINPUT not wired for Start menu type-ahead"
+grep -q 'appendStartMenuFilterInput' src/window/detail/wm_body_08c.inc \
+  || fail "Start menu text input must use its bounded UTF-8 append helper"
 grep -q 'SDLK_BACKSPACE' src/window/detail/wm_body_08c.inc \
   || fail "Backspace not wired for Start menu filter"
 grep -q 'm_startMenuFilter.clear()' src/window/detail/wm_body_08c.inc \

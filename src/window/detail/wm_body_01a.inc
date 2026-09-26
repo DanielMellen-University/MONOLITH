@@ -50,6 +50,23 @@ void WindowManager::destroyShellTextCache() {
         }
     }
     m_shellTextCache.clear();
+    m_shellTextCacheLru.clear();
+    m_shellTextCacheBytes = 0;
+}
+
+void WindowManager::trimShellTextCacheFor(std::size_t incomingBytes) {
+    while (!m_shellTextCacheLru.empty()
+           && (m_shellTextCache.size() >= kMaxShellTextCacheEntries
+               || m_shellTextCacheBytes > kMaxShellTextCacheBytes - incomingBytes)) {
+        const auto oldest = std::prev(m_shellTextCacheLru.end());
+        const auto cached = m_shellTextCache.find(*oldest);
+        if (cached != m_shellTextCache.end()) {
+            if (cached->second.texture) SDL_DestroyTexture(cached->second.texture);
+            m_shellTextCacheBytes -= cached->second.estimatedBytes;
+            m_shellTextCache.erase(cached);
+        }
+        m_shellTextCacheLru.erase(oldest);
+    }
 }
 
 SDL_Texture* WindowManager::getShellTextTexture(SDL_Renderer* renderer, const char* text,
@@ -58,7 +75,13 @@ SDL_Texture* WindowManager::getShellTextTexture(SDL_Renderer* renderer, const ch
     height = 0;
     if (!renderer || !m_font || !text) return nullptr;
 
-    std::string key(text);
+    constexpr std::size_t fixedKeyOverhead = sizeof(ShellTextCacheEntry) + 128;
+    const std::size_t textBytes = std::strlen(text);
+    if (textBytes > (kMaxShellTextCacheBytes - fixedKeyOverhead) / 2) {
+        return nullptr;
+    }
+
+    std::string key(text, textBytes);
     key.push_back('\0');
     key.push_back(static_cast<char>(color.r));
     key.push_back(static_cast<char>(color.g));
@@ -67,13 +90,38 @@ SDL_Texture* WindowManager::getShellTextTexture(SDL_Renderer* renderer, const ch
 
     auto cached = m_shellTextCache.find(key);
     if (cached != m_shellTextCache.end()) {
+        m_shellTextCacheLru.splice(
+            m_shellTextCacheLru.begin(), m_shellTextCacheLru,
+            cached->second.lruPosition);
         width = cached->second.width;
         height = cached->second.height;
         return cached->second.texture;
     }
 
+    int measuredWidth = 0;
+    int measuredHeight = 0;
+    if (TTF_SizeUTF8(m_font, text, &measuredWidth, &measuredHeight) != 0
+        || measuredWidth <= 0 || measuredHeight <= 0) {
+        return nullptr;
+    }
+    const std::size_t keyOverhead = key.size() * 2 + fixedKeyOverhead;
+    if (keyOverhead >= kMaxShellTextCacheBytes
+        || static_cast<std::size_t>(measuredWidth)
+            > (kMaxShellTextCacheBytes - keyOverhead)
+                / (static_cast<std::size_t>(measuredHeight) * 4)) {
+        return nullptr;
+    }
+
     SDL_Surface* surface = TTF_RenderUTF8_Blended(m_font, text, color);
     if (!surface) return nullptr;
+
+    const std::size_t rasterBytes = static_cast<std::size_t>(surface->pitch)
+        * static_cast<std::size_t>(surface->h);
+    const std::size_t entryBytes = rasterBytes + keyOverhead;
+    if (entryBytes > kMaxShellTextCacheBytes) {
+        SDL_FreeSurface(surface);
+        return nullptr;
+    }
 
     SDL_Texture* texture = SDL_CreateTextureFromSurface(renderer, surface);
     if (!texture) {
@@ -88,7 +136,13 @@ SDL_Texture* WindowManager::getShellTextTexture(SDL_Renderer* renderer, const ch
     width = entry.width;
     height = entry.height;
     SDL_FreeSurface(surface);
+
+    trimShellTextCacheFor(entryBytes);
+    m_shellTextCacheLru.push_front(key);
+    entry.estimatedBytes = entryBytes;
+    entry.lruPosition = m_shellTextCacheLru.begin();
     m_shellTextCache.emplace(std::move(key), entry);
+    m_shellTextCacheBytes += entryBytes;
     return texture;
 }
 

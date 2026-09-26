@@ -1,5 +1,11 @@
 # Changelog
 
+## 2026-09: Bound shell text texture caching
+
+- Limit WindowManager's text-and-color texture cache to 256 entries and an estimated 16 MiB, evicting least-recently-used labels as windows and search text change.
+- Cap Start-menu search input at 64 UTF-8 bytes without splitting codepoints; every current actionable menu label remains searchable.
+- Cover LRU reuse, entry and byte eviction, and bounded UTF-8 input.
+
 ## 2026-09: Seek directly to Terminal history tail
 
 - Add bounded tail-chunk reads to the virtual filesystem and seek past unused history prefixes at startup.

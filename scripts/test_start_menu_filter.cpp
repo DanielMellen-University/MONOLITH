@@ -1,6 +1,7 @@
 // Headless checks for Start menu type-ahead filter helpers (no WindowManager).
 #include "../src/window/StartMenuFilter.hpp"
 
+#include <algorithm>
 #include <iostream>
 #include <string>
 #include <vector>
@@ -23,6 +24,28 @@ int main() {
     check(startMenuLabelMatches("Text Editor", "edit"), "mid-label substring match");
     check(!startMenuLabelMatches("Pong", "snake"), "non-matching label is rejected");
     check(!startMenuLabelMatches(nullptr, "x"), "null label does not match non-empty filter");
+
+    std::size_t longestActionLabel = 0;
+    for (const auto& row : buildStartMenuRows()) {
+        if (row.action >= 0 && row.label) {
+            longestActionLabel = std::max(longestActionLabel, std::string(row.label).size());
+        }
+    }
+    check(longestActionLabel < kMaxStartMenuFilterBytes,
+          "filter byte limit exceeds every actionable menu label");
+
+    std::string boundedFilter(kMaxStartMenuFilterBytes - 3, 'x');
+    const std::size_t appendedBytes = appendStartMenuFilterInput(
+        boundedFilter, "\xC3\xA9" "yz");
+    check(appendedBytes == 3 && boundedFilter.size() == kMaxStartMenuFilterBytes
+              && boundedFilter.substr(boundedFilter.size() - 3) == "\xC3\xA9" "y",
+          "filter input stops at the byte cap without splitting UTF-8 codepoints");
+    check(appendStartMenuFilterInput(boundedFilter, "more") == 0,
+          "filter input cannot grow beyond its byte cap");
+    std::string incompleteFilter;
+    check(appendStartMenuFilterInput(incompleteFilter, "\xE2\x82") == 0
+              && incompleteFilter.empty(),
+          "filter input ignores an incomplete trailing UTF-8 codepoint");
 
     const auto all = buildStartMenuRows();
     const auto same = filterStartMenuRows(all, "");

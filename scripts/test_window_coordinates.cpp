@@ -8,6 +8,7 @@
 #include <cstdlib>
 #include <iostream>
 #include <memory>
+#include <string>
 
 namespace {
 
@@ -273,6 +274,63 @@ int main() {
               && secondAltTabTexture == firstAltTabTexture
               && wm.m_shellTextCache.size() == altTabCacheSize,
           "shell text reuses Alt+Tab overlay textures between frames");
+
+    const SDL_Color cacheWhite = {255, 255, 255, 255};
+    auto shellTextKey = [](const std::string& text, SDL_Color color) {
+        std::string key = text;
+        key.push_back('\0');
+        key.push_back(static_cast<char>(color.r));
+        key.push_back(static_cast<char>(color.g));
+        key.push_back(static_cast<char>(color.b));
+        key.push_back(static_cast<char>(color.a));
+        return key;
+    };
+    int cachedWidth = 0;
+    int cachedHeight = 0;
+    wm.getShellTextTexture(renderer, "Start", cacheWhite, cachedWidth, cachedHeight);
+    const std::string retainedShellKey = shellTextKey("Start", cacheWhite);
+    const std::string firstTransientLabel = "Transient shell label 0";
+    const std::string firstTransientKey = shellTextKey(firstTransientLabel, cacheWhite);
+    const std::size_t transientCount = wm.kMaxShellTextCacheEntries + 32;
+    const std::size_t transientHalf = transientCount / 2;
+    for (std::size_t i = 0; i < transientHalf; ++i) {
+        const std::string label = "Transient shell label " + std::to_string(i);
+        wm.getShellTextTexture(renderer, label.c_str(), cacheWhite, cachedWidth, cachedHeight);
+    }
+    wm.getShellTextTexture(renderer, "Start", cacheWhite, cachedWidth, cachedHeight);
+    for (std::size_t i = transientHalf; i < transientCount; ++i) {
+        const std::string label = "Transient shell label " + std::to_string(i);
+        wm.getShellTextTexture(renderer, label.c_str(), cacheWhite, cachedWidth, cachedHeight);
+    }
+    const std::string lastTransientKey = shellTextKey(
+        "Transient shell label " + std::to_string(transientCount - 1), cacheWhite);
+    check(wm.m_shellTextCache.size() <= wm.kMaxShellTextCacheEntries
+              && wm.m_shellTextCacheBytes <= wm.kMaxShellTextCacheBytes
+              && wm.m_shellTextCache.find(retainedShellKey) != wm.m_shellTextCache.end()
+              && wm.m_shellTextCache.find(firstTransientKey) == wm.m_shellTextCache.end()
+              && wm.m_shellTextCache.find(lastTransientKey) != wm.m_shellTextCache.end(),
+          "shell text cache evicts least-recently-used textures within its entry cap");
+
+    wm.destroyShellTextCache();
+    bool longLabelsRendered = true;
+    std::string longLabel(512, 'x');
+    std::string firstLargeKey;
+    std::string lastLargeKey;
+    for (int i = 0; i < 80; ++i) {
+        longLabel.back() = static_cast<char>('a' + i % 26);
+        const std::string label = longLabel + std::to_string(i);
+        const std::string key = shellTextKey(label, cacheWhite);
+        if (i == 0) firstLargeKey = key;
+        if (i == 79) lastLargeKey = key;
+        longLabelsRendered = wm.getShellTextTexture(
+            renderer, label.c_str(), cacheWhite, cachedWidth, cachedHeight) != nullptr
+            && longLabelsRendered;
+    }
+    check(longLabelsRendered
+              && wm.m_shellTextCacheBytes <= wm.kMaxShellTextCacheBytes
+              && wm.m_shellTextCache.find(firstLargeKey) == wm.m_shellTextCache.end()
+              && wm.m_shellTextCache.find(lastLargeKey) != wm.m_shellTextCache.end(),
+          "shell texture cache evicts by estimated memory before reaching its byte budget");
     wm.endAltTabCycle();
     wm.m_desktopIconSelected = 1;
     wm.m_desktopIconLastClickIndex = 1;

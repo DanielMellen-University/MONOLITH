@@ -3,10 +3,44 @@
 #include "AppRegistry.hpp"
 
 #include <cstring>
+#include <string>
 #include <string_view>
 #include <vector>
 
 namespace monolith::window {
+
+inline constexpr std::size_t kMaxStartMenuFilterBytes = 64;
+
+// Appends complete UTF-8 codepoints up to the filter's byte budget.
+inline std::size_t appendStartMenuFilterInput(std::string& filter,
+                                              std::string_view input) {
+    std::size_t remaining = filter.size() < kMaxStartMenuFilterBytes
+        ? kMaxStartMenuFilterBytes - filter.size()
+        : 0;
+    const std::size_t initialSize = filter.size();
+    for (std::size_t start = 0; start < input.size();) {
+        const unsigned char lead = static_cast<unsigned char>(input[start]);
+        const std::size_t codepointBytes = lead < 0x80 ? 1
+            : (lead & 0xE0) == 0xC0 ? 2
+            : (lead & 0xF0) == 0xE0 ? 3
+            : (lead & 0xF8) == 0xF0 ? 4
+            : 1;
+        if (start + codepointBytes > input.size()) break;
+
+        bool validContinuation = true;
+        for (std::size_t offset = 1; offset < codepointBytes; ++offset) {
+            if ((static_cast<unsigned char>(input[start + offset]) & 0xC0) != 0x80) {
+                validContinuation = false;
+                break;
+            }
+        }
+        if (!validContinuation || codepointBytes > remaining) break;
+        filter.append(input.data() + start, codepointBytes);
+        remaining -= codepointBytes;
+        start += codepointBytes;
+    }
+    return filter.size() - initialSize;
+}
 
 inline char startMenuAsciiLower(char c) {
     if (c >= 'A' && c <= 'Z') return static_cast<char>(c - 'A' + 'a');
