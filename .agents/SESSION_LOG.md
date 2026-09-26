@@ -1,5 +1,7 @@
 # Session log
 
+| 2026-09-26 | perf | Bounded Terminal command history at 500 entries, 2 MiB total, and 64 KiB per command; streamed history loading, retained the newest valid entries, and covered legacy oversized files and commands. |
+
 | 2026-09-26 | perf | Rasterized only viewport-intersecting UTF-8 syntax spans in the Text Editor and invalidated cached surfaces when the scroll position or client size changes; covered long-line surface bounds and scroll invalidation. |
 
 | 2026-09-26 | perf | Added a bounded 16 KiB filesystem chunk reader and changed Terminal `cat` to normalize CRLF/lone-CR while streaming, cap its active row, and stop at the 5,000-line limit. |

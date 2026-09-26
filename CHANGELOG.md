@@ -1,5 +1,11 @@
 # Changelog
 
+## 2026-09: Bound Terminal command history memory
+
+- Cap persistent command history at 500 entries and 2 MiB, with a 64 KiB per-command limit; evict oldest entries first.
+- Stream history-file loading and retain only the newest valid commands within both budgets.
+- Keep oversized commands executable while warning that they will not be retained in history.
+
 ## 2026-09: Rasterize only visible Text Editor spans
 
 - Render and cache only UTF-8 syntax-span slices that intersect the horizontal text viewport, avoiding full-width surfaces for long lines.

@@ -109,7 +109,7 @@ Command history persists across sessions in:
 /home/monolith/.terminal_history
 ```
 
-History is saved after each submitted command. Command history is capped at 500 entries (oldest entries drop). On-screen scrollback retains at most 2,000 rows and 8 MiB; an individual row is capped at 64 KiB and marked `[truncated]`. Excess oldest rows are dropped together when new output arrives, keeping large bursts from repeatedly shifting the front of the vector.
+History is saved after each submitted command. Command history retains at most 500 entries and 2 MiB total, with a 64 KiB limit per command; older entries drop first. A command longer than 64 KiB still runs, but Terminal reports that it was omitted from history. Startup reads the history file in bounded chunks, keeps only the newest entries that fit those limits, and rewrites oversized legacy files in the bounded format. On-screen scrollback retains at most 2,000 rows and 8 MiB; an individual row is capped at 64 KiB and marked `[truncated]`. Excess oldest rows are dropped together when new output arrives, keeping large bursts from repeatedly shifting the front of the vector.
 
 History loading accepts both Unix and Windows line endings, so recalled commands do not carry a hidden carriage return into command parsing.
 
@@ -164,4 +164,4 @@ Main implementation files:
 
 Launched via `WindowManager::launchTerminal()`.
 
-Scrollback caps: 2,000 rows, 8 MiB total, and 64 KiB per row. Command history cap: 500 entries. `cat` emits at most 5,000 file lines before the scrollback caps apply.
+Scrollback caps: 2,000 rows, 8 MiB total, and 64 KiB per row. Command history caps: 500 entries, 2 MiB total, and 64 KiB per entry. `cat` emits at most 5,000 file lines before the scrollback caps apply.

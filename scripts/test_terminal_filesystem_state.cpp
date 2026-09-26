@@ -168,6 +168,65 @@ int main() {
               && terminal.m_commandHistory.back() == "new command",
           "command history keeps its cap when a new command arrives");
 
+    terminal.m_commandHistory.assign(
+        40, std::string(monolith::app::TerminalApp::kMaxCommandHistoryEntryBytes, 'o'));
+    terminal.m_inputBuffer = "echo recent";
+    terminal.m_inputCursorPos = static_cast<int>(terminal.m_inputBuffer.size());
+    terminal.submitInput();
+    size_t retainedCommandHistoryBytes = 0;
+    for (const auto& command : terminal.m_commandHistory) {
+        retainedCommandHistoryBytes += command.size() + 1;
+    }
+    std::uint64_t savedHistoryBytes = 0;
+    check(terminal.m_commandHistory.back() == "echo recent"
+              && terminal.m_commandHistory.size() < 40
+              && retainedCommandHistoryBytes
+                  <= monolith::app::TerminalApp::kMaxCommandHistoryBytes
+              && fs.fileSize(monolith::app::TerminalApp::HISTORY_FILE, savedHistoryBytes)
+              && savedHistoryBytes <= monolith::app::TerminalApp::kMaxCommandHistoryBytes,
+          "command history trims oldest entries to its byte budget before persisting");
+
+    const auto historyBeforeOversizedCommand = terminal.m_commandHistory;
+    terminal.m_inputBuffer = std::string(
+        monolith::app::TerminalApp::kMaxCommandHistoryEntryBytes + 1, 'x');
+    terminal.m_inputCursorPos = static_cast<int>(terminal.m_inputBuffer.size());
+    terminal.submitInput();
+    check(terminal.m_commandHistory == historyBeforeOversizedCommand
+              && std::find(terminal.m_history.begin(), terminal.m_history.end(),
+                           "Command not saved to history: exceeds 64 KiB.")
+                     != terminal.m_history.end()
+              && std::any_of(terminal.m_history.begin(), terminal.m_history.end(),
+                             [](const std::string& line) {
+                                 return line.find("Unknown command: ") != std::string::npos;
+                             }),
+          "oversized commands still execute but are not retained in history");
+
+    std::string legacyHistory;
+    const std::string legacyHistoryEntry = std::string(1000, 'l') + '\n';
+    legacyHistory.reserve(legacyHistoryEntry.size() * 3000
+                          + monolith::app::TerminalApp::kMaxCommandHistoryEntryBytes + 20);
+    for (int i = 0; i < 3000; ++i) legacyHistory += legacyHistoryEntry;
+    legacyHistory += std::string(
+        monolith::app::TerminalApp::kMaxCommandHistoryEntryBytes + 1, 'x') + '\n';
+    legacyHistory += "echo newest\n";
+    check(fs.writeFile(monolith::app::TerminalApp::HISTORY_FILE, legacyHistory),
+          "write oversized legacy command history fixture");
+    TestTerminal loadedHistoryTerminal(font, &fs);
+    size_t loadedCommandHistoryBytes = 0;
+    for (const auto& command : loadedHistoryTerminal.m_commandHistory) {
+        loadedCommandHistoryBytes += command.size() + 1;
+    }
+    std::uint64_t migratedHistoryBytes = 0;
+    check(loadedHistoryTerminal.m_commandHistory.size()
+                  <= monolith::app::TerminalApp::kMaxCommandHistory
+              && loadedCommandHistoryBytes
+                  <= monolith::app::TerminalApp::kMaxCommandHistoryBytes
+              && loadedHistoryTerminal.m_commandHistory.back() == "echo newest"
+              && fs.fileSize(monolith::app::TerminalApp::HISTORY_FILE, migratedHistoryBytes)
+              && migratedHistoryBytes
+                  <= monolith::app::TerminalApp::kMaxCommandHistoryBytes,
+          "streamed history loading keeps newest entries bounded and migrates oversized files");
+
     auto key = [&](SDL_Keycode sym, SDL_Keymod mod = KMOD_NONE) {
         SDL_Keysym keysym{};
         keysym.sym = sym;

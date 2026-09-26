@@ -82,6 +82,8 @@ private:
     static constexpr size_t kMaxScrollbackBytes = 8 * 1024 * 1024;
     static constexpr size_t kMaxScrollbackLineBytes = 64 * 1024;
     static constexpr size_t kMaxCommandHistory = 500;
+    static constexpr size_t kMaxCommandHistoryBytes = 2 * 1024 * 1024;
+    static constexpr size_t kMaxCommandHistoryEntryBytes = 64 * 1024;
     static constexpr size_t kMaxCatLines = 5000;
     size_t m_historyBytes = 0;
     std::string m_inputBuffer;
@@ -116,9 +118,9 @@ private:
     static constexpr const char* HISTORY_FILE = "/home/monolith/.terminal_history";
     void loadCommandHistory();
     void saveCommandHistory();
+    void trimCommandHistory();
 
-    // Simple auto-scroll: we always try to show the newest content
-    // For v1 we keep all history and draw the bottom portion + input line
+    // Scrollback offset 0 shows the newest retained output.
 };
 
 } // namespace monolith::app

@@ -97,34 +97,99 @@ void TerminalApp::searchPreviousMatch() {
 void TerminalApp::loadCommandHistory() {
     if (!m_fs) return;
 
-    std::string content;
-    if (!m_fs->readFile(HISTORY_FILE, content) || content.empty()) return;
+    std::deque<std::string> newestCommands;
+    size_t retainedBytes = 0;
+    std::string pendingLine;
+    bool skipOversizedLine = false;
+    std::uint64_t historyFileBytes = 0;
+    bool historyNeedsSave = m_fs->fileSize(HISTORY_FILE, historyFileBytes)
+        && historyFileBytes > kMaxCommandHistoryBytes;
 
-    std::istringstream iss(content);
-    std::string line;
-    while (std::getline(iss, line)) {
+    auto retainLine = [&](std::string line) {
         if (!line.empty() && line.back() == '\r') line.pop_back();
-        if (!line.empty()) {
-            m_commandHistory.push_back(line);
+        if (line.empty()) return;
+        if (line.size() > kMaxCommandHistoryEntryBytes) {
+            historyNeedsSave = true;
+            return;
         }
-    }
-    if (m_commandHistory.size() > kMaxCommandHistory) {
-        const auto excess = m_commandHistory.size() - kMaxCommandHistory;
-        m_commandHistory.erase(
-            m_commandHistory.begin(),
-            m_commandHistory.begin()
-                + static_cast<std::vector<std::string>::difference_type>(excess));
-    }
+
+        const size_t entryBytes = line.size() + 1;
+        while (!newestCommands.empty()
+               && (newestCommands.size() >= kMaxCommandHistory
+                   || entryBytes > kMaxCommandHistoryBytes - retainedBytes)) {
+            historyNeedsSave = true;
+            retainedBytes -= newestCommands.front().size() + 1;
+            newestCommands.pop_front();
+        }
+        retainedBytes += entryBytes;
+        newestCommands.push_back(std::move(line));
+    };
+
+    const bool read = m_fs->readFileChunks(HISTORY_FILE, [&](std::string_view chunk) {
+        for (const char ch : chunk) {
+            if (ch == '\n') {
+                if (!skipOversizedLine) retainLine(std::move(pendingLine));
+                pendingLine.clear();
+                skipOversizedLine = false;
+            } else if (!skipOversizedLine) {
+                if (pendingLine.size() > kMaxCommandHistoryEntryBytes) {
+                    pendingLine.clear();
+                    skipOversizedLine = true;
+                    historyNeedsSave = true;
+                } else {
+                    pendingLine.push_back(ch);
+                }
+            }
+        }
+        return true;
+    });
+    if (!read) return;
+    if (!skipOversizedLine && !pendingLine.empty()) retainLine(std::move(pendingLine));
+
+    m_commandHistory.assign(newestCommands.begin(), newestCommands.end());
+    if (historyNeedsSave) saveCommandHistory();
 }
 
 void TerminalApp::saveCommandHistory() {
     if (!m_fs) return;
 
-    std::ostringstream oss;
+    trimCommandHistory();
+    size_t contentBytes = 0;
     for (const auto& cmd : m_commandHistory) {
-        oss << cmd << '\n';
+        contentBytes += cmd.size() + 1;
     }
-    m_fs->writeFile(HISTORY_FILE, oss.str());
+    std::string content;
+    content.reserve(contentBytes);
+    for (const auto& cmd : m_commandHistory) {
+        content += cmd;
+        content.push_back('\n');
+    }
+    m_fs->writeFile(HISTORY_FILE, content);
+}
+
+void TerminalApp::trimCommandHistory() {
+    m_commandHistory.erase(
+        std::remove_if(m_commandHistory.begin(), m_commandHistory.end(), [](const auto& command) {
+            return command.empty() || command.size() > kMaxCommandHistoryEntryBytes;
+        }),
+        m_commandHistory.end());
+
+    while (!m_commandHistory.empty()) {
+        size_t bytes = 0;
+        for (const auto& command : m_commandHistory) {
+            const size_t entryBytes = command.size() + 1;
+            if (entryBytes > kMaxCommandHistoryBytes - bytes) {
+                bytes = kMaxCommandHistoryBytes + 1;
+                break;
+            }
+            bytes += entryBytes;
+        }
+        if (m_commandHistory.size() <= kMaxCommandHistory
+            && bytes <= kMaxCommandHistoryBytes) {
+            break;
+        }
+        m_commandHistory.erase(m_commandHistory.begin());
+    }
 }
 
 void TerminalApp::handleTabCompletion() {

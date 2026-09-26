@@ -6,6 +6,7 @@
 #include <algorithm>
 #include <cctype>
 #include <ctime>
+#include <deque>
 #include <iomanip>
 #include <sstream>
 #include <string_view>
@@ -127,15 +128,13 @@ void TerminalApp::submitInput() {
     addOutput(getInputPrompt() + command);
 
     if (!command.empty()) {
-        m_commandHistory.push_back(command);
-        if (m_commandHistory.size() > kMaxCommandHistory) {
-            const auto excess = m_commandHistory.size() - kMaxCommandHistory;
-            m_commandHistory.erase(
-                m_commandHistory.begin(),
-                m_commandHistory.begin()
-                    + static_cast<std::vector<std::string>::difference_type>(excess));
+        if (command.size() <= kMaxCommandHistoryEntryBytes) {
+            m_commandHistory.push_back(command);
+            trimCommandHistory();
+            saveCommandHistory();
+        } else {
+            addOutput("Command not saved to history: exceeds 64 KiB.");
         }
-        saveCommandHistory();
         executeCommand(command);
     } else {
         addOutput(""); // blank line for empty input
