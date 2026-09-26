@@ -14,6 +14,8 @@ The runner builds the generated source fragments, compiles the existing tests in
 
 The cloud job also configures and builds the complete `monolith` executable before running this suite. A green workflow therefore covers both application compilation and the headless state, renderer, lifecycle, and integration checks.
 
+CMake tracks every decompressed main and Settings fragment as an output and watches the compressed-fragment globs for additions or removals. An incremental build therefore regenerates missing secondary includes and reconfigures when the fragment set changes.
+
 The focused SDL commands below only show the compile step and binary name to keep them readable. When running them without a display, use the same drivers as the suite, for example:
 
 ```bash

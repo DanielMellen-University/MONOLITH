@@ -29,9 +29,20 @@ add_custom_target(monolith_stb_image DEPENDS "${MONOLITH_STB_IMAGE_AMALGAM}")
 # Decompress SettingsApp body includes (MCP-friendly compressed fragments).
 set(MONOLITH_SETTINGS_BODIES_DIR "${CMAKE_CURRENT_BINARY_DIR}/generated/settings")
 file(GLOB MONOLITH_SETTINGS_BODY_Z64
+    CONFIGURE_DEPENDS
     "${CMAKE_SOURCE_DIR}/src/app/SettingsApp_body_*.inc.z64")
+if(NOT MONOLITH_SETTINGS_BODY_Z64)
+    message(FATAL_ERROR "No compressed Settings source fragments found")
+endif()
+set(MONOLITH_SETTINGS_BODY_OUTPUTS)
+foreach(MONOLITH_SETTINGS_BODY IN LISTS MONOLITH_SETTINGS_BODY_Z64)
+    get_filename_component(MONOLITH_SETTINGS_BODY_NAME "${MONOLITH_SETTINGS_BODY}" NAME)
+    string(REGEX REPLACE "\\.z64$" "" MONOLITH_SETTINGS_BODY_NAME "${MONOLITH_SETTINGS_BODY_NAME}")
+    list(APPEND MONOLITH_SETTINGS_BODY_OUTPUTS
+        "${MONOLITH_SETTINGS_BODIES_DIR}/${MONOLITH_SETTINGS_BODY_NAME}")
+endforeach()
 add_custom_command(
-    OUTPUT "${MONOLITH_SETTINGS_BODIES_DIR}/SettingsApp_body_00.inc"
+    OUTPUT ${MONOLITH_SETTINGS_BODY_OUTPUTS}
     COMMAND ${CMAKE_COMMAND} -E make_directory "${MONOLITH_SETTINGS_BODIES_DIR}"
     COMMAND python3 "${CMAKE_SOURCE_DIR}/src/app/decompress_settings_bodies.py"
             "${MONOLITH_SETTINGS_BODIES_DIR}"
@@ -40,14 +51,25 @@ add_custom_command(
     COMMENT "Decompressing SettingsApp body includes"
     VERBATIM
 )
-add_custom_target(monolith_settings_bodies DEPENDS "${MONOLITH_SETTINGS_BODIES_DIR}/SettingsApp_body_00.inc")
+add_custom_target(monolith_settings_bodies DEPENDS ${MONOLITH_SETTINGS_BODY_OUTPUTS})
 
 # Decompress main.cpp body includes (MCP-friendly compressed fragments).
 set(MONOLITH_MAIN_BODIES_DIR "${CMAKE_CURRENT_BINARY_DIR}/generated/main")
 file(GLOB MONOLITH_MAIN_BODY_Z64
+    CONFIGURE_DEPENDS
     "${CMAKE_SOURCE_DIR}/src/main_body_*.inc.z64")
+if(NOT MONOLITH_MAIN_BODY_Z64)
+    message(FATAL_ERROR "No compressed main source fragments found")
+endif()
+set(MONOLITH_MAIN_BODY_OUTPUTS)
+foreach(MONOLITH_MAIN_BODY IN LISTS MONOLITH_MAIN_BODY_Z64)
+    get_filename_component(MONOLITH_MAIN_BODY_NAME "${MONOLITH_MAIN_BODY}" NAME)
+    string(REGEX REPLACE "\\.z64$" "" MONOLITH_MAIN_BODY_NAME "${MONOLITH_MAIN_BODY_NAME}")
+    list(APPEND MONOLITH_MAIN_BODY_OUTPUTS
+        "${MONOLITH_MAIN_BODIES_DIR}/${MONOLITH_MAIN_BODY_NAME}")
+endforeach()
 add_custom_command(
-    OUTPUT "${MONOLITH_MAIN_BODIES_DIR}/main_body_a.inc"
+    OUTPUT ${MONOLITH_MAIN_BODY_OUTPUTS}
     COMMAND ${CMAKE_COMMAND} -E make_directory "${MONOLITH_MAIN_BODIES_DIR}"
     COMMAND python3 "${CMAKE_SOURCE_DIR}/src/decompress_main_bodies.py"
             "${MONOLITH_MAIN_BODIES_DIR}"
@@ -56,7 +78,7 @@ add_custom_command(
     COMMENT "Decompressing main body includes"
     VERBATIM
 )
-add_custom_target(monolith_main_bodies DEPENDS "${MONOLITH_MAIN_BODIES_DIR}/main_body_a.inc")
+add_custom_target(monolith_main_bodies DEPENDS ${MONOLITH_MAIN_BODY_OUTPUTS})
 
 add_executable(monolith
     src/main.cpp

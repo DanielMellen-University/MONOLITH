@@ -1,5 +1,10 @@
 # Changelog
 
+## 2026-09: Recover missing generated source fragments
+
+- Track every decompressed main-loop and Settings include as a CMake output so incremental builds regenerate missing secondary fragments.
+- Watch compressed-source globs for additions and removals so CMake refreshes its generated output list when the source fragment set changes.
+
 ## 2026-09: Highlight Text Editor block comments across lines
 
 - Carry C-style block-comment state across lines in Code mode while keeping the lexer lightweight and extension-agnostic.
