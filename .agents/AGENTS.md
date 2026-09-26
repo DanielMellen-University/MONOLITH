@@ -34,6 +34,7 @@ The human funds token budget and lives in the desktop. You:
 
 | When | Kind | Note |
 |------|------|------|
+| 2026-09-26 | 7.28 | Registered the complete headless suite with CTest and routed GitHub Actions through that single test entry point |
 | 2026-09-26 | 7.27 | CMake tracks every generated main and Settings include as an output and reconfigures when compressed fragment sets change |
 | 2026-09-26 | 7.26 | Text Editor carries C-style block-comment syntax state across lines and incrementally caches states through the visible rows; edits invalidate from the changed line |
 | 2026-09-26 | 7.25 | Removed the unused renderer-independent text surface cache after migrating every consumer to renderer-owned textures |
@@ -126,6 +127,7 @@ Older recent-work rows: [`SESSION_LOG.md`](SESSION_LOG.md).
 | 7.25 | Remove obsolete text surface cache | done | Delete the unused SDL_ttf surface cache after confirming no source or generated build inputs reference it |
 | 7.26 | Text Editor multiline block comments | done | Carry C-style `/* ... */` state across lines in Code mode, cache outgoing state through the viewport, and invalidate from edited rows |
 | 7.27 | Track generated source fragments | done | Make CMake reconfigure when compressed fragments change and regenerate all missing decompressed include outputs |
+| 7.28 | Register headless CTest suite | done | Expose the existing verification runner through CTest and use the registered test in GitHub Actions |
 
 ## Commit voice
 

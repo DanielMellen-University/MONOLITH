@@ -1,5 +1,10 @@
 # Changelog
 
+## 2026-09: Register the headless suite with CTest
+
+- Expose the existing complete headless verification runner as `monolith_headless` so standard CTest commands discover the repository's tests.
+- Run the registered suite through CTest in GitHub Actions while preserving direct script execution for focused local workflows.
+
 ## 2026-09: Recover missing generated source fragments
 
 - Track every decompressed main-loop and Settings include as a CMake output so incremental builds regenerate missing secondary fragments.

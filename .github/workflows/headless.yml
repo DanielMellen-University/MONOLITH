@@ -35,4 +35,4 @@ jobs:
         run: cmake --build build --parallel 2
 
       - name: Run headless verification suite
-        run: ./scripts/run_headless_tests.sh
+        run: ctest --test-dir build --output-on-failure

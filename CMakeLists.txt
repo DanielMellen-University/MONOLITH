@@ -128,3 +128,13 @@ if(MSVC)
 else()
     target_compile_options(monolith PRIVATE -Wall -Wextra -Wpedantic)
 endif()
+
+include(CTest)
+if(BUILD_TESTING)
+    add_test(NAME monolith_headless
+        COMMAND "${CMAKE_SOURCE_DIR}/scripts/run_headless_tests.sh")
+    set_tests_properties(monolith_headless PROPERTIES
+        WORKING_DIRECTORY "${CMAKE_SOURCE_DIR}"
+        TIMEOUT 1800
+        ENVIRONMENT "BUILD_DIR=${CMAKE_CURRENT_BINARY_DIR}")
+endif()

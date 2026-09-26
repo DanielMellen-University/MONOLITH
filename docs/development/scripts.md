@@ -7,12 +7,12 @@ Headless verification scripts for Monolith. These run without a full interactive
 Run every static integration check and documented state test with one command:
 
 ```bash
-./scripts/run_headless_tests.sh
+ctest --test-dir build --output-on-failure
 ```
 
-The runner builds the generated source fragments, compiles the existing tests into `build/`, and executes SDL tests with dummy video and audio drivers by default. Set `BUILD_DIR`, `CXX`, `SDL_VIDEODRIVER`, or `SDL_AUDIODRIVER` to override those defaults. The individual commands below remain useful when iterating on one subsystem.
+After configuring and building with CMake, this registered CTest test runs the complete headless suite. It builds generated source fragments, compiles the existing tests, and executes SDL tests with dummy video and audio drivers by default. Set `BUILD_DIR`, `CXX`, `SDL_VIDEODRIVER`, or `SDL_AUDIODRIVER` to override those defaults. The runner can also be invoked directly with `./scripts/run_headless_tests.sh`; individual commands below remain useful when iterating on one subsystem.
 
-The cloud job also configures and builds the complete `monolith` executable before running this suite. A green workflow therefore covers both application compilation and the headless state, renderer, lifecycle, and integration checks.
+The cloud job configures and builds the complete `monolith` executable before running the registered test through CTest. A green workflow therefore covers both application compilation and the headless state, renderer, lifecycle, and integration checks.
 
 CMake tracks every decompressed main and Settings fragment as an output and watches the compressed-fragment globs for additions or removals. An incremental build therefore regenerates missing secondary includes and reconfigures when the fragment set changes.
 

@@ -1,5 +1,7 @@
 # Session log
 
+| 2026-09-26 | chore | Registered the existing headless verification runner as `monolith_headless`, switched GitHub Actions to CTest, and verified the complete suite through `ctest --test-dir build --output-on-failure`. |
+
 | 2026-09-26 | fix | Made CMake track every decompressed main and Settings include and reconfigure when compressed fragments are added or removed; verified incremental recovery for missing secondary outputs. |
 
 | 2026-09-26 | fix | Carried Text Editor C-style block comments across lines in Code mode, cached outgoing state through visible rows, and invalidated from edited lines; covered closing-token continuation and opener edits. |
