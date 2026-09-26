@@ -120,7 +120,7 @@ Path prompts support Left/Right/Home/End, UTF-8-safe Backspace/Delete, and inser
 
 - Open/save-as use inline path prompts, not graphical file-picker dialogs (not a multi-button dialog).
 - Dirty close/open uses a second press of the same action to discard; there is no separate "Save / Discard / Cancel" modal. Changing the Open path after the warning requires a fresh confirmation.
-- Undo/redo store up to 50 full buffer snapshots. Consecutive typing or in-line backspace within ~1s is one undo step; Enter, paste, and other edits start a new step.
+- Undo/redo share a limit of 50 full-buffer states and an estimated 64 MiB of snapshot memory. Oldest undo states are evicted first; snapshots larger than the budget are not retained, and the status bar explains when history is unavailable for that reason. Consecutive typing or in-line backspace within ~1s remains one undo step; Enter, paste, and other edits start a new step.
 - Highlighting is per-line only (no multiline strings or block comments).
 - No multiple buffers/tabs.
 - Long lines remain editable without wrapping; horizontal scrolling moves the text viewport in pixel increments while preserving document columns.
@@ -152,3 +152,5 @@ When the bound file is renamed in Filesystem Browser, moved with Filesystem Brow
 If the bound file or one of its parent directories is deleted, the editor stays open with its current in-memory buffer, releases the deleted file singleton, and becomes a tracked untitled `Editor` window. Any active Save/Open prompt returns to the nearest valid parent. Use Save or Save As to choose a new path; dirty content is not discarded automatically.
 
 The editor caches renderer-independent SDL_ttf surfaces for repeated syntax spans, line numbers, and status text. The cache is cleared when a document is loaded, edited, undone, or redone, when status feedback changes, when find/replace or a path prompt is rendered, and when the shared interface text scale changes. Per-frame SDL textures remain short-lived and are created from the cached surfaces.
+
+Undo and redo move document line buffers between the active editor and their history stacks. Snapshot accounting includes the line vector and its string storage; it is an estimate used to keep retained history bounded, not a limit on the active document itself.

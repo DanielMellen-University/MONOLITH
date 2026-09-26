@@ -48,8 +48,9 @@ private:
     void clearDiscardArm();
     struct EditorState {
         std::vector<std::string> lines;
-        int cursorRow;
-        int cursorCol;
+        int cursorRow = 0;
+        int cursorCol = 0;
+        size_t memoryBytes = 0;
     };
 
     // === Editing helpers ===
@@ -101,9 +102,14 @@ private:
     // === Undo / Redo ===
     enum class UndoCoalesce { None, Insert, Backspace };
     void pushUndoState(UndoCoalesce kind = UndoCoalesce::None);
+    EditorState captureEditorState() const;
+    static size_t measureEditorStateBytes(const std::vector<std::string>& lines);
+    void clearUndoHistory();
+    void clearRedoHistory();
+    void trimEditorHistory();
     void undo();
     void redo();
-    void applyEditorState(const EditorState& state);
+    void applyEditorState(EditorState&& state);
     void refreshDirtyState();
 
     // === Find / Replace ===
@@ -170,6 +176,10 @@ private:
     UndoCoalesce m_undoCoalesce = UndoCoalesce::None;
     std::uint32_t m_lastCoalesceMs = 0;
     static constexpr size_t kMaxUndoStates = 50;
+    static constexpr size_t kMaxUndoBytes = 64 * 1024 * 1024;
+    size_t m_undoBytes = 0;
+    size_t m_redoBytes = 0;
+    bool m_historyBudgetExceeded = false;
     static constexpr std::uint32_t kUndoCoalesceMs = 1000;
 
     PathPromptMode m_pathPromptMode = PathPromptMode::None;

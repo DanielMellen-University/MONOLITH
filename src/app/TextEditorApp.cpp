@@ -3,8 +3,10 @@
 #include "../detail/RendererClip.hpp"
 #include <algorithm>
 #include <cctype>
+#include <limits>
 #include <sstream>
 #include <unordered_set>
+#include <utility>
 #include <vector>
 
 namespace monolith::app {
@@ -619,8 +621,9 @@ void TextEditorApp::finishPathPrompt(bool commit) {
         }
 
         if (!loadInitialFile(path)) return;
-        m_undoStack.clear();
-        m_redoStack.clear();
+        clearUndoHistory();
+        clearRedoHistory();
+        m_historyBudgetExceeded = false;
         clearDiscardArm();
         if (auto* ctrl = getController()) {
             ctrl->bindEditorFile(path);
@@ -2286,6 +2289,52 @@ void TextEditorApp::onUiScaleChanged() {
     ensureCursorVisible();
 }
 
+TextEditorApp::EditorState TextEditorApp::captureEditorState() const {
+    EditorState state;
+    state.lines = m_lines;
+    state.cursorRow = m_cursorRow;
+    state.cursorCol = m_cursorCol;
+    state.memoryBytes = measureEditorStateBytes(state.lines);
+    return state;
+}
+
+size_t TextEditorApp::measureEditorStateBytes(const std::vector<std::string>& lines) {
+    const size_t maxBytes = std::numeric_limits<size_t>::max();
+    size_t bytes = sizeof(EditorState);
+    if (lines.capacity() > (maxBytes - bytes) / sizeof(std::string)) return maxBytes;
+    bytes += lines.capacity() * sizeof(std::string);
+    for (const auto& line : lines) {
+        if (line.capacity() >= maxBytes - bytes) return maxBytes;
+        bytes += line.capacity() + 1;
+    }
+    return bytes;
+}
+
+void TextEditorApp::clearUndoHistory() {
+    m_undoStack.clear();
+    m_undoBytes = 0;
+}
+
+void TextEditorApp::clearRedoHistory() {
+    m_redoStack.clear();
+    m_redoBytes = 0;
+}
+
+void TextEditorApp::trimEditorHistory() {
+    while (m_undoStack.size() + m_redoStack.size() > kMaxUndoStates
+           || m_undoBytes + m_redoBytes > kMaxUndoBytes) {
+        if (!m_undoStack.empty()) {
+            m_undoBytes -= m_undoStack.front().memoryBytes;
+            m_undoStack.erase(m_undoStack.begin());
+        } else if (!m_redoStack.empty()) {
+            m_redoBytes -= m_redoStack.front().memoryBytes;
+            m_redoStack.erase(m_redoStack.begin());
+        } else {
+            break;
+        }
+    }
+}
+
 void TextEditorApp::pushUndoState(UndoCoalesce kind) {
     const std::uint32_t now = SDL_GetTicks();
     if (kind != UndoCoalesce::None
@@ -2293,28 +2342,42 @@ void TextEditorApp::pushUndoState(UndoCoalesce kind) {
         && !m_undoStack.empty()
         && now - m_lastCoalesceMs < kUndoCoalesceMs) {
         m_lastCoalesceMs = now;
-        m_redoStack.clear();
+        clearRedoHistory();
         return;
     }
 
     m_undoCoalesce = kind;
     m_lastCoalesceMs = now;
-    m_redoStack.clear();
+    clearRedoHistory();
 
-    if (m_undoStack.size() >= kMaxUndoStates) {
+    if (measureEditorStateBytes(m_lines) > kMaxUndoBytes) {
+        clearUndoHistory();
+        m_historyBudgetExceeded = true;
+        return;
+    }
+
+    EditorState state = captureEditorState();
+    if (state.memoryBytes > kMaxUndoBytes) {
+        clearUndoHistory();
+        m_historyBudgetExceeded = true;
+        return;
+    }
+
+    const size_t availableBytes = kMaxUndoBytes - state.memoryBytes;
+    while (!m_undoStack.empty()
+           && (m_undoStack.size() >= kMaxUndoStates || m_undoBytes > availableBytes)) {
+        m_undoBytes -= m_undoStack.front().memoryBytes;
         m_undoStack.erase(m_undoStack.begin());
     }
 
-    EditorState state;
-    state.lines = m_lines;
-    state.cursorRow = m_cursorRow;
-    state.cursorCol = m_cursorCol;
-    m_undoStack.push_back(state);
+    m_undoBytes += state.memoryBytes;
+    m_undoStack.push_back(std::move(state));
+    m_historyBudgetExceeded = false;
 }
 
-void TextEditorApp::applyEditorState(const EditorState& state) {
+void TextEditorApp::applyEditorState(EditorState&& state) {
     m_textSurfaceCache.clear();
-    m_lines = state.lines;
+    m_lines = std::move(state.lines);
     m_cursorRow = state.cursorRow;
     m_cursorCol = state.cursorCol;
     refreshDirtyState();
@@ -2329,33 +2392,63 @@ void TextEditorApp::refreshDirtyState() {
 }
 
 void TextEditorApp::undo() {
-    if (m_undoStack.empty()) return;
+    if (m_undoStack.empty()) {
+        setStatus(m_historyBudgetExceeded
+            ? "Nothing to undo (history memory limit)."
+            : "Nothing to undo.");
+        return;
+    }
     m_undoCoalesce = UndoCoalesce::None;
 
     EditorState current;
-    current.lines = m_lines;
     current.cursorRow = m_cursorRow;
     current.cursorCol = m_cursorCol;
-    m_redoStack.push_back(current);
+    current.lines.swap(m_lines);
+    current.memoryBytes = measureEditorStateBytes(current.lines);
 
-    EditorState state = m_undoStack.back();
+    EditorState state = std::move(m_undoStack.back());
+    m_undoBytes -= state.memoryBytes;
     m_undoStack.pop_back();
-    applyEditorState(state);
+    if (current.memoryBytes <= kMaxUndoBytes) {
+        m_redoBytes += current.memoryBytes;
+        m_redoStack.push_back(std::move(current));
+        trimEditorHistory();
+        m_historyBudgetExceeded = false;
+    } else {
+        clearRedoHistory();
+        m_historyBudgetExceeded = true;
+    }
+    applyEditorState(std::move(state));
 }
 
 void TextEditorApp::redo() {
-    if (m_redoStack.empty()) return;
+    if (m_redoStack.empty()) {
+        setStatus(m_historyBudgetExceeded
+            ? "Nothing to redo (history memory limit)."
+            : "Nothing to redo.");
+        return;
+    }
     m_undoCoalesce = UndoCoalesce::None;
 
     EditorState current;
-    current.lines = m_lines;
     current.cursorRow = m_cursorRow;
     current.cursorCol = m_cursorCol;
-    m_undoStack.push_back(current);
+    current.lines.swap(m_lines);
+    current.memoryBytes = measureEditorStateBytes(current.lines);
 
-    EditorState state = m_redoStack.back();
+    EditorState state = std::move(m_redoStack.back());
+    m_redoBytes -= state.memoryBytes;
     m_redoStack.pop_back();
-    applyEditorState(state);
+    if (current.memoryBytes <= kMaxUndoBytes) {
+        m_undoBytes += current.memoryBytes;
+        m_undoStack.push_back(std::move(current));
+        trimEditorHistory();
+        m_historyBudgetExceeded = false;
+    } else {
+        clearUndoHistory();
+        m_historyBudgetExceeded = true;
+    }
+    applyEditorState(std::move(state));
 }
 
 } // namespace monolith::app

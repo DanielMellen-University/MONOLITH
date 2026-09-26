@@ -1,5 +1,11 @@
 # Changelog
 
+## 2026-09: Bound Text Editor undo memory
+
+- Cap combined undo/redo history at 50 states and an estimated 64 MiB, evicting the oldest undo states first.
+- Move document line buffers during undo and redo instead of copying full editor states.
+- Preserve typing coalescing, explain when an oversized document has no history, and cover state-count, memory-budget, and large-document traversal behavior.
+
 ## 2026-09: Bound Drawing undo memory
 
 - Limit combined Drawing undo and redo history to 32 states and 64 MiB, evicting the oldest undo states first.

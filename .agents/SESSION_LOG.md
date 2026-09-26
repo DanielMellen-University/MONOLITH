@@ -1,5 +1,7 @@
 # Session log
 
+| 2026-09-26 | perf | Capped Text Editor undo/redo history at 50 states and estimated 64 MiB, preserved typing coalescing, and moved document buffers during history traversal. |
+
 | 2026-09-26 | perf | Capped Drawing undo/redo history at 32 states and 64 MiB, moved snapshots between history stacks, and added state and byte-budget coverage. |
 
 | 2026-09-26 | chore | Added GitHub Actions verification for the full Monolith build and headless suite on main/beta pushes and pull requests; restored executable modes for the runner and its direct integration checks. |

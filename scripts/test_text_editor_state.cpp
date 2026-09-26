@@ -376,6 +376,19 @@ int main() {
     check(!undoEditor.m_dirty && undoEditor.m_lines == std::vector<std::string>{"Xoriginal"},
           "undoing after save compares against the new saved content");
 
+    TestEditor coalescedEditor(nullptr, &fs, "");
+    coalescedEditor.m_lines = {"base"};
+    coalescedEditor.m_cursorCol = 4;
+    coalescedEditor.insertText("a");
+    coalescedEditor.insertText("b");
+    check(coalescedEditor.m_lines == std::vector<std::string>{"baseab"}
+              && coalescedEditor.m_undoStack.size() == 1,
+          "typing bursts still coalesce into one bounded undo state");
+    coalescedEditor.undo();
+    coalescedEditor.redo();
+    check(coalescedEditor.m_lines == std::vector<std::string>{"baseab"},
+          "coalesced typing survives move-based undo and redo");
+
     TestEditor noOpReplaceEditor(nullptr, &fs, "/old.txt");
     noOpReplaceEditor.m_searchMode = TestEditor::SearchMode::Replace;
     noOpReplaceEditor.m_findQuery = "Xoriginal";
@@ -474,13 +487,54 @@ int main() {
               && signedNumberSpans[2].length == 2,
           "syntax highlighting keeps signs attached to numeric tokens");
 
-    editor.m_undoStack.clear();
+    editor.clearUndoHistory();
+    editor.clearRedoHistory();
     for (int i = 0; i < 60; ++i) {
         editor.m_cursorCol = i;
         editor.pushUndoState();
     }
     check(editor.m_undoStack.size() == TestEditor::kMaxUndoStates,
           "undo history stays within its 50-state cap");
+    for (int i = 0; i < 20; ++i) editor.undo();
+    check(editor.m_undoStack.size() + editor.m_redoStack.size() == TestEditor::kMaxUndoStates,
+          "undo and redo share the 50-state cap");
+
+    {
+        TestEditor memoryEditor(nullptr, &fs, "");
+        constexpr size_t largeLineBytes = 24 * 1024 * 1024;
+        memoryEditor.m_lines = {std::string(largeLineBytes, 'a')};
+        for (char next = 'b'; next <= 'd'; ++next) {
+            memoryEditor.pushUndoState();
+            memoryEditor.m_lines[0][0] = next;
+        }
+        check(memoryEditor.m_undoStack.size() == 2
+                  && memoryEditor.m_undoStack[0].lines[0][0] == 'b'
+                  && memoryEditor.m_undoStack[1].lines[0][0] == 'c'
+                  && memoryEditor.m_undoBytes <= TestEditor::kMaxUndoBytes,
+              "editor evicts oldest snapshots to stay within its 64 MiB budget");
+        memoryEditor.undo();
+        check(memoryEditor.m_lines[0][0] == 'c'
+                  && memoryEditor.m_undoBytes + memoryEditor.m_redoBytes
+                      <= TestEditor::kMaxUndoBytes,
+              "large-document undo moves its buffer without exceeding the history budget");
+        memoryEditor.redo();
+        check(memoryEditor.m_lines[0][0] == 'd'
+                  && memoryEditor.m_undoBytes + memoryEditor.m_redoBytes
+                      <= TestEditor::kMaxUndoBytes,
+              "large-document redo restores the moved buffer within the history budget");
+    }
+
+    TestEditor overBudgetEditor(nullptr, &fs, "");
+    overBudgetEditor.m_lines = {"small"};
+    overBudgetEditor.pushUndoState();
+    overBudgetEditor.m_lines.clear();
+    overBudgetEditor.m_lines.emplace_back(TestEditor::kMaxUndoBytes + 1, 'x');
+    overBudgetEditor.pushUndoState();
+    check(overBudgetEditor.m_undoStack.empty() && overBudgetEditor.m_undoBytes == 0,
+          "an oversized document clears history without storing another full copy");
+    overBudgetEditor.undo();
+    check(overBudgetEditor.m_statusMessage == "Nothing to undo (history memory limit).",
+          "the editor explains when an oversized document has no undo snapshot");
 
     TestEditor promptEditor(nullptr, &fs, "/new.txt");
     prepareOpen(promptEditor, "/does-not-exist");
