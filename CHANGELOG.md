@@ -1,5 +1,11 @@
 # Changelog
 
+## 2026-09: Reuse Text Editor text textures
+
+- Cache syntax spans, line numbers, and status text in a renderer-aware 256-entry LRU with an estimated 16 MiB budget, avoiding texture creation and destruction on every frame.
+- Retain unchanged visible slices across edits, scrolling, resizing, and status updates; clear textures when the renderer or shared interface text scale changes.
+- Cover frame reuse, bounded long-line slices, scroll-back reuse, and scale invalidation.
+
 ## 2026-09: Stabilize headless CI runtime
 
 - Pin the GitHub Actions job to `ubuntu-24.04` and move checkout to v5's Node 24 runtime.

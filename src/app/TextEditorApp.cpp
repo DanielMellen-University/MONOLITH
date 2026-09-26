@@ -298,19 +298,15 @@ void TextEditorApp::drawColoredLine(SDL_Renderer* renderer, const std::string& l
         if (visibleEnd <= visibleStart) continue;
 
         const std::string text = line.substr(visibleStart, visibleEnd - visibleStart);
-        SDL_Surface* surf = m_textSurfaceCache.get(m_font, text.c_str(), span.color);
-        if (!surf) continue;
+        const auto texture = m_textTextureCache.get(
+            renderer, m_font, text.c_str(), span.color);
+        if (!texture) continue;
 
-        SDL_Texture* tex = SDL_CreateTextureFromSurface(renderer, surf);
-        if (tex) {
-            // The caller owns the viewport clip. Keep the texture at native
-            // size so syntax spans do not become horizontally distorted at
-            // the right edge of a long line.
-            SDL_Rect dst = {curX, y, surf->w, surf->h};
-            SDL_RenderCopy(renderer, tex, nullptr, &dst);
-            SDL_DestroyTexture(tex);
-            curX += surf->w;
-        }
+        // The caller owns the viewport clip. Keep the texture at native size
+        // so syntax spans are not squeezed at the right edge of a long line.
+        SDL_Rect dst = {curX, y, texture.width, texture.height};
+        SDL_RenderCopy(renderer, texture.handle, nullptr, &dst);
+        curX += texture.width;
     }
 }
 
@@ -345,7 +341,6 @@ bool TextEditorApp::loadInitialFile(const std::string& virtualPath) {
     if (m_lines.empty()) {
         m_lines = { "" };
     }
-    m_textSurfaceCache.clear();
     m_filePath = normalized;
     m_savedLines = m_lines;
     m_cursorRow = 0;
@@ -412,7 +407,6 @@ bool TextEditorApp::saveCurrentFile() {
 void TextEditorApp::setStatus(const std::string& message) {
     if (m_statusMessage == message) return;
     m_statusMessage = message;
-    m_textSurfaceCache.clear();
 }
 
 void TextEditorApp::clearDiscardArm() {
@@ -931,7 +925,6 @@ void TextEditorApp::cutSelection() {
     }
     pushUndoState();
     deleteSelectionRange();
-    m_textSurfaceCache.clear();
     m_dirty = true;
     clearDiscardArm();
     setStatus("Cut");
@@ -1014,7 +1007,6 @@ void TextEditorApp::pasteClipboard() {
         start = nl + 1;
     }
 
-    m_textSurfaceCache.clear();
     m_dirty = true;
     clearDiscardArm();
     clearSelection();
@@ -1104,7 +1096,6 @@ void TextEditorApp::insertText(const char* text) {
         m_cursorCol = c1;
         clampCursor();
         clearSelection();
-        m_textSurfaceCache.clear();
         m_statusMessage.clear();
         ensureCursorVisible();
         return;
@@ -1123,11 +1114,9 @@ void TextEditorApp::insertText(const char* text) {
 
     line.insert(static_cast<size_t>(m_cursorCol), filtered);
     m_cursorCol += static_cast<int>(filtered.size());
-    m_textSurfaceCache.clear();
     m_dirty = true;
     clearDiscardArm();
     clearSelection();
-    m_textSurfaceCache.clear();
     m_statusMessage.clear();
     ensureCursorVisible();
 }
@@ -1148,7 +1137,6 @@ void TextEditorApp::insertNewline() {
 
     m_cursorRow++;
     m_cursorCol = 0;
-    m_textSurfaceCache.clear();
     m_dirty = true;
     clearDiscardArm();
     clearSelection();
@@ -1159,7 +1147,6 @@ void TextEditorApp::deleteChar() {
     if (hasSelection()) {
         pushUndoState();
         deleteSelectionRange();
-        m_textSurfaceCache.clear();
         m_dirty = true;
         clearDiscardArm();
         ensureCursorVisible();
@@ -1188,7 +1175,6 @@ void TextEditorApp::deleteChar() {
         m_cursorRow--;
         m_cursorCol = newCol;
     }
-    m_textSurfaceCache.clear();
     m_dirty = true;
     clearDiscardArm();
     ensureCursorVisible();
@@ -1198,7 +1184,6 @@ void TextEditorApp::deleteForward() {
     if (hasSelection()) {
         pushUndoState();
         deleteSelectionRange();
-        m_textSurfaceCache.clear();
         m_dirty = true;
         clearDiscardArm();
         ensureCursorVisible();
@@ -1224,7 +1209,6 @@ void TextEditorApp::deleteForward() {
         line += m_lines[m_cursorRow + 1];
         m_lines.erase(m_lines.begin() + m_cursorRow + 1);
     }
-    m_textSurfaceCache.clear();
     m_dirty = true;
     clearDiscardArm();
     ensureCursorVisible();
@@ -1409,7 +1393,6 @@ void TextEditorApp::enterFindMode() {
     m_replaceCursorPos = 0;
     m_statusHorizontalScrollPx = 0;
     clearSelection();
-    m_textSurfaceCache.clear();
     m_statusMessage.clear();
 }
 
@@ -1426,7 +1409,6 @@ void TextEditorApp::enterReplaceMode() {
     m_replaceCursorPos = m_replaceText.size();
     m_statusHorizontalScrollPx = 0;
     clearSelection();
-    m_textSurfaceCache.clear();
     m_statusMessage.clear();
     if (!m_findQuery.empty()) {
         updateFindMatches();
@@ -1565,7 +1547,6 @@ void TextEditorApp::replaceCurrentMatch() {
 
     pushUndoState();
     line.replace(static_cast<size_t>(match.second), m_findQuery.size(), m_replaceText);
-    m_textSurfaceCache.clear();
     m_dirty = true;
     clearDiscardArm();
 
@@ -1621,7 +1602,6 @@ void TextEditorApp::replaceAllMatches() {
         ++count;
     }
 
-    m_textSurfaceCache.clear();
     m_dirty = true;
     clearDiscardArm();
     m_cursorRow = 0;
@@ -1663,25 +1643,10 @@ void TextEditorApp::render(SDL_Renderer* renderer, const SDL_Rect& contentRect) 
         onResize(contentRect.w, contentRect.h);
     }
 
-    if (m_surfaceCacheScrollOffset != m_scrollOffset
-        || m_surfaceCacheHorizontalScrollOffset != m_horizontalScrollOffset
-        || m_surfaceCacheClientWidth != m_clientWidth
-        || m_surfaceCacheClientHeight != m_clientHeight) {
-        m_textSurfaceCache.clear();
-        m_surfaceCacheScrollOffset = m_scrollOffset;
-        m_surfaceCacheHorizontalScrollOffset = m_horizontalScrollOffset;
-        m_surfaceCacheClientWidth = m_clientWidth;
-        m_surfaceCacheClientHeight = m_clientHeight;
-    }
-
     if (!m_font) {
         SDL_SetRenderDrawColor(renderer, 20, 20, 25, 255);
         SDL_RenderFillRect(renderer, &contentRect);
         return;
-    }
-
-    if (m_searchMode != SearchMode::None || m_pathPromptMode != PathPromptMode::None) {
-        m_textSurfaceCache.clear();
     }
 
     const RendererClipState previousClip = captureRendererClip(renderer);
@@ -1727,19 +1692,16 @@ void TextEditorApp::render(SDL_Renderer* renderer, const SDL_Rect& contentRect) 
 
         // Draw line number
         std::string lineNumStr = std::to_string(lineIdx + 1);
-        SDL_Surface* numSurf = m_textSurfaceCache.get(m_font, lineNumStr.c_str(), lineNumColor);
-        if (numSurf) {
-            SDL_Texture* numTex = SDL_CreateTextureFromSurface(renderer, numSurf);
-            if (numTex) {
-                SDL_Rect numDst = {
-                    contentRect.x + padding,
-                    y,
-                    numSurf->w,
-                    numSurf->h
-                };
-                SDL_RenderCopy(renderer, numTex, nullptr, &numDst);
-                SDL_DestroyTexture(numTex);
-            }
+        const auto numTexture = m_textTextureCache.get(
+            renderer, m_font, lineNumStr.c_str(), lineNumColor);
+        if (numTexture) {
+            SDL_Rect numDst = {
+                contentRect.x + padding,
+                y,
+                numTexture.width,
+                numTexture.height
+            };
+            SDL_RenderCopy(renderer, numTexture.handle, nullptr, &numDst);
         }
 
         SDL_RenderSetClipRect(renderer, &effectiveTextClip);
@@ -1920,40 +1882,37 @@ void TextEditorApp::render(SDL_Renderer* renderer, const SDL_Rect& contentRect) 
         }
 
         const SDL_Color statusColor = {150, 155, 160, 255};
-        SDL_Surface* surf = m_textSurfaceCache.get(m_font, status.c_str(), statusColor);
-        if (surf) {
-            SDL_Texture* tex = SDL_CreateTextureFromSurface(renderer, surf);
-            if (tex) {
-                const int visibleWidth = std::max(1, contentRect.w - padding * 2);
-                if (searchPromptActive) {
-                    if (searchCursorPx > m_statusHorizontalScrollPx + visibleWidth) {
-                        m_statusHorizontalScrollPx = searchCursorPx - visibleWidth;
-                    } else if (searchCursorPx < m_statusHorizontalScrollPx) {
-                        m_statusHorizontalScrollPx = searchCursorPx;
-                    }
-                    const int maxScroll = std::max(0, surf->w - visibleWidth);
-                    m_statusHorizontalScrollPx = std::clamp(
-                        m_statusHorizontalScrollPx, 0, maxScroll);
+        const auto statusTexture = m_textTextureCache.get(
+            renderer, m_font, status.c_str(), statusColor);
+        if (statusTexture) {
+            const int visibleWidth = std::max(1, contentRect.w - padding * 2);
+            if (searchPromptActive) {
+                if (searchCursorPx > m_statusHorizontalScrollPx + visibleWidth) {
+                    m_statusHorizontalScrollPx = searchCursorPx - visibleWidth;
+                } else if (searchCursorPx < m_statusHorizontalScrollPx) {
+                    m_statusHorizontalScrollPx = searchCursorPx;
                 }
-                SDL_Rect statusClip = {
-                    contentRect.x + padding,
-                    statusBar.y,
-                    visibleWidth,
-                    statusBar.h
-                };
-                const SDL_Rect effectiveStatusClip = intersectRendererClip(statusClip, previousClip);
-                SDL_RenderSetClipRect(renderer, &effectiveStatusClip);
-                SDL_Rect dst = {
-                    contentRect.x + padding
-                        - (searchPromptActive ? m_statusHorizontalScrollPx : 0),
-                    statusBar.y + (statusBarHeight - surf->h) / 2,
-                    surf->w,
-                    surf->h
-                };
-                SDL_RenderCopy(renderer, tex, nullptr, &dst);
-                restoreRendererClip(renderer, previousClip);
-                SDL_DestroyTexture(tex);
+                const int maxScroll = std::max(0, statusTexture.width - visibleWidth);
+                m_statusHorizontalScrollPx = std::clamp(
+                    m_statusHorizontalScrollPx, 0, maxScroll);
             }
+            SDL_Rect statusClip = {
+                contentRect.x + padding,
+                statusBar.y,
+                visibleWidth,
+                statusBar.h
+            };
+            const SDL_Rect effectiveStatusClip = intersectRendererClip(statusClip, previousClip);
+            SDL_RenderSetClipRect(renderer, &effectiveStatusClip);
+            SDL_Rect dst = {
+                contentRect.x + padding
+                    - (searchPromptActive ? m_statusHorizontalScrollPx : 0),
+                statusBar.y + (statusBarHeight - statusTexture.height) / 2,
+                statusTexture.width,
+                statusTexture.height
+            };
+            SDL_RenderCopy(renderer, statusTexture.handle, nullptr, &dst);
+            restoreRendererClip(renderer, previousClip);
         }
     }
 }
@@ -2316,7 +2275,7 @@ void TextEditorApp::onResize(int clientWidth, int clientHeight) {
 }
 
 void TextEditorApp::onUiScaleChanged() {
-    m_textSurfaceCache.clear();
+    m_textTextureCache.clear();
     const int visible = std::max(
         1,
         getVisibleLineCount({0, 0, m_clientWidth, m_clientHeight}));
@@ -2419,7 +2378,6 @@ void TextEditorApp::pushUndoState(UndoCoalesce kind) {
 }
 
 void TextEditorApp::applyEditorState(EditorState&& state) {
-    m_textSurfaceCache.clear();
     m_lines = std::move(state.lines);
     m_cursorRow = state.cursorRow;
     m_cursorCol = state.cursorCol;

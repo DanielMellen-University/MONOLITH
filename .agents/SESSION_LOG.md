@@ -1,5 +1,7 @@
 # Session log
 
+| 2026-09-26 | perf | Reused Text Editor syntax-span, line-number, and status textures across frames with a renderer-aware 256-entry, estimated 16 MiB LRU; retained visible text across edits and scrolling, with scale invalidation coverage. |
+
 | 2026-09-26 | chore | Pinned the headless workflow to `ubuntu-24.04` and upgraded checkout to v5's Node 24 runtime, addressing both notices from the successful hosted run. |
 
 | 2026-09-26 | perf | Reused renderer-owned text textures across Pong, Breakout, Snake, and Minesweeper frames with a 256-entry, estimated 16 MiB LRU; covered texture identity, color keys, eviction, renderer switching, and scale invalidation. |

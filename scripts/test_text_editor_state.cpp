@@ -203,22 +203,30 @@ int main() {
                       && restoredClip.w == expectedClip.w
                       && restoredClip.h == expectedClip.h,
                   "Text Editor restores the caller renderer clip after rendering");
-            const size_t cachedSurfaceCount = scaleEditor.m_textSurfaceCache.m_entries.size();
+            const auto firstTextTexture = scaleEditor.m_textTextureCache.get(
+                renderer, scaleFont, "first", {200, 205, 210, 255});
+            const size_t cachedTextureCount = scaleEditor.m_textTextureCache.size();
             scaleEditor.render(renderer, {0, 0, 200, 160});
-            check(cachedSurfaceCount > 0
-                      && scaleEditor.m_textSurfaceCache.m_entries.size() == cachedSurfaceCount,
-                  "Text Editor reuses cached text surfaces between frames");
+            const auto repeatedTextTexture = scaleEditor.m_textTextureCache.get(
+                renderer, scaleFont, "first", {200, 205, 210, 255});
+            check(firstTextTexture && repeatedTextTexture.handle == firstTextTexture.handle
+                      && scaleEditor.m_textTextureCache.size() == cachedTextureCount,
+                  "Text Editor reuses renderer textures between unchanged frames");
+            const size_t beforeStatus = scaleEditor.m_textTextureCache.size();
             scaleEditor.setStatus("cache invalidation");
-            check(scaleEditor.m_textSurfaceCache.m_entries.empty(),
-                  "Text Editor clears cached text surfaces when status changes");
+            scaleEditor.render(renderer, {0, 0, 200, 160});
+            check(scaleEditor.m_textTextureCache.size() > beforeStatus,
+                  "Text Editor caches changed status text without flushing document textures");
+            const size_t beforeEdit = scaleEditor.m_textTextureCache.size();
             scaleEditor.m_cursorRow = 0;
             scaleEditor.m_cursorCol = 0;
             scaleEditor.insertText("x");
-            check(scaleEditor.m_textSurfaceCache.m_entries.empty(),
-                  "Text Editor clears cached text surfaces after document edits");
+            scaleEditor.render(renderer, {0, 0, 200, 160});
+            check(scaleEditor.m_textTextureCache.size() > beforeEdit,
+                  "Text Editor caches changed document text without flushing prior textures");
             scaleEditor.onUiScaleChanged();
-            check(scaleEditor.m_textSurfaceCache.m_entries.empty(),
-                  "Text Editor clears cached text surfaces when UI scale changes");
+            check(scaleEditor.m_textTextureCache.size() == 0,
+                  "Text Editor clears renderer textures when UI scale changes");
 
             TestEditor longLineEditor(scaleFont, &fs, "/long.txt");
             std::string longLine;
@@ -230,26 +238,44 @@ int main() {
             const int longLineViewportWidth = 200
                 - 2 * TestEditor::kPadding - TestEditor::kLineNumWidth;
             auto firstViewportText = std::find_if(
-                longLineEditor.m_textSurfaceCache.m_entries.begin(),
-                longLineEditor.m_textSurfaceCache.m_entries.end(),
+                longLineEditor.m_textTextureCache.m_entries.begin(),
+                longLineEditor.m_textTextureCache.m_entries.end(),
                 [&longLine](const auto& entry) {
-                    return entry.first.compare(0, 9, longLine, 0, 9) == 0;
+                    return entry.first.size() >= sizeof(TTF_Font*) + 9
+                        && entry.first.compare(sizeof(TTF_Font*), 9, longLine, 0, 9) == 0;
                 });
-            check(firstViewportText != longLineEditor.m_textSurfaceCache.m_entries.end()
-                      && firstViewportText->first.size() < longLine.size() / 20
-                      && firstViewportText->second->w
+            check(firstViewportText != longLineEditor.m_textTextureCache.m_entries.end()
+                      && firstViewportText->first.size()
+                          < sizeof(TTF_Font*) + longLine.size() / 20 + 5
+                      && firstViewportText->second.width
                           < longLineViewportWidth + 2 * TTF_FontHeight(scaleFont),
-                  "Text Editor rasterizes only viewport-sized portions of very long lines");
+                  "Text Editor caches only viewport-sized textures for very long lines");
 
             const std::string firstViewportKey = firstViewportText
-                != longLineEditor.m_textSurfaceCache.m_entries.end()
+                != longLineEditor.m_textTextureCache.m_entries.end()
                 ? firstViewportText->first
                 : std::string{};
+            SDL_Texture* firstViewportTexture = firstViewportText
+                != longLineEditor.m_textTextureCache.m_entries.end()
+                ? firstViewportText->second.handle
+                : nullptr;
             longLineEditor.m_horizontalScrollOffset = 60;
             longLineEditor.render(renderer, {0, 0, 200, 160});
-            check(!firstViewportKey.empty()
-                      && longLineEditor.m_textSurfaceCache.m_entries.count(firstViewportKey) == 0,
-                  "Text Editor discards old line surfaces after horizontal scrolling");
+            const size_t scrolledTextureCount = longLineEditor.m_textTextureCache.size();
+            auto retainedViewportText = longLineEditor.m_textTextureCache.m_entries.find(
+                firstViewportKey);
+            check(!firstViewportKey.empty() && retainedViewportText
+                      != longLineEditor.m_textTextureCache.m_entries.end()
+                      && retainedViewportText->second.handle == firstViewportTexture
+                      && scrolledTextureCount
+                          <= monolith::detail::TextTextureCache::kMaxEntries
+                      && longLineEditor.m_textTextureCache.estimatedBytes()
+                          <= monolith::detail::TextTextureCache::kMaxEstimatedBytes,
+                  "Text Editor retains scrolled textures within the bounded cache");
+            longLineEditor.m_horizontalScrollOffset = 0;
+            longLineEditor.render(renderer, {0, 0, 200, 160});
+            check(longLineEditor.m_textTextureCache.size() == scrolledTextureCount,
+                  "Text Editor reuses the prior viewport texture when scrolling back");
 
             scaleEditor.m_lines.assign(20, "line");
             scaleEditor.m_cursorRow = 19;
@@ -262,6 +288,8 @@ int main() {
                       && scaleEditor.m_clientHeight == 80
                       && scaleEditor.m_scrollOffset == 20 - directRenderVisible,
                   "Text Editor direct renders synchronize client geometry and scroll bounds");
+            scaleEditor.m_textTextureCache.clear();
+            longLineEditor.m_textTextureCache.clear();
             SDL_DestroyRenderer(renderer);
         }
         if (surface) SDL_FreeSurface(surface);
