@@ -142,6 +142,8 @@ private:
     // Taskbar clock (local time). Textures rebuilt when the displayed strings change.
     SDL_Texture* m_clockTexture = nullptr;
     std::string m_clockText;
+    std::int64_t m_clockMinuteKey = 0;
+    bool m_clockMinuteKeyValid = false;
     int m_clockTexW = 0;
     int m_clockTexH = 0;
     SDL_Rect m_clockHitRect{0, 0, 0, 0};

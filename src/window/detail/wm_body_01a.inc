@@ -30,6 +30,7 @@ void WindowManager::destroyClockTextures() {
         m_clockTexture = nullptr;
     }
     m_clockText.clear();
+    m_clockMinuteKeyValid = false;
     m_clockTexW = 0;
     m_clockTexH = 0;
     if (m_clockDateTexture) {

@@ -232,6 +232,11 @@ int main() {
     wm.render(renderer);
     SDL_Texture* firstDesktopGlyph = wm.m_desktopIconTextCache[0].glyphTexture;
     SDL_Texture* firstDesktopLabel = wm.m_desktopIconTextCache[0].labelTexture;
+    SDL_Texture* firstClockTexture = wm.m_clockTexture;
+    SDL_Texture* firstClockDateTexture = wm.m_clockDateTexture;
+    const std::string firstClockText = wm.m_clockText;
+    const std::string firstClockDateText = wm.m_clockDateText;
+    const std::int64_t firstClockMinuteKey = wm.m_clockMinuteKey;
     SDL_Texture* firstTaskbarTitle = nullptr;
     for (const auto& [key, entry] : wm.m_shellTextCache) {
         if (key.rfind("Probe", 0) == 0) {
@@ -240,6 +245,7 @@ int main() {
         }
     }
     wm.render(renderer);
+    const bool clockMinuteUnchanged = firstClockMinuteKey == wm.m_clockMinuteKey;
     SDL_Texture* secondTaskbarTitle = nullptr;
     for (const auto& [key, entry] : wm.m_shellTextCache) {
         if (key.rfind("Probe", 0) == 0) {
@@ -254,6 +260,17 @@ int main() {
               && firstTaskbarTitle != nullptr
               && secondTaskbarTitle == firstTaskbarTitle,
           "shell text reuses icon and taskbar textures between frames");
+    check(wm.m_clockMinuteKeyValid
+              && firstClockTexture != nullptr
+              && firstClockDateTexture != nullptr
+              && !firstClockText.empty()
+              && !firstClockDateText.empty()
+              && (!clockMinuteUnchanged
+                  || (wm.m_clockText == firstClockText
+                      && wm.m_clockDateText == firstClockDateText
+                      && wm.m_clockTexture == firstClockTexture
+                      && wm.m_clockDateTexture == firstClockDateTexture)),
+          "clock text formatting and textures stay cached within the displayed minute");
     wm.m_showStartMenu = true;
     wm.render(renderer);
     SDL_Texture* firstStartMenuHeader = nullptr;
@@ -280,8 +297,11 @@ int main() {
     check(wm.m_shellTextCache.empty()
               && wm.m_desktopIconTextCache[0].glyphTexture == nullptr
               && wm.m_desktopIconTextCache[0].labelTexture == nullptr
-              && wm.m_desktopIconTextCache[0].selectedLabelTexture == nullptr,
-          "font changes invalidate cached shell text textures");
+              && wm.m_desktopIconTextCache[0].selectedLabelTexture == nullptr
+              && !wm.m_clockMinuteKeyValid
+              && wm.m_clockTexture == nullptr
+              && wm.m_clockDateTexture == nullptr,
+          "font changes invalidate cached shell and clock text textures");
     wm.setFont(font);
     check(window->cachedTaskbarTitleWidth == -1,
           "font changes invalidate cached taskbar title widths");
@@ -896,10 +916,15 @@ int main() {
         check(!wm.m_taskbarEntries.empty(),
               "taskbar render populates screen-space hit targets");
         const bool clock24HourBeforeFormatChange = wm.getClock24Hour();
+        SDL_Texture* clockDateBeforeFormatChange = wm.m_clockDateTexture;
         wm.setClock24Hour(!clock24HourBeforeFormatChange);
         check(wm.m_taskbarEntries.empty()
                   && wm.m_clockHitRect.w == 0
-                  && wm.m_clockTooltipRect.w == 0,
+                  && wm.m_clockTooltipRect.w == 0
+                  && wm.m_clockTexture == nullptr
+                  && wm.m_clockText.empty()
+                  && clockDateBeforeFormatChange != nullptr
+                  && wm.m_clockDateTexture == clockDateBeforeFormatChange,
               "clock format changes invalidate stale shell hit targets");
         wm.setClock24Hour(clock24HourBeforeFormatChange);
         wm.setContentScale(1.15f);

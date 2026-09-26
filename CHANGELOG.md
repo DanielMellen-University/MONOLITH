@@ -1,5 +1,10 @@
 # Changelog
 
+## 2026-09: Cache taskbar clock formatting
+
+- Format local time and date once per displayed minute instead of repeating time conversion and string formatting on every render.
+- Rebuild time/date textures only when their text changes or the font invalidates them.
+
 ## 2026-09: Cache taskbar title measurements
 
 - Reuse each window's measured title width between taskbar layouts instead of repeating SDL_ttf measurement every render.

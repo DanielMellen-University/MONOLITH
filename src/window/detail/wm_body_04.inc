@@ -152,54 +152,69 @@
     m_clockHitRect = {0, 0, 0, 0};
     m_clockTooltipRect = {0, 0, 0, 0};
     if (m_font) {
-        std::time_t now = std::time(nullptr);
-        std::tm localTm{};
-        localtime_r(&now, &localTm);
-        char timeBuf[32];
-        if (m_desktopSettings.clock24Hour()) {
-            std::snprintf(timeBuf, sizeof(timeBuf), "%02d:%02d", localTm.tm_hour, localTm.tm_min);
-        } else {
-            int hour12 = localTm.tm_hour % 12;
-            if (hour12 == 0) {
-                hour12 = 12;
-            }
-            const char* ampm = (localTm.tm_hour < 12) ? "AM" : "PM";
-            std::snprintf(timeBuf, sizeof(timeBuf), "%d:%02d %s", hour12, localTm.tm_min, ampm);
-        }
-        const std::string timeStr(timeBuf);
+        const std::time_t now = std::time(nullptr);
+        const std::int64_t minuteKey = static_cast<std::int64_t>(now / 60);
+        if (!m_clockMinuteKeyValid || minuteKey != m_clockMinuteKey
+            || m_clockText.empty() || m_clockDateText.empty()) {
+            std::tm localTm{};
+            if (localtime_r(&now, &localTm)) {
+                char timeBuf[32];
+                if (m_desktopSettings.clock24Hour()) {
+                    std::snprintf(timeBuf, sizeof(timeBuf), "%02d:%02d",
+                                  localTm.tm_hour, localTm.tm_min);
+                } else {
+                    int hour12 = localTm.tm_hour % 12;
+                    if (hour12 == 0) {
+                        hour12 = 12;
+                    }
+                    const char* ampm = (localTm.tm_hour < 12) ? "AM" : "PM";
+                    std::snprintf(timeBuf, sizeof(timeBuf), "%d:%02d %s",
+                                  hour12, localTm.tm_min, ampm);
+                }
+                const std::string timeStr(timeBuf);
+                if (timeStr != m_clockText) {
+                    if (m_clockTexture) {
+                        SDL_DestroyTexture(m_clockTexture);
+                        m_clockTexture = nullptr;
+                    }
+                    m_clockText = timeStr;
+                }
 
-        if (timeStr != m_clockText || !m_clockTexture) {
-            if (m_clockTexture) {
-                SDL_DestroyTexture(m_clockTexture);
-                m_clockTexture = nullptr;
+                char dateBuf[64]{};
+                if (std::strftime(dateBuf, sizeof(dateBuf), "%a %b %d, %Y", &localTm) > 0) {
+                    const std::string dateStr(dateBuf);
+                    if (dateStr != m_clockDateText) {
+                        if (m_clockDateTexture) {
+                            SDL_DestroyTexture(m_clockDateTexture);
+                            m_clockDateTexture = nullptr;
+                        }
+                        m_clockDateText = dateStr;
+                    }
+                }
+                m_clockMinuteKey = minuteKey;
+                m_clockMinuteKeyValid = true;
             }
+        }
+
+        if (!m_clockTexture && !m_clockText.empty()) {
             SDL_Color textCol = {225, 225, 230, 255};
-            SDL_Surface* s = TTF_RenderText_Blended(m_font, timeStr.c_str(), textCol);
+            SDL_Surface* s = TTF_RenderText_Blended(m_font, m_clockText.c_str(), textCol);
             if (s) {
                 m_clockTexture = SDL_CreateTextureFromSurface(renderer, s);
                 m_clockTexW = s->w;
                 m_clockTexH = s->h;
                 SDL_FreeSurface(s);
-                m_clockText = timeStr;
             }
         }
 
-        char dateBuf[64];
-        std::strftime(dateBuf, sizeof(dateBuf), "%a %b %d, %Y", &localTm);
-        const std::string dateStr(dateBuf);
-        if (dateStr != m_clockDateText || !m_clockDateTexture) {
-            if (m_clockDateTexture) {
-                SDL_DestroyTexture(m_clockDateTexture);
-                m_clockDateTexture = nullptr;
-            }
+        if (!m_clockDateTexture && !m_clockDateText.empty()) {
             SDL_Color dateCol = {235, 235, 240, 255};
-            SDL_Surface* s = TTF_RenderText_Blended(m_font, dateStr.c_str(), dateCol);
+            SDL_Surface* s = TTF_RenderText_Blended(m_font, m_clockDateText.c_str(), dateCol);
             if (s) {
                 m_clockDateTexture = SDL_CreateTextureFromSurface(renderer, s);
                 m_clockDateTexW = s->w;
                 m_clockDateTexH = s->h;
                 SDL_FreeSurface(s);
-                m_clockDateText = dateStr;
             }
         }
 
