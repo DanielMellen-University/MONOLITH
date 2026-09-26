@@ -538,7 +538,8 @@ int main() {
     check(editor.m_lines[1] == "X\xF0\x9F\x98\x80",
           "editing after vertical movement preserves the full UTF-8 character");
 
-    const auto signedNumberSpans = editor.tokenizeLine("-42 +7");
+    editor.m_syntaxMode = TestEditor::SyntaxMode::Code;
+    const auto signedNumberSpans = editor.tokenizeLine("-42 +7", {});
     check(signedNumberSpans.size() == 3
               && signedNumberSpans[0].start == 0
               && signedNumberSpans[0].length == 3
@@ -547,6 +548,43 @@ int main() {
               && signedNumberSpans[2].start == 4
               && signedNumberSpans[2].length == 2,
           "syntax highlighting keeps signs attached to numeric tokens");
+
+    TestEditor::SyntaxState openCommentState;
+    const auto openCommentSpans = editor.tokenizeLine(
+        "int x; /* open", {}, &openCommentState);
+    const bool openedBlockComment = openCommentState.inBlockComment;
+    const auto continuedCommentSpans = editor.tokenizeLine(
+        "inside */ return", openCommentState, &openCommentState);
+    check(openedBlockComment
+              && openCommentSpans.back().color.g == 145
+              && !openCommentState.inBlockComment
+              && continuedCommentSpans.size() == 3
+              && continuedCommentSpans[0].length == 9
+              && continuedCommentSpans[0].color.g == 145
+              && continuedCommentSpans[2].start == 10
+              && continuedCommentSpans[2].color.b == 225,
+          "syntax highlighting carries block comments across lines and resumes tokens after closing");
+
+    editor.m_lines = {"/* open", "inside", "*/ return"};
+    editor.m_syntaxLineStates.clear();
+    editor.ensureSyntaxStateThrough(2);
+    check(editor.m_syntaxLineStates.size() == 3
+              && editor.m_syntaxLineStates[0].inBlockComment
+              && editor.m_syntaxLineStates[1].inBlockComment
+              && !editor.m_syntaxLineStates[2].inBlockComment,
+          "editor caches block-comment state through scrolled document lines");
+    editor.m_selAnchorRow = 0;
+    editor.m_selAnchorCol = 0;
+    editor.m_cursorRow = 0;
+    editor.m_cursorCol = 2;
+    editor.m_hasSelection = true;
+    editor.insertText("  ");
+    editor.ensureSyntaxStateThrough(2);
+    check(editor.m_syntaxLineStates.size() == 3
+              && !editor.m_syntaxLineStates[0].inBlockComment
+              && !editor.m_syntaxLineStates[1].inBlockComment
+              && !editor.m_syntaxLineStates[2].inBlockComment,
+          "editing a block-comment opener invalidates following cached line states");
 
     editor.clearUndoHistory();
     editor.clearRedoHistory();

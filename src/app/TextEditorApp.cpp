@@ -133,9 +133,11 @@ TextEditorApp::SyntaxMode TextEditorApp::syntaxModeForPath(const std::string& pa
 
 void TextEditorApp::refreshSyntaxMode() {
     m_syntaxMode = syntaxModeForPath(m_filePath);
+    m_syntaxLineStates.clear();
 }
 
-std::vector<TextEditorApp::ColoredSpan> TextEditorApp::tokenizeLine(const std::string& line) const {
+std::vector<TextEditorApp::ColoredSpan> TextEditorApp::tokenizeLine(
+    const std::string& line, SyntaxState incoming, SyntaxState* outgoing) const {
     static const SDL_Color kNormal   = {200, 205, 210, 255};
     static const SDL_Color kComment  = {120, 145, 120, 255};
     static const SDL_Color kString   = {220, 175, 115, 255};
@@ -145,6 +147,7 @@ std::vector<TextEditorApp::ColoredSpan> TextEditorApp::tokenizeLine(const std::s
     std::vector<ColoredSpan> spans;
     const size_t n = line.size();
     size_t i = 0;
+    SyntaxState state = incoming;
 
     auto appendSpan = [&](size_t start, size_t length, const SDL_Color& color) {
         if (length == 0) return;
@@ -167,6 +170,25 @@ std::vector<TextEditorApp::ColoredSpan> TextEditorApp::tokenizeLine(const std::s
     };
 
     while (i < n) {
+        if (state.inBlockComment) {
+            const size_t close = line.find("*/", i);
+            if (close == std::string::npos) {
+                appendSpan(i, n - i, kComment);
+                i = n;
+                break;
+            }
+            const size_t end = close + 2;
+            appendSpan(i, end - i, kComment);
+            i = end;
+            state.inBlockComment = false;
+            continue;
+        }
+
+        if (m_syntaxMode == SyntaxMode::Code
+            && i + 1 < n && line[i] == '/' && line[i + 1] == '*') {
+            state.inBlockComment = true;
+            continue;
+        }
         if (i + 1 < n && line[i] == '/' && line[i + 1] == '/') {
             appendSpan(i, n - i, kComment);
             break;
@@ -246,11 +268,39 @@ std::vector<TextEditorApp::ColoredSpan> TextEditorApp::tokenizeLine(const std::s
         appendSpan(0, line.size(), kNormal);
     }
 
+    if (outgoing) *outgoing = state;
     return spans;
 }
 
+void TextEditorApp::ensureSyntaxStateThrough(int lineIndex) {
+    if (m_lines.empty() || lineIndex < 0) return;
+    if (m_syntaxLineStates.size() > m_lines.size()) {
+        m_syntaxLineStates.resize(m_lines.size());
+    }
+    const size_t target = std::min(
+        static_cast<size_t>(lineIndex), m_lines.size() - 1);
+    while (m_syntaxLineStates.size() <= target) {
+        const size_t row = m_syntaxLineStates.size();
+        const SyntaxState incoming = row == 0
+            ? SyntaxState{}
+            : m_syntaxLineStates.back();
+        SyntaxState outgoing;
+        tokenizeLine(m_lines[row], incoming, &outgoing);
+        m_syntaxLineStates.push_back(outgoing);
+    }
+}
+
+void TextEditorApp::invalidateSyntaxFrom(int lineIndex) {
+    const size_t firstInvalid = lineIndex <= 0
+        ? 0
+        : static_cast<size_t>(lineIndex);
+    if (firstInvalid < m_syntaxLineStates.size()) {
+        m_syntaxLineStates.resize(firstInvalid);
+    }
+}
+
 void TextEditorApp::drawColoredLine(SDL_Renderer* renderer, const std::string& line, int x, int y,
-                                    int maxWidth) const {
+                                    int maxWidth, SyntaxState incoming) const {
     if (!m_font || line.empty() || maxWidth <= 0) return;
 
     int hiddenWidth = 0;
@@ -284,7 +334,7 @@ void TextEditorApp::drawColoredLine(SDL_Renderer* renderer, const std::string& l
     }
     if (visibleEndByte <= firstVisibleByte) return;
 
-    const auto spans = tokenizeLine(line);
+    const auto spans = tokenizeLine(line, incoming);
     int curX = x + hiddenWidth - m_horizontalScrollOffset;
     const int rightEdge = x + maxWidth;
 
@@ -888,6 +938,7 @@ void TextEditorApp::deleteSelectionRange() {
     }
     clearSelection();
     if (m_lines.empty()) m_lines = {""};
+    invalidateSyntaxFrom(r0);
 }
 
 void TextEditorApp::selectAll() {
@@ -981,6 +1032,7 @@ void TextEditorApp::pasteClipboard() {
     if (hasSelection()) {
         deleteSelectionRange();
     }
+    const int editedRow = m_cursorRow;
 
     // Insert multi-line clipboard at cursor.
     size_t start = 0;
@@ -1007,6 +1059,7 @@ void TextEditorApp::pasteClipboard() {
         start = nl + 1;
     }
 
+    invalidateSyntaxFrom(editedRow);
     m_dirty = true;
     clearDiscardArm();
     clearSelection();
@@ -1107,6 +1160,7 @@ void TextEditorApp::insertText(const char* text) {
     }
 
     if (m_cursorRow < 0 || m_cursorRow >= static_cast<int>(m_lines.size())) return;
+    const int editedRow = m_cursorRow;
 
     std::string& line = m_lines[m_cursorRow];
     if (m_cursorCol < 0) m_cursorCol = 0;
@@ -1114,6 +1168,7 @@ void TextEditorApp::insertText(const char* text) {
 
     line.insert(static_cast<size_t>(m_cursorCol), filtered);
     m_cursorCol += static_cast<int>(filtered.size());
+    invalidateSyntaxFrom(editedRow);
     m_dirty = true;
     clearDiscardArm();
     clearSelection();
@@ -1128,6 +1183,7 @@ void TextEditorApp::insertNewline() {
     }
 
     if (m_cursorRow < 0 || m_cursorRow >= static_cast<int>(m_lines.size())) return;
+    const int editedRow = m_cursorRow;
 
     std::string& line = m_lines[m_cursorRow];
     std::string remainder = line.substr(m_cursorCol);
@@ -1135,6 +1191,7 @@ void TextEditorApp::insertNewline() {
 
     m_lines.insert(m_lines.begin() + m_cursorRow + 1, remainder);
 
+    invalidateSyntaxFrom(editedRow);
     m_cursorRow++;
     m_cursorCol = 0;
     m_dirty = true;
@@ -1158,6 +1215,7 @@ void TextEditorApp::deleteChar() {
 
     // Joining lines is a distinct edit; only coalesce in-line backspaces.
     pushUndoState(m_cursorCol > 0 ? UndoCoalesce::Backspace : UndoCoalesce::None);
+    const int syntaxDirtyRow = m_cursorCol > 0 ? m_cursorRow : m_cursorRow - 1;
 
     if (m_cursorCol > 0) {
         std::string& line = m_lines[m_cursorRow];
@@ -1175,6 +1233,7 @@ void TextEditorApp::deleteChar() {
         m_cursorRow--;
         m_cursorCol = newCol;
     }
+    invalidateSyntaxFrom(syntaxDirtyRow);
     m_dirty = true;
     clearDiscardArm();
     ensureCursorVisible();
@@ -1199,6 +1258,7 @@ void TextEditorApp::deleteForward() {
     }
 
     pushUndoState();
+    const int syntaxDirtyRow = m_cursorRow;
 
     if (m_cursorCol < static_cast<int>(line.size())) {
         const size_t start = static_cast<size_t>(m_cursorCol);
@@ -1209,6 +1269,7 @@ void TextEditorApp::deleteForward() {
         line += m_lines[m_cursorRow + 1];
         m_lines.erase(m_lines.begin() + m_cursorRow + 1);
     }
+    invalidateSyntaxFrom(syntaxDirtyRow);
     m_dirty = true;
     clearDiscardArm();
     ensureCursorVisible();
@@ -1547,6 +1608,7 @@ void TextEditorApp::replaceCurrentMatch() {
 
     pushUndoState();
     line.replace(static_cast<size_t>(match.second), m_findQuery.size(), m_replaceText);
+    invalidateSyntaxFrom(match.first);
     m_dirty = true;
     clearDiscardArm();
 
@@ -1585,6 +1647,7 @@ void TextEditorApp::replaceAllMatches() {
 
     pushUndoState();
     int count = 0;
+    int firstChangedRow = static_cast<int>(m_lines.size());
     // Replace the same non-overlapping matches Find reports. Processing the
     // saved positions from right to left keeps earlier byte offsets stable.
     const auto matches = m_findMatches;
@@ -1599,9 +1662,11 @@ void TextEditorApp::replaceAllMatches() {
             continue;
         }
         line.replace(pos, m_findQuery.size(), m_replaceText);
+        firstChangedRow = std::min(firstChangedRow, row);
         ++count;
     }
 
+    if (count > 0) invalidateSyntaxFrom(firstChangedRow);
     m_dirty = true;
     clearDiscardArm();
     m_cursorRow = 0;
@@ -1687,6 +1752,10 @@ void TextEditorApp::render(SDL_Renderer* renderer, const SDL_Rect& contentRect) 
     for (int i = 0; i < visibleLines; ++i) {
         int lineIdx = m_scrollOffset + i;
         if (lineIdx >= static_cast<int>(m_lines.size())) break;
+        ensureSyntaxStateThrough(lineIdx);
+        const SyntaxState incoming = lineIdx == 0
+            ? SyntaxState{}
+            : m_syntaxLineStates[static_cast<size_t>(lineIdx - 1)];
 
         const std::string& line = m_lines[lineIdx];
 
@@ -1772,7 +1841,8 @@ void TextEditorApp::render(SDL_Renderer* renderer, const SDL_Rect& contentRect) 
             line,
             textStartX,
             y,
-            textWidth
+            textWidth,
+            incoming
         );
 
         // Draw cursor if on this line
@@ -2379,6 +2449,7 @@ void TextEditorApp::pushUndoState(UndoCoalesce kind) {
 
 void TextEditorApp::applyEditorState(EditorState&& state) {
     m_lines = std::move(state.lines);
+    invalidateSyntaxFrom(0);
     m_cursorRow = state.cursorRow;
     m_cursorCol = state.cursorCol;
     refreshDirtyState();

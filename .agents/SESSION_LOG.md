@@ -1,5 +1,7 @@
 # Session log
 
+| 2026-09-26 | fix | Carried Text Editor C-style block comments across lines in Code mode, cached outgoing state through visible rows, and invalidated from edited lines; covered closing-token continuation and opener edits. |
+
 | 2026-09-26 | refactor | Removed the unused SDL_ttf surface-cache class after all app text paths moved to bounded renderer-owned texture caches. |
 
 | 2026-09-26 | perf | Reused Settings labels, options, information lines, footer, and wallpaper-path prompt textures across frames and resizes with a renderer-aware 256-entry, estimated 16 MiB LRU; covered identity reuse and scale invalidation. |

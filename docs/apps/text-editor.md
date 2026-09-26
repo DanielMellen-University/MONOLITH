@@ -47,19 +47,19 @@ If a bound file's parent directory is deleted, the editor keeps the document buf
 
 ## Syntax Highlighting
 
-The editor applies lightweight per-line highlighting:
+The editor applies lightweight syntax highlighting:
 
 | Element | Color role |
 |---------|------------|
-| Comments (`//`, `#`) | Muted green |
+| Comments (`//`, `#`, `/* ... */`) | Muted green |
 | Strings (`"..."`, `'...'`) | Gold |
 | Numbers | Purple |
 | Keywords | Blue (code files only) |
 | Everything else | Default text |
 
-**Light mode** (`.txt` and other plain extensions): comments, double-quoted strings, and numbers only — keywords are not highlighted and apostrophes in prose (`Monolith's`) are not treated as strings.
+**Light mode** (`.txt` and other plain extensions): line comments (`//`, `#`), double-quoted strings, and numbers only — keywords and block comments are not highlighted, and apostrophes in prose (`Monolith's`) are not treated as strings.
 
-**Code mode** (`.cpp`, `.py`, `.js`, `.rs`, `.md`, and similar): adds keyword highlighting for common programming tokens.
+**Code mode** (`.cpp`, `.py`, `.js`, `.rs`, `.md`, and similar): adds keyword highlighting for common programming tokens and carries C-style `/* ... */` block comments across lines. The editor caches lexical state through the visible rows and invalidates it from the earliest edited line.
 
 ## Keyboard Shortcuts
 
@@ -121,7 +121,7 @@ Path prompts support Left/Right/Home/End, UTF-8-safe Backspace/Delete, and inser
 - Open/save-as use inline path prompts, not graphical file-picker dialogs (not a multi-button dialog).
 - Dirty close/open uses a second press of the same action to discard; there is no separate "Save / Discard / Cancel" modal. Changing the Open path after the warning requires a fresh confirmation.
 - Undo/redo share a limit of 50 full-buffer states and an estimated 64 MiB of snapshot memory. Oldest undo states are evicted first; snapshots larger than the budget are not retained, and the status bar explains when history is unavailable for that reason. Consecutive typing or in-line backspace within ~1s remains one undo step; Enter, paste, and other edits start a new step.
-- Highlighting is per-line only (no multiline strings or block comments).
+- Multiline string literals and language-specific syntax edge cases are not parsed; highlighting is a lightweight token scan, not a full language parser.
 - No multiple buffers/tabs.
 - Long lines remain editable without wrapping; horizontal scrolling moves the text viewport in pixel increments while preserving document columns.
 - Long-line rendering rasterizes only UTF-8 syntax-span slices near the visible text viewport. A renderer-aware LRU reuses those textures between frames and across edits, scrolling, and resizing; it is capped at 256 entries and an estimated 16 MiB, and clears on renderer or UI-scale changes.

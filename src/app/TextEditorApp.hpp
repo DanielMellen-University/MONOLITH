@@ -136,11 +136,19 @@ private:
         SDL_Color color{};
     };
 
+    struct SyntaxState {
+        bool inBlockComment = false;
+    };
+
     SyntaxMode syntaxModeForPath(const std::string& path) const;
     void refreshSyntaxMode();
-    std::vector<ColoredSpan> tokenizeLine(const std::string& line) const;
+    std::vector<ColoredSpan> tokenizeLine(const std::string& line,
+                                          SyntaxState incoming,
+                                          SyntaxState* outgoing = nullptr) const;
+    void ensureSyntaxStateThrough(int lineIndex);
+    void invalidateSyntaxFrom(int lineIndex);
     void drawColoredLine(SDL_Renderer* renderer, const std::string& line, int x, int y,
-                         int maxWidth) const;
+                         int maxWidth, SyntaxState incoming) const;
 
     // === Rendering helpers ===
     int getLineHeight() const;
@@ -198,6 +206,7 @@ private:
     int m_currentFindMatch = -1;
 
     SyntaxMode m_syntaxMode = SyntaxMode::Light;
+    std::vector<SyntaxState> m_syntaxLineStates;
 
     static constexpr int kStatusBarHeight = 22;
     static constexpr int kPadding = 8;

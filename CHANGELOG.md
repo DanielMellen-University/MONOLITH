@@ -1,5 +1,11 @@
 # Changelog
 
+## 2026-09: Highlight Text Editor block comments across lines
+
+- Carry C-style block-comment state across lines in Code mode while keeping the lexer lightweight and extension-agnostic.
+- Cache outgoing syntax state up to the visible viewport and invalidate from edited lines so scrolling does not require rescanning the document each frame.
+- Cover block-comment continuation, token coloring after the closing delimiter, viewport state caching, and invalidation after editing the opener.
+
 ## 2026-09: Remove obsolete text surface cache
 
 - Delete the unused renderer-independent SDL_ttf surface cache now that all text-cache consumers use the bounded renderer-owned texture cache.
