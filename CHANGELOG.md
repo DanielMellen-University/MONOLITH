@@ -1,5 +1,9 @@
 # Changelog
 
+## 2026-09: Reuse headless integration build objects
+
+- Compile the shared Window Manager and app implementation sources once, then link all six integration test binaries against those objects instead of recompiling the runtime for every test.
+
 ## 2026-09: Register the headless suite with CTest
 
 - Expose the existing complete headless verification runner as `monolith_headless` so standard CTest commands discover the repository's tests.

@@ -1,5 +1,7 @@
 # Session log
 
+| 2026-09-26 | perf | Compiled the shared Window Manager and app sources once for the six integration tests; full CTest suite passed in 63 seconds locally versus 149 seconds before. |
+
 | 2026-09-26 | chore | Registered the existing headless verification runner as `monolith_headless`, switched GitHub Actions to CTest, and verified the complete suite through `ctest --test-dir build --output-on-failure`. |
 
 | 2026-09-26 | fix | Made CMake track every decompressed main and Settings include and reconfigure when compressed fragments are added or removed; verified incremental recovery for missing secondary outputs. |

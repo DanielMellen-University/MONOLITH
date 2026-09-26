@@ -10,7 +10,9 @@ cd "$ROOT"
 mkdir -p "$BUILD_DIR"
 
 read -r -a SDL_FLAGS <<< "$(pkg-config --cflags --libs sdl2)"
+read -r -a SDL_TTF_CFLAGS <<< "$(pkg-config --cflags sdl2 SDL2_ttf)"
 read -r -a SDL_TTF_FLAGS <<< "$(pkg-config --cflags --libs sdl2 SDL2_ttf)"
+WINDOW_MANAGER_TEST_OBJECTS=()
 
 compile_plain() {
     local name="$1"
@@ -25,18 +27,40 @@ compile_sdl() {
     compile_plain "$name" "$@" "${SDL_TTF_FLAGS[@]}"
 }
 
+compile_window_manager_runtime() {
+    local object_dir="$BUILD_DIR/window_manager_test_objects"
+    local -a sources=(
+        "$ROOT/src/window/WindowManager.cpp"
+        "$ROOT/src/window/WallpaperImage.cpp"
+        "$ROOT/src/app/"*.cpp
+        "$ROOT/src/fs/Filesystem.cpp"
+        "$ROOT/src/settings/DesktopSettings.cpp"
+    )
+    mkdir -p "$object_dir"
+
+    for source in "${sources[@]}"; do
+        local object_name="${source##*/}"
+        local object="$object_dir/${object_name%.cpp}.o"
+        echo "[build] shared window manager runtime: $object_name"
+        "$CXX" -std=c++23 \
+            -I"$ROOT/src" \
+            -I"$BUILD_DIR/generated" \
+            -I"$BUILD_DIR/generated/settings" \
+            "${SDL_TTF_CFLAGS[@]}" \
+            -c "$source" -o "$object"
+        WINDOW_MANAGER_TEST_OBJECTS+=("$object")
+    done
+}
+
 compile_window_manager() {
     local name="$1"
     shift
     compile_plain "$name" \
+        -I"$ROOT/src" \
         -I"$BUILD_DIR/generated" \
         -I"$BUILD_DIR/generated/settings" \
         "$@" \
-        "$ROOT/src/window/WindowManager.cpp" \
-        "$ROOT/src/window/WallpaperImage.cpp" \
-        "$ROOT/src/app/"*.cpp \
-        "$ROOT/src/fs/Filesystem.cpp" \
-        "$ROOT/src/settings/DesktopSettings.cpp" \
+        "${WINDOW_MANAGER_TEST_OBJECTS[@]}" \
         "${SDL_TTF_FLAGS[@]}"
 }
 
@@ -95,6 +119,7 @@ compile_plain test_breakout_state scripts/test_breakout_state.cpp src/app/Breako
 compile_plain test_desktop_icons scripts/test_desktop_icons.cpp "${SDL_FLAGS[@]}"
 compile_plain test_app_registry scripts/test_app_registry.cpp "${SDL_FLAGS[@]}"
 compile_plain test_start_menu_filter scripts/test_start_menu_filter.cpp "${SDL_FLAGS[@]}"
+compile_window_manager_runtime
 compile_window_manager test_window_file_open scripts/test_window_file_open.cpp
 compile_window_manager test_window_coordinates scripts/test_window_coordinates.cpp
 compile_window_manager test_window_mouse_capture scripts/test_window_mouse_capture.cpp
