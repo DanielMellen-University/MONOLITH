@@ -10,7 +10,7 @@ find_package(SDL2 REQUIRED)
 
 # Find SDL2_ttf using pkg-config (more reliable across distros)
 find_package(PkgConfig REQUIRED)
-pkg_check_modules(SDL2_TTF REQUIRED SDL2_ttf)
+pkg_check_modules(SDL2_TTF REQUIRED SDL2_ttf>=2.0.18)
 
 # Fetch pinned stb_image.h for PNG/JPEG wallpaper decode.
 set(MONOLITH_STB_IMAGE_AMALGAM "${CMAKE_CURRENT_BINARY_DIR}/generated/stb_image.h")

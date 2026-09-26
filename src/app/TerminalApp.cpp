@@ -8,6 +8,7 @@
 #include <ctime>
 #include <iomanip>
 #include <sstream>
+#include <utility>
 
 namespace monolith::app {
 
@@ -97,14 +98,35 @@ void TerminalApp::onVirtualPathRemoved(const std::string& path) {
 }
 
 void TerminalApp::addOutput(const std::string& line) {
-    m_history.push_back(line);
-    if (m_history.size() > kMaxScrollbackLines) {
-        const auto excess = m_history.size() - kMaxScrollbackLines;
+    constexpr char truncationPrefix[] = "[truncated] ";
+    constexpr size_t truncationPrefixBytes = sizeof(truncationPrefix) - 1;
+    std::string storedLine;
+    if (line.size() > kMaxScrollbackLineBytes) {
+        const size_t contentLimit = kMaxScrollbackLineBytes - truncationPrefixBytes;
+        const size_t contentBytes = utf8ClampToCodepointBoundary(line, contentLimit);
+        storedLine.reserve(kMaxScrollbackLineBytes);
+        storedLine = truncationPrefix;
+        storedLine.append(line, 0, contentBytes);
+    } else {
+        storedLine = line;
+    }
+
+    m_history.push_back(std::move(storedLine));
+    m_historyBytes += m_history.back().size();
+
+    size_t excess = 0;
+    while (excess < m_history.size()
+           && (m_history.size() - excess > kMaxScrollbackLines
+               || m_historyBytes > kMaxScrollbackBytes)) {
+        m_historyBytes -= m_history[excess].size();
+        ++excess;
+    }
+    if (excess > 0) {
         m_history.erase(
             m_history.begin(),
             m_history.begin() + static_cast<std::vector<std::string>::difference_type>(excess));
-        m_historyTextSurfaceCache.clear();
     }
+    m_historyTextSurfaceCache.clear();
     m_scrollOffset = 0;   // auto-scroll to bottom on new output
 }
 
@@ -165,7 +187,9 @@ void TerminalApp::executeCommand(const std::string& commandLine) {
     }
     else if (cmd == "clear") {
         m_history.clear();
+        m_historyBytes = 0;
         m_historyTextSurfaceCache.clear();
+        m_scrollOffset = 0;
     }
     else if (cmd == "help") {
         addOutput("Available commands:");

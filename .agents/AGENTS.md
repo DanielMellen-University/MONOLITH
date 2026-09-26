@@ -34,6 +34,7 @@ The human funds token budget and lives in the desktop. You:
 
 | When | Kind | Note |
 |------|------|------|
+| 2026-09-26 | 7.10 | Terminal scrollback limited to 2,000 rows, 8 MiB, and 64 KiB per row; render/cache only viewport-fitting UTF-8 prefixes |
 | 2026-09-26 | 7.9 | Bound Text Editor undo/redo to 50 states and estimated 64 MiB; CURRENT_CHUNK remains await-5.x-unpark |
 | 2026-09-26 | 7.8 | Bound Drawing undo/redo history to 32 states and 64 MiB; CURRENT_CHUNK remains await-5.x-unpark |
 | 2026-09-24 | 7.7 | Multi-column desktop icons; CURRENT_CHUNK back to await-5.x-unpark |
@@ -90,6 +91,7 @@ Older recent-work rows: [`SESSION_LOG.md`](SESSION_LOG.md).
 | 7.7 | Multi-column desktop icons | done | Fill extra columns left-to-right when height is short; see `docs/notes/7.7-desktop-icon-columns.md` |
 | 7.8 | Drawing history memory | done | Cap combined undo/redo to 32 states and 64 MiB; retain move-based snapshot traversal |
 | 7.9 | Text Editor history memory | done | Cap combined undo/redo to 50 states and estimated 64 MiB; retain typing coalescing and move-based traversal |
+| 7.10 | Terminal scrollback memory | done | Cap scrollback at 2,000 rows, 8 MiB total, and 64 KiB per row; render only visible UTF-8 prefixes |
 
 ## Commit voice
 

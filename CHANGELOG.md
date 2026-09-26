@@ -1,5 +1,11 @@
 # Changelog
 
+## 2026-09: Bound Terminal scrollback and text rendering
+
+- Cap scrollback at 2,000 rows and 8 MiB, with a 64 KiB per-row limit and a visible truncation marker.
+- Measure long UTF-8 rows to the history viewport and cache only their visible prefixes; invalidate cached rows when output, scrolling, resize, or scale changes.
+- Add coverage for row and byte budgets, long Unicode prefixes, and viewport-sized cached surfaces.
+
 ## 2026-09: Bound Text Editor undo memory
 
 - Cap combined undo/redo history at 50 states and an estimated 64 MiB, evicting the oldest undo states first.

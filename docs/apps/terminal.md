@@ -109,7 +109,7 @@ Command history persists across sessions in:
 /home/monolith/.terminal_history
 ```
 
-History is saved after each submitted command. Command history is capped (oldest entries drop); on-screen scrollback is also capped so long sessions stay responsive. Both caps discard any excess in one bounded trim when new entries arrive, so large command output does not pay for repeated front-of-vector shifts.
+History is saved after each submitted command. Command history is capped at 500 entries (oldest entries drop). On-screen scrollback retains at most 2,000 rows and 8 MiB; an individual row is capped at 64 KiB and marked `[truncated]`. Excess oldest rows are dropped together when new output arrives, keeping large bursts from repeatedly shifting the front of the vector.
 
 History loading accepts both Unix and Windows line endings, so recalled commands do not carry a hidden carriage return into command parsing.
 
@@ -121,7 +121,7 @@ The input strip remains inside the client rectangle even when a window is resize
 The history viewport also clamps both width and height to zero for clients smaller than its padding, so narrow windows do not create invalid clip rectangles.
 Terminal intersects its input and history clips with the caller's renderer clip and restores that clip after each region.
 
-Terminal caches renderer-independent SDL_ttf surfaces for visible scrollback lines. The cache is cleared when `clear` removes the output, when the scrollback cap trims old lines, and when the shared interface text scale changes. Prompt and reverse-search fragments stay short-lived because their contents change with the caret and query.
+Terminal measures each scrollback row against the history viewport and rasterizes only the visible UTF-8 prefix, so an off-screen tail cannot allocate a screen-sized text surface. Renderer-independent SDL_ttf surfaces are cached only for the current view and cleared when output, scroll position, client size, or the shared interface text scale changes. Prompt and reverse-search fragments stay short-lived because their contents change with the caret and query.
 
 ## Argument Quoting
 
@@ -149,7 +149,7 @@ Unterminated quotes print `parse error: ...` and do not run the command.
 - No script execution or custom language integration yet.
 - `touch` creates an empty file if missing; existing files are left unchanged (no mtime update yet).
 - The prompt is a single line and does not provide Text Editor-style selection or clipboard editing.
-- Scrollback lines stay at native text size and clip at the viewport edge instead of being horizontally scaled.
+- Scrollback lines stay at native text size and clip at the viewport edge instead of being horizontally scaled or scrolled sideways.
 - Esc clears the current input and resets the insertion point, so typing can continue immediately.
 
 ## Developer Notes
@@ -164,4 +164,4 @@ Main implementation files:
 
 Launched via `WindowManager::launchTerminal()`.
 
-Scrollback cap: 2000 lines. Command history cap: 500 entries. `cat` truncates after 5000 lines.
+Scrollback caps: 2,000 rows, 8 MiB total, and 64 KiB per row. Command history cap: 500 entries. `cat` emits at most 5,000 file lines before the scrollback caps apply.

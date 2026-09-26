@@ -22,7 +22,7 @@ Monolith has a working desktop environment with overlapping windows:
 
 - C++23 compatible compiler (GCC 11+ or Clang 14+ recommended)
 - CMake 3.16 or newer
-- SDL2 and SDL2_ttf development libraries
+- SDL2 and SDL2_ttf 2.0.18 or newer development libraries
 - pkg-config
 
 ### Ubuntu / Debian / Pop!_OS

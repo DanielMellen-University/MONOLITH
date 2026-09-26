@@ -3,6 +3,7 @@
 #include <SDL2/SDL.h>
 #include <SDL2/SDL_ttf.h>
 
+#include <algorithm>
 #include <filesystem>
 #include <iostream>
 #include <string>
@@ -11,6 +12,7 @@
 #include "../src/app/App.hpp"
 #include "../src/fs/Filesystem.hpp"
 #include "../src/app/TerminalLexer.hpp"
+#include "../src/app/Utf8.hpp"
 
 #define private public
 #include "../src/app/TerminalApp.hpp"
@@ -103,6 +105,7 @@ int main() {
           "CRLF history entries lose their carriage returns");
 
     terminal.m_history.clear();
+    terminal.m_historyBytes = 0;
     for (int i = 0; i < 2002; ++i) {
         terminal.addOutput("line " + std::to_string(i));
     }
@@ -110,6 +113,34 @@ int main() {
               && terminal.m_history.front() == "line 2"
               && terminal.m_history.back() == "line 2001",
           "scrollback trims its excess in one pass while keeping the newest lines");
+
+    const size_t truncationPrefixBytes = std::string("[truncated] ").size();
+    std::string oversizedRow(
+        monolith::app::TerminalApp::kMaxScrollbackLineBytes - truncationPrefixBytes - 1,
+        'x');
+    oversizedRow += "\xF0\x9F\x8C\x8B";
+    oversizedRow += std::string(20, 't');
+    terminal.addOutput(oversizedRow);
+    bool storedRowIsCompleteUtf8 = true;
+    const std::string storedContent = terminal.m_history.back().substr(truncationPrefixBytes);
+    for (size_t pos = 0; pos < storedContent.size();) {
+        const size_t charBytes = monolith::app::utf8CodepointByteLen(storedContent, pos);
+        if (charBytes == 0 || pos + charBytes > storedContent.size()) {
+            storedRowIsCompleteUtf8 = false;
+            break;
+        }
+        pos += charBytes;
+    }
+    check(terminal.m_history.back().size() <= monolith::app::TerminalApp::kMaxScrollbackLineBytes
+              && terminal.m_history.back().rfind("[truncated] ", 0) == 0
+              && storedRowIsCompleteUtf8,
+          "oversized terminal rows are UTF-8-safe capped and marked");
+    const std::string fullScrollbackRow(
+        monolith::app::TerminalApp::kMaxScrollbackLineBytes, 'y');
+    for (int i = 0; i < 130; ++i) terminal.addOutput(fullScrollbackRow);
+    check(terminal.m_historyBytes <= monolith::app::TerminalApp::kMaxScrollbackBytes
+              && terminal.m_history.size() <= monolith::app::TerminalApp::kMaxScrollbackLines,
+          "terminal scrollback stays within its total byte and row budgets");
 
     terminal.m_commandHistory.assign(500, "old command");
     terminal.m_inputBuffer = "new command";
@@ -238,11 +269,13 @@ int main() {
           "recursive cp notifies every changed path in an existing tree");
 
     terminal.m_history.clear();
+    terminal.m_historyBytes = 0;
     terminal.executeCommand("cat /home/monolith/line-endings.txt");
     check(terminal.m_history == std::vector<std::string>{"first", "second", "third", ""},
           "cat normalizes CRLF and lone-CR line endings");
 
     terminal.m_history.clear();
+    terminal.m_historyBytes = 0;
     terminal.executeCommand("cat \"/home/monolith/my  file.txt\"");
     check(terminal.m_history == std::vector<std::string>{"exact spacing"},
           "quoted command paths preserve repeated spaces");
@@ -322,6 +355,7 @@ int main() {
           "down does not overwrite an edited recalled command");
 
     terminal.m_history.assign(40, "output");
+    terminal.m_historyBytes = 40 * std::string("output").size();
     terminal.onResize(320, 240);
     const int visibleLines = terminal.getMaxVisibleLines({0, 0, 320, 240});
     check(visibleLines > 0 && visibleLines < 40,
@@ -374,7 +408,8 @@ int main() {
                   && terminal.m_historyTextSurfaceCache.m_entries.size() == cachedSurfaceCount,
               "Terminal reuses cached scrollback text surfaces between frames");
         terminal.executeCommand("clear");
-        check(terminal.m_historyTextSurfaceCache.m_entries.empty(),
+        check(terminal.m_historyTextSurfaceCache.m_entries.empty()
+                  && terminal.m_historyBytes == 0,
               "Terminal clears cached scrollback surfaces when output is cleared");
         terminal.addOutput("output");
         terminal.render(renderer, {0, 0, 200, 200});
@@ -383,6 +418,54 @@ int main() {
         terminal.onUiScaleChanged();
         check(terminal.m_historyTextSurfaceCache.m_entries.empty(),
               "Terminal clears cached scrollback text when UI scale changes");
+
+        std::string longUnicodeLine;
+        for (int i = 0; i < 5000; ++i) {
+            longUnicodeLine += "\xC3\xA9" "\xF0\x9F\x8C\x8B";
+        }
+        terminal.m_history.assign(2, longUnicodeLine);
+        terminal.m_historyBytes = longUnicodeLine.size() * terminal.m_history.size();
+        terminal.m_scrollOffset = 0;
+        terminal.render(renderer, {0, 0, 200, 200});
+        const SDL_Rect historyRect = terminal.getHistoryRect({0, 0, 200, 200});
+        size_t largestCachedTextBytes = 0;
+        bool cachedPrefixesAreCompleteUtf8 = true;
+        bool cachedSurfacesFitViewport = true;
+        for (const auto& [key, cachedSurface]
+             : terminal.m_historyTextSurfaceCache.m_entries) {
+            const size_t textBytes = key.size() >= 5 ? key.size() - 5 : 0;
+            largestCachedTextBytes = std::max(largestCachedTextBytes, textBytes);
+            std::string cachedText = key.substr(0, textBytes);
+            for (size_t pos = 0; pos < cachedText.size();) {
+                const size_t charBytes = monolith::app::utf8CodepointByteLen(cachedText, pos);
+                if (charBytes == 0 || pos + charBytes > cachedText.size()) {
+                    cachedPrefixesAreCompleteUtf8 = false;
+                    break;
+                }
+                pos += charBytes;
+            }
+            if (cachedSurface && cachedSurface->w > historyRect.w) {
+                cachedSurfacesFitViewport = false;
+            }
+        }
+        check(!terminal.m_historyTextSurfaceCache.m_entries.empty()
+                  && cachedSurfacesFitViewport
+                  && largestCachedTextBytes < longUnicodeLine.size() / 10
+                  && cachedPrefixesAreCompleteUtf8,
+              "terminal caches viewport-sized, complete UTF-8 prefixes of long rows");
+
+        terminal.m_history.assign(40, "output");
+        terminal.m_historyBytes = 40 * std::string("output").size();
+        terminal.m_scrollOffset = 0;
+        terminal.render(renderer, {0, 0, 200, 200});
+        terminal.scrollHistory(1);
+        check(terminal.m_historyTextSurfaceCache.m_entries.empty(),
+              "terminal invalidates cached scrollback when the viewed rows change");
+        terminal.render(renderer, {0, 0, 200, 200});
+        terminal.onResize(210, 200);
+        check(terminal.m_historyTextSurfaceCache.m_entries.empty(),
+              "terminal invalidates cached scrollback when its client size changes");
+
         terminal.m_scrollOffset = 39;
         terminal.render(renderer, {0, 0, 320, 40});
         check(terminal.m_clientWidth == 320

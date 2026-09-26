@@ -1,6 +1,11 @@
 void TerminalApp::scrollHistory(int delta) {
-    m_scrollOffset += delta;
-    m_scrollOffset = std::clamp(m_scrollOffset, 0, getMaxScrollOffset());
+    const int nextOffset = static_cast<int>(std::clamp(
+        static_cast<long long>(m_scrollOffset) + delta,
+        0LL,
+        static_cast<long long>(getMaxScrollOffset())));
+    if (nextOffset == m_scrollOffset) return;
+    m_scrollOffset = nextOffset;
+    m_historyTextSurfaceCache.clear();
 }
 
 void TerminalApp::handleMouseWheel(const SDL_MouseWheelEvent& e) {
@@ -490,8 +495,29 @@ void TerminalApp::render(SDL_Renderer* renderer, const SDL_Rect& contentRect) {
 
         for (int i = startIdx; i >= 0 && y >= historyRect.y; --i) {
             const std::string& line = m_history[i];
+            std::string visibleLine;
+            const char* displayText = line.c_str();
+            int measuredWidth = 0;
+            int characterCount = 0;
+            if (historyRect.w <= 0
+                || TTF_MeasureUTF8(m_font, line.c_str(), historyRect.w,
+                                   &measuredWidth, &characterCount) != 0) {
+                y -= lineHeight;
+                continue;
+            }
 
-            SDL_Surface* surf = m_historyTextSurfaceCache.get(m_font, line.c_str(), textColor);
+            std::size_t visibleBytes = 0;
+            for (int character = 0;
+                 character < characterCount && visibleBytes < line.size();
+                 ++character) {
+                visibleBytes = utf8NextCodepointStart(line, visibleBytes);
+            }
+            if (visibleBytes < line.size()) {
+                visibleLine.assign(line.data(), visibleBytes);
+                displayText = visibleLine.c_str();
+            }
+
+            SDL_Surface* surf = m_historyTextSurfaceCache.get(m_font, displayText, textColor);
             if (surf) {
                 SDL_Texture* tex = SDL_CreateTextureFromSurface(renderer, surf);
                 if (tex) {
@@ -516,6 +542,9 @@ void TerminalApp::render(SDL_Renderer* renderer, const SDL_Rect& contentRect) {
 }
 
 void TerminalApp::onResize(int clientWidth, int clientHeight) {
+    if (m_clientWidth != clientWidth || m_clientHeight != clientHeight) {
+        m_historyTextSurfaceCache.clear();
+    }
     m_clientWidth = clientWidth;
     m_clientHeight = clientHeight;
     // Keep scroll within bounds after resize

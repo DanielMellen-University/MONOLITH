@@ -79,8 +79,11 @@ private:
     std::vector<std::string> m_commandHistory;   // Commands the user has entered (for 'history' cmd)
 
     static constexpr size_t kMaxScrollbackLines = 2000;
+    static constexpr size_t kMaxScrollbackBytes = 8 * 1024 * 1024;
+    static constexpr size_t kMaxScrollbackLineBytes = 64 * 1024;
     static constexpr size_t kMaxCommandHistory = 500;
     static constexpr size_t kMaxCatLines = 5000;
+    size_t m_historyBytes = 0;
     std::string m_inputBuffer;
     std::string m_prompt = "> ";
 
