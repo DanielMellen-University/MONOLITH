@@ -26,11 +26,12 @@ private:
     // Font used for window titles (not owned by WindowManager)
     TTF_Font* m_font = nullptr;
 
-    // Simple cache for title textures: key = window id, value = {texture, last title, was focused}
+    // Per-window title textures store only the UTF-8 prefix that fits the title area.
     struct TitleCacheEntry {
         SDL_Texture* texture = nullptr;
         std::string lastTitle;
         bool wasFocused = false;
+        int availableWidth = -1;
     };
     std::unordered_map<int, TitleCacheEntry> m_titleCache;
 

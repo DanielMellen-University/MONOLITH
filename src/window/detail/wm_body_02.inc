@@ -246,49 +246,78 @@ void WindowManager::render(SDL_Renderer* renderer) {
 
         const TitleButtonRects logicalButtons = getTitleButtonRects(win);
         const SDL_Rect minBtn = logicalRectToScreen(logicalButtons.minimize);
+        const int paddingLeft = static_cast<int>(10 * m_contentScale);
+        const int paddingRight = static_cast<int>(6 * m_contentScale);
+        const int titleLeft = screenX + paddingLeft;
+        const int titleRight = std::min(minBtn.x - paddingRight, screenX + scaledW);
+        const int titleWidth = std::max(0, titleRight - titleLeft);
 
         // === Window title text (cached) ===
         if (m_font && !win.title.empty()) {
             auto& cache = m_titleCache[win.id];
-            bool needsUpdate = (cache.texture == nullptr) ||
-                               (cache.lastTitle != win.title) ||
-                               (cache.wasFocused != isFocused);
-
-            if (needsUpdate) {
-                if (cache.texture) {
+            if (cache.availableWidth != titleWidth) {
+                cache.availableWidth = titleWidth;
+                std::string visibleTitle;
+                int measuredWidth = 0;
+                int visibleCharacters = 0;
+                if (titleWidth > 0
+                    && TTF_MeasureUTF8(m_font, win.title.c_str(), titleWidth,
+                                       &measuredWidth, &visibleCharacters) == 0) {
+                    std::size_t visibleBytes = 0;
+                    for (int character = 0;
+                         character < visibleCharacters && visibleBytes < win.title.size();
+                         ++character) {
+                        visibleBytes = monolith::app::utf8NextCodepointStart(
+                            win.title, visibleBytes);
+                    }
+                    visibleTitle.assign(win.title.data(), visibleBytes);
+                }
+                if (cache.lastTitle != visibleTitle && cache.texture) {
                     SDL_DestroyTexture(cache.texture);
+                    cache.texture = nullptr;
                 }
-
-                SDL_Color textColor = isFocused ? SDL_Color{230, 230, 235, 255}
-                                                : SDL_Color{180, 180, 185, 255};
-
-                SDL_Surface* surface = TTF_RenderUTF8_Blended(m_font, win.title.c_str(), textColor);
-                if (surface) {
-                    cache.texture = SDL_CreateTextureFromSurface(renderer, surface);
-                    SDL_FreeSurface(surface);
-                }
-                cache.lastTitle = win.title;
-                cache.wasFocused = isFocused;
+                cache.lastTitle = std::move(visibleTitle);
             }
 
-            if (cache.texture) {
-                int texW, texH;
-                SDL_QueryTexture(cache.texture, nullptr, nullptr, &texW, &texH);
+            if (cache.lastTitle.empty()) {
+                if (cache.texture) {
+                    SDL_DestroyTexture(cache.texture);
+                    cache.texture = nullptr;
+                }
+                cache.wasFocused = isFocused;
+            } else {
+                const bool needsUpdate = (cache.texture == nullptr)
+                    || (cache.wasFocused != isFocused);
 
-                const int paddingLeft = static_cast<int>(10 * m_contentScale);
-                const int paddingRight = static_cast<int>(6 * m_contentScale);
-                const int titleLeft = screenX + paddingLeft;
-                const int titleRight = std::min(minBtn.x - paddingRight, screenX + scaledW);
-                const int titleWidth = std::max(0, titleRight - titleLeft);
+                if (needsUpdate) {
+                    if (cache.texture) {
+                        SDL_DestroyTexture(cache.texture);
+                        cache.texture = nullptr;
+                    }
 
-                SDL_Rect dstRect = {
-                    titleLeft,
-                    screenY + (scaledTitleH - texH) / 2,
-                    texW,
-                    texH
-                };
+                    SDL_Color textColor = isFocused ? SDL_Color{230, 230, 235, 255}
+                                                    : SDL_Color{180, 180, 185, 255};
 
-                if (titleWidth > 0) {
+                    SDL_Surface* surface = TTF_RenderUTF8_Blended(
+                        m_font, cache.lastTitle.c_str(), textColor);
+                    if (surface) {
+                        cache.texture = SDL_CreateTextureFromSurface(renderer, surface);
+                        SDL_FreeSurface(surface);
+                    }
+                    cache.wasFocused = isFocused;
+                }
+
+                if (cache.texture) {
+                    int texW, texH;
+                    SDL_QueryTexture(cache.texture, nullptr, nullptr, &texW, &texH);
+
+                    SDL_Rect dstRect = {
+                        titleLeft,
+                        screenY + (scaledTitleH - texH) / 2,
+                        texW,
+                        texH
+                    };
+
                     SDL_Rect titleClip = {titleLeft, screenY, titleWidth, scaledTitleH};
                     const SDL_Rect effectiveTitleClip = intersectRendererClip(titleClip, callerClip);
                     SDL_RenderSetClipRect(renderer, &effectiveTitleClip);

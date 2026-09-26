@@ -1,5 +1,11 @@
 # Changelog
 
+## 2026-09: Rasterize only visible window-title text
+
+- Measure the title area before rendering and cache only the complete UTF-8 prefix that fits before the title buttons.
+- Rebuild the title surface only when the available width, visible prefix, shared font, or focus color changes.
+- Cover long Unicode titles and title-cache updates after a window narrows.
+
 ## 2026-09: Bound shell text texture caching
 
 - Limit WindowManager's text-and-color texture cache to 256 entries and an estimated 16 MiB, evicting least-recently-used labels as windows and search text change.

@@ -5,6 +5,7 @@
 #include "../src/window/WindowManager.hpp"
 #undef private
 
+#include <algorithm>
 #include <cstdlib>
 #include <iostream>
 #include <memory>
@@ -559,9 +560,12 @@ int main() {
     if (renderer) {
         wm.setContentScale(1.0f);
         wm.setLogicalDesktopSize(1000, 700);
+        std::string longUnicodeTitle = "Editor - ";
+        for (int i = 0; i < 64; ++i) longUnicodeTitle += "\xC3\xA9";
+        longUnicodeTitle += ".txt";
         auto longTitleApp = std::make_unique<ProbeApp>();
         auto* longTitleWindow = wm.createWindow(
-            "Editor - an unusually long document title.txt", 420, 100, 300, 240,
+            longUnicodeTitle, 420, 100, 300, 240,
             std::move(longTitleApp));
         auto unicodeTitleApp = std::make_unique<ProbeApp>();
         auto* unicodeTitleWindow = wm.createWindow(
@@ -587,6 +591,57 @@ int main() {
                   && cachedUnicodeTitleWidth == measuredUnicodeTitleWidth
                   && cachedUnicodeTitleHeight == measuredUnicodeTitleHeight,
               "window and taskbar titles render as UTF-8");
+
+        auto titleAvailableWidth = [&wm](monolith::window::Window* target) {
+            const int screenX = wm.logicalToScreenX(target->rect.x);
+            const int scaledW = static_cast<int>(target->rect.w * wm.m_contentScale);
+            const SDL_Rect minimize = wm.logicalRectToScreen(
+                wm.getTitleButtonRects(*target).minimize);
+            const int titleLeft = screenX + static_cast<int>(10 * wm.m_contentScale);
+            const int titleRight = std::min(
+                minimize.x - static_cast<int>(6 * wm.m_contentScale),
+                screenX + scaledW);
+            return std::max(0, titleRight - titleLeft);
+        };
+        const auto longTitleCache = wm.m_titleCache.find(longTitleWindow->id);
+        int longTitleTextureWidth = 0;
+        int longTitleTextureHeight = 0;
+        const bool longTitleTextureReady = longTitleCache != wm.m_titleCache.end()
+            && longTitleCache->second.texture
+            && SDL_QueryTexture(longTitleCache->second.texture, nullptr, nullptr,
+                                &longTitleTextureWidth, &longTitleTextureHeight) == 0;
+        int measuredVisibleTitleWidth = 0;
+        int measuredVisibleTitleHeight = 0;
+        const bool visibleTitleIsUtf8 = longTitleCache != wm.m_titleCache.end()
+            && longUnicodeTitle.rfind(longTitleCache->second.lastTitle, 0) == 0
+            && TTF_SizeUTF8(font, longTitleCache->second.lastTitle.c_str(),
+                            &measuredVisibleTitleWidth, &measuredVisibleTitleHeight) == 0;
+        check(longTitleTextureReady && visibleTitleIsUtf8
+                  && longTitleTextureWidth <= titleAvailableWidth(longTitleWindow)
+                  && longTitleTextureWidth == measuredVisibleTitleWidth
+                  && longTitleCache->second.lastTitle.size() < longUnicodeTitle.size(),
+              "long window titles cache only a complete UTF-8 prefix that fits");
+
+        const int wideTitleTextureWidth = longTitleTextureWidth;
+        const int originalLongTitleWidth = longTitleWindow->rect.w;
+        longTitleWindow->rect.w = monolith::window::Window::MIN_WIDTH;
+        wm.render(renderer);
+        const auto narrowTitleCache = wm.m_titleCache.find(longTitleWindow->id);
+        int narrowTitleTextureWidth = 0;
+        int narrowTitleTextureHeight = 0;
+        const bool narrowTitleTextureReady = narrowTitleCache != wm.m_titleCache.end()
+            && narrowTitleCache->second.texture
+            && SDL_QueryTexture(narrowTitleCache->second.texture, nullptr, nullptr,
+                                &narrowTitleTextureWidth, &narrowTitleTextureHeight) == 0;
+        check(narrowTitleTextureReady
+                  && narrowTitleCache->second.availableWidth
+                      == titleAvailableWidth(longTitleWindow)
+                  && narrowTitleTextureWidth <= narrowTitleCache->second.availableWidth
+                  && narrowTitleTextureWidth < wideTitleTextureWidth,
+              "window title cache rerasterizes to the narrower client title area");
+        longTitleWindow->rect.w = originalLongTitleWidth;
+        wm.setWindowTitle(longTitleWindow,
+                          "Editor - an unusually long document title.txt");
 
         wm.setContentScale(1.25f);
         wm.setLogicalDesktopSize(320, 200);

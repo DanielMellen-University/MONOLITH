@@ -1,5 +1,7 @@
 # Session log
 
+| 2026-09-26 | perf | Rasterized only the UTF-8-safe window-title prefix that fits before the title controls and reused it until title width, visible text, font, or focus color changes; covered long Unicode titles and narrow resizes. |
+
 | 2026-09-26 | perf | Bounded WindowManager shell text textures with a 256-entry, estimated 16 MiB LRU and capped Start-menu filter input at 64 UTF-8 bytes; covered entry/byte eviction, cache reuse, and complete-codepoint input. |
 
 | 2026-09-26 | perf | Added filesystem tail-chunk reads and made Terminal seek to a bounded history suffix, preserving recent valid commands while avoiding scans of old prefixes; one 16 MiB recovery tail handles an oversized final record without an unbounded scan. |

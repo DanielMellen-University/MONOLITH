@@ -7,6 +7,7 @@
 #include "../detail/AtomicFile.hpp"
 #include "../detail/RendererClip.hpp"
 #include "../app/FilePath.hpp"
+#include "../app/Utf8.hpp"
 #include "../app/TerminalApp.hpp"
 #include "../app/TextEditorApp.hpp"
 #include "../app/FilesystemApp.hpp"
