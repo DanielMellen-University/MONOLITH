@@ -1,5 +1,10 @@
 # Changelog
 
+## 2026-09: Cache taskbar title measurements
+
+- Reuse each window's measured title width between taskbar layouts instead of repeating SDL_ttf measurement every render.
+- Invalidate the cached width on title changes and whenever the shared UI font size changes.
+
 ## 2026-09: Reuse headless integration build objects
 
 - Compile the shared Window Manager and app implementation sources once, then link all six integration test binaries against those objects instead of recompiling the runtime for every test.

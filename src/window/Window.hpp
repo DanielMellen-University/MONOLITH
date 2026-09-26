@@ -20,6 +20,8 @@ namespace monolith::window {
 struct Window {
     int id = -1;
     std::string title;
+    // SDL_ttf pixel width; -1 means remeasure after a title or shared-font change.
+    int cachedTaskbarTitleWidth = -1;
 
     // If this window is a text editor associated with a specific virtual file path,
     // this holds the normalized path. Used by WindowManager for "singleton editor" behavior.

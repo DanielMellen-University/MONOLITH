@@ -127,6 +127,35 @@ int main() {
     ProbeApp* probePtr = probe.get();
     monolith::window::Window* window = wm.createWindow(
         "Probe", 100, 100, 300, 240, std::move(probe));
+    int expectedTaskbarTitleWidth = 0;
+    int expectedTaskbarTitleHeight = 0;
+    const bool measuredProbeTitle = TTF_SizeUTF8(
+        font, "Probe", &expectedTaskbarTitleWidth, &expectedTaskbarTitleHeight) == 0;
+    wm.computeTaskbarLayout();
+    const int cachedProbeTitleWidth = window->cachedTaskbarTitleWidth;
+    wm.computeTaskbarLayout();
+    check(measuredProbeTitle
+              && cachedProbeTitleWidth == expectedTaskbarTitleWidth
+              && window->cachedTaskbarTitleWidth == cachedProbeTitleWidth,
+          "taskbar title width is measured once and reused across layouts");
+    wm.setWindowTitle(window, "Probe - temporary title");
+    const bool renamedTitleInvalidated = window->cachedTaskbarTitleWidth == -1;
+    wm.setWindowTitle(window, "Probe");
+    check(renamedTitleInvalidated && window->cachedTaskbarTitleWidth == -1,
+          "renaming a window invalidates its cached taskbar title width");
+    wm.computeTaskbarLayout();
+    wm.setUiScalePercent(115);
+    int scaledProbeTitleWidth = 0;
+    int scaledProbeTitleHeight = 0;
+    const bool measuredScaledProbeTitle = TTF_SizeUTF8(
+        font, "Probe", &scaledProbeTitleWidth, &scaledProbeTitleHeight) == 0;
+    const bool scaleInvalidatedProbeTitle = window->cachedTaskbarTitleWidth == -1;
+    wm.computeTaskbarLayout();
+    const bool rescaledProbeTitle = measuredScaledProbeTitle
+        && window->cachedTaskbarTitleWidth == scaledProbeTitleWidth;
+    wm.setUiScalePercent(100);
+    check(scaleInvalidatedProbeTitle && rescaledProbeTitle,
+          "UI font scaling invalidates and recomputes cached taskbar title width");
 
     auto undersizedProbe = std::make_unique<ProbeApp>();
     ProbeApp* undersizedProbePtr = undersizedProbe.get();
@@ -254,6 +283,8 @@ int main() {
               && wm.m_desktopIconTextCache[0].selectedLabelTexture == nullptr,
           "font changes invalidate cached shell text textures");
     wm.setFont(font);
+    check(window->cachedTaskbarTitleWidth == -1,
+          "font changes invalidate cached taskbar title widths");
     wm.m_showStartMenu = false;
     wm.invalidateShellHitTargets();
     wm.m_altTabOrder = {window};

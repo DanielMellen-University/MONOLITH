@@ -196,12 +196,18 @@ WindowManager::TaskbarLayout WindowManager::computeTaskbarLayout() {
     for (Window* window : layout.buttonOrder) {
         int buttonWidth = 85;
         if (m_font) {
-            int textW = 0;
-            int textH = 0;
-            if (TTF_SizeUTF8(m_font, window->title.c_str(), &textW, &textH) == 0) {
+            if (window->cachedTaskbarTitleWidth < 0) {
+                int textW = 0;
+                int textH = 0;
+                if (TTF_SizeUTF8(m_font, window->title.c_str(), &textW, &textH) == 0) {
+                    window->cachedTaskbarTitleWidth = textW;
+                }
+            }
+            if (window->cachedTaskbarTitleWidth >= 0) {
                 const float scale = std::max(0.01f, m_contentScale);
                 buttonWidth = std::max(
-                    buttonWidth, static_cast<int>(std::ceil(textW / scale)) + 10);
+                    buttonWidth,
+                    static_cast<int>(std::ceil(window->cachedTaskbarTitleWidth / scale)) + 10);
             }
         } else {
             buttonWidth = std::max(
@@ -505,6 +511,9 @@ bool WindowManager::isInTitleBar(const Window& window, int x, int y) const {
 
 void WindowManager::setFont(TTF_Font* font) {
     if (m_font != font) {
+        for (auto& window : m_windows) {
+            window->cachedTaskbarTitleWidth = -1;
+        }
         // Invalidate all title caches when font changes
         for (auto& [id, entry] : m_titleCache) {
             if (entry.texture) {
@@ -537,6 +546,7 @@ void WindowManager::setWindowTitle(Window* window, const std::string& title) {
     if (!isLiveWindow(window) || window->title == title) return;
 
     window->title = title;
+    window->cachedTaskbarTitleWidth = -1;
     auto cacheIt = m_titleCache.find(window->id);
     if (cacheIt != m_titleCache.end()) {
         if (cacheIt->second.texture) {
@@ -599,6 +609,10 @@ void WindowManager::applyUiScaleFont() {
     const int percent = m_desktopSettings.uiScalePercent();
     const int pointSize = std::clamp((kBaseFontPointSize * percent + 50) / 100, 10, 22);
     if (TTF_SetFontSize(m_font, pointSize) != 0) return;
+
+    for (auto& window : m_windows) {
+        window->cachedTaskbarTitleWidth = -1;
+    }
 
     for (auto& [id, entry] : m_titleCache) {
         (void)id;
