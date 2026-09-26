@@ -30,7 +30,7 @@ void PongApp::onResize(int clientWidth, int clientHeight) {
 }
 
 void PongApp::onUiScaleChanged() {
-    m_textSurfaceCache.clear();
+    m_textTextureCache.clear();
 }
 
 void PongApp::onFocusLost() {
@@ -122,40 +122,33 @@ void PongApp::handleEvent(const SDL_Event& event) {
 void PongApp::drawText(SDL_Renderer* renderer, const char* text, int x, int y, SDL_Color color,
                        const SDL_Rect* clip) const {
     if (!m_font || !text || !*text) return;
-    SDL_Surface* surf = m_textSurfaceCache.get(m_font, text, color);
-    if (!surf) return;
-    SDL_Texture* tex = SDL_CreateTextureFromSurface(renderer, surf);
-    if (tex) {
-        SDL_Rect dst{x, y, surf->w, surf->h};
-        if (clip) {
-            const RendererClipState previousClip = captureRendererClip(renderer);
-            const SDL_Rect effectiveClip = intersectRendererClip(*clip, previousClip);
-            if (effectiveClip.w > 0 && effectiveClip.h > 0) {
-                SDL_RenderSetClipRect(renderer, &effectiveClip);
-                SDL_RenderCopy(renderer, tex, nullptr, &dst);
-            }
-            restoreRendererClip(renderer, previousClip);
-        } else {
-            SDL_RenderCopy(renderer, tex, nullptr, &dst);
+    const auto cached = m_textTextureCache.get(renderer, m_font, text, color);
+    if (!cached) return;
+    SDL_Rect dst{x, y, cached.width, cached.height};
+    if (clip) {
+        const RendererClipState previousClip = captureRendererClip(renderer);
+        const SDL_Rect effectiveClip = intersectRendererClip(*clip, previousClip);
+        if (effectiveClip.w > 0 && effectiveClip.h > 0) {
+            SDL_RenderSetClipRect(renderer, &effectiveClip);
+            SDL_RenderCopy(renderer, cached.handle, nullptr, &dst);
         }
-        SDL_DestroyTexture(tex);
+        restoreRendererClip(renderer, previousClip);
+    } else {
+        SDL_RenderCopy(renderer, cached.handle, nullptr, &dst);
     }
 }
 
 void PongApp::drawCentered(SDL_Renderer* renderer, const char* text, const SDL_Rect& area, SDL_Color color) const {
     if (!m_font || !text || !*text) return;
-    SDL_Surface* surf = m_textSurfaceCache.get(m_font, text, color);
-    if (!surf) return;
-    SDL_Texture* tex = SDL_CreateTextureFromSurface(renderer, surf);
-    if (tex) {
+    const auto cached = m_textTextureCache.get(renderer, m_font, text, color);
+    if (cached) {
         SDL_Rect dst{
-            area.x + (area.w - surf->w) / 2,
-            area.y + (area.h - surf->h) / 2,
-            surf->w,
-            surf->h
+            area.x + (area.w - cached.width) / 2,
+            area.y + (area.h - cached.height) / 2,
+            cached.width,
+            cached.height
         };
-        SDL_RenderCopy(renderer, tex, nullptr, &dst);
-        SDL_DestroyTexture(tex);
+        SDL_RenderCopy(renderer, cached.handle, nullptr, &dst);
     }
 }
 

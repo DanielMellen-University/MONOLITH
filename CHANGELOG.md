@@ -1,5 +1,11 @@
 # Changelog
 
+## 2026-09: Reuse game text textures
+
+- Cache Pong, Breakout, Snake, and Minesweeper text textures across frames instead of creating and destroying renderer textures for each draw.
+- Bound each game cache to 256 entries and an estimated 16 MiB, and clear it when the shared interface text scale changes or its renderer changes.
+- Cover cache reuse, color keys, LRU eviction, renderer switching, and scale invalidation.
+
 ## 2026-09: Stream recursive file copies
 
 - Copy regular files through bounded 16 KiB reads into the atomic destination writer instead of materializing the complete source in memory.

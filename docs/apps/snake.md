@@ -50,6 +50,8 @@ The best score is saved on the host at `~/.monolith/snake_highscore.txt` and sho
 The board letterboxes inside the window when resized or maximized. If the client area becomes very small, cells compress so the full board remains inside the window instead of covering the HUD.
 Direct render-size changes refresh the cached client geometry before layout, so input and rendering stay aligned even before the next Window Manager resize callback.
 
+Repeated HUD and overlay labels reuse a bounded renderer-owned text texture cache between frames. Changing the shared interface text scale clears the cache so labels use the new font metrics.
+
 ## Current Limitations
 
 - No sound
@@ -59,6 +61,6 @@ Direct render-size changes refresh the cached client geometry before layout, so 
 
 - `src/app/SnakeApp.{hpp,cpp}`
 - `src/detail/Random.hpp` provides the per-game bounded random helper shared with Minesweeper
-- `scripts/test_snake_state.cpp` covers tail movement and growth collision rules without rendering
+- `scripts/test_snake_state.cpp` covers tail movement, growth collision rules, and text texture reuse during rendering
 - `WindowManager::launchSnake()` and Start menu action `5` (listed under the **Games** category)
 - Game steps run from `App::update()`, dispatched by `WindowManager::update()` for non-minimized windows

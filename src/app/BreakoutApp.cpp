@@ -40,7 +40,7 @@ void BreakoutApp::onResize(int clientWidth, int clientHeight) {
 }
 
 void BreakoutApp::onUiScaleChanged() {
-    m_textSurfaceCache.clear();
+    m_textTextureCache.clear();
 }
 
 void BreakoutApp::onFocusLost() {

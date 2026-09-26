@@ -2,7 +2,7 @@
 
 #include "App.hpp"
 #include "../detail/Random.hpp"
-#include "../detail/TextSurfaceCache.hpp"
+#include "../detail/TextTextureCache.hpp"
 #include <SDL2/SDL.h>
 #include <SDL2/SDL_ttf.h>
 #include <cstdint>
@@ -92,7 +92,7 @@ private:
     void setBestTime(Difficulty d, int seconds);
 
     TTF_Font* m_font = nullptr;
-    mutable monolith::detail::TextSurfaceCache m_textSurfaceCache;
+    mutable monolith::detail::TextTextureCache m_textTextureCache;
     monolith::detail::Random m_random;
 
     Difficulty m_difficulty = Difficulty::Beginner;

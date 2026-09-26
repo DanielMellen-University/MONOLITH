@@ -65,6 +65,8 @@ Per-difficulty best times are stored on the host at `~/.monolith/minesweeper_bes
 The board letterboxes inside the window. Expert on a small window uses compressed cells so the full board remains inside the client area; maximize for comfort. Tiny cells prioritize keeping the board and footer contained over drawing number glyphs that would not fit.
 Direct render-size changes refresh the cached client geometry before board layout, keeping the drawn controls and client-space hitboxes aligned.
 
+HUD, overlay, and repeated cell-glyph draws reuse a bounded renderer-owned text texture cache between frames. Changing the shared interface text scale clears it so labels and numbers use the new font metrics.
+
 ## Current Limitations
 
 - No sound
@@ -74,6 +76,6 @@ Direct render-size changes refresh the cached client geometry before board layou
 
 - `src/app/MinesweeperApp.{hpp,cpp}`
 - `src/detail/Random.hpp` provides the per-game bounded random helper shared with Snake
-- `scripts/test_minesweeper_state.cpp` covers focus pause/resume without rendering
+- `scripts/test_minesweeper_state.cpp` covers focus pause/resume, render-state restoration, and text texture reuse
 - `WindowManager::launchMinesweeper()` and Start menu action `6` (listed under the **Games** category)
 - Timer advances in `App::update()` while playing and focused; `onFocusLost` / `onFocusGained` freeze and resume

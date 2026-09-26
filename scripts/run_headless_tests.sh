@@ -86,6 +86,7 @@ compile_plain test_desktop_settings scripts/test_desktop_settings.cpp src/settin
 compile_sdl test_settings_app_state \
     -I"$BUILD_DIR/generated/settings" scripts/test_settings_app_state.cpp \
     src/app/SettingsApp.cpp src/fs/Filesystem.cpp
+compile_sdl test_text_texture_cache scripts/test_text_texture_cache.cpp
 compile_plain test_session_format scripts/test_session_format.cpp
 compile_sdl test_snake_state scripts/test_snake_state.cpp src/app/SnakeApp.cpp
 compile_sdl test_minesweeper_state scripts/test_minesweeper_state.cpp src/app/MinesweeperApp.cpp
@@ -115,6 +116,7 @@ run_sdl test_drawing_state
 run_plain test_modr_format
 run_plain test_desktop_settings
 run_sdl test_settings_app_state
+run_sdl test_text_texture_cache
 run_plain test_session_format
 run_sdl test_snake_state
 run_sdl test_minesweeper_state

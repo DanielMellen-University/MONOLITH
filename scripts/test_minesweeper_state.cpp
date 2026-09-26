@@ -208,12 +208,25 @@ int main() {
           "Minesweeper state creates a software renderer");
     if (minesweeperRenderer) {
         SDL_SetRenderDrawBlendMode(minesweeperRenderer, SDL_BLENDMODE_ADD);
+        game.m_minesPlaced = true;
+        for (size_t i = 0; i < game.m_cells.size(); ++i) {
+            game.m_cells[i].revealed = true;
+            game.m_cells[i].adjacent = static_cast<uint8_t>(i % 8 + 1);
+        }
         game.m_state = MinesweeperApp::State::Lost;
         game.m_clientWidth = 1;
         game.m_clientHeight = 1;
         game.render(minesweeperRenderer, {0, 0, 240, 240});
         check(game.m_clientWidth == 240 && game.m_clientHeight == 240,
               "Minesweeper direct renders synchronize cached client geometry");
+        const size_t cachedTextureCount = game.m_textTextureCache.size();
+        game.render(minesweeperRenderer, {0, 0, 240, 240});
+        check(cachedTextureCount > 0
+                  && game.m_textTextureCache.size() == cachedTextureCount,
+              "Minesweeper reuses repeated number-glyph textures between frames");
+        game.onUiScaleChanged();
+        check(game.m_textTextureCache.size() == 0,
+              "Minesweeper releases text textures when UI scale changes");
         SDL_BlendMode restoredBlend = SDL_BLENDMODE_NONE;
         SDL_GetRenderDrawBlendMode(minesweeperRenderer, &restoredBlend);
         check(restoredBlend == SDL_BLENDMODE_ADD,

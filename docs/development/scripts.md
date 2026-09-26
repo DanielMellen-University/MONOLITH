@@ -117,6 +117,13 @@ Headless check of the shared SDL tick conversion used by the real-time games:
 g++ -std=c++23 scripts/test_tick_math.cpp -o build/test_tick_math && ./build/test_tick_math
 ```
 
+Headless renderer-backed check for game text texture reuse, color-key separation, LRU limits, and renderer switching:
+
+```bash
+g++ -std=c++23 scripts/test_text_texture_cache.cpp $(pkg-config --cflags --libs sdl2 SDL2_ttf) -o build/test_text_texture_cache
+SDL_VIDEODRIVER=dummy SDL_AUDIODRIVER=dummy ./build/test_text_texture_cache
+```
+
 Headless Minesweeper state and tiny-client layout test for best-time persistence, scaled HUD controls, shared control hitboxes, precise focus pause/resume timing, and keeping the Expert board inside its content area:
 
 ```bash
