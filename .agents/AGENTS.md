@@ -34,6 +34,7 @@ The human funds token budget and lives in the desktop. You:
 
 | When | Kind | Note |
 |------|------|------|
+| 2026-09-26 | 7.24 | Settings caches labels, options, information, footer, and wallpaper-prompt text as renderer-owned textures in a 256-entry, estimated 16 MiB LRU; retains unchanged text across resize |
 | 2026-09-26 | 7.23 | Drawing caches toolbar labels and status or prompt text as renderer-owned textures in a 256-entry, estimated 16 MiB LRU; retains labels across status updates |
 | 2026-09-26 | 7.22 | Filesystem Browser caches path, filter, toolbar, row, status, and menu text as renderer-owned textures in a 256-entry, estimated 16 MiB LRU; retains variants across listing and status changes |
 | 2026-09-26 | 7.21 | Terminal caches scrollback, command-input, and reverse-search text as renderer-owned textures in a 256-entry, estimated 16 MiB LRU; retains variants across output changes, scroll, and resize |
@@ -118,6 +119,7 @@ Older recent-work rows: [`SESSION_LOG.md`](SESSION_LOG.md).
 | 7.21 | Reuse Terminal text textures | done | Cache viewport scrollback rows, normal input fragments, and reverse-search text in a renderer-aware LRU bounded to 256 entries and an estimated 16 MiB; retain unchanged variants and clear on renderer or UI-scale changes |
 | 7.22 | Reuse Browser text textures | done | Cache path, filter, toolbar, row, status, and context-menu text in a renderer-aware LRU bounded to 256 entries and an estimated 16 MiB; retain unchanged variants and clear on renderer or UI-scale changes |
 | 7.23 | Reuse Drawing text textures | done | Cache toolbar labels and status or prompt text in a renderer-aware LRU bounded to 256 entries and an estimated 16 MiB; retain unchanged labels and clear on renderer or UI-scale changes |
+| 7.24 | Reuse Settings text textures | done | Cache labels, options, information lines, footer, and wallpaper-path prompt in a renderer-aware LRU bounded to 256 entries and an estimated 16 MiB; retain unchanged text and clear on renderer or UI-scale changes |
 
 ## Commit voice
 

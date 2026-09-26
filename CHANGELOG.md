@@ -1,5 +1,11 @@
 # Changelog
 
+## 2026-09: Reuse Settings text textures
+
+- Cache labels, options, information lines, footer text, and wallpaper-path prompt text in a renderer-aware 256-entry LRU with an estimated 16 MiB budget.
+- Reuse unchanged text across frames and client resizes; clear cached textures when the renderer or shared interface text scale changes.
+- Cover frame reuse, resize retention, and scale invalidation.
+
 ## 2026-09: Reuse Drawing text textures
 
 - Cache toolbar labels and status or prompt text in a renderer-aware 256-entry LRU with an estimated 16 MiB budget.

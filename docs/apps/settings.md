@@ -109,4 +109,4 @@ Main implementation files:
 
 Settings changes go through `IWindowController` so the app does not reach into WindowManager internals directly.
 
-Settings caches renderer-independent SDL_ttf surfaces for its repeated labels, option text, information lines, and footer. The cache is cleared when the shared interface scale or client size changes, when the wallpaper path changes, and while the wallpaper field is actively rendered so caret variants cannot accumulate. Per-frame SDL textures remain short-lived and are created from the cached surfaces.
+Settings caches labels, options, information lines, footer text, and wallpaper-path prompt text as renderer-owned textures in a 256-entry LRU with an estimated 16 MiB budget. Text, color, and font form each key, so unchanged text is reused across frames and client resizes; path edits retain bounded text variants instead of rebuilding a texture each frame. The cache clears when the renderer or shared interface text scale changes.

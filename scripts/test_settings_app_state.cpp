@@ -325,14 +325,27 @@ int main() {
                   && restoredClip.w == expectedClip.w
                   && restoredClip.h == expectedClip.h,
               "Settings restores the caller renderer clip after rendering");
-        const size_t cachedSurfaceCount = settings.m_textSurfaceCache.m_entries.size();
+        const SDL_Color headerTextColor{255, 255, 255, 255};
+        const auto headerTexture = settings.m_textTextureCache.get(
+            renderer, font, "APPEARANCE", headerTextColor);
+        const size_t cachedTextureCount = settings.m_textTextureCache.size();
         settings.render(renderer, {0, 0, 200, 240});
-        check(cachedSurfaceCount > 0
-                  && settings.m_textSurfaceCache.m_entries.size() == cachedSurfaceCount,
-              "Settings reuses cached text surfaces between frames");
+        const auto repeatedHeaderTexture = settings.m_textTextureCache.get(
+            renderer, font, "APPEARANCE", headerTextColor);
+        check(headerTexture
+                  && repeatedHeaderTexture.handle == headerTexture.handle
+                  && settings.m_textTextureCache.size() == cachedTextureCount,
+              "Settings reuses cached text textures between frames");
+        settings.render(renderer, {0, 0, 210, 240});
+        const auto resizedHeaderTexture = settings.m_textTextureCache.get(
+            renderer, font, "APPEARANCE", headerTextColor);
+        check(resizedHeaderTexture.handle == headerTexture.handle
+                  && settings.m_textTextureCache.size() == cachedTextureCount,
+              "Settings retains unchanged text textures after resize");
         settings.onUiScaleChanged();
-        check(settings.m_textSurfaceCache.m_entries.empty(),
-              "Settings clears cached text surfaces when UI scale changes");
+        check(settings.m_textTextureCache.size() == 0,
+              "Settings clears cached text textures when UI scale changes");
+        settings.m_textTextureCache.clear();
         SDL_DestroyRenderer(renderer);
     }
     if (surface) SDL_FreeSurface(surface);
