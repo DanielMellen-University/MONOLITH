@@ -1,5 +1,10 @@
 # Changelog
 
+## 2026-09: Remove obsolete text surface cache
+
+- Delete the unused renderer-independent SDL_ttf surface cache now that all text-cache consumers use the bounded renderer-owned texture cache.
+- No runtime behavior change.
+
 ## 2026-09: Reuse Settings text textures
 
 - Cache labels, options, information lines, footer text, and wallpaper-path prompt text in a renderer-aware 256-entry LRU with an estimated 16 MiB budget.
