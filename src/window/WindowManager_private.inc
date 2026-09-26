@@ -86,8 +86,6 @@ private:
     bool m_showStartMenu = false;
     int m_startMenuHoverIndex = -1;
     int m_startMenuKeyboardIndex = -1;
-    // Type-ahead filter while Start is open (cleared on close).
-    std::string m_startMenuFilter;
     SDL_Rect m_startMenuRect{0, 0, 0, 0};  // screen coords, updated during render when visible
     // The app that was suspended when the modal menu opened. Keeping its
     // identity lets a direct handoff skip a duplicate focus-lost callback.
@@ -199,8 +197,6 @@ private:
 
     StartMenuLayout computeStartMenuLayout(int contentHLogical) const;
     void ensureStartMenuHitTargets();
-    void invalidateStartMenuHitTargets();
-    void applyStartMenuFilterEdit();
 
     struct TitleButtonRects {
         SDL_Rect close;

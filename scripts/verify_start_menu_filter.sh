@@ -8,16 +8,23 @@ cd "$ROOT"
 fail() { echo "FAIL: $1" >&2; exit 1; }
 ok() { echo "ok: $1"; }
 
-grep -q 'filterStartMenuRows' src/window/AppRegistry.hpp \
-  || fail "filterStartMenuRows missing from AppRegistry"
-grep -q 'startMenuLabelMatches' src/window/AppRegistry.hpp \
+grep -q 'filterStartMenuRows' src/window/StartMenuFilter.hpp \
+  || fail "filterStartMenuRows missing from StartMenuFilter.hpp"
+grep -q 'startMenuLabelMatches' src/window/StartMenuFilter.hpp \
   || fail "startMenuLabelMatches missing"
-grep -q 'm_startMenuFilter' src/window/WindowManager_private.inc \
-  || fail "m_startMenuFilter state missing"
-grep -q 'applyStartMenuFilterEdit' src/window/WindowManager_private.inc \
-  || fail "applyStartMenuFilterEdit not declared"
-grep -q 'invalidateStartMenuHitTargets' src/window/WindowManager_private.inc \
-  || fail "invalidateStartMenuHitTargets not declared"
+
+if ! grep -q 'm_startMenuFilter' src/window/WindowManager_private.inc \
+   && ! grep -q 'm_startMenuFilter' src/window/WindowManager.hpp; then
+  fail "m_startMenuFilter state missing"
+fi
+if ! grep -q 'applyStartMenuFilterEdit' src/window/WindowManager_private.inc \
+   && ! grep -q 'applyStartMenuFilterEdit' src/window/WindowManager.hpp; then
+  fail "applyStartMenuFilterEdit not declared"
+fi
+if ! grep -q 'invalidateStartMenuHitTargets' src/window/WindowManager_private.inc \
+   && ! grep -q 'invalidateStartMenuHitTargets' src/window/WindowManager.hpp; then
+  fail "invalidateStartMenuHitTargets not declared"
+fi
 
 grep -q 'filterStartMenuRows' src/window/detail/wm_start_menu_rows.inc \
   || fail "wm_start_menu_rows.inc must filter rows"
@@ -38,4 +45,6 @@ grep -q 'headerHLogical' src/window/detail/wm_body_03a.inc \
 grep -q 'headerHLogical' src/window/detail/wm_start_menu_entries.inc \
   || fail "filter-aware header height missing in hit rebuild"
 
+grep -q 'StartMenuFilter.hpp' src/window/WindowManager.cpp \
+  || fail "StartMenuFilter.hpp not included in WM"
 ok "all Start menu type-ahead static integration checks passed"

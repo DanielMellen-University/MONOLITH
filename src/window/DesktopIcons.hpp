@@ -31,10 +31,14 @@ inline constexpr int kDesktopIconGap = 14;
 inline constexpr int kDesktopIconMargin = 16;
 inline constexpr int kDesktopIconCellH =
     kDesktopIconTile + kDesktopIconLabelBand + kDesktopIconGap;
+inline constexpr int kDesktopIconColStep =
+    kDesktopIconCellW + kDesktopIconGap;
 inline constexpr Uint32 kDesktopIconDoubleClickMs = 450;
 
-// Lay out the default icon column inside the usable desktop (above the taskbar).
-// Icons that cannot fit are omitted rather than overlapping the taskbar.
+// Lay out registry desktop icons in columns left-to-right (top-to-bottom
+// within each column) inside the usable desktop above the taskbar.
+// Icons that cannot fit entirely are omitted rather than overlapping the
+// taskbar or clipping past the right edge.
 inline std::vector<DesktopIconPlacement> layoutDesktopIcons(
     int usableWidth, int usableHeight) {
     std::vector<DesktopIconPlacement> out;
@@ -42,23 +46,35 @@ inline std::vector<DesktopIconPlacement> layoutDesktopIcons(
 
     const auto defs = collectDesktopIconDefs();
     const int iconH = kDesktopIconTile + kDesktopIconLabelBand;
-    const int remainingAfterFirst = usableHeight - kDesktopIconMargin - iconH;
-    const int maxRows = remainingAfterFirst < 0
+    const int remainingAfterFirstRow = usableHeight - kDesktopIconMargin - iconH;
+    const int maxRows = remainingAfterFirstRow < 0
         ? 0
-        : 1 + remainingAfterFirst / kDesktopIconCellH;
-    const int count = std::min(static_cast<int>(defs.size()), maxRows);
+        : 1 + remainingAfterFirstRow / kDesktopIconCellH;
+    if (maxRows <= 0) return out;
+
+    const int remainingAfterFirstCol =
+        usableWidth - kDesktopIconMargin - kDesktopIconCellW;
+    const int maxCols = remainingAfterFirstCol < 0
+        ? 0
+        : 1 + remainingAfterFirstCol / kDesktopIconColStep;
+    if (maxCols <= 0) return out;
+
+    const int capacity = maxRows * maxCols;
+    const int count = std::min(static_cast<int>(defs.size()), capacity);
     out.reserve(static_cast<size_t>(count));
 
     for (int i = 0; i < count; ++i) {
-        const DesktopIconDef& def = defs[static_cast<size_t>(i)];
-        const int x = kDesktopIconMargin;
-        const int y = kDesktopIconMargin + i * kDesktopIconCellH;
+        const int col = i / maxRows;
+        const int row = i % maxRows;
+        const int x = kDesktopIconMargin + col * kDesktopIconColStep;
+        const int y = kDesktopIconMargin + row * kDesktopIconCellH;
         if (x + kDesktopIconCellW > usableWidth) break;
-        if (y + kDesktopIconTile + kDesktopIconLabelBand > usableHeight) break;
+        if (y + iconH > usableHeight) break;
 
+        const DesktopIconDef& def = defs[static_cast<size_t>(i)];
         DesktopIconPlacement p;
         p.tile = {x, y, kDesktopIconTile, kDesktopIconTile};
-        p.rect = {x, y, kDesktopIconCellW, kDesktopIconTile + kDesktopIconLabelBand};
+        p.rect = {x, y, kDesktopIconCellW, iconH};
         p.label = def.label;
         p.glyph = def.glyph;
         p.action = def.action;

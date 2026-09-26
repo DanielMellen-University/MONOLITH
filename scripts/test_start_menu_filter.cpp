@@ -1,5 +1,5 @@
 // Headless checks for Start menu type-ahead filter helpers (no WindowManager).
-#include "../src/window/AppRegistry.hpp"
+#include "../src/window/StartMenuFilter.hpp"
 
 #include <iostream>
 #include <string>

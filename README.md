@@ -10,7 +10,7 @@ Monolith is an experimental, self-contained environment written in C++ using SDL
 
 Monolith has a working desktop environment with overlapping windows:
 
-- **Window Manager** - Dragging, 8-way resizing, title bars, z-order, focus, taskbar with Start menu (including a **Games** category and type-ahead filter) and a local-time clock, **Alt+Tab** window switcher, **Ctrl+Escape** Start menu, multi-instance titles, session restore (`~/.monolith/session.txt`), extension-based open routing, and an `AppRegistry` for Start menu / desktop icons / session kinds.
+- **Window Manager** - Dragging, 8-way resizing, title bars, z-order, focus, taskbar with Start menu (including a **Games** category and type-ahead filter) and a local-time clock, **Alt+Tab** window switcher, **Ctrl+Escape** Start menu, multi-instance titles, session restore (`~/.monolith/session.txt`), extension-based open routing, and an `AppRegistry` for Start menu / multi-column desktop icons / session kinds.
 - **Built-in Apps** - Terminal, Text Editor, Filesystem Browser, Drawing, Settings (desktop background color, BMP/PNG/JPEG wallpaper path and fit, taskbar clock 12/24-hour, interface text scale), Snake, Minesweeper, Pong, and Breakout. Each has its own documentation (see below).
 - **Internal Filesystem** - Host-backed persistence under `~/.monolith/fs/` with shared recursive copy/remove and a clean virtual path namespace.
 
