@@ -1,5 +1,9 @@
 # Changelog
 
+## 2026-09: Stabilize headless CI runtime
+
+- Pin the GitHub Actions job to `ubuntu-24.04` and move checkout to v5's Node 24 runtime.
+
 ## 2026-09: Reuse game text textures
 
 - Cache Pong, Breakout, Snake, and Minesweeper text textures across frames instead of creating and destroying renderer textures for each draw.

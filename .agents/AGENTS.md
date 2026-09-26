@@ -34,6 +34,7 @@ The human funds token budget and lives in the desktop. You:
 
 | When | Kind | Note |
 |------|------|------|
+| 2026-09-26 | 7.19 | Headless GitHub Actions pins Ubuntu 24.04 and uses checkout v5's Node 24 runtime to avoid runner-label drift and the Node 20 compatibility warning |
 | 2026-09-26 | 7.18 | Pong, Breakout, Snake, and Minesweeper reuse bounded renderer-owned text textures between frames instead of recreating them on every draw |
 | 2026-09-26 | 7.17 | Filesystem recursive regular-file copies stream through bounded 16 KiB reads into atomic replacement instead of whole-file buffers |
 | 2026-09-26 | 7.16 | Window title textures contain only the UTF-8 prefix fitting before title-bar controls and recalculate it when available width changes |
@@ -108,6 +109,7 @@ Older recent-work rows: [`SESSION_LOG.md`](SESSION_LOG.md).
 | 7.16 | Bound window title rasterization | done | Cache only complete UTF-8 title prefixes that fit before the title buttons; recalculate on width changes and rerasterize when the visible prefix, font, or focus color changes |
 | 7.17 | Stream recursive file copies | done | Copy regular files in bounded 16 KiB chunks through the atomic writer, validating the byte count without retaining full source contents |
 | 7.18 | Reuse game text textures | done | Cache Pong, Breakout, Snake, and Minesweeper text textures across frames in a renderer-aware LRU bounded to 256 entries and an estimated 16 MiB; clear on renderer or interface-scale changes |
+| 7.19 | Stabilize headless CI runtime | done | Pin the hosted runner to Ubuntu 24.04 and use `actions/checkout@v5` to avoid upcoming `ubuntu-latest` drift and the Node 20 compatibility path |
 
 ## Commit voice
 

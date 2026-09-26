@@ -1,5 +1,7 @@
 # Session log
 
+| 2026-09-26 | chore | Pinned the headless workflow to `ubuntu-24.04` and upgraded checkout to v5's Node 24 runtime, addressing both notices from the successful hosted run. |
+
 | 2026-09-26 | perf | Reused renderer-owned text textures across Pong, Breakout, Snake, and Minesweeper frames with a 256-entry, estimated 16 MiB LRU; covered texture identity, color keys, eviction, renderer switching, and scale invalidation. |
 
 | 2026-09-26 | perf | Streamed recursive regular-file copies through bounded 16 KiB reads and the atomic destination writer, preserving byte-count checks and binary data; covered cross-chunk copies and overwrite behavior. |

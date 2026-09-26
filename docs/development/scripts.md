@@ -1,6 +1,6 @@
 # Development Scripts
 
-Headless verification scripts for Monolith. These run without a full interactive desktop session and are useful for local sanity checks. GitHub Actions runs the application build and complete headless suite for pushes to `main` or `beta`, pull requests targeting either branch, and manual dispatches. The job uses an Ubuntu runner with SDL's dummy video and audio drivers; it does not need a physical display.
+Headless verification scripts for Monolith. These run without a full interactive desktop session and are useful for local sanity checks. GitHub Actions runs the application build and complete headless suite for pushes to `main` or `beta`, pull requests targeting either branch, and manual dispatches. The job uses `ubuntu-24.04`, `actions/checkout@v5`, and SDL's dummy video and audio drivers; it does not need a physical display.
 
 ## Complete Headless Suite
 
