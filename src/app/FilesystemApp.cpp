@@ -176,7 +176,6 @@ void FilesystemApp::goUp() {
 
 void FilesystemApp::refreshEntries(const std::string& movedFrom,
                                    const std::string& movedTo) {
-    m_textSurfaceCache.clear();
     // External filesystem events replace the row vector. Any active inline
     // rename points into the old vector, so discard it before rebuilding.
     if (m_renaming) {
@@ -1399,32 +1398,29 @@ void FilesystemApp::drawPathBar(SDL_Renderer* r, const SDL_Rect& contentRect, in
     // Current path text
     if (m_font) {
         SDL_Color pathColor = {180, 190, 200, 255};
-        SDL_Surface* surf = m_textSurfaceCache.get(m_font, m_currentPath.c_str(), pathColor);
-        if (surf) {
-            SDL_Texture* tex = SDL_CreateTextureFromSurface(r, surf);
-            if (tex) {
-                const int pathVisibleWidth = std::max(0, m_filterHitRect.x - 14);
-                if (pathVisibleWidth > 0) {
-                    SDL_Rect pathClip = {
+        const auto pathTexture = m_textTextureCache.get(
+            r, m_font, m_currentPath.c_str(), pathColor);
+        if (pathTexture) {
+            const int pathVisibleWidth = std::max(0, m_filterHitRect.x - 14);
+            if (pathVisibleWidth > 0) {
+                SDL_Rect pathClip = {
+                    contentRect.x + 10,
+                    contentRect.y,
+                    pathVisibleWidth,
+                    pathBarHeight
+                };
+                const SDL_Rect effectivePathClip = intersectRendererClip(pathClip, previousClip);
+                if (effectivePathClip.w > 0 && effectivePathClip.h > 0) {
+                    SDL_RenderSetClipRect(r, &effectivePathClip);
+                    SDL_Rect dst = {
                         contentRect.x + 10,
-                        contentRect.y,
-                        pathVisibleWidth,
-                        pathBarHeight
+                        contentRect.y + (pathBarHeight - pathTexture.height) / 2,
+                        pathTexture.width,
+                        pathTexture.height
                     };
-                    const SDL_Rect effectivePathClip = intersectRendererClip(pathClip, previousClip);
-                    if (effectivePathClip.w > 0 && effectivePathClip.h > 0) {
-                        SDL_RenderSetClipRect(r, &effectivePathClip);
-                        SDL_Rect dst = {
-                            contentRect.x + 10,
-                            contentRect.y + (pathBarHeight - surf->h) / 2,
-                            surf->w,
-                            surf->h
-                        };
-                        SDL_RenderCopy(r, tex, nullptr, &dst);
-                        restoreRendererClip(r, previousClip);
-                    }
+                    SDL_RenderCopy(r, pathTexture.handle, nullptr, &dst);
+                    restoreRendererClip(r, previousClip);
                 }
-                SDL_DestroyTexture(tex);
             }
         }
 
@@ -1458,41 +1454,38 @@ void FilesystemApp::drawPathBar(SDL_Renderer* r, const SDL_Rect& contentRect, in
         SDL_Color filterCol = m_filterQuery.empty() && !m_filtering
             ? SDL_Color{120, 125, 130, 255}
             : SDL_Color{210, 215, 220, 255};
-        SDL_Surface* fs = m_textSurfaceCache.get(m_font, filterLabel.c_str(), filterCol);
-        if (fs) {
-            SDL_Texture* ft = SDL_CreateTextureFromSurface(r, fs);
-            if (ft) {
-                const int visibleWidth = std::max(0, filterDraw.w - 12);
-                if (m_filtering) {
-                    if (filterCursorPx - m_filterScrollPx > visibleWidth) {
-                        m_filterScrollPx = filterCursorPx - visibleWidth;
-                    } else if (filterCursorPx - m_filterScrollPx < 0) {
-                        m_filterScrollPx = filterCursorPx;
-                    }
-                    const int maxScroll = std::max(0, fs->w - visibleWidth);
-                    m_filterScrollPx = std::clamp(m_filterScrollPx, 0, maxScroll);
+        const auto filterTexture = m_textTextureCache.get(
+            r, m_font, filterLabel.c_str(), filterCol);
+        if (filterTexture) {
+            const int visibleWidth = std::max(0, filterDraw.w - 12);
+            if (m_filtering) {
+                if (filterCursorPx - m_filterScrollPx > visibleWidth) {
+                    m_filterScrollPx = filterCursorPx - visibleWidth;
+                } else if (filterCursorPx - m_filterScrollPx < 0) {
+                    m_filterScrollPx = filterCursorPx;
                 }
-                if (visibleWidth > 0 && filterDraw.h > 0) {
-                    SDL_Rect filterClip = {
-                        filterDraw.x + 6,
-                        filterDraw.y,
-                        visibleWidth,
-                        filterDraw.h
+                const int maxScroll = std::max(0, filterTexture.width - visibleWidth);
+                m_filterScrollPx = std::clamp(m_filterScrollPx, 0, maxScroll);
+            }
+            if (visibleWidth > 0 && filterDraw.h > 0) {
+                SDL_Rect filterClip = {
+                    filterDraw.x + 6,
+                    filterDraw.y,
+                    visibleWidth,
+                    filterDraw.h
+                };
+                const SDL_Rect effectiveFilterClip = intersectRendererClip(filterClip, previousClip);
+                if (effectiveFilterClip.w > 0 && effectiveFilterClip.h > 0) {
+                    SDL_RenderSetClipRect(r, &effectiveFilterClip);
+                    SDL_Rect dst = {
+                        filterDraw.x + 6 - (m_filtering ? m_filterScrollPx : 0),
+                        filterDraw.y + (filterDraw.h - filterTexture.height) / 2,
+                        filterTexture.width,
+                        filterTexture.height
                     };
-                    const SDL_Rect effectiveFilterClip = intersectRendererClip(filterClip, previousClip);
-                    if (effectiveFilterClip.w > 0 && effectiveFilterClip.h > 0) {
-                        SDL_RenderSetClipRect(r, &effectiveFilterClip);
-                        SDL_Rect dst = {
-                            filterDraw.x + 6 - (m_filtering ? m_filterScrollPx : 0),
-                            filterDraw.y + (filterDraw.h - fs->h) / 2,
-                            fs->w,
-                            fs->h
-                        };
-                        SDL_RenderCopy(r, ft, nullptr, &dst);
-                        restoreRendererClip(r, previousClip);
-                    }
+                    SDL_RenderCopy(r, filterTexture.handle, nullptr, &dst);
+                    restoreRendererClip(r, previousClip);
                 }
-                SDL_DestroyTexture(ft);
             }
         }
     }
@@ -1520,18 +1513,15 @@ void FilesystemApp::drawToolbar(SDL_Renderer* r, const SDL_Rect& contentRect) {
 
         if (m_font) {
             SDL_Color col = {210, 215, 220, 255};
-            SDL_Surface* surf = m_textSurfaceCache.get(m_font, label, col);
-            if (surf) {
-                SDL_Texture* tex = SDL_CreateTextureFromSurface(r, surf);
-                if (tex) {
-                    SDL_Rect dst = {
-                        drawRect.x + (drawRect.w - surf->w) / 2,
-                        drawRect.y + (drawRect.h - surf->h) / 2,
-                        surf->w, surf->h
-                    };
-                    SDL_RenderCopy(r, tex, nullptr, &dst);
-                    SDL_DestroyTexture(tex);
-                }
+            const auto texture = m_textTextureCache.get(r, m_font, label, col);
+            if (texture) {
+                SDL_Rect dst = {
+                    drawRect.x + (drawRect.w - texture.width) / 2,
+                    drawRect.y + (drawRect.h - texture.height) / 2,
+                    texture.width,
+                    texture.height
+                };
+                SDL_RenderCopy(r, texture.handle, nullptr, &dst);
             }
         }
 
@@ -1573,14 +1563,15 @@ void FilesystemApp::drawList(SDL_Renderer* r, const SDL_Rect& contentRect, int l
     if (m_entries.empty()) {
         SDL_Color dim = {140, 145, 150, 255};
         const char* emptyMsg = m_filterQuery.empty() ? "(empty directory)" : "(no matching items)";
-        SDL_Surface* surf = m_textSurfaceCache.get(m_font, emptyMsg, dim);
-        if (surf) {
-            SDL_Texture* tex = SDL_CreateTextureFromSurface(r, surf);
-            if (tex) {
-                SDL_Rect dst = {listArea.x + 16, listArea.y + 10, surf->w, surf->h};
-                SDL_RenderCopy(r, tex, nullptr, &dst);
-                SDL_DestroyTexture(tex);
-            }
+        const auto texture = m_textTextureCache.get(r, m_font, emptyMsg, dim);
+        if (texture) {
+            SDL_Rect dst = {
+                listArea.x + 16,
+                listArea.y + 10,
+                texture.width,
+                texture.height
+            };
+            SDL_RenderCopy(r, texture.handle, nullptr, &dst);
         }
         return;
     }
@@ -1632,14 +1623,15 @@ void FilesystemApp::drawList(SDL_Renderer* r, const SDL_Rect& contentRect, int l
 
         // Indicator
         {
-            SDL_Surface* s = m_textSurfaceCache.get(m_font, indicator, indColor);
-            if (s) {
-                SDL_Texture* t = SDL_CreateTextureFromSurface(r, s);
-                if (t) {
-                    SDL_Rect d = {rowRect.x + 8, rowRect.y + 2, s->w, s->h};
-                    SDL_RenderCopy(r, t, nullptr, &d);
-                    SDL_DestroyTexture(t);
-                }
+            const auto texture = m_textTextureCache.get(r, m_font, indicator, indColor);
+            if (texture) {
+                SDL_Rect d = {
+                    rowRect.x + 8,
+                    rowRect.y + 2,
+                    texture.width,
+                    texture.height
+                };
+                SDL_RenderCopy(r, texture.handle, nullptr, &d);
             }
         }
 
@@ -1666,19 +1658,21 @@ void FilesystemApp::drawList(SDL_Renderer* r, const SDL_Rect& contentRect, int l
                 ? std::clamp(prefixW - cursorMargin, 0, maxTextOffset)
                 : 0;
 
-            SDL_Surface* s = m_textSurfaceCache.get(m_font, displayText.c_str(), nameCol);
-            if (s) {
-                SDL_Texture* t = SDL_CreateTextureFromSurface(r, s);
-                if (t) {
-                    SDL_Rect nameClip = {nameX, rowRect.y, nameWidth, rowRect.h};
-                    const SDL_Rect effectiveNameClip = intersectRendererClip(nameClip, previousClip);
-                    if (effectiveNameClip.w > 0 && effectiveNameClip.h > 0) {
-                        SDL_RenderSetClipRect(r, &effectiveNameClip);
-                        SDL_Rect d = {nameX - textOffset, rowRect.y + 2, s->w, s->h};
-                        SDL_RenderCopy(r, t, nullptr, &d);
-                        restoreRendererClip(r, previousClip);
-                    }
-                    SDL_DestroyTexture(t);
+            const auto texture = m_textTextureCache.get(
+                r, m_font, displayText.c_str(), nameCol);
+            if (texture) {
+                SDL_Rect nameClip = {nameX, rowRect.y, nameWidth, rowRect.h};
+                const SDL_Rect effectiveNameClip = intersectRendererClip(nameClip, previousClip);
+                if (effectiveNameClip.w > 0 && effectiveNameClip.h > 0) {
+                    SDL_RenderSetClipRect(r, &effectiveNameClip);
+                    SDL_Rect d = {
+                        nameX - textOffset,
+                        rowRect.y + 2,
+                        texture.width,
+                        texture.height
+                    };
+                    SDL_RenderCopy(r, texture.handle, nullptr, &d);
+                    restoreRendererClip(r, previousClip);
                 }
             }
 
@@ -1740,7 +1734,7 @@ void FilesystemApp::onResize(int clientWidth, int clientHeight) {
 }
 
 void FilesystemApp::onUiScaleChanged() {
-    m_textSurfaceCache.clear();
+    m_textTextureCache.clear();
     // The filter prompt stores its horizontal position in pixels; remeasure it
     // against the new font on the next render.
     m_filterScrollPx = 0;
@@ -2019,30 +2013,26 @@ void FilesystemApp::drawStatusBar(SDL_Renderer* r, const SDL_Rect& contentRect) 
     }
 
     SDL_Color textCol = {160, 165, 175, 255};
-    SDL_Surface* surf = m_textSurfaceCache.get(m_font, status.c_str(), textCol);
-    if (surf) {
-        SDL_Texture* tex = SDL_CreateTextureFromSurface(r, surf);
-        if (tex) {
-            const int visibleWidth = std::max(1, contentRect.w - 20);
-            SDL_Rect statusClip = {
+    const auto texture = m_textTextureCache.get(r, m_font, status.c_str(), textCol);
+    if (texture) {
+        const int visibleWidth = std::max(1, contentRect.w - 20);
+        SDL_Rect statusClip = {
+            contentRect.x + 10,
+            bar.y,
+            visibleWidth,
+            bar.h
+        };
+        const SDL_Rect effectiveStatusClip = intersectRendererClip(statusClip, previousClip);
+        if (effectiveStatusClip.w > 0 && effectiveStatusClip.h > 0) {
+            SDL_RenderSetClipRect(r, &effectiveStatusClip);
+            SDL_Rect dst = {
                 contentRect.x + 10,
-                bar.y,
-                visibleWidth,
-                bar.h
+                bar.y + (statusBarHeight - texture.height) / 2,
+                texture.width,
+                texture.height
             };
-            const SDL_Rect effectiveStatusClip = intersectRendererClip(statusClip, previousClip);
-            if (effectiveStatusClip.w > 0 && effectiveStatusClip.h > 0) {
-                SDL_RenderSetClipRect(r, &effectiveStatusClip);
-                SDL_Rect dst = {
-                    contentRect.x + 10,
-                    bar.y + (statusBarHeight - surf->h) / 2,
-                    surf->w,
-                    surf->h
-                };
-                SDL_RenderCopy(r, tex, nullptr, &dst);
-                restoreRendererClip(r, previousClip);
-            }
-            SDL_DestroyTexture(tex);
+            SDL_RenderCopy(r, texture.handle, nullptr, &dst);
+            restoreRendererClip(r, previousClip);
         }
     }
 }
@@ -2050,7 +2040,6 @@ void FilesystemApp::drawStatusBar(SDL_Renderer* r, const SDL_Rect& contentRect) 
 void FilesystemApp::setStatus(const std::string& message) {
     if (m_statusMessage == message) return;
     m_statusMessage = message;
-    m_textSurfaceCache.clear();
 }
 
 void FilesystemApp::drawContextMenu(SDL_Renderer* r, const SDL_Rect& contentRect) {
@@ -2090,19 +2079,16 @@ void FilesystemApp::drawContextMenu(SDL_Renderer* r, const SDL_Rect& contentRect
         }
 
         SDL_Color textCol = hovered ? SDL_Color{230, 235, 245, 255} : SDL_Color{200, 205, 215, 255};
-        SDL_Surface* surf = m_textSurfaceCache.get(
-            m_font, m_contextMenuItems[i].c_str(), textCol);
-        if (surf) {
-            SDL_Texture* tex = SDL_CreateTextureFromSurface(r, surf);
-            if (tex) {
-                SDL_Rect dst = {
-                    menuX + padding + 4,
-                    itemY + (itemHeight - surf->h) / 2,
-                    surf->w, surf->h
-                };
-                SDL_RenderCopy(r, tex, nullptr, &dst);
-                SDL_DestroyTexture(tex);
-            }
+        const auto texture = m_textTextureCache.get(
+            r, m_font, m_contextMenuItems[i].c_str(), textCol);
+        if (texture) {
+            SDL_Rect dst = {
+                menuX + padding + 4,
+                itemY + (itemHeight - texture.height) / 2,
+                texture.width,
+                texture.height
+            };
+            SDL_RenderCopy(r, texture.handle, nullptr, &dst);
         }
 
         itemY += itemHeight;

@@ -508,22 +508,31 @@ int main() {
         browser.ensureHitTargets();
         const int cachedDeleteX = browser.m_btnDelete.x;
         browser.render(renderer, {0, 0, browser.m_clientWidth, browser.m_clientHeight});
-        const size_t cachedSurfaceCount = browser.m_textSurfaceCache.m_entries.size();
+        const auto firstToolbarTexture = browser.m_textTextureCache.get(
+            renderer, font, "Up", {210, 215, 220, 255});
+        const size_t cachedTextureCount = browser.m_textTextureCache.size();
         browser.render(renderer, {0, 0, browser.m_clientWidth, browser.m_clientHeight});
+        const auto repeatedToolbarTexture = browser.m_textTextureCache.get(
+            renderer, font, "Up", {210, 215, 220, 255});
         check(browser.m_hitTargetsValid && browser.m_btnDelete.x == cachedDeleteX,
               "browser retains stable hit targets across render frames");
-        check(cachedSurfaceCount > 0
-                  && browser.m_textSurfaceCache.m_entries.size() == cachedSurfaceCount,
-              "browser reuses cached text surfaces between frames");
+        check(firstToolbarTexture
+                  && repeatedToolbarTexture.handle == firstToolbarTexture.handle
+                  && browser.m_textTextureCache.size() == cachedTextureCount,
+              "browser reuses renderer text textures between frames");
+        const size_t beforeStatus = browser.m_textTextureCache.size();
         browser.setStatus("cache invalidation");
-        check(browser.m_textSurfaceCache.m_entries.empty(),
-              "browser clears cached text surfaces when status changes");
+        browser.render(renderer, {0, 0, browser.m_clientWidth, browser.m_clientHeight});
+        check(browser.m_textTextureCache.size() > beforeStatus,
+              "browser caches changed status text without flushing listing textures");
+        const size_t beforeRefresh = browser.m_textTextureCache.size();
         browser.refreshEntries();
-        check(browser.m_textSurfaceCache.m_entries.empty(),
-              "browser keeps cached text surfaces clear across listing refreshes");
+        check(browser.m_textTextureCache.size() == beforeRefresh,
+              "browser retains bounded text textures across listing refreshes");
         browser.onUiScaleChanged();
-        check(browser.m_textSurfaceCache.m_entries.empty(),
-              "browser clears cached text surfaces when UI scale changes");
+        check(browser.m_textTextureCache.size() == 0,
+              "browser clears renderer textures when UI scale changes");
+        browser.m_textTextureCache.clear();
         SDL_DestroyRenderer(renderer);
     }
     if (surface) SDL_FreeSurface(surface);

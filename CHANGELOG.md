@@ -1,5 +1,11 @@
 # Changelog
 
+## 2026-09: Reuse Filesystem Browser text textures
+
+- Cache path, filter, toolbar, list, status, and context-menu text in a renderer-aware 256-entry LRU with an estimated 16 MiB budget.
+- Reuse unchanged text across listing refreshes and transient status messages; invalidate textures only when the renderer or shared interface text scale changes.
+- Cover texture reuse, retained listing text, status variants, stable hit targets, and scale invalidation.
+
 ## 2026-09: Reuse Terminal text textures
 
 - Cache scrollback rows, normal command-input fragments, and reverse-search text in a renderer-aware 256-entry LRU with an estimated 16 MiB budget.
