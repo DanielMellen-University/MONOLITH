@@ -1,5 +1,11 @@
 # Changelog
 
+## 2026-09: Reuse Drawing text textures
+
+- Cache toolbar labels and status or prompt text in a renderer-aware 256-entry LRU with an estimated 16 MiB budget.
+- Retain unchanged labels across status and prompt updates; clear cached textures when the renderer or shared interface text scale changes.
+- Cover frame reuse, status variants, and scale invalidation without changing the canvas texture upload lifecycle.
+
 ## 2026-09: Reuse Filesystem Browser text textures
 
 - Cache path, filter, toolbar, list, status, and context-menu text in a renderer-aware 256-entry LRU with an estimated 16 MiB budget.

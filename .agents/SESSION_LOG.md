@@ -1,5 +1,7 @@
 # Session log
 
+| 2026-09-26 | perf | Reused Drawing toolbar and status or prompt text textures across frames with a renderer-aware 256-entry, estimated 16 MiB LRU; covered label identity, retained labels across status updates, and scale invalidation without changing canvas uploads. |
+
 | 2026-09-26 | perf | Reused Filesystem Browser path, filter, toolbar, row, status, and menu textures across frames with a renderer-aware 256-entry, estimated 16 MiB LRU; covered cache reuse across listing refreshes and status changes. |
 
 | 2026-09-26 | perf | Reused Terminal scrollback, command-input, and reverse-search textures across frames with a renderer-aware 256-entry, estimated 16 MiB LRU; covered reuse across modes plus clear, scroll, resize, and scale changes. |

@@ -612,7 +612,7 @@ Main implementation files:
 
 Canvas GPU path (`syncTexture`): recreate the streaming texture only when missing or size-changed; upload CPU pixels only while `m_textureDirty` is set by paint, undo, load, or resize.
 
-Drawing toolbar labels and status or prompt text use a renderer-independent SDL_ttf surface cache. Repeated labels reuse their cached surfaces between frames; status changes clear old feedback, prompt rendering clears dynamic text each frame, and shared interface scale changes rebuild all text with the new font metrics. These surfaces remain separate from the canvas texture, which follows the dirty-upload lifecycle above.
+Drawing toolbar labels and status or prompt text use a renderer-owned `TextTextureCache`, bounded to 256 entries and an estimated 16 MiB. Text, color, and font form each key, so unchanged labels survive status and prompt updates rather than rebuilding a renderer texture every frame. The cache clears when the renderer changes or shared interface scale changes. It remains separate from the canvas texture, which follows the dirty-upload lifecycle above.
 
 Drawing status-bar text uses a narrower internal clip. It intersects that clip with the caller's renderer clip and restores the caller clip after the status bar is drawn, so embedded rendering cannot leak into neighboring shell regions.
 

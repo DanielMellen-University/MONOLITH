@@ -654,7 +654,6 @@ bool DrawingApp::loadFromPath(const std::string& virtualPath) {
 void DrawingApp::setStatus(const std::string& message) {
     if (m_statusMessage == message) return;
     m_statusMessage = message;
-    m_textSurfaceCache.clear();
 }
 
 void DrawingApp::onBoundFileMoved(const std::string& oldPath,
@@ -1144,19 +1143,16 @@ void DrawingApp::drawToolbar(SDL_Renderer* renderer, const SDL_Rect& contentRect
 
         if (m_font) {
             SDL_Color col = {225, 228, 235, 255};
-            SDL_Surface* surf = m_textSurfaceCache.get(m_font, label, col);
-            if (surf) {
-                SDL_Texture* tex = SDL_CreateTextureFromSurface(renderer, surf);
-                if (tex) {
-                    SDL_Rect dst = {
-                        drawRect.x + (drawRect.w - surf->w) / 2,
-                        drawRect.y + (drawRect.h - surf->h) / 2,
-                        surf->w,
-                        surf->h
-                    };
-                    SDL_RenderCopy(renderer, tex, nullptr, &dst);
-                    SDL_DestroyTexture(tex);
-                }
+            const auto texture = m_textTextureCache.get(
+                renderer, m_font, label, col);
+            if (texture) {
+                SDL_Rect dst = {
+                    drawRect.x + (drawRect.w - texture.width) / 2,
+                    drawRect.y + (drawRect.h - texture.height) / 2,
+                    texture.width,
+                    texture.height
+                };
+                SDL_RenderCopy(renderer, texture.handle, nullptr, &dst);
             }
         }
     };
@@ -1243,38 +1239,35 @@ void DrawingApp::drawStatusBar(SDL_Renderer* renderer, const SDL_Rect& contentRe
     }
 
     SDL_Color col = {170, 175, 185, 255};
-    SDL_Surface* surf = m_textSurfaceCache.get(m_font, text.c_str(), col);
-    if (surf) {
-        SDL_Texture* tex = SDL_CreateTextureFromSurface(renderer, surf);
-        if (tex) {
-            const int visibleWidth = std::max(1, bar.w - 16);
-            if (promptActive) {
-                if (promptCursorPx - m_pathPromptScrollPx > visibleWidth) {
-                    m_pathPromptScrollPx = promptCursorPx - visibleWidth;
-                } else if (promptCursorPx - m_pathPromptScrollPx < 0) {
-                    m_pathPromptScrollPx = promptCursorPx;
-                }
-                const int maxScroll = std::max(0, surf->w - visibleWidth);
-                m_pathPromptScrollPx = std::clamp(m_pathPromptScrollPx, 0, maxScroll);
+    const auto texture = m_textTextureCache.get(
+        renderer, m_font, text.c_str(), col);
+    if (texture) {
+        const int visibleWidth = std::max(1, bar.w - 16);
+        if (promptActive) {
+            if (promptCursorPx - m_pathPromptScrollPx > visibleWidth) {
+                m_pathPromptScrollPx = promptCursorPx - visibleWidth;
+            } else if (promptCursorPx - m_pathPromptScrollPx < 0) {
+                m_pathPromptScrollPx = promptCursorPx;
             }
-            SDL_Rect clip = {
-                contentRect.x + 8,
-                bar.y,
-                visibleWidth,
-                bar.h
-            };
-            const SDL_Rect effectiveClip = intersectRendererClip(clip, previousClip);
-            SDL_RenderSetClipRect(renderer, &effectiveClip);
-            SDL_Rect dst = {
-                contentRect.x + 8 - (promptActive ? m_pathPromptScrollPx : 0),
-                bar.y + (bar.h - surf->h) / 2,
-                surf->w,
-                surf->h
-            };
-            SDL_RenderCopy(renderer, tex, nullptr, &dst);
-            restoreRendererClip(renderer, previousClip);
-            SDL_DestroyTexture(tex);
+            const int maxScroll = std::max(0, texture.width - visibleWidth);
+            m_pathPromptScrollPx = std::clamp(m_pathPromptScrollPx, 0, maxScroll);
         }
+        SDL_Rect clip = {
+            contentRect.x + 8,
+            bar.y,
+            visibleWidth,
+            bar.h
+        };
+        const SDL_Rect effectiveClip = intersectRendererClip(clip, previousClip);
+        SDL_RenderSetClipRect(renderer, &effectiveClip);
+        SDL_Rect dst = {
+            contentRect.x + 8 - (promptActive ? m_pathPromptScrollPx : 0),
+            bar.y + (bar.h - texture.height) / 2,
+            texture.width,
+            texture.height
+        };
+        SDL_RenderCopy(renderer, texture.handle, nullptr, &dst);
+        restoreRendererClip(renderer, previousClip);
     }
 }
 
@@ -1318,7 +1311,7 @@ void DrawingApp::onResize(int clientWidth, int clientHeight) {
 }
 
 void DrawingApp::onUiScaleChanged() {
-    m_textSurfaceCache.clear();
+    m_textTextureCache.clear();
     updateLayoutMetrics();
     invalidateHitTargets();
     // The path prompt stores its horizontal position in pixels; remeasure it
@@ -1395,9 +1388,6 @@ void DrawingApp::ensureHitTargets() {
 void DrawingApp::render(SDL_Renderer* renderer, const SDL_Rect& contentRect) {
     if (m_clientWidth != contentRect.w || m_clientHeight != contentRect.h) {
         onResize(contentRect.w, contentRect.h);
-    }
-    if (m_pathPromptMode != PathPromptMode::None) {
-        m_textSurfaceCache.clear();
     }
     ensureHitTargets();
 

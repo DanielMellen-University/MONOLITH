@@ -561,17 +561,28 @@ int main() {
                   && restoredClip.w == expectedClip.w
                   && restoredClip.h == expectedClip.h,
               "Drawing restores the caller renderer clip after rendering");
-        const size_t cachedSurfaceCount = drawing.m_textSurfaceCache.m_entries.size();
+        const SDL_Color toolbarTextColor{225, 228, 235, 255};
+        const auto toolbarTexture = drawing.m_textTextureCache.get(
+            renderer, font, "New", toolbarTextColor);
+        const size_t cachedTextureCount = drawing.m_textTextureCache.size();
         drawing.render(renderer, {0, 0, 280, 280});
-        check(cachedSurfaceCount > 0
-                  && drawing.m_textSurfaceCache.m_entries.size() == cachedSurfaceCount,
-              "Drawing reuses cached text surfaces between frames");
+        const auto repeatedToolbarTexture = drawing.m_textTextureCache.get(
+            renderer, font, "New", toolbarTextColor);
+        check(toolbarTexture
+                  && repeatedToolbarTexture.handle == toolbarTexture.handle
+                  && drawing.m_textTextureCache.size() == cachedTextureCount,
+              "Drawing reuses cached toolbar text textures between frames");
         drawing.setStatus("cache invalidation");
-        check(drawing.m_textSurfaceCache.m_entries.empty(),
-              "Drawing clears cached text surfaces when status changes");
+        drawing.render(renderer, {0, 0, 280, 280});
+        const auto retainedToolbarTexture = drawing.m_textTextureCache.get(
+            renderer, font, "New", toolbarTextColor);
+        check(retainedToolbarTexture.handle == toolbarTexture.handle
+                  && drawing.m_textTextureCache.size() > cachedTextureCount,
+              "Drawing retains toolbar textures and caches changed status text");
         drawing.onUiScaleChanged();
-        check(drawing.m_textSurfaceCache.m_entries.empty(),
-              "Drawing clears cached text surfaces when UI scale changes");
+        check(drawing.m_textTextureCache.size() == 0,
+              "Drawing clears cached text textures when UI scale changes");
+        drawing.m_textTextureCache.clear();
         SDL_DestroyRenderer(renderer);
     }
     if (surface) SDL_FreeSurface(surface);
