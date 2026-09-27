@@ -136,6 +136,7 @@ void TextEditorApp::refreshSyntaxMode() {
     m_syntaxLineStates.clear();
     m_renderedSyntaxStartRow = -1;
     m_renderedSyntaxSpans.clear();
+    invalidateRenderedTextSlices();
 }
 
 std::vector<TextEditorApp::ColoredSpan> TextEditorApp::tokenizeLine(
@@ -309,18 +310,23 @@ void TextEditorApp::invalidateSyntaxFrom(int lineIndex) {
     }
     m_renderedSyntaxStartRow = -1;
     m_renderedSyntaxSpans.clear();
+    invalidateRenderedTextSlices();
 }
 
-void TextEditorApp::drawColoredLine(SDL_Renderer* renderer, const std::string& line, int x, int y,
-                                    int maxWidth,
-                                    const std::vector<ColoredSpan>& spans) const {
-    if (!m_font || line.empty() || maxWidth <= 0) return;
+TextEditorApp::TextViewportSlice TextEditorApp::measureTextViewportSlice(
+    const std::string& line, int maxWidth) const {
+    TextViewportSlice slice;
+    slice.measured = true;
+    if (!m_font || line.empty() || maxWidth <= 0) {
+        slice.valid = true;
+        return slice;
+    }
 
     int hiddenWidth = 0;
     int hiddenCharacters = 0;
     if (TTF_MeasureUTF8(m_font, line.c_str(), m_horizontalScrollOffset,
                         &hiddenWidth, &hiddenCharacters) != 0) {
-        return;
+        return slice;
     }
 
     size_t firstVisibleByte = 0;
@@ -337,7 +343,7 @@ void TextEditorApp::drawColoredLine(SDL_Renderer* renderer, const std::string& l
         requestedMeasureWidth, std::numeric_limits<int>::max()));
     if (TTF_MeasureUTF8(m_font, line.c_str() + firstVisibleByte, measureWidth,
                         &visibleWidth, &visibleCharacters) != 0) {
-        return;
+        return slice;
     }
 
     size_t visibleEndByte = firstVisibleByte;
@@ -345,9 +351,28 @@ void TextEditorApp::drawColoredLine(SDL_Renderer* renderer, const std::string& l
     for (int i = 0; i < characterLimit && visibleEndByte < line.size(); ++i) {
         visibleEndByte = utf8NextCodepointStart(line, visibleEndByte);
     }
-    if (visibleEndByte <= firstVisibleByte) return;
 
-    int curX = x + hiddenWidth - m_horizontalScrollOffset;
+    slice.firstVisibleByte = firstVisibleByte;
+    slice.visibleEndByte = visibleEndByte;
+    slice.hiddenPixelWidth = hiddenWidth;
+    slice.valid = true;
+    return slice;
+}
+
+void TextEditorApp::invalidateRenderedTextSlices() {
+    m_renderedTextSliceStartRow = -1;
+    m_renderedTextSliceWidth = -1;
+    m_renderedTextSliceOffset = -1;
+    m_renderedTextSlices.clear();
+}
+
+void TextEditorApp::drawColoredLine(SDL_Renderer* renderer, const std::string& line, int x, int y,
+                                    int maxWidth, const TextViewportSlice& slice,
+                                    const std::vector<ColoredSpan>& spans) const {
+    if (!m_font || line.empty() || maxWidth <= 0 || !slice.valid
+        || slice.visibleEndByte <= slice.firstVisibleByte) return;
+
+    int curX = x + slice.hiddenPixelWidth - m_horizontalScrollOffset;
     const int rightEdge = x + maxWidth;
 
     for (const auto& span : spans) {
@@ -355,8 +380,8 @@ void TextEditorApp::drawColoredLine(SDL_Renderer* renderer, const std::string& l
         if (span.start >= line.size()) continue;
 
         const size_t spanEnd = span.start + std::min(span.length, line.size() - span.start);
-        const size_t visibleStart = std::max(span.start, firstVisibleByte);
-        const size_t visibleEnd = std::min(spanEnd, visibleEndByte);
+        const size_t visibleStart = std::max(span.start, slice.firstVisibleByte);
+        const size_t visibleEnd = std::min(spanEnd, slice.visibleEndByte);
         if (visibleEnd <= visibleStart) continue;
 
         const std::string text = line.substr(visibleStart, visibleEnd - visibleStart);
@@ -1766,6 +1791,16 @@ void TextEditorApp::render(SDL_Renderer* renderer, const SDL_Rect& contentRect) 
         m_renderedSyntaxSpans.clear();
         m_renderedSyntaxSpans.resize(static_cast<size_t>(renderedLineCount));
     }
+    if (m_renderedTextSliceStartRow != m_scrollOffset
+        || m_renderedTextSliceWidth != textWidth
+        || m_renderedTextSliceOffset != m_horizontalScrollOffset
+        || m_renderedTextSlices.size() != static_cast<size_t>(renderedLineCount)) {
+        m_renderedTextSliceStartRow = m_scrollOffset;
+        m_renderedTextSliceWidth = textWidth;
+        m_renderedTextSliceOffset = m_horizontalScrollOffset;
+        m_renderedTextSlices.clear();
+        m_renderedTextSlices.resize(static_cast<size_t>(renderedLineCount));
+    }
     if (!m_findQuery.empty() && !m_findQueryPixelWidthValid) {
         int width = 0;
         int height = 0;
@@ -1822,6 +1857,10 @@ void TextEditorApp::render(SDL_Renderer* renderer, const SDL_Rect& contentRect) 
                 ? SyntaxState{}
                 : m_syntaxLineStates[static_cast<size_t>(lineIdx - 1)];
             syntaxSpans = tokenizeLine(line, incoming);
+        }
+        auto& textSlice = m_renderedTextSlices[static_cast<size_t>(i)];
+        if (!textSlice.measured) {
+            textSlice = measureTextViewportSlice(line, textWidth);
         }
 
         // Draw line number
@@ -1896,6 +1935,7 @@ void TextEditorApp::render(SDL_Renderer* renderer, const SDL_Rect& contentRect) 
             textStartX,
             y,
             textWidth,
+            textSlice,
             syntaxSpans
         );
 
@@ -2400,6 +2440,7 @@ void TextEditorApp::onResize(int clientWidth, int clientHeight) {
 
 void TextEditorApp::onUiScaleChanged() {
     m_textTextureCache.clear();
+    invalidateRenderedTextSlices();
     invalidateFindHighlightCache();
     m_findQueryPixelWidth = 0;
     m_findQueryPixelWidthValid = false;

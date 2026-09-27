@@ -140,6 +140,14 @@ private:
         bool inBlockComment = false;
     };
 
+    struct TextViewportSlice {
+        std::size_t firstVisibleByte = 0;
+        std::size_t visibleEndByte = 0;
+        int hiddenPixelWidth = 0;
+        bool measured = false;
+        bool valid = false;
+    };
+
     SyntaxMode syntaxModeForPath(const std::string& path) const;
     void refreshSyntaxMode();
     std::vector<ColoredSpan> tokenizeLine(const std::string& line,
@@ -147,8 +155,12 @@ private:
                                           SyntaxState* outgoing = nullptr) const;
     void ensureSyntaxStateThrough(int lineIndex);
     void invalidateSyntaxFrom(int lineIndex);
+    TextViewportSlice measureTextViewportSlice(const std::string& line,
+                                                int maxWidth) const;
+    void invalidateRenderedTextSlices();
     void drawColoredLine(SDL_Renderer* renderer, const std::string& line, int x, int y,
-                         int maxWidth, const std::vector<ColoredSpan>& spans) const;
+                         int maxWidth, const TextViewportSlice& slice,
+                         const std::vector<ColoredSpan>& spans) const;
 
     // === Rendering helpers ===
     int getLineHeight() const;
@@ -215,6 +227,10 @@ private:
     std::vector<SyntaxState> m_syntaxLineStates;
     int m_renderedSyntaxStartRow = -1;
     std::vector<std::vector<ColoredSpan>> m_renderedSyntaxSpans;
+    int m_renderedTextSliceStartRow = -1;
+    int m_renderedTextSliceWidth = -1;
+    int m_renderedTextSliceOffset = -1;
+    std::vector<TextViewportSlice> m_renderedTextSlices;
 
     static constexpr int kStatusBarHeight = 22;
     static constexpr int kPadding = 8;

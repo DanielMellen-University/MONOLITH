@@ -1,5 +1,10 @@
 # Changelog
 
+## 2026-09: Cache Text Editor viewport measurements
+
+- Reuse UTF-8 byte bounds and pixel offsets for visible long-line slices across unchanged frames.
+- Recalculate the slice only when the viewport rows, content width, horizontal scroll, document text, or shared font changes.
+
 ## 2026-09: Cache Text Editor find highlight geometry
 
 - Measure visible match-prefix widths once per viewport instead of once per rendered frame.

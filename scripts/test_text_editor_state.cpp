@@ -361,8 +361,10 @@ int main() {
             check(scaleEditor.m_textTextureCache.size() > beforeEdit,
                   "Text Editor caches changed document text without flushing prior textures");
             scaleEditor.onUiScaleChanged();
-            check(scaleEditor.m_textTextureCache.size() == 0,
-                  "Text Editor clears renderer textures when UI scale changes");
+            check(scaleEditor.m_textTextureCache.size() == 0
+                      && scaleEditor.m_renderedTextSlices.empty()
+                      && scaleEditor.m_renderedTextSliceStartRow == -1,
+                  "Text Editor clears renderer textures and viewport measurements when UI scale changes");
 
             TestEditor longLineEditor(scaleFont, &fs, "/long.txt");
             std::string longLine;
@@ -371,6 +373,17 @@ int main() {
             longLineEditor.m_lines = {longLine};
             longLineEditor.onResize(200, 160);
             longLineEditor.render(renderer, {0, 0, 200, 160});
+            const bool measuredInitialTextSlice =
+                longLineEditor.m_renderedTextSlices.size() == 1
+                && longLineEditor.m_renderedTextSlices[0].measured
+                && longLineEditor.m_renderedTextSlices[0].valid
+                && longLineEditor.m_renderedTextSlices[0].firstVisibleByte == 0
+                && longLineEditor.m_renderedTextSlices[0].visibleEndByte > 0
+                && longLineEditor.m_renderedTextSlices[0].visibleEndByte < longLine.size();
+            const auto* textSliceStorage = longLineEditor.m_renderedTextSlices.data();
+            longLineEditor.render(renderer, {0, 0, 200, 160});
+            const bool retainedTextSlice = measuredInitialTextSlice
+                && textSliceStorage == longLineEditor.m_renderedTextSlices.data();
             const int longLineViewportWidth = 200
                 - 2 * TestEditor::kPadding - TestEditor::kLineNumWidth;
             auto firstViewportText = std::find_if(
@@ -386,6 +399,8 @@ int main() {
                       && firstViewportText->second.width
                           < longLineViewportWidth + 2 * TTF_FontHeight(scaleFont),
                   "Text Editor caches only viewport-sized textures for very long lines");
+            check(retainedTextSlice,
+                  "Text Editor reuses UTF-8 viewport measurements across unchanged frames");
 
             const std::string firstViewportKey = firstViewportText
                 != longLineEditor.m_textTextureCache.m_entries.end()
@@ -397,6 +412,12 @@ int main() {
                 : nullptr;
             longLineEditor.m_horizontalScrollOffset = 60;
             longLineEditor.render(renderer, {0, 0, 200, 160});
+            const bool horizontalSliceUpdated =
+                longLineEditor.m_renderedTextSliceOffset == 60
+                && longLineEditor.m_renderedTextSlices.size() == 1
+                && longLineEditor.m_renderedTextSlices[0].firstVisibleByte > 0
+                && longLineEditor.m_renderedTextSlices[0].visibleEndByte
+                    > longLineEditor.m_renderedTextSlices[0].firstVisibleByte;
             const size_t scrolledTextureCount = longLineEditor.m_textTextureCache.size();
             auto retainedViewportText = longLineEditor.m_textTextureCache.m_entries.find(
                 firstViewportKey);
@@ -406,12 +427,17 @@ int main() {
                       && scrolledTextureCount
                           <= monolith::detail::TextTextureCache::kMaxEntries
                       && longLineEditor.m_textTextureCache.estimatedBytes()
-                          <= monolith::detail::TextTextureCache::kMaxEstimatedBytes,
+                          <= monolith::detail::TextTextureCache::kMaxEstimatedBytes
+                      && horizontalSliceUpdated,
                   "Text Editor retains scrolled textures within the bounded cache");
             longLineEditor.m_horizontalScrollOffset = 0;
             longLineEditor.render(renderer, {0, 0, 200, 160});
             check(longLineEditor.m_textTextureCache.size() == scrolledTextureCount,
                   "Text Editor reuses the prior viewport texture when scrolling back");
+            longLineEditor.render(renderer, {0, 0, 220, 160});
+            check(longLineEditor.m_renderedTextSliceWidth
+                      == 220 - 2 * TestEditor::kPadding - TestEditor::kLineNumWidth,
+                  "Text Editor recalculates visible byte bounds when its content width changes");
 
             scaleEditor.m_lines.assign(20, "line");
             scaleEditor.m_cursorRow = 19;
