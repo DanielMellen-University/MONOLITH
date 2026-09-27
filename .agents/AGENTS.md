@@ -147,7 +147,7 @@ Older recent-work rows: [`SESSION_LOG.md`](SESSION_LOG.md).
 | 7.35 | Cache visible Text Editor syntax spans | done | Reuse lexical spans for current rendered rows, retaining incremental block-comment state and invalidating the viewport cache on edits or syntax-mode changes |
 | 7.36 | Cache Text Editor Find geometry | done | Measure visible match-prefix widths once for the current viewport and reuse the cached query width; invalidate after query, viewport-row, or shared-font changes |
 | 7.37 | Cache Text Editor viewport measurements | done | Reuse visible UTF-8 line byte bounds and hidden pixel widths until viewport rows, content width, horizontal scroll, document text, or shared font changes |
-| 7.38 | Cache Terminal viewport measurements | in progress | Reuse the visible UTF-8 prefix byte boundary for each scrollback row until viewport width, row text, or shared font metrics change |
+| 7.38 | Cache Terminal viewport measurements | done | Reuse the visible UTF-8 prefix byte boundary for each scrollback row until viewport width, row text, or shared font metrics change |
 
 ## Commit voice
 
