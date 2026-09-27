@@ -34,6 +34,7 @@ The human funds token budget and lives in the desktop. You:
 
 | When | Kind | Note |
 |------|------|------|
+| 2026-09-26 | 7.40 | Filesystem Browser uses renderer-cached filename widths and caches rename caret-prefix metrics across steady-state frames |
 | 2026-09-26 | 7.39 | Filesystem Browser reuses filter caret-prefix pixel width until the prefix or shared font metrics change |
 | 2026-09-26 | 7.38 | Terminal caches visible UTF-8 byte boundaries per scrollback row and viewport width, refreshing after width or shared-font changes |
 | 2026-09-26 | 7.37 | Text Editor reuses measured UTF-8 viewport byte bounds per visible line and invalidates them when row range, width, horizontal scroll, text, or font changes |
@@ -150,6 +151,7 @@ Older recent-work rows: [`SESSION_LOG.md`](SESSION_LOG.md).
 | 7.37 | Cache Text Editor viewport measurements | done | Reuse visible UTF-8 line byte bounds and hidden pixel widths until viewport rows, content width, horizontal scroll, document text, or shared font changes |
 | 7.38 | Cache Terminal viewport measurements | done | Reuse the visible UTF-8 prefix byte boundary for each scrollback row until viewport width, row text, or shared font metrics change |
 | 7.39 | Cache Filesystem Browser filter caret width | done | Reuse the measured width of the active filter caret prefix until that prefix or the shared font changes |
+| 7.40 | Reuse Filesystem Browser row metrics | in progress | Use cached text texture widths for rendered filenames and reuse rename caret-prefix width until the prefix or shared font changes |
 
 ## Commit voice
 

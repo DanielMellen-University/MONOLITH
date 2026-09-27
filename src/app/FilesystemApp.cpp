@@ -1650,20 +1650,37 @@ void FilesystemApp::drawList(SDL_Renderer* r, const SDL_Rect& contentRect, int l
 
         // Name (or rename buffer if renaming this row)
         {
-            std::string displayText = isRenamingThis ? m_renameBuffer : entry.name;
+            const std::string& displayText = isRenamingThis ? m_renameBuffer : entry.name;
             SDL_Color nameCol = isRenamingThis ? selText : (isSelected ? selText : (entry.isDirectory ? textDir : textNormal));
 
             const int nameX = rowRect.x + 28;
             const int nameWidth = std::max(1, rowRect.w - 36);
-            int textW = 0;
-            int textH = 0;
-            TTF_SizeUTF8(m_font, displayText.c_str(), &textW, &textH);
-            const std::size_t cursorPos = std::min(m_renameCursorPos, displayText.size());
-            const std::string beforeCursor = displayText.substr(0, cursorPos);
+            const auto texture = m_textTextureCache.get(
+                r, m_font, displayText.c_str(), nameCol);
+            int textW = texture ? texture.width : 0;
+            if (!texture) {
+                int textH = 0;
+                TTF_SizeUTF8(m_font, displayText.c_str(), &textW, &textH);
+            }
             int prefixW = 0;
-            int prefixH = 0;
             if (isRenamingThis) {
-                TTF_SizeUTF8(m_font, beforeCursor.c_str(), &prefixW, &prefixH);
+                const std::size_t cursorPos = std::min(
+                    m_renameCursorPos, displayText.size());
+                const std::string beforeCursor = displayText.substr(0, cursorPos);
+                if (!m_renameCursorMeasureValid
+                    || m_renameCursorMeasurePrefix != beforeCursor) {
+                    int prefixHeight = 0;
+                    if (TTF_SizeUTF8(m_font, beforeCursor.c_str(),
+                                     &m_renameCursorMeasureWidth, &prefixHeight) == 0) {
+                        m_renameCursorMeasurePrefix = beforeCursor;
+                        m_renameCursorMeasureValid = true;
+                    } else {
+                        m_renameCursorMeasureValid = false;
+                    }
+                }
+                if (m_renameCursorMeasureValid) {
+                    prefixW = m_renameCursorMeasureWidth;
+                }
             }
             const int maxTextOffset = std::max(0, textW - nameWidth);
             const int cursorMargin = std::max(0, nameWidth - 2);
@@ -1671,8 +1688,6 @@ void FilesystemApp::drawList(SDL_Renderer* r, const SDL_Rect& contentRect, int l
                 ? std::clamp(prefixW - cursorMargin, 0, maxTextOffset)
                 : 0;
 
-            const auto texture = m_textTextureCache.get(
-                r, m_font, displayText.c_str(), nameCol);
             if (texture) {
                 SDL_Rect nameClip = {nameX, rowRect.y, nameWidth, rowRect.h};
                 const SDL_Rect effectiveNameClip = intersectRendererClip(nameClip, previousClip);
@@ -1749,6 +1764,7 @@ void FilesystemApp::onResize(int clientWidth, int clientHeight) {
 void FilesystemApp::onUiScaleChanged() {
     m_textTextureCache.clear();
     m_filterCursorMeasureValid = false;
+    m_renameCursorMeasureValid = false;
     // The filter prompt stores its horizontal position in pixels; remeasure it
     // against the new font on the next render.
     m_filterScrollPx = 0;

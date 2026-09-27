@@ -1,5 +1,10 @@
 # Changelog
 
+## 2026-09: Reuse Filesystem Browser row metrics
+
+- Use renderer-cached filename texture widths for list clipping instead of measuring every visible row each frame.
+- Cache the active rename caret-prefix width and refresh it after caret-prefix or shared-font changes.
+
 ## 2026-09: Cache Filesystem Browser filter caret metrics
 
 - Reuse the measured filter-caret prefix width while the caret prefix and shared font are unchanged.

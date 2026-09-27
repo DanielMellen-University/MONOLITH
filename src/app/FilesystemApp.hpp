@@ -136,6 +136,9 @@ private:
     int m_renameIndex = -1;
     std::string m_renameBuffer;
     std::size_t m_renameCursorPos = 0;
+    std::string m_renameCursorMeasurePrefix;
+    int m_renameCursorMeasureWidth = 0;
+    bool m_renameCursorMeasureValid = false;
 
     // Delete confirmation state (toolbar, Delete key, or context menu)
     bool m_confirmingDelete = false;

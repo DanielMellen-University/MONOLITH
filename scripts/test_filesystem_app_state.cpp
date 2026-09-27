@@ -580,6 +580,55 @@ int main() {
                   && browser.m_filterCursorMeasureWidth == scaledFilterCursorWidth,
               "browser remeasures filter caret width with the scaled font");
         browser.clearFilter();
+
+        const bool selectedRenameEntry = browser.selectEntryNamed("a.txt", false);
+        browser.startRenameSelected();
+        browser.m_renameBuffer = "alpha.txt";
+        browser.m_renameCursorPos = 3;
+        int expectedRenameCursorWidth = 0;
+        int expectedRenameCursorHeight = 0;
+        const bool measuredRenameCursor = TTF_SizeUTF8(
+            font, "alp", &expectedRenameCursorWidth, &expectedRenameCursorHeight) == 0;
+        browser.render(renderer, {0, 0, browser.m_clientWidth, browser.m_clientHeight});
+        const bool firstRenameMeasureMatches = browser.m_renameCursorMeasureValid
+            && browser.m_renameCursorMeasurePrefix == "alp"
+            && browser.m_renameCursorMeasureWidth == expectedRenameCursorWidth;
+        browser.m_renameBuffer = "alpine.txt";
+        browser.render(renderer, {0, 0, browser.m_clientWidth, browser.m_clientHeight});
+        check(selectedRenameEntry && browser.m_renaming && measuredRenameCursor
+                  && expectedRenameCursorHeight > 0
+                  && firstRenameMeasureMatches
+                  && browser.m_renameCursorMeasureValid
+                  && browser.m_renameCursorMeasurePrefix == "alp"
+                  && browser.m_renameCursorMeasureWidth == expectedRenameCursorWidth,
+              "browser reuses rename caret width when text after the caret changes");
+
+        browser.m_renameCursorPos = 4;
+        int movedRenameCursorWidth = 0;
+        int movedRenameCursorHeight = 0;
+        const bool measuredMovedRenameCursor = TTF_SizeUTF8(
+            font, "alpi", &movedRenameCursorWidth, &movedRenameCursorHeight) == 0;
+        browser.render(renderer, {0, 0, browser.m_clientWidth, browser.m_clientHeight});
+        check(measuredMovedRenameCursor && movedRenameCursorHeight > 0
+                  && browser.m_renameCursorMeasureValid
+                  && browser.m_renameCursorMeasurePrefix == "alpi"
+                  && browser.m_renameCursorMeasureWidth == movedRenameCursorWidth,
+              "browser refreshes rename caret width after cursor movement");
+
+        const bool largerRenameFont = TTF_SetFontSize(font, 24) == 0;
+        browser.onUiScaleChanged();
+        check(largerRenameFont && !browser.m_renameCursorMeasureValid,
+              "browser invalidates rename caret width after UI-font changes");
+        int scaledRenameCursorWidth = 0;
+        int scaledRenameCursorHeight = 0;
+        const bool measuredScaledRenameCursor = TTF_SizeUTF8(
+            font, "alpi", &scaledRenameCursorWidth, &scaledRenameCursorHeight) == 0;
+        browser.render(renderer, {0, 0, browser.m_clientWidth, browser.m_clientHeight});
+        check(measuredScaledRenameCursor && scaledRenameCursorHeight > 0
+                  && browser.m_renameCursorMeasureValid
+                  && browser.m_renameCursorMeasureWidth == scaledRenameCursorWidth,
+              "browser remeasures rename caret width after UI-font changes");
+        browser.finishRename(false);
         browser.m_textTextureCache.clear();
         SDL_DestroyRenderer(renderer);
     }
