@@ -1,5 +1,11 @@
 # Changelog
 
+## 2026-09: Reuse visible Text Editor syntax spans
+
+- Cache lexical spans for the current rendered rows so unchanged frames do not tokenize visible lines repeatedly.
+- Rebuild the viewport cache on scrolling, edits, or syntax-mode changes while retaining the existing incremental block-comment state.
+- Cover viewport reuse and downstream recoloring after editing a block-comment opener.
+
 ## 2026-09: Cache Text Editor find-query width
 
 - Measure the search query once per query/font state and reuse its width for every visible highlight.

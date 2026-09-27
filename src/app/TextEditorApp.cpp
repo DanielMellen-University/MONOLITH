@@ -134,6 +134,8 @@ TextEditorApp::SyntaxMode TextEditorApp::syntaxModeForPath(const std::string& pa
 void TextEditorApp::refreshSyntaxMode() {
     m_syntaxMode = syntaxModeForPath(m_filePath);
     m_syntaxLineStates.clear();
+    m_renderedSyntaxStartRow = -1;
+    m_renderedSyntaxSpans.clear();
 }
 
 std::vector<TextEditorApp::ColoredSpan> TextEditorApp::tokenizeLine(
@@ -285,7 +287,15 @@ void TextEditorApp::ensureSyntaxStateThrough(int lineIndex) {
             ? SyntaxState{}
             : m_syntaxLineStates.back();
         SyntaxState outgoing;
-        tokenizeLine(m_lines[row], incoming, &outgoing);
+        auto spans = tokenizeLine(m_lines[row], incoming, &outgoing);
+        if (m_renderedSyntaxStartRow >= 0
+            && static_cast<int>(row) >= m_renderedSyntaxStartRow) {
+            const size_t renderedRow = row
+                - static_cast<size_t>(m_renderedSyntaxStartRow);
+            if (renderedRow < m_renderedSyntaxSpans.size()) {
+                m_renderedSyntaxSpans[renderedRow] = std::move(spans);
+            }
+        }
         m_syntaxLineStates.push_back(outgoing);
     }
 }
@@ -297,10 +307,13 @@ void TextEditorApp::invalidateSyntaxFrom(int lineIndex) {
     if (firstInvalid < m_syntaxLineStates.size()) {
         m_syntaxLineStates.resize(firstInvalid);
     }
+    m_renderedSyntaxStartRow = -1;
+    m_renderedSyntaxSpans.clear();
 }
 
 void TextEditorApp::drawColoredLine(SDL_Renderer* renderer, const std::string& line, int x, int y,
-                                    int maxWidth, SyntaxState incoming) const {
+                                    int maxWidth,
+                                    const std::vector<ColoredSpan>& spans) const {
     if (!m_font || line.empty() || maxWidth <= 0) return;
 
     int hiddenWidth = 0;
@@ -334,7 +347,6 @@ void TextEditorApp::drawColoredLine(SDL_Renderer* renderer, const std::string& l
     }
     if (visibleEndByte <= firstVisibleByte) return;
 
-    const auto spans = tokenizeLine(line, incoming);
     int curX = x + hiddenWidth - m_horizontalScrollOffset;
     const int rightEdge = x + maxWidth;
 
@@ -1735,6 +1747,14 @@ void TextEditorApp::render(SDL_Renderer* renderer, const SDL_Rect& contentRect) 
         textClipHeight
     };
     const SDL_Rect effectiveTextClip = intersectRendererClip(textClip, previousClip);
+    const int renderedLineCount = std::max(
+        0, std::min(visibleLines, static_cast<int>(m_lines.size()) - m_scrollOffset));
+    if (m_renderedSyntaxStartRow != m_scrollOffset
+        || m_renderedSyntaxSpans.size() != static_cast<size_t>(renderedLineCount)) {
+        m_renderedSyntaxStartRow = m_scrollOffset;
+        m_renderedSyntaxSpans.clear();
+        m_renderedSyntaxSpans.resize(static_cast<size_t>(renderedLineCount));
+    }
     if (!m_findQuery.empty() && !m_findQueryPixelWidthValid) {
         int width = 0;
         int height = 0;
@@ -1759,11 +1779,15 @@ void TextEditorApp::render(SDL_Renderer* renderer, const SDL_Rect& contentRect) 
         int lineIdx = m_scrollOffset + i;
         if (lineIdx >= static_cast<int>(m_lines.size())) break;
         ensureSyntaxStateThrough(lineIdx);
-        const SyntaxState incoming = lineIdx == 0
-            ? SyntaxState{}
-            : m_syntaxLineStates[static_cast<size_t>(lineIdx - 1)];
 
         const std::string& line = m_lines[lineIdx];
+        auto& syntaxSpans = m_renderedSyntaxSpans[static_cast<size_t>(i)];
+        if (syntaxSpans.empty() && !line.empty()) {
+            const SyntaxState incoming = lineIdx == 0
+                ? SyntaxState{}
+                : m_syntaxLineStates[static_cast<size_t>(lineIdx - 1)];
+            syntaxSpans = tokenizeLine(line, incoming);
+        }
 
         // Draw line number
         std::string lineNumStr = std::to_string(lineIdx + 1);
@@ -1848,7 +1872,7 @@ void TextEditorApp::render(SDL_Renderer* renderer, const SDL_Rect& contentRect) 
             textStartX,
             y,
             textWidth,
-            incoming
+            syntaxSpans
         );
 
         // Draw cursor if on this line

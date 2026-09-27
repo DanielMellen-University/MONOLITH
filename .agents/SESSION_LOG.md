@@ -1,5 +1,6 @@
 # Session log
 
+| 2026-09-26 | perf | Cached lexical spans for the Text Editor viewport to avoid retokenizing unchanged visible rows every frame; invalidated on edits and syntax-mode changes, with viewport reuse and downstream color regression coverage. |
 | 2026-09-26 | perf | Cached the Text Editor search-query pixel width for all visible match rectangles and invalidated it on result refresh or shared-font scaling; covered width and invalidation in the rendered Find test. |
 
 | 2026-09-26 | perf | Reused Terminal input-prefix texture widths for cursor placement and cached reverse-search prefix textures in the existing bounded LRU; retained TTF measurement only when rasterization fails. |

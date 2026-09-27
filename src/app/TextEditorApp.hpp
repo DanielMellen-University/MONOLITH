@@ -147,7 +147,7 @@ private:
     void ensureSyntaxStateThrough(int lineIndex);
     void invalidateSyntaxFrom(int lineIndex);
     void drawColoredLine(SDL_Renderer* renderer, const std::string& line, int x, int y,
-                         int maxWidth, SyntaxState incoming) const;
+                         int maxWidth, const std::vector<ColoredSpan>& spans) const;
 
     // === Rendering helpers ===
     int getLineHeight() const;
@@ -208,6 +208,8 @@ private:
 
     SyntaxMode m_syntaxMode = SyntaxMode::Light;
     std::vector<SyntaxState> m_syntaxLineStates;
+    int m_renderedSyntaxStartRow = -1;
+    std::vector<std::vector<ColoredSpan>> m_renderedSyntaxSpans;
 
     static constexpr int kStatusBarHeight = 22;
     static constexpr int kPadding = 8;

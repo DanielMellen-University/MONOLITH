@@ -272,6 +272,46 @@ int main() {
                       && !findViewportEditor.m_findQueryPixelWidthValid,
                   "Find query and font changes invalidate cached highlight width");
 
+            TestEditor syntaxCacheEditor(scaleFont, &fs, "");
+            syntaxCacheEditor.m_syntaxMode = TestEditor::SyntaxMode::Code;
+            syntaxCacheEditor.m_lines = {"int x; /* open", "return 4; */"};
+            syntaxCacheEditor.onResize(240, 200);
+            syntaxCacheEditor.render(renderer, {0, 0, 240, 200});
+            const bool cachedVisibleSyntax =
+                syntaxCacheEditor.m_renderedSyntaxSpans.size() == 2
+                && !syntaxCacheEditor.m_renderedSyntaxSpans[1].empty()
+                && syntaxCacheEditor.m_renderedSyntaxSpans[1][0].color.g == 145;
+            const auto* syntaxCacheStorage =
+                syntaxCacheEditor.m_renderedSyntaxSpans.data();
+            syntaxCacheEditor.render(renderer, {0, 0, 240, 200});
+            const bool retainedVisibleSyntax = cachedVisibleSyntax
+                && syntaxCacheStorage == syntaxCacheEditor.m_renderedSyntaxSpans.data()
+                && syntaxCacheEditor.m_renderedSyntaxSpans[1][0].color.g == 145;
+            syntaxCacheEditor.m_cursorRow = 0;
+            syntaxCacheEditor.m_cursorCol = 7;
+            syntaxCacheEditor.deleteForward();
+            const bool editInvalidatedVisibleSyntax =
+                syntaxCacheEditor.m_renderedSyntaxStartRow == -1
+                && syntaxCacheEditor.m_renderedSyntaxSpans.empty();
+            syntaxCacheEditor.render(renderer, {0, 0, 240, 200});
+            check(retainedVisibleSyntax && editInvalidatedVisibleSyntax
+                      && !syntaxCacheEditor.m_renderedSyntaxSpans[1].empty()
+                      && syntaxCacheEditor.m_renderedSyntaxSpans[1][0].color.b == 225,
+                  "Text Editor reuses viewport syntax spans and refreshes downstream colors after edits");
+            syntaxCacheEditor.m_filePath = "/plain.txt";
+            syntaxCacheEditor.refreshSyntaxMode();
+            const bool modeInvalidatedVisibleSyntax =
+                syntaxCacheEditor.m_syntaxMode == TestEditor::SyntaxMode::Light
+                && syntaxCacheEditor.m_renderedSyntaxStartRow == -1
+                && syntaxCacheEditor.m_renderedSyntaxSpans.empty();
+            syntaxCacheEditor.render(renderer, {0, 0, 240, 200});
+            check(modeInvalidatedVisibleSyntax
+                      && syntaxCacheEditor.m_renderedSyntaxSpans.size() == 2
+                      && !syntaxCacheEditor.m_renderedSyntaxSpans[1].empty()
+                      && syntaxCacheEditor.m_renderedSyntaxSpans[1][0].color.r == 200
+                      && syntaxCacheEditor.m_renderedSyntaxSpans[1][0].color.g == 205,
+                  "Text Editor rebuilds viewport spans when the file switches syntax modes");
+
             const size_t beforeStatus = scaleEditor.m_textTextureCache.size();
             scaleEditor.setStatus("cache invalidation");
             scaleEditor.render(renderer, {0, 0, 200, 160});
