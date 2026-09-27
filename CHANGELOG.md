@@ -1,5 +1,10 @@
 # Changelog
 
+## 2026-09: Cache Text Editor find-query width
+
+- Measure the search query once per query/font state and reuse its width for every visible highlight.
+- Invalidate cached metrics when search results refresh or the shared interface font changes.
+
 ## 2026-09: Reuse Terminal input cursor measurements
 
 - Use cached input-prefix texture widths for cursor placement instead of measuring the same UTF-8 text again every frame.

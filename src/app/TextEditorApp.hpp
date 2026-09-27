@@ -201,6 +201,8 @@ private:
     std::size_t m_findCursorPos = 0;
     std::size_t m_replaceCursorPos = 0;
     int m_statusHorizontalScrollPx = 0;
+    int m_findQueryPixelWidth = 0;
+    bool m_findQueryPixelWidthValid = false;
     std::vector<std::pair<int, int>> m_findMatches;  // row, col starts
     int m_currentFindMatch = -1;
 

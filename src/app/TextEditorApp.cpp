@@ -1492,6 +1492,8 @@ void TextEditorApp::exitFindMode() {
 void TextEditorApp::updateFindMatches() {
     m_findMatches.clear();
     m_currentFindMatch = -1;
+    m_findQueryPixelWidth = 0;
+    m_findQueryPixelWidthValid = false;
 
     if (m_findQuery.empty()) {
         clearSelection();
@@ -1733,6 +1735,14 @@ void TextEditorApp::render(SDL_Renderer* renderer, const SDL_Rect& contentRect) 
         textClipHeight
     };
     const SDL_Rect effectiveTextClip = intersectRendererClip(textClip, previousClip);
+    if (!m_findQuery.empty() && !m_findQueryPixelWidthValid) {
+        int width = 0;
+        int height = 0;
+        if (TTF_SizeUTF8(m_font, m_findQuery.c_str(), &width, &height) == 0) {
+            m_findQueryPixelWidth = width;
+            m_findQueryPixelWidthValid = true;
+        }
+    }
     // Find results are row/column ordered; skip offscreen rows once, then walk only visible hits.
     auto visibleMatch = std::lower_bound(
         m_findMatches.begin(), m_findMatches.end(), m_scrollOffset,
@@ -1801,14 +1811,15 @@ void TextEditorApp::render(SDL_Renderer* renderer, const SDL_Rect& contentRect) 
                    && visibleMatch->first == lineIdx) {
                 const auto& match = *visibleMatch;
                 std::string before = line.substr(0, match.second);
-                std::string found = line.substr(match.second, m_findQuery.size());
 
                 int beforeW = 0, beforeH = 0;
-                int matchW = 0, matchH = 0;
                 if (!before.empty()) {
                     TTF_SizeUTF8(m_font, before.c_str(), &beforeW, &beforeH);
                 }
-                if (!found.empty()) {
+                int matchW = m_findQueryPixelWidth;
+                if (!m_findQueryPixelWidthValid) {
+                    const std::string found = line.substr(match.second, m_findQuery.size());
+                    int matchH = 0;
                     TTF_SizeUTF8(m_font, found.c_str(), &matchW, &matchH);
                 }
 
@@ -2341,6 +2352,8 @@ void TextEditorApp::onResize(int clientWidth, int clientHeight) {
 
 void TextEditorApp::onUiScaleChanged() {
     m_textTextureCache.clear();
+    m_findQueryPixelWidth = 0;
+    m_findQueryPixelWidthValid = false;
     const int visible = std::max(
         1,
         getVisibleLineCount({0, 0, m_clientWidth, m_clientHeight}));

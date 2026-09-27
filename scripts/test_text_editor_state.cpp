@@ -230,6 +230,10 @@ int main() {
             int matchPrefixWidth = 0;
             int matchPrefixHeight = 0;
             TTF_SizeUTF8(scaleFont, "target ", &matchPrefixWidth, &matchPrefixHeight);
+            int expectedFindQueryWidth = 0;
+            int expectedFindQueryHeight = 0;
+            const bool measuredFindQueryWidth = TTF_SizeUTF8(
+                scaleFont, "target", &expectedFindQueryWidth, &expectedFindQueryHeight) == 0;
             const int matchRowY = TestEditor::kPadding + 1;
             Uint8 inactiveMatchPixel[4]{};
             Uint8 activeMatchPixel[4]{};
@@ -253,8 +257,20 @@ int main() {
                       && inactiveMatchPixel[0] == 36 && inactiveMatchPixel[1] == 48
                       && inactiveMatchPixel[2] == 58
                       && activeMatchPixel[0] == 54 && activeMatchPixel[1] == 92
-                      && activeMatchPixel[2] == 116,
+                      && activeMatchPixel[2] == 116
+                      && measuredFindQueryWidth
+                      && findViewportEditor.m_findQueryPixelWidthValid
+                      && findViewportEditor.m_findQueryPixelWidth == expectedFindQueryWidth,
                   "Find renders visible highlights with the correct active result after scrolling");
+            findViewportEditor.m_findQuery = "target ";
+            findViewportEditor.updateFindMatches();
+            const bool queryWidthInvalidated = !findViewportEditor.m_findQueryPixelWidthValid;
+            findViewportEditor.render(renderer, {0, 0, 240, 200});
+            const bool fontMetricWasCached = findViewportEditor.m_findQueryPixelWidthValid;
+            findViewportEditor.onUiScaleChanged();
+            check(queryWidthInvalidated && fontMetricWasCached
+                      && !findViewportEditor.m_findQueryPixelWidthValid,
+                  "Find query and font changes invalidate cached highlight width");
 
             const size_t beforeStatus = scaleEditor.m_textTextureCache.size();
             scaleEditor.setStatus("cache invalidation");
