@@ -449,6 +449,40 @@ std::string TerminalApp::joinPath(const std::string& base, const std::string& na
     return m_fs->join(base, name);
 }
 
+bool TerminalApp::getVisibleHistoryPrefixBytes(std::size_t rowIndex,
+                                                int pixelWidth,
+                                                std::size_t& visibleBytes) {
+    if (!m_font || pixelWidth <= 0 || rowIndex >= m_history.size()) return false;
+    if (m_historyViewportMeasures.size() != m_history.size()) {
+        m_historyViewportMeasures.assign(m_history.size(), HistoryViewportMeasure{});
+    }
+
+    auto& cached = m_historyViewportMeasures[rowIndex];
+    if (!cached.valid || cached.pixelWidth != pixelWidth) {
+        const std::string& line = m_history[rowIndex];
+        int measuredWidth = 0;
+        int characterCount = 0;
+        if (TTF_MeasureUTF8(m_font, line.c_str(), pixelWidth,
+                            &measuredWidth, &characterCount) != 0) {
+            cached.valid = false;
+            return false;
+        }
+
+        std::size_t measuredBytes = 0;
+        for (int character = 0;
+             character < characterCount && measuredBytes < line.size();
+             ++character) {
+            measuredBytes = utf8NextCodepointStart(line, measuredBytes);
+        }
+        cached.pixelWidth = pixelWidth;
+        cached.visibleBytes = measuredBytes;
+        cached.valid = true;
+    }
+
+    visibleBytes = cached.visibleBytes;
+    return true;
+}
+
 void TerminalApp::render(SDL_Renderer* renderer, const SDL_Rect& contentRect) {
     if (m_clientWidth != contentRect.w || m_clientHeight != contentRect.h) {
         onResize(contentRect.w, contentRect.h);
@@ -615,21 +649,13 @@ void TerminalApp::render(SDL_Renderer* renderer, const SDL_Rect& contentRect) {
             const std::string& line = m_history[i];
             std::string visibleLine;
             const char* displayText = line.c_str();
-            int measuredWidth = 0;
-            int characterCount = 0;
-            if (historyRect.w <= 0
-                || TTF_MeasureUTF8(m_font, line.c_str(), historyRect.w,
-                                   &measuredWidth, &characterCount) != 0) {
+            std::size_t visibleBytes = 0;
+            if (!getVisibleHistoryPrefixBytes(
+                    static_cast<std::size_t>(i), historyRect.w, visibleBytes)) {
                 y -= lineHeight;
                 continue;
             }
 
-            std::size_t visibleBytes = 0;
-            for (int character = 0;
-                 character < characterCount && visibleBytes < line.size();
-                 ++character) {
-                visibleBytes = utf8NextCodepointStart(line, visibleBytes);
-            }
             if (visibleBytes < line.size()) {
                 visibleLine.assign(line.data(), visibleBytes);
                 displayText = visibleLine.c_str();
@@ -665,6 +691,8 @@ void TerminalApp::onResize(int clientWidth, int clientHeight) {
 
 void TerminalApp::onUiScaleChanged() {
     m_textTextureCache.clear();
+    std::fill(m_historyViewportMeasures.begin(), m_historyViewportMeasures.end(),
+              HistoryViewportMeasure{});
     m_scrollOffset = std::clamp(m_scrollOffset, 0, getMaxScrollOffset());
 
     // Font metrics changed, so pixel-based horizontal offsets must be measured

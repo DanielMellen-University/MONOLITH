@@ -97,7 +97,11 @@ void TerminalApp::addOutput(const std::string& line, bool lineWasTruncated) {
         storedLine = line;
     }
 
+    if (m_historyViewportMeasures.size() != m_history.size()) {
+        m_historyViewportMeasures.assign(m_history.size(), HistoryViewportMeasure{});
+    }
     m_history.push_back(std::move(storedLine));
+    m_historyViewportMeasures.emplace_back();
     m_historyBytes += m_history.back().size();
 
     size_t excess = 0;
@@ -111,6 +115,10 @@ void TerminalApp::addOutput(const std::string& line, bool lineWasTruncated) {
         m_history.erase(
             m_history.begin(),
             m_history.begin() + static_cast<std::vector<std::string>::difference_type>(excess));
+        m_historyViewportMeasures.erase(
+            m_historyViewportMeasures.begin(),
+            m_historyViewportMeasures.begin()
+                + static_cast<std::vector<HistoryViewportMeasure>::difference_type>(excess));
     }
     m_scrollOffset = 0;   // auto-scroll to bottom on new output
 }
@@ -170,6 +178,7 @@ void TerminalApp::executeCommand(const std::string& commandLine) {
     }
     else if (cmd == "clear") {
         m_history.clear();
+        m_historyViewportMeasures.clear();
         m_historyBytes = 0;
         m_scrollOffset = 0;
     }

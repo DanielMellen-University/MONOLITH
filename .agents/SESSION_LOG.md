@@ -1,5 +1,7 @@
 # Session log
 
+| 2026-09-26 | perf | Cached Terminal scrollback UTF-8 viewport byte boundaries per row and width, aligned them with append/trim/clear, and invalidated them on shared-font changes; added render coverage for reuse and long Unicode rows. |
+
 | 2026-09-26 | perf | Added a viewport-bounded Text Editor cache for long-line UTF-8 slice bounds and hidden pixel offsets; invalidated for row, width, horizontal-scroll, edit, and font changes with renderer-state coverage. |
 | 2026-09-26 | perf | Cached Text Editor Find prefix positions for visible rows and reused the query width across steady-state frames and active-match navigation; invalidated after search, viewport-row, and font changes with rendered-highlight regression coverage. |
 | 2026-09-26 | perf | Cached lexical spans for the Text Editor viewport to avoid retokenizing unchanged visible rows every frame; invalidated on edits and syntax-mode changes, with viewport reuse and downstream color regression coverage. |

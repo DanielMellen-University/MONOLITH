@@ -5,6 +5,7 @@
 #include "../fs/Filesystem.hpp"
 #include <SDL2/SDL.h>
 #include <SDL2/SDL_ttf.h>
+#include <cstddef>
 #include <string>
 #include <vector>
 
@@ -53,6 +54,9 @@ private:
     int getLineHeight() const;
     int getMaxVisibleLines(const SDL_Rect& contentRect) const;
     int getMaxScrollOffset() const;
+    bool getVisibleHistoryPrefixBytes(std::size_t rowIndex,
+                                      int pixelWidth,
+                                      std::size_t& visibleBytes);
     SDL_Rect getInputBarRect(const SDL_Rect& contentRect) const;
     SDL_Rect getHistoryRect(const SDL_Rect& contentRect) const;
     int getInputLineY(const SDL_Rect& contentRect, const SDL_Rect& inputBar) const;
@@ -75,7 +79,14 @@ private:
     mutable monolith::detail::TextTextureCache m_textTextureCache;
     std::string m_cwd = "/home/monolith";
 
+    struct HistoryViewportMeasure {
+        int pixelWidth = -1;
+        std::size_t visibleBytes = 0;
+        bool valid = false;
+    };
+
     std::vector<std::string> m_history;          // Output history (what is displayed)
+    std::vector<HistoryViewportMeasure> m_historyViewportMeasures;
     std::vector<std::string> m_commandHistory;   // Commands the user has entered (for 'history' cmd)
 
     static constexpr size_t kMaxScrollbackLines = 2000;

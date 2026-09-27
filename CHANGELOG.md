@@ -1,5 +1,10 @@
 # Changelog
 
+## 2026-09: Cache Terminal viewport measurements
+
+- Cache each scrollback row's visible UTF-8 prefix length for its current viewport width instead of measuring it every frame.
+- Recalculate a row after viewport-width or shared-font changes; keep the cache aligned with bounded scrollback as rows are appended, trimmed, or cleared.
+
 ## 2026-09: Cache Text Editor viewport measurements
 
 - Reuse UTF-8 byte bounds and pixel offsets for visible long-line slices across unchanged frames.

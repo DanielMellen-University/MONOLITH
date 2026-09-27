@@ -6,6 +6,7 @@
 #include <algorithm>
 #include <filesystem>
 #include <iostream>
+#include <iterator>
 #include <string>
 #include <unistd.h>
 
@@ -128,7 +129,8 @@ int main() {
     }
     check(terminal.m_history.size() == 2000
               && terminal.m_history.front() == "line 2"
-              && terminal.m_history.back() == "line 2001",
+              && terminal.m_history.back() == "line 2001"
+              && terminal.m_historyViewportMeasures.size() == terminal.m_history.size(),
           "scrollback trims its excess in one pass while keeping the newest lines");
 
     const size_t truncationPrefixBytes = std::string("[truncated] ").size();
@@ -156,7 +158,8 @@ int main() {
         monolith::app::TerminalApp::kMaxScrollbackLineBytes, 'y');
     for (int i = 0; i < 130; ++i) terminal.addOutput(fullScrollbackRow);
     check(terminal.m_historyBytes <= monolith::app::TerminalApp::kMaxScrollbackBytes
-              && terminal.m_history.size() <= monolith::app::TerminalApp::kMaxScrollbackLines,
+              && terminal.m_history.size() <= monolith::app::TerminalApp::kMaxScrollbackLines
+              && terminal.m_historyViewportMeasures.size() == terminal.m_history.size(),
           "terminal scrollback stays within its total byte and row budgets");
 
     terminal.m_commandHistory.assign(500, "old command");
@@ -520,6 +523,19 @@ int main() {
         const SDL_Rect expectedClip{5, 6, 140, 120};
         SDL_RenderSetClipRect(renderer, &expectedClip);
         terminal.render(renderer, {0, 0, 200, 200});
+        const auto firstMeasuredRow = std::find_if(
+            terminal.m_historyViewportMeasures.begin(),
+            terminal.m_historyViewportMeasures.end(),
+            [](const auto& measure) { return measure.valid; });
+        const std::size_t measuredRowIndex = firstMeasuredRow
+            == terminal.m_historyViewportMeasures.end()
+            ? terminal.m_historyViewportMeasures.size()
+            : static_cast<std::size_t>(std::distance(
+                  terminal.m_historyViewportMeasures.begin(), firstMeasuredRow));
+        const monolith::app::TerminalApp::HistoryViewportMeasure firstHistoryMeasure =
+            firstMeasuredRow == terminal.m_historyViewportMeasures.end()
+            ? monolith::app::TerminalApp::HistoryViewportMeasure{}
+            : *firstMeasuredRow;
         SDL_Rect restoredClip{};
         SDL_RenderGetClipRect(renderer, &restoredClip);
         check(restoredClip.x == expectedClip.x
@@ -536,6 +552,13 @@ int main() {
             renderer, font, inputBeforeCursor.c_str(), terminalTextColor);
         const size_t cachedTextureCount = terminal.m_textTextureCache.size();
         terminal.render(renderer, {0, 0, 200, 200});
+        const bool reusedHistoryMeasure = measuredRowIndex
+                < terminal.m_historyViewportMeasures.size()
+            && terminal.m_historyViewportMeasures[measuredRowIndex].valid
+            && terminal.m_historyViewportMeasures[measuredRowIndex].pixelWidth
+                == firstHistoryMeasure.pixelWidth
+            && terminal.m_historyViewportMeasures[measuredRowIndex].visibleBytes
+                == firstHistoryMeasure.visibleBytes;
         const auto repeatedOutputTexture = terminal.m_textTextureCache.get(
             renderer, font, "output", terminalTextColor);
         const auto repeatedInputTexture = terminal.m_textTextureCache.get(
@@ -543,8 +566,11 @@ int main() {
         check(firstOutputTexture && firstInputTexture
                   && repeatedOutputTexture.handle == firstOutputTexture.handle
                   && repeatedInputTexture.handle == firstInputTexture.handle
-                  && terminal.m_textTextureCache.size() == cachedTextureCount,
-              "Terminal reuses input and scrollback textures between frames");
+                  && terminal.m_textTextureCache.size() == cachedTextureCount
+                  && firstHistoryMeasure.valid
+                  && firstHistoryMeasure.pixelWidth == 184
+                  && reusedHistoryMeasure,
+              "Terminal reuses input, scrollback textures, and visible-row measurements between frames");
         terminal.m_searchMode = true;
         terminal.m_searchBuffer = "second";
         terminal.m_searchCursorPos = 3;
@@ -583,8 +609,9 @@ int main() {
         const size_t beforeClear = terminal.m_textTextureCache.size();
         terminal.executeCommand("clear");
         check(terminal.m_textTextureCache.size() == beforeClear
-                  && terminal.m_historyBytes == 0,
-              "Terminal keeps bounded text textures when output is cleared");
+                  && terminal.m_historyBytes == 0
+                  && terminal.m_historyViewportMeasures.empty(),
+              "Terminal clears scrollback measurements while retaining bounded text textures");
         terminal.addOutput("output");
         terminal.render(renderer, {0, 0, 200, 200});
         const auto outputAfterClear = terminal.m_textTextureCache.get(
@@ -592,8 +619,12 @@ int main() {
         check(outputAfterClear.handle == firstOutputTexture.handle,
               "Terminal reuses scrollback text after output resumes");
         terminal.onUiScaleChanged();
-        check(terminal.m_textTextureCache.size() == 0,
-              "Terminal clears renderer textures when UI scale changes");
+        check(terminal.m_textTextureCache.size() == 0
+                  && std::none_of(
+                      terminal.m_historyViewportMeasures.begin(),
+                      terminal.m_historyViewportMeasures.end(),
+                      [](const auto& measure) { return measure.valid; }),
+              "Terminal clears renderer textures and viewport measurements when UI scale changes");
 
         std::string longUnicodeLine;
         for (int i = 0; i < 5000; ++i) {
@@ -604,6 +635,17 @@ int main() {
         terminal.m_scrollOffset = 0;
         terminal.render(renderer, {0, 0, 200, 200});
         const SDL_Rect historyRect = terminal.getHistoryRect({0, 0, 200, 200});
+        const auto unicodeMeasure = std::find_if(
+            terminal.m_historyViewportMeasures.begin(),
+            terminal.m_historyViewportMeasures.end(),
+            [](const auto& measure) { return measure.valid; });
+        const bool unicodeMeasureIsViewportBound =
+            unicodeMeasure != terminal.m_historyViewportMeasures.end()
+            && unicodeMeasure->pixelWidth == historyRect.w
+            && unicodeMeasure->visibleBytes < longUnicodeLine.size()
+            && monolith::app::utf8ClampToCodepointBoundary(
+                   longUnicodeLine, unicodeMeasure->visibleBytes)
+                == unicodeMeasure->visibleBytes;
         size_t largestCachedTextBytes = 0;
         bool cachedPrefixesAreCompleteUtf8 = true;
         bool cachedTexturesFitViewport = true;
@@ -631,7 +673,8 @@ int main() {
                 cachedTexturesFitViewport = false;
             }
         }
-        check(foundLongLinePrefix
+        check(unicodeMeasureIsViewportBound
+                  && foundLongLinePrefix
                   && cachedTexturesFitViewport
                   && largestCachedTextBytes < longUnicodeLine.size() / 10
                   && cachedPrefixesAreCompleteUtf8,
@@ -655,8 +698,14 @@ int main() {
               "Terminal reuses repeated rows after scrolling");
         terminal.onResize(210, 200);
         terminal.render(renderer, {0, 0, 210, 200});
-        check(terminal.m_textTextureCache.size() == beforeScrollCount,
-              "Terminal reuses text textures after resizing the client");
+        check(terminal.m_textTextureCache.size() == beforeScrollCount
+                  && std::any_of(
+                      terminal.m_historyViewportMeasures.begin(),
+                      terminal.m_historyViewportMeasures.end(),
+                      [](const auto& measure) {
+                          return measure.valid && measure.pixelWidth == 194;
+                      }),
+              "Terminal reuses text textures and refreshes visible-row measurements after resizing");
 
         terminal.m_scrollOffset = 39;
         terminal.render(renderer, {0, 0, 320, 40});
