@@ -201,7 +201,7 @@ int main() {
     const std::vector<uint8_t> savedHistoryBaseline = savedHistory.m_pixels;
     savedHistory.m_tool = monolith::app::DrawingApp::Tool::Pen;
     savedHistory.beginStroke();
-    const bool savedHistoryChanged = savedHistory.drawStroke(24, 24, 30, 24);
+    const bool savedHistoryChanged = savedHistory.drawStroke(4, 4, 10, 4);
     savedHistory.recordStrokeChange();
     savedHistory.finishStroke();
     const std::vector<uint8_t> savedHistoryPixels = savedHistory.m_pixels;
@@ -209,15 +209,19 @@ int main() {
         && savedHistory.saveToPath("/drawings/saved-history.modr")
         && !savedHistory.m_dirty
         && savedHistory.m_dirtyTileCount == 0;
+    check(savedHistoryStored,
+          "saving a Drawing stroke establishes a clean mid-history baseline");
     savedHistory.undoCanvas();
-    const bool savedHistoryUndoDirty = savedHistory.m_dirty
-        && savedHistory.m_dirtyTileCount == 1
-        && savedHistory.m_pixels == savedHistoryBaseline;
+    check(savedHistory.m_dirty,
+          "sparse undo sets modified state against the saved baseline");
+    check(savedHistory.m_dirtyTileCount == 1,
+          "sparse undo marks exactly its changed tile dirty");
+    check(savedHistory.m_pixels == savedHistoryBaseline,
+          "sparse undo restores the pixels from before the saved stroke");
     savedHistory.redoCanvas();
-    check(savedHistoryStored && savedHistoryUndoDirty
-              && !savedHistory.m_dirty && savedHistory.m_dirtyTileCount == 0
+    check(!savedHistory.m_dirty && savedHistory.m_dirtyTileCount == 0
               && savedHistory.m_pixels == savedHistoryPixels,
-          "sparse undo and redo update tile dirtiness against a save made mid-history");
+          "sparse redo clears tile dirtiness against the saved baseline");
 
     TestDrawing multiTileStroke(font, &fs);
     multiTileStroke.onResize(320, 256);
