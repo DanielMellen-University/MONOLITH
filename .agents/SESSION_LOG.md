@@ -1,6 +1,6 @@
 # Session log
 
-| 2026-09-27 | perf | Replaced full-canvas stroke-start copies with lazy reversible 32×32 tile preimages; added sparse multi-tile and larger-than-budget undo/redo coverage. |
+| 2026-09-27 | perf | Replaced full-canvas stroke-start copies with lazy reversible 32×32 tile preimages; added sparse multi-tile, larger-than-budget undo/redo, and transient-budget fallback coverage; hosted headless workflow #56 passed. |
 
 | 2026-09-27 | perf | Batched Drawing raster work around one validated canvas buffer per primitive, shared the Bresenham brush-stroke path, and clipped rectangle loops; added output-equivalence and invalid-buffer coverage. |
 
