@@ -4,10 +4,13 @@
 #include "../src/app/DrawingRaster.hpp"
 
 #include <cstdint>
+#include <cstdlib>
 #include <iostream>
+#include <limits>
 #include <vector>
 
 using monolith::drawing::decodeModr;
+using monolith::drawing::drawBrushStroke;
 using monolith::drawing::drawLine;
 using monolith::drawing::drawRect;
 using monolith::drawing::encodeModr;
@@ -15,6 +18,7 @@ using monolith::drawing::fillRegion;
 using monolith::drawing::getPixel;
 using monolith::drawing::parseRgb;
 using monolith::drawing::setPixel;
+using monolith::drawing::stampBrush;
 
 namespace {
 void pixelRgb(const std::vector<uint8_t>& rgba, int width, int x, int y,
@@ -30,6 +34,47 @@ bool pixelIs(const std::vector<uint8_t>& rgba, int width, int x, int y,
     uint8_t pr = 0, pg = 0, pb = 0;
     pixelRgb(rgba, width, x, y, pr, pg, pb);
     return pr == r && pg == g && pb == b;
+}
+
+bool referenceBrushStroke(std::vector<uint8_t>& rgba, int width, int height,
+                          int x0, int y0, int x1, int y1, int radius,
+                          uint8_t r, uint8_t g, uint8_t b) {
+    const int radiusSquared = radius * radius;
+    auto stamp = [&](int centerX, int centerY) {
+        bool changed = false;
+        for (int dy = -radius; dy <= radius; ++dy) {
+            for (int dx = -radius; dx <= radius; ++dx) {
+                if (dx * dx + dy * dy <= radiusSquared) {
+                    changed = setPixel(rgba, width, height, centerX + dx,
+                                       centerY + dy, r, g, b) || changed;
+                }
+            }
+        }
+        return changed;
+    };
+
+    const int dx = std::abs(x1 - x0);
+    const int dy = std::abs(y1 - y0);
+    const int sx = x0 < x1 ? 1 : -1;
+    const int sy = y0 < y1 ? 1 : -1;
+    int error = dx - dy;
+    int x = x0;
+    int y = y0;
+    bool changed = false;
+    while (true) {
+        changed = stamp(x, y) || changed;
+        if (x == x1 && y == y1) break;
+        const int twiceError = 2 * error;
+        if (twiceError > -dy) {
+            error -= dy;
+            x += sx;
+        }
+        if (twiceError < dx) {
+            error += dx;
+            y += sy;
+        }
+    }
+    return changed;
 }
 } // namespace
 
@@ -79,6 +124,52 @@ int main() {
               && pixelIs(canvas, kW, 2, 4, rr, rg, rb) && pixelIs(canvas, kW, 8, 4, rr, rg, rb),
           "rect paints boundary");
     check(pixelIs(canvas, kW, 4, 4, 0, 0, 0), "rect does not fill interior");
+    std::vector<uint8_t> clippedRect(static_cast<size_t>(kW) * kH * 4, 0);
+    check(drawRect(clippedRect, kW, kH, -2, -1, 2, 2, rr, rg, rb)
+              && pixelIs(clippedRect, kW, 0, 2, rr, rg, rb)
+              && pixelIs(clippedRect, kW, 2, 0, rr, rg, rb)
+              && pixelIs(clippedRect, kW, 0, 0, 0, 0, 0)
+              && pixelIs(clippedRect, kW, 1, 1, 0, 0, 0),
+          "partially clipped rectangles retain only visible original edges");
+    const auto clippedRectBeforeExtreme = clippedRect;
+    check(!drawRect(clippedRect, kW, kH,
+                    std::numeric_limits<int>::min(), std::numeric_limits<int>::min(),
+                    std::numeric_limits<int>::max(), std::numeric_limits<int>::max(),
+                    1, 2, 3)
+              && clippedRect == clippedRectBeforeExtreme,
+          "extreme off-canvas rectangles return without scanning the coordinate range");
+
+    std::vector<uint8_t> brushCanvas(static_cast<size_t>(kW) * kH * 4, 0);
+    std::vector<uint8_t> referenceCanvas = brushCanvas;
+    const bool referenceChanged = referenceBrushStroke(
+        referenceCanvas, kW, kH, 0, 1, 7, 5, 2, 80, 90, 100);
+    check(drawBrushStroke(brushCanvas, kW, kH, 0, 1, 7, 5, 2, 80, 90, 100)
+              == referenceChanged
+              && brushCanvas == referenceCanvas,
+          "batched brush stroke matches the previous clipped stamp path byte-for-byte");
+    check(!drawBrushStroke(brushCanvas, kW, kH, 0, 1, 7, 5, 2, 80, 90, 100),
+          "repeating an unchanged brush stroke reports no pixel changes");
+    std::vector<uint8_t> singleBrush(static_cast<size_t>(kW) * kH * 4, 0);
+    check(stampBrush(singleBrush, kW, kH, 0, 0, 2, 40, 50, 60)
+              && pixelIs(singleBrush, kW, 0, 0, 40, 50, 60)
+              && pixelIs(singleBrush, kW, 2, 0, 40, 50, 60)
+              && pixelIs(singleBrush, kW, 2, 2, 0, 0, 0),
+          "brush stamps preserve circular coverage while clipping at canvas edges");
+
+    std::vector<uint8_t> shortBuffer(8, 17);
+    const std::vector<uint8_t> shortBufferBefore = shortBuffer;
+    uint8_t shortR = 0, shortG = 0, shortB = 0;
+    check(!setPixel(shortBuffer, kW, kH, 0, 0, 1, 2, 3)
+              && !getPixel(shortBuffer, kW, kH, 0, 0, shortR, shortG, shortB)
+              && !drawLine(shortBuffer, kW, kH, 0, 0, 5, 5, 1, 2, 3)
+              && !drawRect(shortBuffer, kW, kH, 0, 0, 5, 5, 1, 2, 3)
+              && !stampBrush(shortBuffer, kW, kH, 0, 0, 2, 1, 2, 3)
+              && !drawBrushStroke(shortBuffer, kW, kH, 0, 0, 5, 5, 2, 1, 2, 3)
+              && !fillRegion(shortBuffer, kW, kH, 0, 0, 1, 2, 3)
+              && shortBuffer == shortBufferBefore,
+          "raster operations reject undersized buffers without partial writes");
+    check(!stampBrush(brushCanvas, kW, kH, 0, 0, -1, 1, 2, 3),
+          "brush stamp rejects a negative radius");
 
     uint8_t pickedR = 0, pickedG = 0, pickedB = 0;
     check(getPixel(canvas, kW, kH, 2, 2, pickedR, pickedG, pickedB)

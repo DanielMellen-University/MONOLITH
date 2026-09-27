@@ -23,6 +23,16 @@ bool drawLine(std::vector<uint8_t>& rgba, int width, int height,
 bool drawRect(std::vector<uint8_t>& rgba, int width, int height,
               int x0, int y0, int x1, int y1, uint8_t r, uint8_t g, uint8_t b);
 
+/** Stamp a clipped, filled circular brush footprint. */
+bool stampBrush(std::vector<uint8_t>& rgba, int width, int height,
+                int centerX, int centerY, int radius,
+                uint8_t r, uint8_t g, uint8_t b);
+
+/** Draw a Bresenham path using filled circular brush stamps. */
+bool drawBrushStroke(std::vector<uint8_t>& rgba, int width, int height,
+                     int x0, int y0, int x1, int y1, int radius,
+                     uint8_t r, uint8_t g, uint8_t b);
+
 /** Fill a 4-connected RGB region using a scanline worklist; return pixels changed. */
 std::size_t fillRegion(std::vector<uint8_t>& rgba, int width, int height,
                        int x, int y, uint8_t r, uint8_t g, uint8_t b);

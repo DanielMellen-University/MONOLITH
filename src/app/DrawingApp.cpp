@@ -347,21 +347,9 @@ bool DrawingApp::commitShape(int x0, int y0, int x1, int y1) {
 }
 
 bool DrawingApp::stampBrush(int x, int y) {
-    const int radius = brushRadius();
-    const uint8_t r = activeRed();
-    const uint8_t g = activeGreen();
-    const uint8_t b = activeBlue();
-    const int r2 = radius * radius;
-
-    bool changed = false;
-    for (int dy = -radius; dy <= radius; ++dy) {
-        for (int dx = -radius; dx <= radius; ++dx) {
-            if (dx * dx + dy * dy <= r2) {
-                changed = setPixel(x + dx, y + dy, r, g, b) || changed;
-            }
-        }
-    }
-    return changed;
+    return monolith::drawing::stampBrush(
+        m_pixels, m_canvasWidth, m_canvasHeight, x, y, brushRadius(),
+        activeRed(), activeGreen(), activeBlue());
 }
 
 void DrawingApp::floodFill(int x, int y) {
@@ -410,33 +398,9 @@ void DrawingApp::pickColorAt(int x, int y) {
 }
 
 bool DrawingApp::drawStroke(int x0, int y0, int x1, int y1) {
-    const int dx = std::abs(x1 - x0);
-    const int dy = std::abs(y1 - y0);
-    const int sx = (x0 < x1) ? 1 : -1;
-    const int sy = (y0 < y1) ? 1 : -1;
-    int err = dx - dy;
-
-    int x = x0;
-    int y = y0;
-    bool changed = false;
-
-    while (true) {
-        changed = stampBrush(x, y) || changed;
-
-        if (x == x1 && y == y1) break;
-
-        const int e2 = 2 * err;
-        if (e2 > -dy) {
-            err -= dy;
-            x += sx;
-        }
-        if (e2 < dx) {
-            err += dx;
-            y += sy;
-        }
-    }
-
-    return changed;
+    return monolith::drawing::drawBrushStroke(
+        m_pixels, m_canvasWidth, m_canvasHeight, x0, y0, x1, y1, brushRadius(),
+        activeRed(), activeGreen(), activeBlue());
 }
 
 bool DrawingApp::isInCanvas(int x, int y) const {

@@ -1,5 +1,11 @@
 # Changelog
 
+## 2026-09: Batch Drawing raster writes
+
+- Validate the canvas buffer once per primitive and reuse one Bresenham traversal for line and brush-stroke rasterization.
+- Clip rectangle edge loops to the visible canvas so off-screen coordinates do not trigger scans over invisible pixels.
+- Verify brush-stroke output against the previous per-stamp path and cover invalid buffers and extreme rectangles.
+
 ## 2026-09: Reduce Drawing fill worklist overhead
 
 - Fill horizontal spans instead of queueing every pixel, preserving four-connected behavior with fewer work items across broad regions.

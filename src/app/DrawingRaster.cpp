@@ -3,6 +3,7 @@
 #include <algorithm>
 #include <cctype>
 #include <cstring>
+#include <cstdlib>
 #include <limits>
 #include <sstream>
 
@@ -10,6 +11,92 @@ namespace monolith::drawing {
 
 namespace {
 constexpr char kModrMagic[4] = {'M', 'O', 'D', 'R'};
+
+bool hasValidCanvasBuffer(const std::vector<uint8_t>& rgba, int width, int height) {
+    if (width <= 0 || height <= 0) return false;
+    const std::size_t canvasWidth = static_cast<std::size_t>(width);
+    const std::size_t canvasHeight = static_cast<std::size_t>(height);
+    if (canvasWidth > std::numeric_limits<std::size_t>::max() / canvasHeight) return false;
+    const std::size_t pixelCount = canvasWidth * canvasHeight;
+    if (pixelCount > std::numeric_limits<std::size_t>::max() / 4) return false;
+    return rgba.size() >= pixelCount * 4;
+}
+
+bool writePixelAt(std::vector<uint8_t>& rgba, int width,
+                  int x, int y, uint8_t r, uint8_t g, uint8_t b) {
+    const std::size_t index =
+        (static_cast<std::size_t>(y) * static_cast<std::size_t>(width)
+         + static_cast<std::size_t>(x)) * 4;
+    if (rgba[index] == r && rgba[index + 1] == g && rgba[index + 2] == b
+        && rgba[index + 3] == 255) {
+        return false;
+    }
+    rgba[index] = r;
+    rgba[index + 1] = g;
+    rgba[index + 2] = b;
+    rgba[index + 3] = 255;
+    return true;
+}
+
+bool writePixelInBounds(std::vector<uint8_t>& rgba, int width, int height,
+                        int x, int y, uint8_t r, uint8_t g, uint8_t b) {
+    if (x < 0 || y < 0 || x >= width || y >= height) return false;
+    return writePixelAt(rgba, width, x, y, r, g, b);
+}
+
+bool stampBrushInValidBuffer(std::vector<uint8_t>& rgba, int width, int height,
+                             int centerX, int centerY, int radius,
+                             uint8_t r, uint8_t g, uint8_t b) {
+    if (radius < 0) return false;
+    const long long brushRadius = radius;
+    const long long left = std::max(0LL, static_cast<long long>(centerX) - brushRadius);
+    const long long right = std::min(static_cast<long long>(width) - 1,
+                                     static_cast<long long>(centerX) + brushRadius);
+    const long long top = std::max(0LL, static_cast<long long>(centerY) - brushRadius);
+    const long long bottom = std::min(static_cast<long long>(height) - 1,
+                                      static_cast<long long>(centerY) + brushRadius);
+    if (left > right || top > bottom) return false;
+
+    const long long radiusSquared = brushRadius * brushRadius;
+    bool changed = false;
+    for (long long y = top; y <= bottom; ++y) {
+        const long long dy = y - centerY;
+        for (long long x = left; x <= right; ++x) {
+            const long long dx = x - centerX;
+            if (dx * dx + dy * dy > radiusSquared) continue;
+            changed = writePixelAt(rgba, width, static_cast<int>(x),
+                                   static_cast<int>(y), r, g, b) || changed;
+        }
+    }
+    return changed;
+}
+
+template <typename PaintPoint>
+bool traceBresenhamLine(int x0, int y0, int x1, int y1, PaintPoint&& paintPoint) {
+    const long long dx = std::abs(static_cast<long long>(x1) - x0);
+    const long long dy = std::abs(static_cast<long long>(y1) - y0);
+    const int sx = x0 < x1 ? 1 : -1;
+    const int sy = y0 < y1 ? 1 : -1;
+    long long error = dx - dy;
+    int x = x0;
+    int y = y0;
+    bool changed = false;
+
+    while (true) {
+        changed = paintPoint(x, y) || changed;
+        if (x == x1 && y == y1) break;
+        const long long twiceError = 2 * error;
+        if (twiceError > -dy) {
+            error -= dy;
+            x += sx;
+        }
+        if (twiceError < dx) {
+            error += dx;
+            y += sy;
+        }
+    }
+    return changed;
+}
 
 void writeU32LE(std::string& out, uint32_t value) {
     out.push_back(static_cast<char>(value & 0xFF));
@@ -30,28 +117,14 @@ uint32_t readU32LE(const std::string& data, size_t offset) {
 
 bool setPixel(std::vector<uint8_t>& rgba, int width, int height,
               int x, int y, uint8_t r, uint8_t g, uint8_t b) {
-    if (width <= 0 || height <= 0) return false;
-    if (x < 0 || y < 0 || x >= width || y >= height) return false;
-    const size_t expected = static_cast<size_t>(width) * static_cast<size_t>(height) * 4;
-    if (rgba.size() < expected) return false;
-    const size_t idx = (static_cast<size_t>(y) * static_cast<size_t>(width) + static_cast<size_t>(x)) * 4;
-    if (rgba[idx + 0] == r && rgba[idx + 1] == g && rgba[idx + 2] == b
-        && rgba[idx + 3] == 255) {
-        return false;
-    }
-    rgba[idx + 0] = r;
-    rgba[idx + 1] = g;
-    rgba[idx + 2] = b;
-    rgba[idx + 3] = 255;
-    return true;
+    if (!hasValidCanvasBuffer(rgba, width, height)) return false;
+    return writePixelInBounds(rgba, width, height, x, y, r, g, b);
 }
 
 bool getPixel(const std::vector<uint8_t>& rgba, int width, int height,
               int x, int y, uint8_t& r, uint8_t& g, uint8_t& b) {
-    if (width <= 0 || height <= 0) return false;
+    if (!hasValidCanvasBuffer(rgba, width, height)) return false;
     if (x < 0 || y < 0 || x >= width || y >= height) return false;
-    const size_t expected = static_cast<size_t>(width) * static_cast<size_t>(height) * 4;
-    if (rgba.size() < expected) return false;
     const size_t idx = (static_cast<size_t>(y) * static_cast<size_t>(width)
                         + static_cast<size_t>(x)) * 4;
     r = rgba[idx + 0];
@@ -62,57 +135,77 @@ bool getPixel(const std::vector<uint8_t>& rgba, int width, int height,
 
 bool drawLine(std::vector<uint8_t>& rgba, int width, int height,
               int x0, int y0, int x1, int y1, uint8_t r, uint8_t g, uint8_t b) {
-    bool changed = false;
-    const int dx = std::abs(x1 - x0);
-    const int dy = std::abs(y1 - y0);
-    const int sx = (x0 < x1) ? 1 : -1;
-    const int sy = (y0 < y1) ? 1 : -1;
-    int err = dx - dy;
-    int x = x0;
-    int y = y0;
-    while (true) {
-        changed = setPixel(rgba, width, height, x, y, r, g, b) || changed;
-        if (x == x1 && y == y1) break;
-        const int e2 = 2 * err;
-        if (e2 > -dy) {
-            err -= dy;
-            x += sx;
-        }
-        if (e2 < dx) {
-            err += dx;
-            y += sy;
-        }
-    }
-    return changed;
+    if (!hasValidCanvasBuffer(rgba, width, height)) return false;
+    return traceBresenhamLine(x0, y0, x1, y1, [&](int x, int y) {
+        return writePixelInBounds(rgba, width, height, x, y, r, g, b);
+    });
 }
 
 bool drawRect(std::vector<uint8_t>& rgba, int width, int height,
               int x0, int y0, int x1, int y1, uint8_t r, uint8_t g, uint8_t b) {
+    if (!hasValidCanvasBuffer(rgba, width, height)) return false;
     bool changed = false;
     if (x0 > x1) std::swap(x0, x1);
     if (y0 > y1) std::swap(y0, y1);
-    for (int x = x0; x <= x1; ++x) {
-        changed = setPixel(rgba, width, height, x, y0, r, g, b) || changed;
-        changed = setPixel(rgba, width, height, x, y1, r, g, b) || changed;
+    const long long left = std::max(0LL, static_cast<long long>(x0));
+    const long long right = std::min(static_cast<long long>(width) - 1,
+                                     static_cast<long long>(x1));
+    if (left <= right) {
+        if (y0 >= 0 && y0 < height) {
+            for (long long x = left; x <= right; ++x) {
+                changed = writePixelAt(rgba, width, static_cast<int>(x),
+                                       y0, r, g, b) || changed;
+            }
+        }
+        if (y1 >= 0 && y1 < height) {
+            for (long long x = left; x <= right; ++x) {
+                changed = writePixelAt(rgba, width, static_cast<int>(x),
+                                       y1, r, g, b) || changed;
+            }
+        }
     }
-    for (int y = y0; y <= y1; ++y) {
-        changed = setPixel(rgba, width, height, x0, y, r, g, b) || changed;
-        changed = setPixel(rgba, width, height, x1, y, r, g, b) || changed;
+    const long long top = std::max(0LL, static_cast<long long>(y0));
+    const long long bottom = std::min(static_cast<long long>(height) - 1,
+                                      static_cast<long long>(y1));
+    if (top <= bottom) {
+        if (x0 >= 0 && x0 < width) {
+            for (long long y = top; y <= bottom; ++y) {
+                changed = writePixelAt(rgba, width, x0, static_cast<int>(y),
+                                       r, g, b) || changed;
+            }
+        }
+        if (x1 >= 0 && x1 < width) {
+            for (long long y = top; y <= bottom; ++y) {
+                changed = writePixelAt(rgba, width, x1, static_cast<int>(y),
+                                       r, g, b) || changed;
+            }
+        }
     }
     return changed;
 }
 
+bool stampBrush(std::vector<uint8_t>& rgba, int width, int height,
+                int centerX, int centerY, int radius,
+                uint8_t r, uint8_t g, uint8_t b) {
+    if (!hasValidCanvasBuffer(rgba, width, height)) return false;
+    return stampBrushInValidBuffer(
+        rgba, width, height, centerX, centerY, radius, r, g, b);
+}
+
+bool drawBrushStroke(std::vector<uint8_t>& rgba, int width, int height,
+                     int x0, int y0, int x1, int y1, int radius,
+                     uint8_t r, uint8_t g, uint8_t b) {
+    if (!hasValidCanvasBuffer(rgba, width, height) || radius < 0) return false;
+    return traceBresenhamLine(x0, y0, x1, y1, [&](int x, int y) {
+        return stampBrushInValidBuffer(rgba, width, height, x, y, radius, r, g, b);
+    });
+}
+
 std::size_t fillRegion(std::vector<uint8_t>& rgba, int width, int height,
                        int x, int y, uint8_t r, uint8_t g, uint8_t b) {
-    if (width <= 0 || height <= 0 || x < 0 || y < 0 || x >= width || y >= height) {
-        return 0;
-    }
+    if (!hasValidCanvasBuffer(rgba, width, height)
+        || x < 0 || y < 0 || x >= width || y >= height) return 0;
     const std::size_t canvasWidth = static_cast<std::size_t>(width);
-    const std::size_t canvasHeight = static_cast<std::size_t>(height);
-    if (canvasWidth > std::numeric_limits<std::size_t>::max() / canvasHeight
-        || canvasWidth * canvasHeight > rgba.size() / 4) {
-        return 0;
-    }
 
     const std::size_t startIndex =
         (static_cast<std::size_t>(y) * canvasWidth + static_cast<std::size_t>(x)) * 4;

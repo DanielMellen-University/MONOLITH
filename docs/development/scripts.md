@@ -150,7 +150,7 @@ g++ -std=c++23 scripts/test_filesystem_app_state.cpp src/app/FilesystemApp.cpp s
 
 ## Drawing Raster / `.modr` Roadmap Checks
 
-Headless test of line/rect raster, scanline fill connectivity and large regions, custom RGB parse, eyedropper pixel reads, and `.modr` round-trip:
+Headless test of line/rect raster, batched brush-stroke equivalence, clipped and extreme rectangles, invalid buffers, scanline fill connectivity and large regions, custom RGB parse, eyedropper pixel reads, and `.modr` round-trip:
 
 ```bash
 g++ -std=c++23 scripts/test_drawing_roadmap.cpp src/app/DrawingRaster.cpp -o build/test_drawing_roadmap && ./build/test_drawing_roadmap
