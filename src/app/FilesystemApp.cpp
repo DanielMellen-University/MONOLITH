@@ -1445,8 +1445,21 @@ void FilesystemApp::drawPathBar(SDL_Renderer* r, const SDL_Rect& contentRect, in
             m_filterCursorPos = std::min(m_filterCursorPos, m_filterQuery.size());
             const std::string beforeCursor = m_filterQuery.substr(0, m_filterCursorPos);
             filterLabel = beforeCursor + "_" + m_filterQuery.substr(m_filterCursorPos);
-            int cursorHeight = 0;
-            TTF_SizeUTF8(m_font, (beforeCursor + "_").c_str(), &filterCursorPx, &cursorHeight);
+            if (!m_filterCursorMeasureValid
+                || m_filterCursorMeasurePrefix != beforeCursor) {
+                const std::string cursorLabel = beforeCursor + "_";
+                int cursorHeight = 0;
+                if (TTF_SizeUTF8(m_font, cursorLabel.c_str(),
+                                 &m_filterCursorMeasureWidth, &cursorHeight) == 0) {
+                    m_filterCursorMeasurePrefix = beforeCursor;
+                    m_filterCursorMeasureValid = true;
+                } else {
+                    m_filterCursorMeasureValid = false;
+                }
+            }
+            if (m_filterCursorMeasureValid) {
+                filterCursorPx = m_filterCursorMeasureWidth;
+            }
         } else {
             filterLabel = m_filterQuery.empty() ? "Filter..." : m_filterQuery;
             m_filterScrollPx = 0;
@@ -1735,6 +1748,7 @@ void FilesystemApp::onResize(int clientWidth, int clientHeight) {
 
 void FilesystemApp::onUiScaleChanged() {
     m_textTextureCache.clear();
+    m_filterCursorMeasureValid = false;
     // The filter prompt stores its horizontal position in pixels; remeasure it
     // against the new font on the next render.
     m_filterScrollPx = 0;

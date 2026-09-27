@@ -160,6 +160,9 @@ private:
     std::string m_filterQuery;
     std::size_t m_filterCursorPos = 0;
     int m_filterScrollPx = 0;
+    std::string m_filterCursorMeasurePrefix;
+    int m_filterCursorMeasureWidth = 0;
+    bool m_filterCursorMeasureValid = false;
 
     // For double-click detection we use SDL's built-in clicks count
 };

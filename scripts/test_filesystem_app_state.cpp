@@ -520,6 +520,41 @@ int main() {
                   && repeatedToolbarTexture.handle == firstToolbarTexture.handle
                   && browser.m_textTextureCache.size() == cachedTextureCount,
               "browser reuses renderer text textures between frames");
+
+        browser.beginFilter();
+        text(browser, "caching");
+        browser.m_filterCursorPos = 3;
+        int expectedFilterCursorWidth = 0;
+        int expectedFilterCursorHeight = 0;
+        const bool measuredFilterCursor = TTF_SizeUTF8(
+            font, "cac_", &expectedFilterCursorWidth, &expectedFilterCursorHeight) == 0;
+        browser.render(renderer, {0, 0, browser.m_clientWidth, browser.m_clientHeight});
+        const bool firstFilterMeasureMatches = browser.m_filterCursorMeasureValid
+            && browser.m_filterCursorMeasurePrefix == "cac"
+            && browser.m_filterCursorMeasureWidth == expectedFilterCursorWidth;
+        browser.m_filterQuery = "cactus";
+        browser.m_filterCursorPos = 3;
+        browser.applyFilterQuery();
+        browser.render(renderer, {0, 0, browser.m_clientWidth, browser.m_clientHeight});
+        check(measuredFilterCursor && expectedFilterCursorHeight > 0
+                  && firstFilterMeasureMatches
+                  && browser.m_filterCursorMeasureValid
+                  && browser.m_filterCursorMeasurePrefix == "cac"
+                  && browser.m_filterCursorMeasureWidth == expectedFilterCursorWidth,
+              "browser reuses filter caret width when only text after the caret changes");
+
+        browser.m_filterCursorPos = 4;
+        int movedFilterCursorWidth = 0;
+        int movedFilterCursorHeight = 0;
+        const bool measuredMovedFilterCursor = TTF_SizeUTF8(
+            font, "cact_", &movedFilterCursorWidth, &movedFilterCursorHeight) == 0;
+        browser.render(renderer, {0, 0, browser.m_clientWidth, browser.m_clientHeight});
+        check(measuredMovedFilterCursor && movedFilterCursorHeight > 0
+                  && browser.m_filterCursorMeasureValid
+                  && browser.m_filterCursorMeasurePrefix == "cact"
+                  && browser.m_filterCursorMeasureWidth == movedFilterCursorWidth,
+              "browser refreshes filter caret width after cursor movement");
+
         const size_t beforeStatus = browser.m_textTextureCache.size();
         browser.setStatus("cache invalidation");
         browser.render(renderer, {0, 0, browser.m_clientWidth, browser.m_clientHeight});
@@ -529,9 +564,22 @@ int main() {
         browser.refreshEntries();
         check(browser.m_textTextureCache.size() == beforeRefresh,
               "browser retains bounded text textures across listing refreshes");
+        const bool largerFilterFont = TTF_SetFontSize(font, 22) == 0;
         browser.onUiScaleChanged();
-        check(browser.m_textTextureCache.size() == 0,
-              "browser clears renderer textures when UI scale changes");
+        check(largerFilterFont
+                  && browser.m_textTextureCache.size() == 0
+                  && !browser.m_filterCursorMeasureValid,
+              "browser clears renderer textures and filter caret metrics when UI scale changes");
+        int scaledFilterCursorWidth = 0;
+        int scaledFilterCursorHeight = 0;
+        const bool measuredScaledFilterCursor = TTF_SizeUTF8(
+            font, "cact_", &scaledFilterCursorWidth, &scaledFilterCursorHeight) == 0;
+        browser.render(renderer, {0, 0, browser.m_clientWidth, browser.m_clientHeight});
+        check(measuredScaledFilterCursor && scaledFilterCursorHeight > 0
+                  && browser.m_filterCursorMeasureValid
+                  && browser.m_filterCursorMeasureWidth == scaledFilterCursorWidth,
+              "browser remeasures filter caret width with the scaled font");
+        browser.clearFilter();
         browser.m_textTextureCache.clear();
         SDL_DestroyRenderer(renderer);
     }

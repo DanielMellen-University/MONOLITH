@@ -87,6 +87,7 @@ If the renamed entry is open in Text Editor or Drawing, the shell updates that w
 - Type to filter the listing (case-insensitive substring).
 - While filtering, Left/Right/Home/End move the caret, typed text is inserted at the caret, Delete removes the next complete UTF-8 character, and Backspace removes the previous one.
 - Long filter queries stay at native text size and scroll horizontally to keep the caret visible.
+- The caret-prefix width is reused between frames until the caret prefix or shared font changes.
 - **Enter** keeps the filter and leaves typing mode.
 - **Esc** clears the filter.
 - Changing directory clears the filter.

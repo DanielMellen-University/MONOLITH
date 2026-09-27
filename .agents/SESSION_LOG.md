@@ -1,5 +1,7 @@
 # Session log
 
+| 2026-09-26 | perf | Cached the Filesystem Browser filter caret-prefix width between renders; verified stable-prefix reuse, caret movement, and remeasurement after UI-font scaling. |
+
 | 2026-09-26 | perf | Cached Terminal scrollback UTF-8 viewport byte boundaries per row and width, aligned them with append/trim/clear, and invalidated them on shared-font changes; added render coverage for reuse and long Unicode rows. |
 
 | 2026-09-26 | perf | Added a viewport-bounded Text Editor cache for long-line UTF-8 slice bounds and hidden pixel offsets; invalidated for row, width, horizontal-scroll, edit, and font changes with renderer-state coverage. |

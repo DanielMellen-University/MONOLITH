@@ -1,5 +1,10 @@
 # Changelog
 
+## 2026-09: Cache Filesystem Browser filter caret metrics
+
+- Reuse the measured filter-caret prefix width while the caret prefix and shared font are unchanged.
+- Refresh the cached width after caret movement or UI-font scaling instead of measuring it every render frame.
+
 ## 2026-09: Cache Terminal viewport measurements
 
 - Cache each scrollback row's visible UTF-8 prefix length for its current viewport width instead of measuring it every frame.
