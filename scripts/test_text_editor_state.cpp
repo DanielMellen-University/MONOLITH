@@ -212,6 +212,50 @@ int main() {
             check(firstTextTexture && repeatedTextTexture.handle == firstTextTexture.handle
                       && scaleEditor.m_textTextureCache.size() == cachedTextureCount,
                   "Text Editor reuses renderer textures between unchanged frames");
+
+            TestEditor findViewportEditor(scaleFont, &fs, "/find-viewport.txt");
+            findViewportEditor.m_lines.assign(256, "target target");
+            findViewportEditor.m_findQuery = "target";
+            findViewportEditor.updateFindMatches();
+            findViewportEditor.onResize(240, 200);
+            findViewportEditor.m_scrollOffset = 128;
+            findViewportEditor.m_cursorRow = 0;
+            findViewportEditor.m_currentFindMatch = 257;
+            SDL_BlendMode oldDrawBlend = SDL_BLENDMODE_NONE;
+            SDL_GetRenderDrawBlendMode(renderer, &oldDrawBlend);
+            SDL_SetRenderDrawBlendMode(renderer, SDL_BLENDMODE_NONE);
+            SDL_SetRenderDrawColor(renderer, 0, 0, 0, 255);
+            SDL_RenderClear(renderer);
+            findViewportEditor.render(renderer, {0, 0, 240, 200});
+            int matchPrefixWidth = 0;
+            int matchPrefixHeight = 0;
+            TTF_SizeUTF8(scaleFont, "target ", &matchPrefixWidth, &matchPrefixHeight);
+            const int matchRowY = TestEditor::kPadding + 1;
+            Uint8 inactiveMatchPixel[4]{};
+            Uint8 activeMatchPixel[4]{};
+            const SDL_Rect inactiveSample = {
+                TestEditor::kPadding + TestEditor::kLineNumWidth + 1,
+                matchRowY, 1, 1
+            };
+            const SDL_Rect activeSample = {
+                TestEditor::kPadding + TestEditor::kLineNumWidth + matchPrefixWidth + 1,
+                matchRowY, 1, 1
+            };
+            const bool readMatchSamples =
+                SDL_RenderReadPixels(renderer, &inactiveSample, SDL_PIXELFORMAT_RGBA32,
+                                     inactiveMatchPixel, sizeof(inactiveMatchPixel)) == 0
+                && SDL_RenderReadPixels(renderer, &activeSample, SDL_PIXELFORMAT_RGBA32,
+                                        activeMatchPixel, sizeof(activeMatchPixel)) == 0;
+            SDL_SetRenderDrawBlendMode(renderer, oldDrawBlend);
+            check(findViewportEditor.m_findMatches.size() == 512
+                      && findViewportEditor.m_findMatches[257] == std::pair<int, int>{128, 7}
+                      && readMatchSamples
+                      && inactiveMatchPixel[0] == 36 && inactiveMatchPixel[1] == 48
+                      && inactiveMatchPixel[2] == 58
+                      && activeMatchPixel[0] == 54 && activeMatchPixel[1] == 92
+                      && activeMatchPixel[2] == 116,
+                  "Find renders visible highlights with the correct active result after scrolling");
+
             const size_t beforeStatus = scaleEditor.m_textTextureCache.size();
             scaleEditor.setStatus("cache invalidation");
             scaleEditor.render(renderer, {0, 0, 200, 160});

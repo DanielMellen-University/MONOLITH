@@ -1676,15 +1676,6 @@ void TextEditorApp::replaceAllMatches() {
     setStatus("Replaced " + std::to_string(count) + " occurrence(s)");
 }
 
-int TextEditorApp::findMatchIndexAt(int row, int col) const {
-    for (int i = 0; i < static_cast<int>(m_findMatches.size()); ++i) {
-        if (m_findMatches[i].first == row && m_findMatches[i].second == col) {
-            return i;
-        }
-    }
-    return -1;
-}
-
 int TextEditorApp::getLineHeight() const {
     if (!m_font) return 18;
     return TTF_FontHeight(m_font);
@@ -1742,6 +1733,11 @@ void TextEditorApp::render(SDL_Renderer* renderer, const SDL_Rect& contentRect) 
         textClipHeight
     };
     const SDL_Rect effectiveTextClip = intersectRendererClip(textClip, previousClip);
+    // Find results are row/column ordered; skip offscreen rows once, then walk only visible hits.
+    auto visibleMatch = std::lower_bound(
+        m_findMatches.begin(), m_findMatches.end(), m_scrollOffset,
+        [](const auto& match, int row) { return match.first < row; });
+    int visibleMatchIndex = static_cast<int>(visibleMatch - m_findMatches.begin());
 
     int selR0 = 0, selC0 = 0, selR1 = 0, selC1 = 0;
     const bool drawSel = hasSelection();
@@ -1801,11 +1797,9 @@ void TextEditorApp::render(SDL_Renderer* renderer, const SDL_Rect& contentRect) 
         }
 
         if (!m_findQuery.empty()) {
-            for (const auto& match : m_findMatches) {
-                if (match.first != lineIdx) {
-                    continue;
-                }
-
+            while (visibleMatch != m_findMatches.end()
+                   && visibleMatch->first == lineIdx) {
+                const auto& match = *visibleMatch;
                 std::string before = line.substr(0, match.second);
                 std::string found = line.substr(match.second, m_findQuery.size());
 
@@ -1818,8 +1812,7 @@ void TextEditorApp::render(SDL_Renderer* renderer, const SDL_Rect& contentRect) 
                     TTF_SizeUTF8(m_font, found.c_str(), &matchW, &matchH);
                 }
 
-                int matchIndex = findMatchIndexAt(match.first, match.second);
-                if (matchIndex == m_currentFindMatch) {
+                if (visibleMatchIndex == m_currentFindMatch) {
                     SDL_SetRenderDrawColor(renderer, 54, 92, 116, 230);
                 } else {
                     SDL_SetRenderDrawColor(renderer, 36, 48, 58, 190);
@@ -1832,6 +1825,8 @@ void TextEditorApp::render(SDL_Renderer* renderer, const SDL_Rect& contentRect) 
                     lineHeight - 2
                 };
                 SDL_RenderFillRect(renderer, &highlightRect);
+                ++visibleMatch;
+                ++visibleMatchIndex;
             }
         }
 

@@ -1,5 +1,7 @@
 # Session log
 
+| 2026-09-26 | perf | Changed Text Editor find rendering from per-visible-line scans of all document matches to one lower-bound seek plus a forward walk through visible hits; added a scrolled active-highlight pixel regression. |
+
 | 2026-09-26 | perf | Cached taskbar clock time/date formatting by minute so steady-state renders avoid localtime and strftime calls; preserved texture reuse and font/format invalidation. |
 
 | 2026-09-26 | perf | Cached taskbar title pixel widths per window, invalidated them on rename and font/UI-scale changes, and covered both paths in Window Manager tests. |

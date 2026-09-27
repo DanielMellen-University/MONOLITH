@@ -122,7 +122,6 @@ private:
     void updateFindMatches();
     void moveFindMatch(int direction);
     void applyCurrentFindMatch();
-    int findMatchIndexAt(int row, int col) const;
     void replaceCurrentMatch();
     void replaceAllMatches();
     void selectCurrentMatch();

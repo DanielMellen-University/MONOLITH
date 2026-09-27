@@ -1,5 +1,10 @@
 # Changelog
 
+## 2026-09: Render only visible Text Editor find matches
+
+- Seek into row-sorted search results once per render and process only matches belonging to visible document rows.
+- Avoid rescanning the full result list for each rendered line and active-match highlight.
+
 ## 2026-09: Cache taskbar clock formatting
 
 - Format local time and date once per displayed minute instead of repeating time conversion and string formatting on every render.
