@@ -144,17 +144,21 @@ int main() {
     noOpStrokeDown.button.x = 1;
     noOpStrokeDown.button.y = drawing.m_canvasTop + 1;
     drawing.handleEvent(noOpStrokeDown);
+    const bool noOpDidNotCapturePixels = drawing.m_strokeHistoryEntry.pixels.empty()
+        && drawing.m_strokeHistoryEntry.tiles.empty();
     SDL_Event noOpStrokeUp = noOpStrokeDown;
     noOpStrokeUp.type = SDL_MOUSEBUTTONUP;
     drawing.handleEvent(noOpStrokeUp);
     check(!drawing.m_dirty
+              && noOpDidNotCapturePixels
               && drawing.m_pixels == blankPixels
               && drawing.m_undoStack.size() == clearUndoCount,
-          "an eraser stroke on a blank Drawing stays clean and out of undo history");
+          "an eraser stroke on a blank Drawing stays clean without capturing undo pixels");
 
     TestDrawing redoDrawing(font, &fs);
     redoDrawing.onResize(300, 300);
     redoDrawing.m_tool = monolith::app::DrawingApp::Tool::Pen;
+    const std::vector<uint8_t> redoBaseline = redoDrawing.m_pixels;
     SDL_Event changedStrokeDown = noOpStrokeDown;
     changedStrokeDown.button.x = 20;
     changedStrokeDown.button.y = redoDrawing.m_canvasTop + 20;
@@ -162,12 +166,21 @@ int main() {
     SDL_Event changedStrokeUp = changedStrokeDown;
     changedStrokeUp.type = SDL_MOUSEBUTTONUP;
     redoDrawing.handleEvent(changedStrokeUp);
-    check(redoDrawing.m_dirty && redoDrawing.m_undoStack.size() == 1,
-          "a changed Drawing stroke records one undo state");
+    const std::vector<uint8_t> pixelsAfterStroke = redoDrawing.m_pixels;
+    size_t strokeHistoryBytes = 0;
+    for (const auto& tile : redoDrawing.m_undoStack.front().tiles) {
+        strokeHistoryBytes += tile.pixels.size();
+    }
+    check(redoDrawing.m_dirty && redoDrawing.m_undoStack.size() == 1
+              && redoDrawing.m_undoStack.front().pixels.empty()
+              && !redoDrawing.m_undoStack.front().tiles.empty()
+              && strokeHistoryBytes < redoBaseline.size(),
+          "a changed Drawing stroke records sparse tile history instead of a full canvas");
     redoDrawing.undoCanvas();
     check(!redoDrawing.m_dirty && redoDrawing.m_undoStack.empty()
-              && redoDrawing.m_redoStack.size() == 1,
-          "undoing a Drawing stroke exposes its redo state");
+              && redoDrawing.m_redoStack.size() == 1
+              && redoDrawing.m_pixels == redoBaseline,
+          "undoing a Drawing stroke restores the exact canvas and exposes redo");
     redoDrawing.m_tool = monolith::app::DrawingApp::Tool::Eraser;
     changedStrokeDown.button.x = 20;
     changedStrokeDown.button.y = redoDrawing.m_canvasTop + 20;
@@ -179,8 +192,89 @@ int main() {
               && redoDrawing.m_redoStack.size() == 1,
           "a no-op Drawing stroke preserves redo history");
     redoDrawing.redoCanvas();
-    check(redoDrawing.m_dirty && redoDrawing.m_redoStack.empty(),
-          "preserved Drawing redo history still reapplies the stroke");
+    check(redoDrawing.m_dirty && redoDrawing.m_redoStack.empty()
+              && redoDrawing.m_pixels == pixelsAfterStroke,
+          "preserved Drawing redo history restores the exact stroke pixels");
+
+    TestDrawing multiTileStroke(font, &fs);
+    multiTileStroke.onResize(320, 256);
+    multiTileStroke.m_tool = monolith::app::DrawingApp::Tool::Pen;
+    multiTileStroke.m_brush = monolith::app::DrawingApp::BrushSize::Small;
+    const std::vector<uint8_t> multiTileBaseline = multiTileStroke.m_pixels;
+    multiTileStroke.beginStroke();
+    const bool multiTileChanged = multiTileStroke.drawStroke(3, 3, 300, 130);
+    multiTileStroke.recordStrokeChange();
+    multiTileStroke.finishStroke();
+    const std::vector<uint8_t> multiTileAfter = multiTileStroke.m_pixels;
+    size_t multiTileBytes = 0;
+    for (const auto& tile : multiTileStroke.m_undoStack.front().tiles) {
+        multiTileBytes += tile.pixels.size();
+    }
+    check(multiTileChanged && multiTileStroke.m_undoStack.size() == 1
+              && multiTileStroke.m_undoStack.front().tiles.size() > 1
+              && multiTileBytes < multiTileBaseline.size(),
+          "a long stroke captures each touched tile once across tile boundaries");
+    multiTileStroke.undoCanvas();
+    check(multiTileStroke.m_pixels == multiTileBaseline,
+          "multi-tile undo restores every touched pixel");
+    multiTileStroke.redoCanvas();
+    check(multiTileStroke.m_pixels == multiTileAfter,
+          "multi-tile redo reapplies every touched pixel");
+
+    {
+        TestDrawing largeCanvasStroke(font, &fs);
+        constexpr int largeCanvasWidth = 4096;
+        constexpr int largeCanvasHeight = 4097;
+        largeCanvasStroke.resizeCanvas(largeCanvasWidth, largeCanvasHeight, false);
+        largeCanvasStroke.m_savedSnapshot = {
+            largeCanvasWidth, largeCanvasHeight, largeCanvasStroke.m_pixels};
+        largeCanvasStroke.m_tool = monolith::app::DrawingApp::Tool::Pen;
+        largeCanvasStroke.m_brush = monolith::app::DrawingApp::BrushSize::Small;
+        largeCanvasStroke.beginStroke();
+        const bool largeCanvasChanged = largeCanvasStroke.drawStroke(100, 100, 106, 100);
+        largeCanvasStroke.recordStrokeChange();
+        largeCanvasStroke.finishStroke();
+        const size_t largeCanvasStrokeBytes =
+            largeCanvasStroke.m_undoStack.empty()
+            ? 0
+            : largeCanvasStroke.m_undoStack.back().tiles.front().pixels.size();
+        check(largeCanvasStroke.m_pixels.size() > 64 * 1024 * 1024
+                  && largeCanvasChanged
+                  && largeCanvasStroke.m_undoStack.size() == 1
+                  && largeCanvasStroke.m_undoStack.back().pixels.empty()
+                  && largeCanvasStrokeBytes < largeCanvasStroke.m_pixels.size(),
+              "sparse strokes remain undoable on canvases larger than the history byte cap");
+        largeCanvasStroke.undoCanvas();
+        check(largeCanvasStroke.m_pixels == largeCanvasStroke.m_savedSnapshot.pixels,
+              "large-canvas sparse undo restores the original image");
+        largeCanvasStroke.redoCanvas();
+        const size_t changedPixel =
+            (static_cast<size_t>(100) * largeCanvasWidth + 100) * 4;
+        check(largeCanvasStroke.m_pixels[changedPixel] != 245,
+              "large-canvas sparse redo reapplies the stroke");
+
+        largeCanvasStroke.undoCanvas();
+        const bool oversizedStrokeStartsWithRedo =
+            largeCanvasStroke.m_redoStack.size() == 1;
+        largeCanvasStroke.m_tool = monolith::app::DrawingApp::Tool::Pen;
+        largeCanvasStroke.beginStroke();
+        for (int y = 0; y < largeCanvasHeight; y += 32) {
+            largeCanvasStroke.drawStroke(0, y, largeCanvasWidth - 1, y);
+        }
+        const bool oversizedStrokeDiscardedHistory =
+            oversizedStrokeStartsWithRedo
+            && largeCanvasStroke.m_strokeHistoryOverflowed
+            && largeCanvasStroke.m_strokeHistoryEntry.tiles.empty()
+            && largeCanvasStroke.m_undoStack.empty()
+            && largeCanvasStroke.m_redoStack.empty();
+        largeCanvasStroke.recordStrokeChange();
+        largeCanvasStroke.finishStroke();
+        check(oversizedStrokeDiscardedHistory
+                  && largeCanvasStroke.m_strokeHistoryBytes == 0
+                  && largeCanvasStroke.m_undoStack.empty()
+                  && largeCanvasStroke.m_redoStack.empty(),
+              "canvas-wide strokes discard oversized transient history and stale redo");
+    }
 
     TestDrawing stateLimitedHistory(font, &fs);
     stateLimitedHistory.onResize(300, 300);

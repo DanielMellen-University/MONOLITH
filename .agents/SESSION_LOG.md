@@ -1,5 +1,7 @@
 # Session log
 
+| 2026-09-27 | perf | Replaced full-canvas stroke-start copies with lazy reversible 32×32 tile preimages; added sparse multi-tile and larger-than-budget undo/redo coverage. |
+
 | 2026-09-27 | perf | Batched Drawing raster work around one validated canvas buffer per primitive, shared the Bresenham brush-stroke path, and clipped rectangle loops; added output-equivalence and invalid-buffer coverage. |
 
 | 2026-09-26 | perf | Moved Drawing fill into the SDL-free raster module and replaced its per-pixel worklist with horizontal spans; added barrier, diagonal, no-op, and large-region coverage. |

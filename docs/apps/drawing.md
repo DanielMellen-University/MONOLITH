@@ -156,8 +156,8 @@ Use Filesystem Browser Rename or Terminal `mv`, keeping the complete `.modr` suf
 | Save | **Ctrl+S** | Saves the current file, or opens the Save path prompt for a new sketch. |
 | Open | **Ctrl+O** | Opens the `.modr` path prompt. |
 | New | **Ctrl+N** | Starts a blank sketch after the dirty-sketch confirmation, if needed. |
-| Undo | **Ctrl+Z** | Restores the previous canvas snapshot. |
-| Redo | **Ctrl+Y** or **Ctrl+Shift+Z** | Restores the next canvas snapshot. |
+| Undo | **Ctrl+Z** | Restores the previous canvas state. |
+| Redo | **Ctrl+Y** or **Ctrl+Shift+Z** | Restores the next canvas state. |
 | Complete a path | **Tab** | Completes a directory or `.modr` filename while Save or Open is active. |
 | Confirm or cancel | **Enter** / **Esc** | Accepts or abandons the active Save, Open, or RGB status-bar prompt. |
 
@@ -514,18 +514,17 @@ Opening a valid file replaces the current canvas dimensions and pixels. The file
 
 ## Undo And Redo
 
-Drawing stores a capped history of canvas snapshots.
+Drawing stores a capped history of canvas edits.
 
-- A snapshot is recorded before each changed stroke.
-- A snapshot is recorded before each changed Fill operation.
-- A snapshot is recorded before each changed Clear.
-- Undo and redo operate on full canvas states.
+- Changed strokes capture the original pixels of touched 32×32 tiles, only when the first pixel in each tile is about to change.
+- Fill and Clear keep a full-canvas snapshot because they may affect most or all pixels.
+- Undo and redo restore the same canvas state from either tile preimages or full snapshots.
 - Starting a changed stroke or clearing after an undo resets redo history.
 - Picking a color does not create a history state.
 - Opening a file clears history.
-- Resizing the canvas clears history so old snapshots are not applied to the wrong canvas size.
+- Resizing the canvas clears history so old edits are not applied to the wrong canvas size.
 
-Undo and redo share a combined limit of 32 history states and 64 MiB of pixel snapshots. The oldest undo states are discarded first when either limit is reached. A changed edit on a canvas larger than the byte budget clears history instead of allocating an oversized snapshot. Snapshots move between the undo and redo stacks, so undo and redo do not duplicate their pixel buffers.
+Undo and redo share a combined limit of 32 history states and 64 MiB of stored pixel data. The oldest undo states are discarded first when either limit is reached. Sparse strokes remain undoable on canvases larger than 64 MiB when their touched tiles fit the budget; if one stroke exceeds the budget, Drawing immediately releases its pending tile captures and clears undo/redo rather than growing memory without bound. A full-canvas operation that exceeds the budget also clears history instead of allocating an oversized snapshot. Tile preimages swap their pixel data in place between undo and redo, while full snapshots move between stacks without duplicating their buffers.
 
 ## File Format
 
@@ -589,7 +588,7 @@ Canceling a dirty Open prompt also clears its pending confirmation, so a later O
 | `Open failed: could not read file.` | The virtual path is missing or could not be read. The current canvas remains open; correct the path or save the current sketch elsewhere. |
 | `Open failed: not a valid .modr drawing file.` | The file header, dimensions, or pixel payload is invalid. Drawing does not partially load corrupt data. |
 | The status bar shows `[modified]` | The canvas has edits that are not saved. Press **Ctrl+S** before closing, choosing **New**, or opening another sketch. |
-| Undo is no longer available after resizing | Resizing changes the canvas dimensions, so Drawing clears history rather than applying snapshots to a different-sized canvas. |
+| Undo is no longer available after resizing | Resizing changes the canvas dimensions, so Drawing clears history rather than applying edits to a different-sized canvas. |
 
 ## Current Limitations
 

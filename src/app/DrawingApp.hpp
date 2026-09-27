@@ -59,17 +59,37 @@ private:
         std::vector<uint8_t> pixels;
     };
 
+    struct CanvasTileSnapshot {
+        int x = 0;
+        int y = 0;
+        int width = 0;
+        int height = 0;
+        std::vector<uint8_t> pixels;
+    };
+
+    struct CanvasHistoryEntry {
+        int width = 0;
+        int height = 0;
+        std::vector<uint8_t> pixels;
+        std::vector<CanvasTileSnapshot> tiles;
+    };
+
     // === Canvas ===
+    static constexpr int kHistoryTileSize = 32;
     void resizeCanvas(int width, int height, bool preserveContent);
     void clearCanvas(bool recordUndo = true);
     void markTextureDirty();
     void syncTexture(SDL_Renderer* renderer);
     void pushUndoSnapshot();
     void pushUndoSnapshot(CanvasSnapshot snapshot);
+    void pushUndoHistoryEntry(CanvasHistoryEntry entry);
     void beginStroke();
     void recordStrokeChange();
     void finishStroke();
     void endActiveStroke();
+    static void observeStrokePixelWrite(void* context, int x, int y);
+    void captureStrokeTile(int x, int y);
+    void toggleStrokeTiles(CanvasHistoryEntry& entry);
     void restoreCanvasSnapshot(CanvasSnapshot&& snapshot);
     void undoCanvas();
     void redoCanvas();
@@ -118,8 +138,8 @@ private:
 
     std::vector<uint8_t> m_pixels; // R,G,B,A byte order per pixel
     CanvasSnapshot m_savedSnapshot;
-    std::vector<CanvasSnapshot> m_undoStack;
-    std::vector<CanvasSnapshot> m_redoStack;
+    std::vector<CanvasHistoryEntry> m_undoStack;
+    std::vector<CanvasHistoryEntry> m_redoStack;
     int m_canvasWidth = 0;
     int m_canvasHeight = 0;
     SDL_Texture* m_canvasTexture = nullptr;
@@ -151,7 +171,11 @@ private:
     int m_shapeAnchorY = -1;
     bool m_strokeHistoryPending = false;
     bool m_strokeChanged = false;
-    CanvasSnapshot m_strokeStartSnapshot;
+    CanvasHistoryEntry m_strokeHistoryEntry;
+    std::vector<uint8_t> m_strokeCapturedTiles;
+    std::size_t m_strokeTileColumns = 0;
+    std::size_t m_strokeHistoryBytes = 0;
+    bool m_strokeHistoryOverflowed = false;
 
     std::string m_filePath;
     bool m_dirty = false;

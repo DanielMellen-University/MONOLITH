@@ -7,9 +7,13 @@
 
 namespace monolith::drawing {
 
+/** Called before each actual pixel change, allowing sparse history capture. */
+using PixelWriteObserver = void (*)(void* context, int x, int y);
+
 /** Set one RGBA pixel. Returns false if the pixel was already that color. */
 bool setPixel(std::vector<uint8_t>& rgba, int width, int height,
-              int x, int y, uint8_t r, uint8_t g, uint8_t b);
+              int x, int y, uint8_t r, uint8_t g, uint8_t b,
+              PixelWriteObserver observer = nullptr, void* observerContext = nullptr);
 
 /** Read one RGB pixel. Returns false if (x,y) or the RGBA buffer is invalid. */
 bool getPixel(const std::vector<uint8_t>& rgba, int width, int height,
@@ -17,21 +21,25 @@ bool getPixel(const std::vector<uint8_t>& rgba, int width, int height,
 
 /** Bresenham line, 1px wide, including both endpoints. */
 bool drawLine(std::vector<uint8_t>& rgba, int width, int height,
-              int x0, int y0, int x1, int y1, uint8_t r, uint8_t g, uint8_t b);
+              int x0, int y0, int x1, int y1, uint8_t r, uint8_t g, uint8_t b,
+              PixelWriteObserver observer = nullptr, void* observerContext = nullptr);
 
 /** Axis-aligned rectangle boundary (inclusive), 1px wide. */
 bool drawRect(std::vector<uint8_t>& rgba, int width, int height,
-              int x0, int y0, int x1, int y1, uint8_t r, uint8_t g, uint8_t b);
+              int x0, int y0, int x1, int y1, uint8_t r, uint8_t g, uint8_t b,
+              PixelWriteObserver observer = nullptr, void* observerContext = nullptr);
 
 /** Stamp a clipped, filled circular brush footprint. */
 bool stampBrush(std::vector<uint8_t>& rgba, int width, int height,
                 int centerX, int centerY, int radius,
-                uint8_t r, uint8_t g, uint8_t b);
+                uint8_t r, uint8_t g, uint8_t b,
+                PixelWriteObserver observer = nullptr, void* observerContext = nullptr);
 
 /** Draw a Bresenham path using filled circular brush stamps. */
 bool drawBrushStroke(std::vector<uint8_t>& rgba, int width, int height,
                      int x0, int y0, int x1, int y1, int radius,
-                     uint8_t r, uint8_t g, uint8_t b);
+                     uint8_t r, uint8_t g, uint8_t b,
+                     PixelWriteObserver observer = nullptr, void* observerContext = nullptr);
 
 /** Fill a 4-connected RGB region using a scanline worklist; return pixels changed. */
 std::size_t fillRegion(std::vector<uint8_t>& rgba, int width, int height,

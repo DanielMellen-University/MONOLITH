@@ -1,5 +1,11 @@
 # Changelog
 
+## 2026-09: Keep Drawing stroke history sparse
+
+- Capture original 32×32 tiles only when a stroke first changes pixels in each tile, avoiding a full-canvas copy at gesture start.
+- Swap tile preimages in place for undo and redo while preserving full snapshots for Fill and Clear.
+- Keep sparse strokes undoable on canvases larger than the 64 MiB history budget, and discard oversized in-progress captures immediately; verify multi-tile, large-canvas, and budget-overflow behavior.
+
 ## 2026-09: Batch Drawing raster writes
 
 - Validate the canvas buffer once per primitive and reuse one Bresenham traversal for line and brush-stroke rasterization.

@@ -23,7 +23,8 @@ bool hasValidCanvasBuffer(const std::vector<uint8_t>& rgba, int width, int heigh
 }
 
 bool writePixelAt(std::vector<uint8_t>& rgba, int width,
-                  int x, int y, uint8_t r, uint8_t g, uint8_t b) {
+                  int x, int y, uint8_t r, uint8_t g, uint8_t b,
+                  PixelWriteObserver observer, void* observerContext) {
     const std::size_t index =
         (static_cast<std::size_t>(y) * static_cast<std::size_t>(width)
          + static_cast<std::size_t>(x)) * 4;
@@ -31,6 +32,7 @@ bool writePixelAt(std::vector<uint8_t>& rgba, int width,
         && rgba[index + 3] == 255) {
         return false;
     }
+    if (observer) observer(observerContext, x, y);
     rgba[index] = r;
     rgba[index + 1] = g;
     rgba[index + 2] = b;
@@ -39,14 +41,16 @@ bool writePixelAt(std::vector<uint8_t>& rgba, int width,
 }
 
 bool writePixelInBounds(std::vector<uint8_t>& rgba, int width, int height,
-                        int x, int y, uint8_t r, uint8_t g, uint8_t b) {
+                        int x, int y, uint8_t r, uint8_t g, uint8_t b,
+                        PixelWriteObserver observer, void* observerContext) {
     if (x < 0 || y < 0 || x >= width || y >= height) return false;
-    return writePixelAt(rgba, width, x, y, r, g, b);
+    return writePixelAt(rgba, width, x, y, r, g, b, observer, observerContext);
 }
 
 bool stampBrushInValidBuffer(std::vector<uint8_t>& rgba, int width, int height,
                              int centerX, int centerY, int radius,
-                             uint8_t r, uint8_t g, uint8_t b) {
+                             uint8_t r, uint8_t g, uint8_t b,
+                             PixelWriteObserver observer, void* observerContext) {
     if (radius < 0) return false;
     const long long brushRadius = radius;
     const long long left = std::max(0LL, static_cast<long long>(centerX) - brushRadius);
@@ -65,7 +69,8 @@ bool stampBrushInValidBuffer(std::vector<uint8_t>& rgba, int width, int height,
             const long long dx = x - centerX;
             if (dx * dx + dy * dy > radiusSquared) continue;
             changed = writePixelAt(rgba, width, static_cast<int>(x),
-                                   static_cast<int>(y), r, g, b) || changed;
+                                   static_cast<int>(y), r, g, b,
+                                   observer, observerContext) || changed;
         }
     }
     return changed;
@@ -116,9 +121,11 @@ uint32_t readU32LE(const std::string& data, size_t offset) {
 } // namespace
 
 bool setPixel(std::vector<uint8_t>& rgba, int width, int height,
-              int x, int y, uint8_t r, uint8_t g, uint8_t b) {
+              int x, int y, uint8_t r, uint8_t g, uint8_t b,
+              PixelWriteObserver observer, void* observerContext) {
     if (!hasValidCanvasBuffer(rgba, width, height)) return false;
-    return writePixelInBounds(rgba, width, height, x, y, r, g, b);
+    return writePixelInBounds(rgba, width, height, x, y, r, g, b,
+                              observer, observerContext);
 }
 
 bool getPixel(const std::vector<uint8_t>& rgba, int width, int height,
@@ -134,15 +141,18 @@ bool getPixel(const std::vector<uint8_t>& rgba, int width, int height,
 }
 
 bool drawLine(std::vector<uint8_t>& rgba, int width, int height,
-              int x0, int y0, int x1, int y1, uint8_t r, uint8_t g, uint8_t b) {
+              int x0, int y0, int x1, int y1, uint8_t r, uint8_t g, uint8_t b,
+              PixelWriteObserver observer, void* observerContext) {
     if (!hasValidCanvasBuffer(rgba, width, height)) return false;
     return traceBresenhamLine(x0, y0, x1, y1, [&](int x, int y) {
-        return writePixelInBounds(rgba, width, height, x, y, r, g, b);
+        return writePixelInBounds(rgba, width, height, x, y, r, g, b,
+                                  observer, observerContext);
     });
 }
 
 bool drawRect(std::vector<uint8_t>& rgba, int width, int height,
-              int x0, int y0, int x1, int y1, uint8_t r, uint8_t g, uint8_t b) {
+              int x0, int y0, int x1, int y1, uint8_t r, uint8_t g, uint8_t b,
+              PixelWriteObserver observer, void* observerContext) {
     if (!hasValidCanvasBuffer(rgba, width, height)) return false;
     bool changed = false;
     if (x0 > x1) std::swap(x0, x1);
@@ -154,13 +164,13 @@ bool drawRect(std::vector<uint8_t>& rgba, int width, int height,
         if (y0 >= 0 && y0 < height) {
             for (long long x = left; x <= right; ++x) {
                 changed = writePixelAt(rgba, width, static_cast<int>(x),
-                                       y0, r, g, b) || changed;
+                                       y0, r, g, b, observer, observerContext) || changed;
             }
         }
         if (y1 >= 0 && y1 < height) {
             for (long long x = left; x <= right; ++x) {
                 changed = writePixelAt(rgba, width, static_cast<int>(x),
-                                       y1, r, g, b) || changed;
+                                       y1, r, g, b, observer, observerContext) || changed;
             }
         }
     }
@@ -171,13 +181,13 @@ bool drawRect(std::vector<uint8_t>& rgba, int width, int height,
         if (x0 >= 0 && x0 < width) {
             for (long long y = top; y <= bottom; ++y) {
                 changed = writePixelAt(rgba, width, x0, static_cast<int>(y),
-                                       r, g, b) || changed;
+                                       r, g, b, observer, observerContext) || changed;
             }
         }
         if (x1 >= 0 && x1 < width) {
             for (long long y = top; y <= bottom; ++y) {
                 changed = writePixelAt(rgba, width, x1, static_cast<int>(y),
-                                       r, g, b) || changed;
+                                       r, g, b, observer, observerContext) || changed;
             }
         }
     }
@@ -186,18 +196,22 @@ bool drawRect(std::vector<uint8_t>& rgba, int width, int height,
 
 bool stampBrush(std::vector<uint8_t>& rgba, int width, int height,
                 int centerX, int centerY, int radius,
-                uint8_t r, uint8_t g, uint8_t b) {
+                uint8_t r, uint8_t g, uint8_t b,
+                PixelWriteObserver observer, void* observerContext) {
     if (!hasValidCanvasBuffer(rgba, width, height)) return false;
     return stampBrushInValidBuffer(
-        rgba, width, height, centerX, centerY, radius, r, g, b);
+        rgba, width, height, centerX, centerY, radius, r, g, b,
+        observer, observerContext);
 }
 
 bool drawBrushStroke(std::vector<uint8_t>& rgba, int width, int height,
                      int x0, int y0, int x1, int y1, int radius,
-                     uint8_t r, uint8_t g, uint8_t b) {
+                     uint8_t r, uint8_t g, uint8_t b,
+                     PixelWriteObserver observer, void* observerContext) {
     if (!hasValidCanvasBuffer(rgba, width, height) || radius < 0) return false;
     return traceBresenhamLine(x0, y0, x1, y1, [&](int x, int y) {
-        return stampBrushInValidBuffer(rgba, width, height, x, y, radius, r, g, b);
+        return stampBrushInValidBuffer(rgba, width, height, x, y, radius, r, g, b,
+                                       observer, observerContext);
     });
 }
 
