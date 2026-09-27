@@ -213,6 +213,113 @@ int main() {
                       && scaleEditor.m_textTextureCache.size() == cachedTextureCount,
                   "Text Editor reuses renderer textures between unchanged frames");
 
+            TTF_Font* promptFont = TTF_OpenFont("assets/fonts/DejaVuSans.ttf", 14);
+            check(promptFont != nullptr, "Text Editor prompt test loads an independent font");
+            if (promptFont) {
+                TestEditor promptMetricEditor(promptFont, &fs, "/prompt-metrics.txt");
+                promptMetricEditor.onResize(240, 200);
+                promptMetricEditor.m_searchMode = TestEditor::SearchMode::Find;
+                promptMetricEditor.m_findQuery = "needle";
+                promptMetricEditor.m_findCursorPos = 3;
+                promptMetricEditor.render(renderer, {0, 0, 240, 200});
+                const std::string findCursorText = "Find: nee_";
+                int expectedCursorWidth = 0;
+                int expectedCursorHeight = 0;
+                const bool findWidthMeasured = TTF_SizeUTF8(
+                    promptFont, findCursorText.c_str(), &expectedCursorWidth,
+                    &expectedCursorHeight) == 0;
+                const bool findPromptCached = findWidthMeasured
+                    && promptMetricEditor.m_statusCursorMeasureValid
+                    && promptMetricEditor.m_statusCursorMeasureText == findCursorText
+                    && promptMetricEditor.m_statusCursorPixelWidth == expectedCursorWidth;
+                promptMetricEditor.render(renderer, {0, 0, 240, 200});
+                const bool findPromptRetained = findPromptCached
+                    && promptMetricEditor.m_statusCursorMeasureText == findCursorText
+                    && promptMetricEditor.m_statusCursorPixelWidth == expectedCursorWidth;
+                promptMetricEditor.m_findCursorPos = promptMetricEditor.m_findQuery.size();
+                promptMetricEditor.render(renderer, {0, 0, 240, 200});
+                const std::string movedFindCursorText = "Find: needle_";
+                expectedCursorWidth = 0;
+                const bool movedFindWidthMeasured = TTF_SizeUTF8(
+                    promptFont, movedFindCursorText.c_str(), &expectedCursorWidth,
+                    &expectedCursorHeight) == 0;
+                const bool findCursorMovementRefreshes = movedFindWidthMeasured
+                    && promptMetricEditor.m_statusCursorMeasureText == movedFindCursorText
+                    && promptMetricEditor.m_statusCursorPixelWidth == expectedCursorWidth;
+
+                promptMetricEditor.m_searchMode = TestEditor::SearchMode::Replace;
+                promptMetricEditor.m_searchField = TestEditor::SearchField::Replacement;
+                promptMetricEditor.m_replaceText = "value";
+                promptMetricEditor.m_replaceCursorPos = 2;
+                promptMetricEditor.render(renderer, {0, 0, 240, 200});
+                const std::string replaceCursorText = "Find: needle  Repl: va_";
+                expectedCursorWidth = 0;
+                const bool replaceWidthMeasured = TTF_SizeUTF8(
+                    promptFont, replaceCursorText.c_str(), &expectedCursorWidth,
+                    &expectedCursorHeight) == 0;
+                const bool replacePromptCached = replaceWidthMeasured
+                    && promptMetricEditor.m_statusCursorMeasureText == replaceCursorText
+                    && promptMetricEditor.m_statusCursorPixelWidth == expectedCursorWidth;
+
+                promptMetricEditor.m_searchMode = TestEditor::SearchMode::None;
+                promptMetricEditor.m_pathPromptMode = TestEditor::PathPromptMode::GoToLine;
+                promptMetricEditor.m_pathPromptBuffer = "128";
+                promptMetricEditor.m_pathPromptCursorPos = 1;
+                promptMetricEditor.render(renderer, {0, 0, 240, 200});
+                const std::string goToLineCursorText = "Go to line: 1_";
+                expectedCursorWidth = 0;
+                const bool goToLineWidthMeasured = TTF_SizeUTF8(
+                    promptFont, goToLineCursorText.c_str(), &expectedCursorWidth,
+                    &expectedCursorHeight) == 0;
+                const bool goToLinePromptCached = goToLineWidthMeasured
+                    && promptMetricEditor.m_statusCursorMeasureText == goToLineCursorText
+                    && promptMetricEditor.m_statusCursorPixelWidth == expectedCursorWidth;
+
+                promptMetricEditor.m_pathPromptMode = TestEditor::PathPromptMode::Open;
+                promptMetricEditor.m_pathPromptBuffer = "/home/monolith/";
+                promptMetricEditor.m_pathPromptCursorPos =
+                    promptMetricEditor.m_pathPromptBuffer.size();
+                promptMetricEditor.render(renderer, {0, 0, 240, 200});
+                const std::string openCursorText = "Open: /home/monolith/_";
+                expectedCursorWidth = 0;
+                const bool openWidthMeasured = TTF_SizeUTF8(
+                    promptFont, openCursorText.c_str(), &expectedCursorWidth,
+                    &expectedCursorHeight) == 0;
+                const bool openPromptCached = openWidthMeasured
+                    && promptMetricEditor.m_statusCursorMeasureText == openCursorText
+                    && promptMetricEditor.m_statusCursorPixelWidth == expectedCursorWidth;
+
+                promptMetricEditor.m_pathPromptMode = TestEditor::PathPromptMode::SaveAs;
+                promptMetricEditor.render(renderer, {0, 0, 240, 200});
+                const std::string saveAsCursorText = "Save as: /home/monolith/_";
+                expectedCursorWidth = 0;
+                const bool saveAsWidthMeasured = TTF_SizeUTF8(
+                    promptFont, saveAsCursorText.c_str(), &expectedCursorWidth,
+                    &expectedCursorHeight) == 0;
+                const bool saveAsPromptCached = saveAsWidthMeasured
+                    && promptMetricEditor.m_statusCursorMeasureText == saveAsCursorText
+                    && promptMetricEditor.m_statusCursorPixelWidth == expectedCursorWidth;
+
+                const int oldPromptWidth = promptMetricEditor.m_statusCursorPixelWidth;
+                const bool fontResized = TTF_SetFontSize(promptFont, 22) == 0;
+                promptMetricEditor.onUiScaleChanged();
+                const bool promptMetricsInvalidated = !promptMetricEditor.m_statusCursorMeasureValid;
+                promptMetricEditor.render(renderer, {0, 0, 240, 200});
+                expectedCursorWidth = 0;
+                const bool scaledWidthMeasured = TTF_SizeUTF8(
+                    promptFont, saveAsCursorText.c_str(), &expectedCursorWidth,
+                    &expectedCursorHeight) == 0;
+                check(findPromptRetained && findCursorMovementRefreshes
+                          && replacePromptCached && goToLinePromptCached
+                          && openPromptCached && saveAsPromptCached
+                          && fontResized && promptMetricsInvalidated && scaledWidthMeasured
+                          && promptMetricEditor.m_statusCursorMeasureText == saveAsCursorText
+                          && promptMetricEditor.m_statusCursorPixelWidth == expectedCursorWidth
+                          && expectedCursorWidth != oldPromptWidth,
+                      "Text Editor reuses prompt caret widths across Find, Replace, path prompts, and UI scaling");
+                TTF_CloseFont(promptFont);
+            }
+
             TestEditor findViewportEditor(scaleFont, &fs, "/find-viewport.txt");
             findViewportEditor.m_lines.assign(256, "target target");
             findViewportEditor.m_findQuery = "target";

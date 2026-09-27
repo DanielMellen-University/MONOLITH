@@ -1,5 +1,10 @@
 # Changelog
 
+## 2026-09: Cache Text Editor prompt caret metrics
+
+- Reuse the status-bar caret-prefix width across unchanged Find, Replace, Go to Line, Open, and Save As prompt frames.
+- Refresh the measurement when the cursor text changes or the shared interface font is rescaled.
+
 ## 2026-09: Reuse Filesystem Browser row metrics
 
 - Use renderer-cached filename texture widths for list clipping instead of measuring every visible row each frame.

@@ -1115,6 +1115,22 @@ int TextEditorApp::measureTextPrefixWidth(const std::string& line, int col) cons
     return w;
 }
 
+int TextEditorApp::measureStatusCursorWidth(const std::string& text) {
+    if (m_statusCursorMeasureValid && m_statusCursorMeasureText == text) {
+        return m_statusCursorPixelWidth;
+    }
+    if (!m_font) return 0;
+
+    int width = 0;
+    int height = 0;
+    if (TTF_SizeUTF8(m_font, text.c_str(), &width, &height) != 0) return 0;
+
+    m_statusCursorMeasureText = text;
+    m_statusCursorPixelWidth = width;
+    m_statusCursorMeasureValid = true;
+    return width;
+}
+
 bool TextEditorApp::clientToDocument(int clientX, int clientY, int& outRow, int& outCol,
                                      bool clampToViewport) const {
     if (m_lines.empty()) {
@@ -1985,16 +2001,14 @@ void TextEditorApp::render(SDL_Renderer* renderer, const SDL_Rect& contentRect) 
                 const std::string cursorText = onQuery
                     ? "Find: " + findBefore + "_"
                     : "Find: " + m_findQuery + "  Repl: " + replaceBefore + "_";
-                int cursorHeight = 0;
-                TTF_SizeUTF8(m_font, cursorText.c_str(), &searchCursorPx, &cursorHeight);
+                searchCursorPx = measureStatusCursorWidth(cursorText);
             } else {
                 m_findCursorPos = std::min(m_findCursorPos, m_findQuery.size());
                 const std::string findBefore = m_findQuery.substr(0, m_findCursorPos);
                 const std::string findAfter = m_findQuery.substr(m_findCursorPos);
                 status = "Find: " + findBefore + "_" + findAfter;
                 const std::string cursorText = "Find: " + findBefore + "_";
-                int cursorHeight = 0;
-                TTF_SizeUTF8(m_font, cursorText.c_str(), &searchCursorPx, &cursorHeight);
+                searchCursorPx = measureStatusCursorWidth(cursorText);
             }
             searchPromptActive = true;
             if (m_findQuery.empty()) {
@@ -2018,8 +2032,7 @@ void TextEditorApp::render(SDL_Renderer* renderer, const SDL_Rect& contentRect) 
             if (m_pathPromptMode == PathPromptMode::GoToLine) {
                 status = "Go to line: " + promptBuffer;
                 const std::string cursorText = "Go to line: " + beforeCursor + "_";
-                int cursorHeight = 0;
-                TTF_SizeUTF8(m_font, cursorText.c_str(), &searchCursorPx, &cursorHeight);
+                searchCursorPx = measureStatusCursorWidth(cursorText);
                 status += "   |  Enter jump, Esc cancel";
             } else {
                 status = (m_pathPromptMode == PathPromptMode::Open) ? "Open: " : "Save as: ";
@@ -2027,8 +2040,7 @@ void TextEditorApp::render(SDL_Renderer* renderer, const SDL_Rect& contentRect) 
                 const std::string cursorText =
                     ((m_pathPromptMode == PathPromptMode::Open) ? "Open: " : "Save as: ")
                     + beforeCursor + "_";
-                int cursorHeight = 0;
-                TTF_SizeUTF8(m_font, cursorText.c_str(), &searchCursorPx, &cursorHeight);
+                searchCursorPx = measureStatusCursorWidth(cursorText);
                 status += "   |  Tab complete, Enter confirm, Esc cancel";
             }
             searchPromptActive = true;
@@ -2442,6 +2454,7 @@ void TextEditorApp::onUiScaleChanged() {
     m_textTextureCache.clear();
     invalidateRenderedTextSlices();
     invalidateFindHighlightCache();
+    m_statusCursorMeasureValid = false;
     m_findQueryPixelWidth = 0;
     m_findQueryPixelWidthValid = false;
     const int visible = std::max(

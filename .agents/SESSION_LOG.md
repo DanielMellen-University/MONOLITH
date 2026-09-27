@@ -1,5 +1,7 @@
 # Session log
 
+| 2026-09-26 | perf | Cached Text Editor status-bar caret-prefix widths across Find, Replace, Go to Line, Open, and Save As prompts; covered unchanged frames, mode changes, and UI-font invalidation. |
+
 | 2026-09-26 | perf | Reused cached filename texture widths for Filesystem Browser row clipping, avoided per-frame filename copies, and cached inline-rename caret-prefix widths with prefix/font invalidation coverage. |
 
 | 2026-09-26 | perf | Cached the Filesystem Browser filter caret-prefix width between renders; verified stable-prefix reuse, caret movement, and remeasurement after UI-font scaling. |

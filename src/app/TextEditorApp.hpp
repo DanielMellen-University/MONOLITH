@@ -81,6 +81,7 @@ private:
     void cutSelection();
     void pasteClipboard();
     int measureTextPrefixWidth(const std::string& line, int col) const;
+    int measureStatusCursorWidth(const std::string& text);
     bool clientToDocument(int clientX, int clientY, int& outRow, int& outCol,
                           bool clampToViewport = false) const;
 
@@ -214,6 +215,9 @@ private:
     std::size_t m_findCursorPos = 0;
     std::size_t m_replaceCursorPos = 0;
     int m_statusHorizontalScrollPx = 0;
+    std::string m_statusCursorMeasureText;
+    int m_statusCursorPixelWidth = 0;
+    bool m_statusCursorMeasureValid = false;
     int m_findQueryPixelWidth = 0;
     bool m_findQueryPixelWidthValid = false;
     std::vector<std::pair<int, int>> m_findMatches;  // row, col starts
