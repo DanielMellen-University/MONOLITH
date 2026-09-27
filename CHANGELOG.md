@@ -1,5 +1,10 @@
 # Changelog
 
+## 2026-09: Reuse Terminal input cursor measurements
+
+- Use cached input-prefix texture widths for cursor placement instead of measuring the same UTF-8 text again every frame.
+- Cache reverse-search cursor prefixes within the Terminal's existing bounded text texture cache.
+
 ## 2026-09: Render only visible Text Editor find matches
 
 - Seek into row-sorted search results once per render and process only matches belonging to visible document rows.

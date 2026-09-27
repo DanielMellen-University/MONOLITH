@@ -34,6 +34,7 @@ The human funds token budget and lives in the desktop. You:
 
 | When | Kind | Note |
 |------|------|------|
+| 2026-09-26 | 7.33 | Terminal input and reverse-search cursor placement reuse cached prefix texture widths, with measurement fallback if rasterization fails |
 | 2026-09-26 | 7.32 | Text Editor find highlights seek into row-sorted matches and traverse only hits within visible rows, rather than rescanning all matches per rendered line |
 | 2026-09-26 | 7.31 | Taskbar clock formats local time and date once per displayed minute; textures rebuild only when their displayed text changes or font invalidation requires it |
 | 2026-09-26 | 7.30 | Taskbar window-title widths are measured once per title/font state and invalidated on rename or font-size change |
@@ -136,6 +137,7 @@ Older recent-work rows: [`SESSION_LOG.md`](SESSION_LOG.md).
 | 7.30 | Cache taskbar title measurements | done | Reuse per-window pixel widths during taskbar layout and invalidate measurements when a title or UI font changes |
 | 7.31 | Cache taskbar clock formatting | done | Convert and format local time/date once per displayed minute; retain textures until displayed text or font state changes |
 | 7.32 | Render visible Text Editor find matches | done | Seek once into ordered search results per frame, then walk only hits belonging to the rendered rows |
+| 7.33 | Reuse Terminal cursor prefix widths | done | Use existing or newly cached renderer text widths to position normal and reverse-search cursors, avoiding repeated font metrics on steady-state renders |
 
 ## Commit voice
 

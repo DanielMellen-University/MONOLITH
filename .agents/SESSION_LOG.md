@@ -1,5 +1,7 @@
 # Session log
 
+| 2026-09-26 | perf | Reused Terminal input-prefix texture widths for cursor placement and cached reverse-search prefix textures in the existing bounded LRU; retained TTF measurement only when rasterization fails. |
+
 | 2026-09-26 | perf | Changed Text Editor find rendering from per-visible-line scans of all document matches to one lower-bound seek plus a forward walk through visible hits; added a scrolled active-highlight pixel regression. |
 
 | 2026-09-26 | perf | Cached taskbar clock time/date formatting by minute so steady-state renders avoid localtime and strftime calls; preserved texture reuse and font/format invalidation. |

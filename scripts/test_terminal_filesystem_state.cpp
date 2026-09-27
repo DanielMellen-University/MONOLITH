@@ -551,13 +551,34 @@ int main() {
         terminal.m_searchMatchIndex = -1;
         const std::string reverseSearchText =
             "(reverse-i-search)`second': (no match)";
+        const std::string reverseSearchCursorPrefix = "(reverse-i-search)`sec";
         const size_t beforeReverseSearch = terminal.m_textTextureCache.size();
         terminal.render(renderer, {0, 0, 200, 200});
         const auto reverseSearchTexture = terminal.m_textTextureCache.get(
             renderer, font, reverseSearchText.c_str(), terminalTextColor);
+        const size_t afterReverseSearchRender = terminal.m_textTextureCache.size();
+        const auto firstReverseSearchCursorTexture = terminal.m_textTextureCache.get(
+            renderer, font, reverseSearchCursorPrefix.c_str(), terminalTextColor);
+        int expectedReverseSearchCursorWidth = 0;
+        int expectedReverseSearchCursorHeight = 0;
+        const bool measuredReverseSearchCursor = TTF_SizeUTF8(
+            font, reverseSearchCursorPrefix.c_str(),
+            &expectedReverseSearchCursorWidth, &expectedReverseSearchCursorHeight) == 0;
+        const size_t afterReverseSearchCursorLookup = terminal.m_textTextureCache.size();
+        terminal.render(renderer, {0, 0, 200, 200});
+        const auto repeatedReverseSearchCursorTexture = terminal.m_textTextureCache.get(
+            renderer, font, reverseSearchCursorPrefix.c_str(), terminalTextColor);
         check(reverseSearchTexture
-                  && terminal.m_textTextureCache.size() > beforeReverseSearch,
-              "Terminal caches reverse-search text between frames");
+                  && terminal.m_textTextureCache.size() > beforeReverseSearch
+                  && firstReverseSearchCursorTexture
+                  && afterReverseSearchRender == afterReverseSearchCursorLookup
+                  && repeatedReverseSearchCursorTexture.handle
+                      == firstReverseSearchCursorTexture.handle
+                  && measuredReverseSearchCursor
+                  && repeatedReverseSearchCursorTexture.width == expectedReverseSearchCursorWidth
+                  && expectedReverseSearchCursorHeight > 0
+                  && terminal.m_textTextureCache.size() == afterReverseSearchCursorLookup,
+              "Terminal reuses reverse-search text and cursor-prefix metrics between frames");
         terminal.m_searchMode = false;
         const size_t beforeClear = terminal.m_textTextureCache.size();
         terminal.executeCommand("clear");

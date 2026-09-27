@@ -504,9 +504,14 @@ void TerminalApp::render(SDL_Renderer* renderer, const SDL_Rect& contentRect) {
 
         std::string full = searchPrompt + matchText;
         const std::string cursorPrefix = "(reverse-i-search)`" + beforeCursor;
-        int cursorPrefixWidth = 0;
-        int cursorPrefixHeight = 0;
-        TTF_SizeUTF8(m_font, cursorPrefix.c_str(), &cursorPrefixWidth, &cursorPrefixHeight);
+        const auto cursorPrefixTexture = m_textTextureCache.get(
+            renderer, m_font, cursorPrefix.c_str(), textColor);
+        int cursorPrefixWidth = cursorPrefixTexture ? cursorPrefixTexture.width : 0;
+        if (!cursorPrefixTexture) {
+            int cursorPrefixHeight = 0;
+            TTF_SizeUTF8(m_font, cursorPrefix.c_str(),
+                         &cursorPrefixWidth, &cursorPrefixHeight);
+        }
         const int inputViewportWidth = std::max(1, inputBar.w - padding * 2);
         const int cursorWidth = 8;
 
@@ -543,9 +548,13 @@ void TerminalApp::render(SDL_Renderer* renderer, const SDL_Rect& contentRect) {
         std::string prompt = getInputPrompt();
         std::string beforeCursor = prompt + m_inputBuffer.substr(0, m_inputCursorPos);
         std::string afterCursor  = m_inputBuffer.substr(m_inputCursorPos);
-        int prefixWidth = 0;
-        int prefixHeight = 0;
-        TTF_SizeUTF8(m_font, beforeCursor.c_str(), &prefixWidth, &prefixHeight);
+        const auto beforeTexture = m_textTextureCache.get(
+            renderer, m_font, beforeCursor.c_str(), textColor);
+        int prefixWidth = beforeTexture ? beforeTexture.width : 0;
+        if (!beforeTexture) {
+            int prefixHeight = 0;
+            TTF_SizeUTF8(m_font, beforeCursor.c_str(), &prefixWidth, &prefixHeight);
+        }
         const int cursorWidth = 8;
         const int inputViewportWidth = std::max(1, inputBar.w - padding * 2);
         if (prefixWidth + cursorWidth > m_inputHorizontalScrollPx + inputViewportWidth) {
@@ -558,8 +567,6 @@ void TerminalApp::render(SDL_Renderer* renderer, const SDL_Rect& contentRect) {
         const int textOriginX = contentRect.x + padding - m_inputHorizontalScrollPx;
 
         // Draw text before cursor
-        const auto beforeTexture = m_textTextureCache.get(
-            renderer, m_font, beforeCursor.c_str(), textColor);
         int cursorX = textOriginX;
         if (beforeTexture) {
             SDL_Rect dst = {
