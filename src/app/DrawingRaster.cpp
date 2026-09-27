@@ -216,7 +216,8 @@ bool drawBrushStroke(std::vector<uint8_t>& rgba, int width, int height,
 }
 
 std::size_t fillRegion(std::vector<uint8_t>& rgba, int width, int height,
-                       int x, int y, uint8_t r, uint8_t g, uint8_t b) {
+                       int x, int y, uint8_t r, uint8_t g, uint8_t b,
+                       PixelSpanWriteObserver observer, void* observerContext) {
     if (!hasValidCanvasBuffer(rgba, width, height)
         || x < 0 || y < 0 || x >= width || y >= height) return 0;
     const std::size_t canvasWidth = static_cast<std::size_t>(width);
@@ -251,6 +252,7 @@ std::size_t fillRegion(std::vector<uint8_t>& rgba, int width, int height,
         int right = seedX;
         while (right + 1 < width && isTarget(right + 1, row)) ++right;
 
+        if (observer) observer(observerContext, row, left, right);
         for (int px = left; px <= right; ++px) {
             const std::size_t index =
                 (static_cast<std::size_t>(row) * canvasWidth

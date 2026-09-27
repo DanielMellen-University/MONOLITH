@@ -196,6 +196,29 @@ int main() {
               && redoDrawing.m_pixels == pixelsAfterStroke,
           "preserved Drawing redo history restores the exact stroke pixels");
 
+    TestDrawing savedHistory(font, &fs);
+    savedHistory.onResize(300, 300);
+    const std::vector<uint8_t> savedHistoryBaseline = savedHistory.m_pixels;
+    savedHistory.m_tool = monolith::app::DrawingApp::Tool::Pen;
+    savedHistory.beginStroke();
+    const bool savedHistoryChanged = savedHistory.drawStroke(24, 24, 30, 24);
+    savedHistory.recordStrokeChange();
+    savedHistory.finishStroke();
+    const std::vector<uint8_t> savedHistoryPixels = savedHistory.m_pixels;
+    const bool savedHistoryStored = savedHistoryChanged
+        && savedHistory.saveToPath("/drawings/saved-history.modr")
+        && !savedHistory.m_dirty
+        && savedHistory.m_dirtyTileCount == 0;
+    savedHistory.undoCanvas();
+    const bool savedHistoryUndoDirty = savedHistory.m_dirty
+        && savedHistory.m_dirtyTileCount == 1
+        && savedHistory.m_pixels == savedHistoryBaseline;
+    savedHistory.redoCanvas();
+    check(savedHistoryStored && savedHistoryUndoDirty
+              && !savedHistory.m_dirty && savedHistory.m_dirtyTileCount == 0
+              && savedHistory.m_pixels == savedHistoryPixels,
+          "sparse undo and redo update tile dirtiness against a save made mid-history");
+
     TestDrawing multiTileStroke(font, &fs);
     multiTileStroke.onResize(320, 256);
     multiTileStroke.m_tool = monolith::app::DrawingApp::Tool::Pen;
@@ -412,6 +435,27 @@ int main() {
     check(fillCoveredCanvas, "Drawing fill covers a connected canvas without gaps");
     check(drawing.loadFromPath("/drawings/resize.modr"), "load resize drawing");
     check(!drawing.m_dirty, "loaded drawing starts clean");
+
+    TestDrawing fillDirtyTracking(font, &fs);
+    fillDirtyTracking.onResize(300, 300);
+    const std::vector<uint8_t> fillDirtyBaseline = fillDirtyTracking.m_pixels;
+    fillDirtyTracking.setPixel(10, 10, 1, 2, 3);
+    fillDirtyTracking.setPixel(11, 10, 1, 2, 3);
+    fillDirtyTracking.m_savedSnapshot = {
+        fillDirtyTracking.m_canvasWidth,
+        fillDirtyTracking.m_canvasHeight,
+        fillDirtyBaseline};
+    fillDirtyTracking.refreshDirtyState();
+    fillDirtyTracking.m_tool = monolith::app::DrawingApp::Tool::Eraser;
+    fillDirtyTracking.floodFill(10, 10);
+    check(!fillDirtyTracking.m_dirty && fillDirtyTracking.m_dirtyTileCount == 0,
+          "fill that restores saved pixels clears only the touched tile's dirty state");
+    fillDirtyTracking.undoCanvas();
+    check(fillDirtyTracking.m_dirty && fillDirtyTracking.m_dirtyTileCount == 1,
+          "undoing fill recomputes dirty tiles against the saved image");
+    fillDirtyTracking.redoCanvas();
+    check(!fillDirtyTracking.m_dirty && fillDirtyTracking.m_dirtyTileCount == 0,
+          "redoing fill clears tile dirtiness when it restores the saved image");
 
     const int baseToolbarHeight = drawing.m_canvasTop;
     const int baseStatusBarHeight = drawing.m_statusBarHeight;

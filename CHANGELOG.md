@@ -1,5 +1,11 @@
 # Changelog
 
+## 2026-09: Limit Drawing dirty checks to touched tiles
+
+- Track modified state in a compact 32×32 tile map, so sparse stroke undo/redo compares only affected pixels against the saved image.
+- Track Fill spans and Clear tiles so the modified marker is recomputed only for tiles each operation touched.
+- Cover save-mid-history undo/redo and fill-to-saved-baseline behavior.
+
 ## 2026-09: Keep Drawing stroke history sparse
 
 - Capture original 32×32 tiles only when a stroke first changes pixels in each tile, avoiding a full-canvas copy at gesture start.

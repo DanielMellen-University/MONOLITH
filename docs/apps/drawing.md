@@ -524,7 +524,7 @@ Drawing stores a capped history of canvas edits.
 - Opening a file clears history.
 - Resizing the canvas clears history so old edits are not applied to the wrong canvas size.
 
-Undo and redo share a combined limit of 32 history states and 64 MiB of stored pixel data. The oldest undo states are discarded first when either limit is reached. Sparse strokes remain undoable on canvases larger than 64 MiB when their touched tiles fit the budget; if one stroke exceeds the budget, Drawing immediately releases its pending tile captures and clears undo/redo rather than growing memory without bound. A full-canvas operation that exceeds the budget also clears history instead of allocating an oversized snapshot. Tile preimages swap their pixel data in place between undo and redo, while full snapshots move between stacks without duplicating their buffers.
+Undo and redo share a combined limit of 32 history states and 64 MiB of stored pixel data. The oldest undo states are discarded first when either limit is reached. Sparse strokes remain undoable on canvases larger than 64 MiB when their touched tiles fit the budget; if one stroke exceeds the budget, Drawing immediately releases its pending tile captures and clears undo/redo rather than growing memory without bound. A full-canvas operation that exceeds the budget also clears history instead of allocating an oversized snapshot. Tile preimages swap their pixel data in place between undo and redo, while full snapshots move between stacks without duplicating their buffers. A compact dirty-tile map keeps the modified marker accurate after saves and undo/redo; sparse edits recompare only touched tiles against the saved image rather than scanning the entire canvas.
 
 ## File Format
 

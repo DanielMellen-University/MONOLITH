@@ -5,6 +5,7 @@
 #include "../fs/Filesystem.hpp"
 #include <SDL2/SDL.h>
 #include <SDL2/SDL_ttf.h>
+#include <cstddef>
 #include <cstdint>
 #include <string>
 #include <vector>
@@ -94,6 +95,17 @@ private:
     void undoCanvas();
     void redoCanvas();
     void refreshDirtyState();
+    void rebuildDirtyTiles();
+    void clearDirtyTiles();
+    void markAllDirtyTiles();
+    void markDirtyTile(std::size_t index);
+    void refreshDirtyTile(const CanvasTileSnapshot& tile);
+    void updateDirtyFlag();
+    void beginDirtyTileTracking();
+    static void observeDirtySpanWrite(void* context, int y, int left, int right);
+    void noteDirtyTileWrite(int x, int y);
+    void noteDirtySpanWrite(int y, int left, int right);
+    void finishDirtyTileTracking();
     bool setPixel(int x, int y, uint8_t r, uint8_t g, uint8_t b);
     bool stampBrush(int x, int y);
     bool drawStroke(int x0, int y0, int x1, int y1);
@@ -138,6 +150,13 @@ private:
 
     std::vector<uint8_t> m_pixels; // R,G,B,A byte order per pixel
     CanvasSnapshot m_savedSnapshot;
+    std::vector<uint8_t> m_dirtyTiles;
+    std::size_t m_dirtyTileColumns = 0;
+    std::size_t m_dirtyTileCount = 0;
+    int m_dirtyTileWidth = 0;
+    int m_dirtyTileHeight = 0;
+    std::vector<uint8_t> m_dirtyTrackingTiles;
+    std::vector<std::size_t> m_dirtyTrackedTileIndices;
     std::vector<CanvasHistoryEntry> m_undoStack;
     std::vector<CanvasHistoryEntry> m_redoStack;
     int m_canvasWidth = 0;

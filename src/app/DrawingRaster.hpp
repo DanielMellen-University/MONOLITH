@@ -9,6 +9,8 @@ namespace monolith::drawing {
 
 /** Called before each actual pixel change, allowing sparse history capture. */
 using PixelWriteObserver = void (*)(void* context, int x, int y);
+/** Called once before the pixels in a changed fill span are written. */
+using PixelSpanWriteObserver = void (*)(void* context, int y, int left, int right);
 
 /** Set one RGBA pixel. Returns false if the pixel was already that color. */
 bool setPixel(std::vector<uint8_t>& rgba, int width, int height,
@@ -43,7 +45,9 @@ bool drawBrushStroke(std::vector<uint8_t>& rgba, int width, int height,
 
 /** Fill a 4-connected RGB region using a scanline worklist; return pixels changed. */
 std::size_t fillRegion(std::vector<uint8_t>& rgba, int width, int height,
-                       int x, int y, uint8_t r, uint8_t g, uint8_t b);
+                       int x, int y, uint8_t r, uint8_t g, uint8_t b,
+                       PixelSpanWriteObserver observer = nullptr,
+                       void* observerContext = nullptr);
 
 /** Encode live RGBA canvas as .modr (magic + w/h + RGB payload). */
 std::string encodeModr(int width, int height, const std::vector<uint8_t>& rgba);

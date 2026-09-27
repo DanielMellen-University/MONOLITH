@@ -156,7 +156,7 @@ Headless test of line/rect raster, batched brush-stroke equivalence, clipped and
 g++ -std=c++23 scripts/test_drawing_roadmap.cpp src/app/DrawingRaster.cpp -o build/test_drawing_roadmap && ./build/test_drawing_roadmap
 ```
 
-Headless Drawing state test for clean loads, resize dirty tracking, sparse multi-tile undo/redo (including a canvas above 64 MiB and over-budget stroke fallback), history reset, font-scaled chrome, scaled canvas pointer mapping, duplicate file singleton rejection, and creation-notification binding order:
+Headless Drawing state test for clean loads, resize and tile-dirty tracking, fill restoration, save-mid-history undo/redo, sparse multi-tile history (including a canvas above 64 MiB and over-budget stroke fallback), history reset, font-scaled chrome, scaled canvas pointer mapping, duplicate file singleton rejection, and creation-notification binding order:
 
 ```bash
 g++ -std=c++23 scripts/test_drawing_state.cpp src/app/DrawingApp.cpp src/app/DrawingRaster.cpp src/fs/Filesystem.cpp $(pkg-config --cflags --libs sdl2 SDL2_ttf) -o build/test_drawing_state && ./build/test_drawing_state

@@ -106,13 +106,24 @@ void DrawingApp::clearCanvas(bool recordUndo) {
         pushUndoSnapshot();
     }
 
-    for (size_t i = 0; i < m_pixels.size(); i += 4) {
-        m_pixels[i + 0] = kCanvasBackgroundR;
-        m_pixels[i + 1] = kCanvasBackgroundG;
-        m_pixels[i + 2] = kCanvasBackgroundB;
-        m_pixels[i + 3] = 255;
+    beginDirtyTileTracking();
+    for (int y = 0; y < m_canvasHeight; y += kHistoryTileSize) {
+        for (int x = 0; x < m_canvasWidth; x += kHistoryTileSize) {
+            noteDirtyTileWrite(x, y);
+        }
+    }
+    for (int y = 0; y < m_canvasHeight; ++y) {
+        const size_t row = static_cast<size_t>(y) * static_cast<size_t>(m_canvasWidth) * 4;
+        for (int x = 0; x < m_canvasWidth; ++x) {
+            const size_t i = row + static_cast<size_t>(x) * 4;
+            m_pixels[i + 0] = kCanvasBackgroundR;
+            m_pixels[i + 1] = kCanvasBackgroundG;
+            m_pixels[i + 2] = kCanvasBackgroundB;
+            m_pixels[i + 3] = 255;
+        }
     }
     m_dirty = true;
+    finishDirtyTileTracking();
     clearDiscardArm();
     markTextureDirty();
     if (recordUndo) {
@@ -222,6 +233,10 @@ void DrawingApp::beginStroke() {
         && m_strokeTileColumns > std::numeric_limits<size_t>::max() / tileRows
         ? 0
         : m_strokeTileColumns * tileRows;
+    if (m_dirtyTileWidth != m_canvasWidth || m_dirtyTileHeight != m_canvasHeight
+        || m_dirtyTiles.size() != tileCount) {
+        rebuildDirtyTiles();
+    }
     m_strokeCapturedTiles.assign(tileCount, 0);
     m_strokeHistoryBytes = 0;
     m_strokeHistoryOverflowed = false;
@@ -252,15 +267,28 @@ void DrawingApp::observeStrokePixelWrite(void* context, int x, int y) {
 }
 
 void DrawingApp::captureStrokeTile(int x, int y) {
-    if (!m_strokeHistoryPending || m_strokeHistoryOverflowed || x < 0 || y < 0
-        || x >= m_canvasWidth || y >= m_canvasHeight || m_strokeTileColumns == 0) {
+    if (x < 0 || y < 0 || x >= m_canvasWidth || y >= m_canvasHeight) {
         return;
     }
+    if (m_dirtyTileWidth != m_canvasWidth || m_dirtyTileHeight != m_canvasHeight) {
+        rebuildDirtyTiles();
+    }
+
+    const size_t dirtyTileX = static_cast<size_t>(x) / kHistoryTileSize;
+    const size_t dirtyTileY = static_cast<size_t>(y) / kHistoryTileSize;
+    const size_t dirtyTileIndex = dirtyTileY * m_dirtyTileColumns + dirtyTileX;
+    if (dirtyTileIndex < m_dirtyTiles.size() && !m_dirtyTiles[dirtyTileIndex]) {
+        markDirtyTile(dirtyTileIndex);
+    }
+    if (!m_strokeHistoryPending || m_strokeTileColumns == 0) return;
 
     const size_t tileX = static_cast<size_t>(x) / kHistoryTileSize;
     const size_t tileY = static_cast<size_t>(y) / kHistoryTileSize;
     const size_t tileIndex = tileY * m_strokeTileColumns + tileX;
-    if (tileIndex >= m_strokeCapturedTiles.size() || m_strokeCapturedTiles[tileIndex]) return;
+    if (tileIndex >= m_strokeCapturedTiles.size()) return;
+    if (m_strokeCapturedTiles[tileIndex]) return;
+    m_strokeCapturedTiles[tileIndex] = 1;
+    if (m_strokeHistoryOverflowed) return;
 
     CanvasTileSnapshot tile;
     tile.x = static_cast<int>(tileX * kHistoryTileSize);
@@ -287,7 +315,6 @@ void DrawingApp::captureStrokeTile(int x, int y) {
                     m_pixels.data() + source, rowBytes);
     }
     m_strokeHistoryEntry.tiles.push_back(std::move(tile));
-    m_strokeCapturedTiles[tileIndex] = 1;
     m_strokeHistoryBytes += tileBytes;
 }
 
@@ -329,9 +356,224 @@ void DrawingApp::restoreCanvasSnapshot(CanvasSnapshot&& snapshot) {
 }
 
 void DrawingApp::refreshDirtyState() {
+    rebuildDirtyTiles();
+}
+
+void DrawingApp::rebuildDirtyTiles() {
+    const size_t columns = m_canvasWidth > 0
+        ? (static_cast<size_t>(m_canvasWidth - 1) / kHistoryTileSize) + 1
+        : 0;
+    const size_t rows = m_canvasHeight > 0
+        ? (static_cast<size_t>(m_canvasHeight - 1) / kHistoryTileSize) + 1
+        : 0;
+    const size_t tileCount = rows != 0
+        && columns > std::numeric_limits<size_t>::max() / rows
+        ? 0
+        : columns * rows;
+    m_dirtyTileWidth = m_canvasWidth;
+    m_dirtyTileHeight = m_canvasHeight;
+    m_dirtyTileColumns = columns;
+    m_dirtyTiles.assign(tileCount, 0);
+    m_dirtyTileCount = 0;
+
+    if (m_canvasWidth != m_savedSnapshot.width
+        || m_canvasHeight != m_savedSnapshot.height
+        || m_canvasWidth <= 0 || m_canvasHeight <= 0) {
+        markAllDirtyTiles();
+        return;
+    }
+
+    const size_t width = static_cast<size_t>(m_canvasWidth);
+    const size_t height = static_cast<size_t>(m_canvasHeight);
+    if (width > std::numeric_limits<size_t>::max() / height / 4
+        || m_pixels.size() != width * height * 4
+        || m_savedSnapshot.pixels.size() != m_pixels.size()) {
+        markAllDirtyTiles();
+        return;
+    }
+
+    for (size_t tileY = 0; tileY < rows; ++tileY) {
+        const int y = static_cast<int>(tileY * kHistoryTileSize);
+        const int tileHeight = std::min(kHistoryTileSize, m_canvasHeight - y);
+        for (size_t tileX = 0; tileX < columns; ++tileX) {
+            const int x = static_cast<int>(tileX * kHistoryTileSize);
+            const int tileWidth = std::min(kHistoryTileSize, m_canvasWidth - x);
+            const size_t rowBytes = static_cast<size_t>(tileWidth) * 4;
+            bool differs = false;
+            for (int row = 0; row < tileHeight && !differs; ++row) {
+                const size_t offset =
+                    (static_cast<size_t>(y + row) * width + static_cast<size_t>(x)) * 4;
+                differs = std::memcmp(m_pixels.data() + offset,
+                                      m_savedSnapshot.pixels.data() + offset,
+                                      rowBytes) != 0;
+            }
+            if (differs) {
+                const size_t index = tileY * columns + tileX;
+                m_dirtyTiles[index] = 1;
+                ++m_dirtyTileCount;
+            }
+        }
+    }
+    updateDirtyFlag();
+}
+
+void DrawingApp::clearDirtyTiles() {
+    const size_t columns = m_canvasWidth > 0
+        ? (static_cast<size_t>(m_canvasWidth - 1) / kHistoryTileSize) + 1
+        : 0;
+    const size_t rows = m_canvasHeight > 0
+        ? (static_cast<size_t>(m_canvasHeight - 1) / kHistoryTileSize) + 1
+        : 0;
+    const size_t tileCount = rows != 0
+        && columns > std::numeric_limits<size_t>::max() / rows
+        ? 0
+        : columns * rows;
+    m_dirtyTileWidth = m_canvasWidth;
+    m_dirtyTileHeight = m_canvasHeight;
+    m_dirtyTileColumns = columns;
+    m_dirtyTiles.assign(tileCount, 0);
+    m_dirtyTileCount = 0;
+    updateDirtyFlag();
+}
+
+void DrawingApp::markAllDirtyTiles() {
+    if (m_dirtyTileWidth != m_canvasWidth || m_dirtyTileHeight != m_canvasHeight) {
+        clearDirtyTiles();
+    }
+    std::fill(m_dirtyTiles.begin(), m_dirtyTiles.end(), 1);
+    m_dirtyTileCount = m_dirtyTiles.size();
+    updateDirtyFlag();
+}
+
+void DrawingApp::markDirtyTile(size_t index) {
+    if (m_dirtyTileWidth != m_canvasWidth || m_dirtyTileHeight != m_canvasHeight) {
+        rebuildDirtyTiles();
+    }
+    if (index >= m_dirtyTiles.size()) return;
+    if (!m_dirtyTiles[index]) {
+        m_dirtyTiles[index] = 1;
+        ++m_dirtyTileCount;
+    }
+    updateDirtyFlag();
+}
+
+void DrawingApp::refreshDirtyTile(const CanvasTileSnapshot& tile) {
+    if (m_canvasWidth != m_savedSnapshot.width
+        || m_canvasHeight != m_savedSnapshot.height
+        || m_dirtyTileWidth != m_canvasWidth
+        || m_dirtyTileHeight != m_canvasHeight) {
+        rebuildDirtyTiles();
+        return;
+    }
+
+    const size_t tileX = static_cast<size_t>(tile.x) / kHistoryTileSize;
+    const size_t tileY = static_cast<size_t>(tile.y) / kHistoryTileSize;
+    const size_t index = tileY * m_dirtyTileColumns + tileX;
+    if (index >= m_dirtyTiles.size()) {
+        rebuildDirtyTiles();
+        return;
+    }
+
+    const size_t width = static_cast<size_t>(m_canvasWidth);
+    const size_t height = static_cast<size_t>(m_canvasHeight);
+    if (width > std::numeric_limits<size_t>::max() / height / 4
+        || m_pixels.size() != width * height * 4
+        || m_savedSnapshot.pixels.size() != m_pixels.size()) {
+        rebuildDirtyTiles();
+        return;
+    }
+    const size_t rowBytes = static_cast<size_t>(tile.width) * 4;
+    bool differs = false;
+    for (int row = 0; row < tile.height && !differs; ++row) {
+        const size_t offset =
+            (static_cast<size_t>(tile.y + row) * width + static_cast<size_t>(tile.x)) * 4;
+        differs = std::memcmp(m_pixels.data() + offset,
+                              m_savedSnapshot.pixels.data() + offset,
+                              rowBytes) != 0;
+    }
+
+    if (differs && !m_dirtyTiles[index]) {
+        m_dirtyTiles[index] = 1;
+        ++m_dirtyTileCount;
+    } else if (!differs && m_dirtyTiles[index]) {
+        m_dirtyTiles[index] = 0;
+        if (m_dirtyTileCount > 0) --m_dirtyTileCount;
+    }
+}
+
+void DrawingApp::updateDirtyFlag() {
     m_dirty = m_canvasWidth != m_savedSnapshot.width
         || m_canvasHeight != m_savedSnapshot.height
-        || m_pixels != m_savedSnapshot.pixels;
+        || m_dirtyTileCount > 0;
+}
+
+void DrawingApp::beginDirtyTileTracking() {
+    const size_t rows = m_canvasHeight > 0
+        ? (static_cast<size_t>(m_canvasHeight - 1) / kHistoryTileSize) + 1
+        : 0;
+    const size_t tileCount = rows != 0
+        && m_dirtyTileColumns > std::numeric_limits<size_t>::max() / rows
+        ? 0
+        : m_dirtyTileColumns * rows;
+    if (m_dirtyTileWidth != m_canvasWidth || m_dirtyTileHeight != m_canvasHeight
+        || m_dirtyTiles.size() != tileCount) {
+        rebuildDirtyTiles();
+    }
+    m_dirtyTrackingTiles.assign(m_dirtyTiles.size(), 0);
+    m_dirtyTrackedTileIndices.clear();
+}
+
+void DrawingApp::observeDirtySpanWrite(void* context, int y, int left, int right) {
+    if (context) {
+        static_cast<DrawingApp*>(context)->noteDirtySpanWrite(y, left, right);
+    }
+}
+
+void DrawingApp::noteDirtyTileWrite(int x, int y) {
+    if (x < 0 || y < 0 || x >= m_canvasWidth || y >= m_canvasHeight
+        || m_dirtyTileColumns == 0) {
+        return;
+    }
+    const size_t index =
+        (static_cast<size_t>(y) / kHistoryTileSize) * m_dirtyTileColumns
+        + static_cast<size_t>(x) / kHistoryTileSize;
+    if (index >= m_dirtyTrackingTiles.size() || m_dirtyTrackingTiles[index]) return;
+    m_dirtyTrackingTiles[index] = 1;
+    m_dirtyTrackedTileIndices.push_back(index);
+}
+
+void DrawingApp::noteDirtySpanWrite(int y, int left, int right) {
+    if (y < 0 || y >= m_canvasHeight || left < 0 || right < left
+        || right >= m_canvasWidth) {
+        return;
+    }
+    const int firstTileX = left / kHistoryTileSize;
+    const int lastTileX = right / kHistoryTileSize;
+    for (int tileX = firstTileX; tileX <= lastTileX; ++tileX) {
+        noteDirtyTileWrite(tileX * kHistoryTileSize, y);
+    }
+}
+
+void DrawingApp::finishDirtyTileTracking() {
+    if (m_canvasWidth != m_savedSnapshot.width
+        || m_canvasHeight != m_savedSnapshot.height
+        || m_savedSnapshot.pixels.size() != m_pixels.size()) {
+        rebuildDirtyTiles();
+    } else {
+        for (const size_t index : m_dirtyTrackedTileIndices) {
+            const size_t tileX = index % m_dirtyTileColumns;
+            const size_t tileY = index / m_dirtyTileColumns;
+            CanvasTileSnapshot tile;
+            tile.x = static_cast<int>(tileX * kHistoryTileSize);
+            tile.y = static_cast<int>(tileY * kHistoryTileSize);
+            tile.width = std::min(kHistoryTileSize, m_canvasWidth - tile.x);
+            tile.height = std::min(kHistoryTileSize, m_canvasHeight - tile.y);
+            refreshDirtyTile(tile);
+        }
+        updateDirtyFlag();
+    }
+    m_dirtyTrackingTiles.clear();
+    m_dirtyTrackedTileIndices.clear();
 }
 
 void DrawingApp::undoCanvas() {
@@ -353,7 +595,8 @@ void DrawingApp::undoCanvas() {
     } else {
         toggleStrokeTiles(entry);
         m_redoStack.push_back(std::move(entry));
-        refreshDirtyState();
+        for (const auto& tile : m_redoStack.back().tiles) refreshDirtyTile(tile);
+        updateDirtyFlag();
         clearDiscardArm();
         markTextureDirty();
     }
@@ -379,7 +622,8 @@ void DrawingApp::redoCanvas() {
     } else {
         toggleStrokeTiles(entry);
         m_undoStack.push_back(std::move(entry));
-        refreshDirtyState();
+        for (const auto& tile : m_undoStack.back().tiles) refreshDirtyTile(tile);
+        updateDirtyFlag();
         clearDiscardArm();
         markTextureDirty();
     }
@@ -517,10 +761,13 @@ void DrawingApp::floodFill(int x, int y) {
     }
 
     pushUndoSnapshot();
+    beginDirtyTileTracking();
     monolith::drawing::fillRegion(
-        m_pixels, m_canvasWidth, m_canvasHeight, x, y, fillR, fillG, fillB);
+        m_pixels, m_canvasWidth, m_canvasHeight, x, y, fillR, fillG, fillB,
+        &DrawingApp::observeDirtySpanWrite, this);
 
     m_dirty = true;
+    finishDirtyTileTracking();
     clearDiscardArm();
     markTextureDirty();
     setStatus("Filled region.");
@@ -658,6 +905,7 @@ bool DrawingApp::saveToPath(const std::string& virtualPath) {
     m_filePath = path;
     m_savedSnapshot = {m_canvasWidth, m_canvasHeight, m_pixels};
     m_dirty = false;
+    clearDirtyTiles();
     clearDiscardArm();
 
     if (auto* ctrl = getController()) {
@@ -716,6 +964,7 @@ bool DrawingApp::loadFromPath(const std::string& virtualPath) {
     m_filePath = path;
     m_savedSnapshot = {m_canvasWidth, m_canvasHeight, m_pixels};
     m_dirty = false;
+    clearDirtyTiles();
     m_undoStack.clear();
     m_redoStack.clear();
     markTextureDirty();
@@ -858,6 +1107,7 @@ void DrawingApp::startNewSketch() {
     m_undoStack.clear();
     m_redoStack.clear();
     m_dirty = false; // blank new sketch is clean
+    clearDirtyTiles();
     clearDiscardArm();
     if (auto* ctrl = getController()) {
         ctrl->clearDrawingFileBinding();
@@ -1392,6 +1642,7 @@ void DrawingApp::onResize(int clientWidth, int clientHeight) {
         } else if (!m_dirty) {
             m_savedSnapshot = {m_canvasWidth, m_canvasHeight, m_pixels};
         }
+        rebuildDirtyTiles();
     }
 
     if (!m_pendingInitialPath.empty()) {
@@ -1402,6 +1653,7 @@ void DrawingApp::onResize(int clientWidth, int clientHeight) {
             // fallback canvas clean so its first undo returns to a clean state.
             m_savedSnapshot = {m_canvasWidth, m_canvasHeight, m_pixels};
             m_dirty = false;
+            clearDirtyTiles();
         }
     }
 }
