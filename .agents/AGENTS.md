@@ -34,7 +34,7 @@ The human funds token budget and lives in the desktop. You:
 
 | When | Kind | Note |
 |------|------|------|
-| 2026-09-27 | 7.44 | Drawing raster primitives now share buffer validation and Bresenham brush strokes; bounded rectangle loops to visible pixels |
+| 2026-09-27 | 7.44 | Drawing raster primitives now share buffer validation and Bresenham brush strokes; bounded rectangle loops to visible pixels; hosted headless workflow #54 passed |
 | 2026-09-26 | 7.43 | Drawing Fill uses a scanline-span worklist to reduce per-pixel queue traffic while preserving four-connected selection; hosted headless workflow #52 passed |
 | 2026-09-26 | 7.42 | Drawing reuses active Save, Open, and RGB prompt caret-prefix widths until the prefix or shared font changes; hosted headless workflow #50 passed |
 | 2026-09-26 | 7.41 | Text Editor reuses status-bar caret-prefix widths across Find, Replace, Go to Line, Open, and Save As prompts; hosted headless workflow #48 passed |
@@ -159,7 +159,7 @@ Older recent-work rows: [`SESSION_LOG.md`](SESSION_LOG.md).
 | 7.41 | Cache Text Editor prompt caret metrics | done | Reuse status-bar caret-prefix widths across search and path prompts; remeasure after cursor-text or shared-font changes |
 | 7.42 | Cache Drawing prompt caret metrics | done | Reuse active prompt caret-prefix width; remeasure after prompt text or shared-font changes |
 | 7.43 | Optimize Drawing flood fill | done | Replace per-pixel work items with horizontal spans while preserving four-connected selection and opaque RGB pixels |
-| 7.44 | Batch Drawing raster validation | in progress | Validate buffers once per primitive, rasterize each brush drag with one Bresenham traversal, and bound rectangle loops to the visible canvas |
+| 7.44 | Batch Drawing raster validation | done | Validate buffers once per primitive, rasterize each brush drag with one Bresenham traversal, and bound rectangle loops to the visible canvas |
 
 ## Commit voice
 
