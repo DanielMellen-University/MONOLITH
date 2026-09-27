@@ -3,6 +3,7 @@
 #include <algorithm>
 #include <cctype>
 #include <cstring>
+#include <limits>
 #include <sstream>
 
 namespace monolith::drawing {
@@ -99,6 +100,86 @@ bool drawRect(std::vector<uint8_t>& rgba, int width, int height,
         changed = setPixel(rgba, width, height, x1, y, r, g, b) || changed;
     }
     return changed;
+}
+
+std::size_t fillRegion(std::vector<uint8_t>& rgba, int width, int height,
+                       int x, int y, uint8_t r, uint8_t g, uint8_t b) {
+    if (width <= 0 || height <= 0 || x < 0 || y < 0 || x >= width || y >= height) {
+        return 0;
+    }
+    const std::size_t canvasWidth = static_cast<std::size_t>(width);
+    const std::size_t canvasHeight = static_cast<std::size_t>(height);
+    if (canvasWidth > std::numeric_limits<std::size_t>::max() / canvasHeight
+        || canvasWidth * canvasHeight > rgba.size() / 4) {
+        return 0;
+    }
+
+    const std::size_t startIndex =
+        (static_cast<std::size_t>(y) * canvasWidth + static_cast<std::size_t>(x)) * 4;
+    const uint8_t targetR = rgba[startIndex];
+    const uint8_t targetG = rgba[startIndex + 1];
+    const uint8_t targetB = rgba[startIndex + 2];
+    if (targetR == r && targetG == g && targetB == b) return 0;
+
+    struct Span {
+        int y;
+        int left;
+        int right;
+    };
+    std::vector<Span> pending;
+    std::size_t filledPixels = 0;
+
+    auto isTarget = [&](int px, int py) {
+        const std::size_t index =
+            (static_cast<std::size_t>(py) * canvasWidth
+             + static_cast<std::size_t>(px)) * 4;
+        return rgba[index] == targetR
+            && rgba[index + 1] == targetG
+            && rgba[index + 2] == targetB;
+    };
+    auto paintSpan = [&](int seedX, int row) {
+        int left = seedX;
+        while (left > 0 && isTarget(left - 1, row)) --left;
+
+        int right = seedX;
+        while (right + 1 < width && isTarget(right + 1, row)) ++right;
+
+        for (int px = left; px <= right; ++px) {
+            const std::size_t index =
+                (static_cast<std::size_t>(row) * canvasWidth
+                 + static_cast<std::size_t>(px)) * 4;
+            rgba[index] = r;
+            rgba[index + 1] = g;
+            rgba[index + 2] = b;
+            rgba[index + 3] = 255;
+        }
+        filledPixels += static_cast<std::size_t>(right - left + 1);
+        return Span{row, left, right};
+    };
+
+    pending.push_back(paintSpan(x, y));
+    while (!pending.empty()) {
+        const Span span = pending.back();
+        pending.pop_back();
+
+        auto addAdjacentSpans = [&](int row) {
+            if (row < 0 || row >= height) return;
+            int px = span.left;
+            while (px <= span.right) {
+                if (!isTarget(px, row)) {
+                    ++px;
+                    continue;
+                }
+                const Span adjacent = paintSpan(px, row);
+                pending.push_back(adjacent);
+                px = adjacent.right + 1;
+            }
+        };
+        addAdjacentSpans(span.y - 1);
+        addAdjacentSpans(span.y + 1);
+    }
+
+    return filledPixels;
 }
 
 std::string encodeModr(int width, int height, const std::vector<uint8_t>& rgba) {

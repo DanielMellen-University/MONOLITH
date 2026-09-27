@@ -130,7 +130,7 @@ The canvas is a raster surface. It fills the space between the toolbar and the s
 3. Draw on the canvas. The status bar adds `[modified]` after the first canvas change.
 4. Press **Ctrl+S**, keep the suggested `.modr` path or edit it, then press **Enter**.
 
-Fill marks pixels as soon as they enter its work list, so each connected pixel is visited once even on large flat regions.
+Fill expands horizontal spans into a worklist, reducing per-pixel queue traffic on large flat regions while preserving four-connected selection.
 
 ### Edit An Existing Drawing
 
@@ -605,7 +605,7 @@ Main implementation files:
 
 - `src/app/DrawingApp.hpp`
 - `src/app/DrawingApp.cpp`
-- `src/app/DrawingRaster.hpp` / `DrawingRaster.cpp` - line/rect raster, pixel reads, custom RGB parse, `.modr` encode/decode (shared with headless tests)
+- `src/app/DrawingRaster.hpp` / `DrawingRaster.cpp` - line/rect raster, scanline fill, pixel reads, custom RGB parse, `.modr` encode/decode (shared with headless tests)
 - `src/window/detail/wm_body_07.inc` — `launchDrawing()` and Drawing window creation
 - `src/window/detail/wm_body_01.inc` / `wm_body_08.inc` — mouse-up forwarding, open routing, and session restore
 - `src/app/App.hpp` — `IWindowController::restoreTrackedInstanceTitle()`, `allowClose` for dirty guards
@@ -618,7 +618,7 @@ Drawing status-bar text uses a narrower internal clip. It intersects that clip w
 
 The Drawing implementation has three boundaries worth preserving when changing it:
 
-1. `DrawingRaster` owns format and pixel rules that can be tested without SDL.
+1. `DrawingRaster` owns format, fill, and pixel rules that can be tested without SDL.
 2. `DrawingApp` owns the live canvas, prompts, dirty state, and editor-session settings.
 3. `WindowManager` owns file singleton routing, instance titles, session restore, and desktop close guards.
 

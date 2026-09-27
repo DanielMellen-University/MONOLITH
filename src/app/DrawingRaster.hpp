@@ -1,5 +1,6 @@
 #pragma once
 
+#include <cstddef>
 #include <cstdint>
 #include <string>
 #include <vector>
@@ -21,6 +22,10 @@ bool drawLine(std::vector<uint8_t>& rgba, int width, int height,
 /** Axis-aligned rectangle boundary (inclusive), 1px wide. */
 bool drawRect(std::vector<uint8_t>& rgba, int width, int height,
               int x0, int y0, int x1, int y1, uint8_t r, uint8_t g, uint8_t b);
+
+/** Fill a 4-connected RGB region using a scanline worklist; return pixels changed. */
+std::size_t fillRegion(std::vector<uint8_t>& rgba, int width, int height,
+                       int x, int y, uint8_t r, uint8_t g, uint8_t b);
 
 /** Encode live RGBA canvas as .modr (magic + w/h + RGB payload). */
 std::string encodeModr(int width, int height, const std::vector<uint8_t>& rgba);

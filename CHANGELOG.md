@@ -1,5 +1,10 @@
 # Changelog
 
+## 2026-09: Reduce Drawing fill worklist overhead
+
+- Fill horizontal spans instead of queueing every pixel, preserving four-connected behavior with fewer work items across broad regions.
+- Cover connected openings, hard barriers, diagonal isolation, same-color no-ops, and a large flat canvas in the headless raster test.
+
 ## 2026-09: Cache Drawing prompt caret metrics
 
 - Reuse the active Save, Open, or RGB status-prompt caret-prefix width across unchanged frames.

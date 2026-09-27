@@ -1,4 +1,4 @@
-// Headless test of shipped Drawing raster (line/rect/custom RGB) and .modr round-trip.
+// Headless tests of Drawing raster tools, fill, custom RGB, and .modr round-trip.
 // Compiles against src/app/DrawingRaster.cpp (no SDL).
 
 #include "../src/app/DrawingRaster.hpp"
@@ -11,6 +11,7 @@ using monolith::drawing::decodeModr;
 using monolith::drawing::drawLine;
 using monolith::drawing::drawRect;
 using monolith::drawing::encodeModr;
+using monolith::drawing::fillRegion;
 using monolith::drawing::getPixel;
 using monolith::drawing::parseRgb;
 using monolith::drawing::setPixel;
@@ -85,6 +86,69 @@ int main() {
           "eyedropper reads a canvas pixel");
     check(!getPixel(canvas, kW, kH, -1, 0, pickedR, pickedG, pickedB),
           "eyedropper rejects an out-of-bounds pixel");
+
+    constexpr int fillWidth = 7;
+    constexpr int fillHeight = 5;
+    std::vector<uint8_t> fillCanvas(
+        static_cast<size_t>(fillWidth) * static_cast<size_t>(fillHeight) * 4);
+    for (int y = 0; y < fillHeight; ++y) {
+        for (int x = 0; x < fillWidth; ++x) {
+            setPixel(fillCanvas, fillWidth, fillHeight, x, y, 10, 20, 30);
+        }
+    }
+    for (int y = 0; y < fillHeight; ++y) {
+        if (y != 2) setPixel(fillCanvas, fillWidth, fillHeight, 3, y, 200, 210, 220);
+    }
+    const size_t connectedFillCount =
+        fillRegion(fillCanvas, fillWidth, fillHeight, 0, 0, 40, 50, 60);
+    bool fillCrossedOpening = true;
+    for (int y = 0; y < fillHeight; ++y) {
+        for (int x = 0; x < fillWidth; ++x) {
+            const bool barrier = x == 3 && y != 2;
+            fillCrossedOpening &= barrier
+                ? pixelIs(fillCanvas, fillWidth, x, y, 200, 210, 220)
+                : pixelIs(fillCanvas, fillWidth, x, y, 40, 50, 60);
+        }
+    }
+    check(connectedFillCount == static_cast<size_t>(fillWidth * fillHeight - (fillHeight - 1))
+              && fillCrossedOpening,
+          "scanline fill crosses a one-pixel opening and preserves barriers");
+    check(fillRegion(fillCanvas, fillWidth, fillHeight, 0, 0, 40, 50, 60) == 0,
+          "scanline fill leaves already-matching regions unchanged");
+
+    constexpr int diagonalSize = 3;
+    std::vector<uint8_t> diagonalCanvas(
+        static_cast<size_t>(diagonalSize) * static_cast<size_t>(diagonalSize) * 4);
+    for (int y = 0; y < diagonalSize; ++y) {
+        for (int x = 0; x < diagonalSize; ++x) {
+            setPixel(diagonalCanvas, diagonalSize, diagonalSize, x, y, 200, 210, 220);
+        }
+    }
+    setPixel(diagonalCanvas, diagonalSize, diagonalSize, 0, 0, 10, 20, 30);
+    setPixel(diagonalCanvas, diagonalSize, diagonalSize, 1, 1, 10, 20, 30);
+    check(fillRegion(diagonalCanvas, diagonalSize, diagonalSize, 0, 0, 40, 50, 60) == 1
+              && pixelIs(diagonalCanvas, diagonalSize, 0, 0, 40, 50, 60)
+              && pixelIs(diagonalCanvas, diagonalSize, 1, 1, 10, 20, 30),
+          "scanline fill retains four-connected rather than diagonal selection");
+
+    constexpr int largeFillWidth = 1024;
+    constexpr int largeFillHeight = 512;
+    std::vector<uint8_t> largeFillCanvas(
+        static_cast<size_t>(largeFillWidth) * static_cast<size_t>(largeFillHeight) * 4);
+    for (int y = 0; y < largeFillHeight; ++y) {
+        for (int x = 0; x < largeFillWidth; ++x) {
+            setPixel(largeFillCanvas, largeFillWidth, largeFillHeight, x, y, 1, 2, 3);
+        }
+    }
+    const size_t largeFillCount = fillRegion(
+        largeFillCanvas, largeFillWidth, largeFillHeight, 0, 0, 7, 8, 9);
+    check(largeFillCount == static_cast<size_t>(largeFillWidth) * largeFillHeight
+              && pixelIs(largeFillCanvas, largeFillWidth,
+                         largeFillWidth - 1, largeFillHeight - 1, 7, 8, 9),
+          "scanline fill covers a large flat canvas without gaps");
+    check(fillRegion(largeFillCanvas, largeFillWidth, largeFillHeight,
+                     -1, 0, 10, 11, 12) == 0,
+          "scanline fill rejects out-of-bounds seeds");
 
     const std::string blob = encodeModr(kW, kH, canvas);
     check(!blob.empty(), "encodeModr produced a blob");
