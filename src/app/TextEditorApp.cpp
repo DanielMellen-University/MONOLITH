@@ -1458,6 +1458,7 @@ void TextEditorApp::ensureCursorVisible() {
 void TextEditorApp::enterFindMode() {
     m_searchMode = SearchMode::Find;
     m_searchField = SearchField::Query;
+    invalidateFindHighlightCache();
     m_findQuery.clear();
     m_replaceText.clear();
     m_findMatches.clear();
@@ -1475,6 +1476,7 @@ void TextEditorApp::enterReplaceMode() {
         m_findQuery.clear();
         m_findMatches.clear();
         m_currentFindMatch = -1;
+        invalidateFindHighlightCache();
     }
     m_searchMode = SearchMode::Replace;
     m_searchField = SearchField::Query;
@@ -1491,6 +1493,7 @@ void TextEditorApp::enterReplaceMode() {
 void TextEditorApp::exitFindMode() {
     m_searchMode = SearchMode::None;
     m_searchField = SearchField::Query;
+    invalidateFindHighlightCache();
     m_findQuery.clear();
     m_replaceText.clear();
     m_findMatches.clear();
@@ -1501,7 +1504,15 @@ void TextEditorApp::exitFindMode() {
     clearSelection();
 }
 
+void TextEditorApp::invalidateFindHighlightCache() {
+    m_renderedFindStartRow = -1;
+    m_renderedFindLineCount = -1;
+    m_renderedFindFirstMatchIndex = -1;
+    m_renderedFindPrefixWidths.clear();
+}
+
 void TextEditorApp::updateFindMatches() {
+    invalidateFindHighlightCache();
     m_findMatches.clear();
     m_currentFindMatch = -1;
     m_findQueryPixelWidth = 0;
@@ -1763,11 +1774,35 @@ void TextEditorApp::render(SDL_Renderer* renderer, const SDL_Rect& contentRect) 
             m_findQueryPixelWidthValid = true;
         }
     }
-    // Find results are row/column ordered; skip offscreen rows once, then walk only visible hits.
-    auto visibleMatch = std::lower_bound(
-        m_findMatches.begin(), m_findMatches.end(), m_scrollOffset,
-        [](const auto& match, int row) { return match.first < row; });
-    int visibleMatchIndex = static_cast<int>(visibleMatch - m_findMatches.begin());
+    if (m_renderedFindStartRow != m_scrollOffset
+        || m_renderedFindLineCount != renderedLineCount) {
+        m_renderedFindStartRow = m_scrollOffset;
+        m_renderedFindLineCount = renderedLineCount;
+        m_renderedFindFirstMatchIndex = -1;
+        m_renderedFindPrefixWidths.clear();
+        if (!m_findQuery.empty() && renderedLineCount > 0) {
+            // Search results are ordered, so only measure prefixes in the current viewport.
+            auto match = std::lower_bound(
+                m_findMatches.begin(), m_findMatches.end(), m_scrollOffset,
+                [](const auto& candidate, int row) { return candidate.first < row; });
+            m_renderedFindFirstMatchIndex =
+                static_cast<int>(match - m_findMatches.begin());
+            const int lastRenderedRow = m_scrollOffset + renderedLineCount;
+            while (match != m_findMatches.end() && match->first < lastRenderedRow) {
+                const std::string& line = m_lines[static_cast<size_t>(match->first)];
+                const std::string before = line.substr(0, static_cast<size_t>(match->second));
+                int prefixWidth = 0;
+                int measuredHeight = 0;
+                if (!before.empty()) {
+                    TTF_SizeUTF8(m_font, before.c_str(), &prefixWidth, &measuredHeight);
+                }
+                m_renderedFindPrefixWidths.push_back(prefixWidth);
+                ++match;
+            }
+        }
+    }
+    size_t visibleFindHighlightIndex = 0;
+    int visibleFindMatchIndex = m_renderedFindFirstMatchIndex;
 
     int selR0 = 0, selC0 = 0, selR1 = 0, selC1 = 0;
     const bool drawSel = hasSelection();
@@ -1831,37 +1866,26 @@ void TextEditorApp::render(SDL_Renderer* renderer, const SDL_Rect& contentRect) 
         }
 
         if (!m_findQuery.empty()) {
-            while (visibleMatch != m_findMatches.end()
-                   && visibleMatch->first == lineIdx) {
-                const auto& match = *visibleMatch;
-                std::string before = line.substr(0, match.second);
+            while (visibleFindHighlightIndex < m_renderedFindPrefixWidths.size()) {
+                const auto& match = m_findMatches[static_cast<size_t>(visibleFindMatchIndex)];
+                if (match.first != lineIdx) break;
 
-                int beforeW = 0, beforeH = 0;
-                if (!before.empty()) {
-                    TTF_SizeUTF8(m_font, before.c_str(), &beforeW, &beforeH);
-                }
-                int matchW = m_findQueryPixelWidth;
-                if (!m_findQueryPixelWidthValid) {
-                    const std::string found = line.substr(match.second, m_findQuery.size());
-                    int matchH = 0;
-                    TTF_SizeUTF8(m_font, found.c_str(), &matchW, &matchH);
-                }
-
-                if (visibleMatchIndex == m_currentFindMatch) {
+                if (visibleFindMatchIndex == m_currentFindMatch) {
                     SDL_SetRenderDrawColor(renderer, 54, 92, 116, 230);
                 } else {
                     SDL_SetRenderDrawColor(renderer, 36, 48, 58, 190);
                 }
 
                 SDL_Rect highlightRect = {
-                    textStartX + beforeW - m_horizontalScrollOffset,
+                    textStartX + m_renderedFindPrefixWidths[visibleFindHighlightIndex]
+                        - m_horizontalScrollOffset,
                     y + 1,
-                    std::max(2, matchW),
+                    std::max(2, m_findQueryPixelWidth),
                     lineHeight - 2
                 };
                 SDL_RenderFillRect(renderer, &highlightRect);
-                ++visibleMatch;
-                ++visibleMatchIndex;
+                ++visibleFindHighlightIndex;
+                ++visibleFindMatchIndex;
             }
         }
 
@@ -2376,6 +2400,7 @@ void TextEditorApp::onResize(int clientWidth, int clientHeight) {
 
 void TextEditorApp::onUiScaleChanged() {
     m_textTextureCache.clear();
+    invalidateFindHighlightCache();
     m_findQueryPixelWidth = 0;
     m_findQueryPixelWidthValid = false;
     const int visible = std::max(

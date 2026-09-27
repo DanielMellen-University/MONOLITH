@@ -227,6 +227,18 @@ int main() {
             SDL_SetRenderDrawColor(renderer, 0, 0, 0, 255);
             SDL_RenderClear(renderer);
             findViewportEditor.render(renderer, {0, 0, 240, 200});
+            const int visibleFindRows = findViewportEditor.getVisibleLineCount({0, 0, 240, 200});
+            const bool cachedFindGeometry =
+                findViewportEditor.m_renderedFindStartRow == 128
+                && findViewportEditor.m_renderedFindLineCount == visibleFindRows
+                && findViewportEditor.m_renderedFindPrefixWidths.size()
+                    == static_cast<size_t>(visibleFindRows * 2);
+            const auto* findGeometryStorage =
+                findViewportEditor.m_renderedFindPrefixWidths.data();
+            findViewportEditor.render(renderer, {0, 0, 240, 200});
+            const bool retainedFindGeometry = cachedFindGeometry
+                && findGeometryStorage
+                    == findViewportEditor.m_renderedFindPrefixWidths.data();
             int matchPrefixWidth = 0;
             int matchPrefixHeight = 0;
             TTF_SizeUTF8(scaleFont, "target ", &matchPrefixWidth, &matchPrefixHeight);
@@ -258,19 +270,43 @@ int main() {
                       && inactiveMatchPixel[2] == 58
                       && activeMatchPixel[0] == 54 && activeMatchPixel[1] == 92
                       && activeMatchPixel[2] == 116
+                      && retainedFindGeometry
                       && measuredFindQueryWidth
                       && findViewportEditor.m_findQueryPixelWidthValid
                       && findViewportEditor.m_findQueryPixelWidth == expectedFindQueryWidth,
-                  "Find renders visible highlights with the correct active result after scrolling");
+                  "Find reuses viewport highlight geometry and preserves active styling after scrolling");
+            findViewportEditor.moveFindMatch(1);
+            findViewportEditor.render(renderer, {0, 0, 240, 200});
+            const bool navigationReusesGeometry =
+                findViewportEditor.m_currentFindMatch == 258
+                && findViewportEditor.m_renderedFindStartRow == 128
+                && findGeometryStorage
+                    == findViewportEditor.m_renderedFindPrefixWidths.data();
+            findViewportEditor.m_scrollOffset = 129;
+            findViewportEditor.render(renderer, {0, 0, 240, 200});
+            const bool viewportGeometryRebuilt =
+                findViewportEditor.m_renderedFindStartRow == 129
+                && findViewportEditor.m_renderedFindLineCount == visibleFindRows
+                && !findViewportEditor.m_renderedFindPrefixWidths.empty();
             findViewportEditor.m_findQuery = "target ";
             findViewportEditor.updateFindMatches();
             const bool queryWidthInvalidated = !findViewportEditor.m_findQueryPixelWidthValid;
+            const bool queryGeometryInvalidated =
+                findViewportEditor.m_renderedFindStartRow == -1
+                && findViewportEditor.m_renderedFindPrefixWidths.empty();
             findViewportEditor.render(renderer, {0, 0, 240, 200});
             const bool fontMetricWasCached = findViewportEditor.m_findQueryPixelWidthValid;
+            const bool queryGeometryRebuilt =
+                findViewportEditor.m_renderedFindStartRow == findViewportEditor.m_scrollOffset
+                && !findViewportEditor.m_renderedFindPrefixWidths.empty();
             findViewportEditor.onUiScaleChanged();
-            check(queryWidthInvalidated && fontMetricWasCached
-                      && !findViewportEditor.m_findQueryPixelWidthValid,
-                  "Find query and font changes invalidate cached highlight width");
+            check(navigationReusesGeometry && viewportGeometryRebuilt
+                      && queryWidthInvalidated && fontMetricWasCached
+                      && queryGeometryInvalidated && queryGeometryRebuilt
+                      && !findViewportEditor.m_findQueryPixelWidthValid
+                      && findViewportEditor.m_renderedFindStartRow == -1
+                      && findViewportEditor.m_renderedFindPrefixWidths.empty(),
+                  "Find query and font changes invalidate cached highlight geometry and width");
 
             TestEditor syntaxCacheEditor(scaleFont, &fs, "");
             syntaxCacheEditor.m_syntaxMode = TestEditor::SyntaxMode::Code;

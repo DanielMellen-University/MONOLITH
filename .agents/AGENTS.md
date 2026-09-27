@@ -34,6 +34,7 @@ The human funds token budget and lives in the desktop. You:
 
 | When | Kind | Note |
 |------|------|------|
+| 2026-09-26 | 7.36 | Text Editor reuses measured visible Find prefix positions and the cached query width across frames; invalidates viewport geometry on query, row-range, or font changes |
 | 2026-09-26 | 7.35 | Text Editor reuses syntax spans for its current viewport and invalidates them on edits or syntax-mode changes, avoiding per-frame retokenization |
 | 2026-09-26 | 7.34 | Text Editor find-query width is measured once per query/font state and reused across visible highlights, with search/font invalidation |
 | 2026-09-26 | 7.33 | Terminal input and reverse-search cursor placement reuse cached prefix texture widths, with measurement fallback if rasterization fails |
@@ -142,6 +143,7 @@ Older recent-work rows: [`SESSION_LOG.md`](SESSION_LOG.md).
 | 7.33 | Reuse Terminal cursor prefix widths | done | Use existing or newly cached renderer text widths to position normal and reverse-search cursors, avoiding repeated font metrics on steady-state renders |
 | 7.34 | Cache Text Editor find-query width | done | Measure the identical query once for all visible match highlights and invalidate it after query refresh or shared-font changes |
 | 7.35 | Cache visible Text Editor syntax spans | done | Reuse lexical spans for current rendered rows, retaining incremental block-comment state and invalidating the viewport cache on edits or syntax-mode changes |
+| 7.36 | Cache Text Editor Find geometry | in progress | Measure visible match-prefix widths once for the current viewport and reuse the cached query width; invalidate after query, viewport-row, or shared-font changes |
 
 ## Commit voice
 

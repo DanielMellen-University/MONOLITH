@@ -119,6 +119,7 @@ private:
     void enterFindMode();
     void enterReplaceMode();
     void exitFindMode();
+    void invalidateFindHighlightCache();
     void updateFindMatches();
     void moveFindMatch(int direction);
     void applyCurrentFindMatch();
@@ -205,6 +206,10 @@ private:
     bool m_findQueryPixelWidthValid = false;
     std::vector<std::pair<int, int>> m_findMatches;  // row, col starts
     int m_currentFindMatch = -1;
+    int m_renderedFindStartRow = -1;
+    int m_renderedFindLineCount = -1;
+    int m_renderedFindFirstMatchIndex = -1;
+    std::vector<int> m_renderedFindPrefixWidths;
 
     SyntaxMode m_syntaxMode = SyntaxMode::Light;
     std::vector<SyntaxState> m_syntaxLineStates;

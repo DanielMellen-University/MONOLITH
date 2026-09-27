@@ -1,5 +1,10 @@
 # Changelog
 
+## 2026-09: Cache Text Editor find highlight geometry
+
+- Measure visible match-prefix widths once per viewport instead of once per rendered frame.
+- Reuse highlight positions while navigating matches; rebuild after search, viewport, or font changes.
+
 ## 2026-09: Reuse visible Text Editor syntax spans
 
 - Cache lexical spans for the current rendered rows so unchanged frames do not tokenize visible lines repeatedly.

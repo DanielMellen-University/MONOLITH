@@ -1,5 +1,6 @@
 # Session log
 
+| 2026-09-26 | perf | Cached Text Editor Find prefix positions for visible rows and reused the query width across steady-state frames and active-match navigation; invalidated after search, viewport-row, and font changes with rendered-highlight regression coverage. |
 | 2026-09-26 | perf | Cached lexical spans for the Text Editor viewport to avoid retokenizing unchanged visible rows every frame; invalidated on edits and syntax-mode changes, with viewport reuse and downstream color regression coverage. |
 | 2026-09-26 | perf | Cached the Text Editor search-query pixel width for all visible match rectangles and invalidated it on result refresh or shared-font scaling; covered width and invalidation in the rendered Find test. |
 
