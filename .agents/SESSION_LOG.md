@@ -1,6 +1,6 @@
 # Session log
 
-| 2026-09-27 | perf | Added per-tile Drawing dirty-state tracking so sparse undo/redo rechecks only affected tiles; covered save-mid-history restoration and fills returning to the saved baseline. |
+| 2026-09-27 | perf | Added per-tile Drawing dirty-state tracking so sparse undo/redo rechecks only affected tiles; covered save-mid-history restoration and fills returning to the saved baseline; hosted headless workflow #59 passed. |
 
 | 2026-09-27 | perf | Replaced full-canvas stroke-start copies with lazy reversible 32×32 tile preimages; added sparse multi-tile, larger-than-budget undo/redo, and transient-budget fallback coverage; hosted headless workflow #56 passed. |
 
