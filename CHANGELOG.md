@@ -1,5 +1,10 @@
 # Changelog
 
+## 2026-09: Cache Drawing prompt caret metrics
+
+- Reuse the active Save, Open, or RGB status-prompt caret-prefix width across unchanged frames.
+- Refresh the width when prompt text or the shared interface font changes.
+
 ## 2026-09: Cache Text Editor prompt caret metrics
 
 - Reuse the status-bar caret-prefix width across unchanged Find, Replace, Go to Line, Open, and Save As prompt frames.

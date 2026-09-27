@@ -1230,8 +1230,7 @@ void DrawingApp::drawStatusBar(SDL_Renderer* renderer, const SDL_Rect& contentRe
         const std::string beforeCursor = m_pathPromptBuffer.substr(0, m_pathPromptCursorPos);
         text += " " + beforeCursor + "_" + m_pathPromptBuffer.substr(m_pathPromptCursorPos);
         const std::string cursorText = m_statusMessage + " " + beforeCursor + "_";
-        int cursorTextHeight = 0;
-        TTF_SizeUTF8(m_font, cursorText.c_str(), &promptCursorPx, &cursorTextHeight);
+        promptCursorPx = measurePromptCursorWidth(cursorText);
         promptActive = true;
     } else if (m_dirty) {
         text += "  [modified]";
@@ -1269,6 +1268,22 @@ void DrawingApp::drawStatusBar(SDL_Renderer* renderer, const SDL_Rect& contentRe
         SDL_RenderCopy(renderer, texture.handle, nullptr, &dst);
         restoreRendererClip(renderer, previousClip);
     }
+}
+
+int DrawingApp::measurePromptCursorWidth(const std::string& text) {
+    if (m_promptCursorMeasureValid && m_promptCursorMeasureText == text) {
+        return m_promptCursorPixelWidth;
+    }
+    if (!m_font) return 0;
+
+    int width = 0;
+    int height = 0;
+    if (TTF_SizeUTF8(m_font, text.c_str(), &width, &height) != 0) return 0;
+
+    m_promptCursorMeasureText = text;
+    m_promptCursorPixelWidth = width;
+    m_promptCursorMeasureValid = true;
+    return width;
 }
 
 void DrawingApp::onFocusLost() {
@@ -1312,6 +1327,7 @@ void DrawingApp::onResize(int clientWidth, int clientHeight) {
 
 void DrawingApp::onUiScaleChanged() {
     m_textTextureCache.clear();
+    m_promptCursorMeasureValid = false;
     updateLayoutMetrics();
     invalidateHitTargets();
     // The path prompt stores its horizontal position in pixels; remeasure it

@@ -1,5 +1,7 @@
 # Session log
 
+| 2026-09-26 | perf | Reused the Drawing status prompt caret-prefix width across Save, Open, and RGB, with regression coverage for steady renders, caret movement, and UI-font invalidation. |
+
 | 2026-09-26 | perf | Cached Text Editor status-bar caret-prefix widths across Find, Replace, Go to Line, Open, and Save As prompts; covered unchanged frames, mode changes, and UI-font invalidation. |
 
 | 2026-09-26 | perf | Reused cached filename texture widths for Filesystem Browser row clipping, avoided per-frame filename copies, and cached inline-rename caret-prefix widths with prefix/font invalidation coverage. |

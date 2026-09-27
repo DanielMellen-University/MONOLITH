@@ -34,6 +34,7 @@ The human funds token budget and lives in the desktop. You:
 
 | When | Kind | Note |
 |------|------|------|
+| 2026-09-26 | 7.42 | Drawing reuses active Save, Open, and RGB prompt caret-prefix widths until the prefix or shared font changes |
 | 2026-09-26 | 7.41 | Text Editor reuses status-bar caret-prefix widths across Find, Replace, Go to Line, Open, and Save As prompts; hosted headless workflow #48 passed |
 | 2026-09-26 | 7.40 | Filesystem Browser uses renderer-cached filename widths and caches rename caret-prefix metrics across steady-state frames |
 | 2026-09-26 | 7.39 | Filesystem Browser reuses filter caret-prefix pixel width until the prefix or shared font metrics change |
@@ -154,6 +155,7 @@ Older recent-work rows: [`SESSION_LOG.md`](SESSION_LOG.md).
 | 7.39 | Cache Filesystem Browser filter caret width | done | Reuse the measured width of the active filter caret prefix until that prefix or the shared font changes |
 | 7.40 | Reuse Filesystem Browser row metrics | done | Use cached text texture widths for rendered filenames and reuse rename caret-prefix width until the prefix or shared font changes |
 | 7.41 | Cache Text Editor prompt caret metrics | done | Reuse status-bar caret-prefix widths across search and path prompts; remeasure after cursor-text or shared-font changes |
+| 7.42 | Cache Drawing prompt caret metrics | in progress | Reuse active prompt caret-prefix width; remeasure after prompt text or shared-font changes |
 
 ## Commit voice
 

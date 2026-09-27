@@ -579,6 +579,71 @@ int main() {
         check(retainedToolbarTexture.handle == toolbarTexture.handle
                   && drawing.m_textTextureCache.size() > cachedTextureCount,
               "Drawing retains toolbar textures and caches changed status text");
+
+        TTF_Font* promptFont = TTF_OpenFont("assets/fonts/DejaVuSans.ttf", 14);
+        check(promptFont != nullptr, "Drawing prompt test loads an independent font");
+        if (promptFont) {
+            auto verifyPromptMetrics = [&]() {
+                TestDrawing promptMetrics(promptFont, &fs);
+                promptMetrics.onResize(280, 280);
+                auto expectedCursorText = [&]() {
+                    const std::size_t cursor = std::min(
+                        promptMetrics.m_pathPromptCursorPos,
+                        promptMetrics.m_pathPromptBuffer.size());
+                    return promptMetrics.m_statusMessage + " "
+                        + promptMetrics.m_pathPromptBuffer.substr(0, cursor) + "_";
+                };
+                auto cachedWidthMatches = [&](const std::string& cursorText) {
+                    int expectedWidth = 0;
+                    int expectedHeight = 0;
+                    return TTF_SizeUTF8(promptFont, cursorText.c_str(),
+                                       &expectedWidth, &expectedHeight) == 0
+                        && promptMetrics.m_promptCursorMeasureValid
+                        && promptMetrics.m_promptCursorMeasureText == cursorText
+                        && promptMetrics.m_promptCursorPixelWidth == expectedWidth;
+                };
+
+                promptMetrics.beginPathPrompt(TestDrawing::PathPromptMode::Open);
+                promptMetrics.render(renderer, {0, 0, 280, 280});
+                const std::string openCursorText = expectedCursorText();
+                const bool openWidthCached = cachedWidthMatches(openCursorText);
+                const int openWidth = promptMetrics.m_promptCursorPixelWidth;
+                promptMetrics.render(renderer, {0, 0, 280, 280});
+                const bool openWidthRetained = cachedWidthMatches(openCursorText)
+                    && promptMetrics.m_promptCursorPixelWidth == openWidth;
+
+                promptMetrics.m_pathPromptCursorPos =
+                    promptMetrics.m_pathPromptBuffer.size() / 2;
+                promptMetrics.render(renderer, {0, 0, 280, 280});
+                const std::string movedOpenCursorText = expectedCursorText();
+                const bool caretMovementRefreshes =
+                    movedOpenCursorText != openCursorText
+                    && cachedWidthMatches(movedOpenCursorText);
+
+                promptMetrics.beginPathPrompt(TestDrawing::PathPromptMode::Save);
+                promptMetrics.render(renderer, {0, 0, 280, 280});
+                const bool saveWidthCached = cachedWidthMatches(expectedCursorText());
+                promptMetrics.beginPathPrompt(TestDrawing::PathPromptMode::Rgb);
+                promptMetrics.render(renderer, {0, 0, 280, 280});
+                const std::string rgbCursorText = expectedCursorText();
+                const bool rgbWidthCached = cachedWidthMatches(rgbCursorText);
+
+                const int oldRgbWidth = promptMetrics.m_promptCursorPixelWidth;
+                const bool fontResized = TTF_SetFontSize(promptFont, 22) == 0;
+                promptMetrics.onUiScaleChanged();
+                const bool promptWidthInvalidated =
+                    !promptMetrics.m_promptCursorMeasureValid;
+                promptMetrics.render(renderer, {0, 0, 280, 280});
+                check(openWidthCached && openWidthRetained && caretMovementRefreshes
+                          && saveWidthCached && rgbWidthCached && fontResized
+                          && promptWidthInvalidated && cachedWidthMatches(rgbCursorText)
+                          && promptMetrics.m_promptCursorPixelWidth != oldRgbWidth,
+                      "Drawing reuses prompt caret widths and refreshes them after caret or font changes");
+            };
+            verifyPromptMetrics();
+            TTF_CloseFont(promptFont);
+        }
+
         drawing.onUiScaleChanged();
         check(drawing.m_textTextureCache.size() == 0,
               "Drawing clears cached text textures when UI scale changes");

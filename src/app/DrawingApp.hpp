@@ -93,6 +93,7 @@ private:
     // === UI ===
     void drawToolbar(SDL_Renderer* renderer, const SDL_Rect& contentRect);
     void drawStatusBar(SDL_Renderer* renderer, const SDL_Rect& contentRect);
+    int measurePromptCursorWidth(const std::string& text);
     int getToolbarButtonHeight() const;
     int getToolbarHeight() const;
     int getStatusBarHeight() const;
@@ -169,6 +170,9 @@ private:
     std::string m_pathPromptBuffer;
     std::size_t m_pathPromptCursorPos = 0;
     int m_pathPromptScrollPx = 0;
+    std::string m_promptCursorMeasureText;
+    int m_promptCursorPixelWidth = 0;
+    bool m_promptCursorMeasureValid = false;
     std::string m_pendingInitialPath;
 
     // Toolbar hit areas (client-relative coordinates)
