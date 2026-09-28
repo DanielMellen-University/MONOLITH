@@ -1,5 +1,11 @@
 # Changelog
 
+## 2026-09: Keep Drawing Fill history sparse
+
+- Capture original pixels only for 32×32 tiles touched by Fill, instead of copying the full canvas for each region.
+- Keep localized fills undoable on canvases larger than the 64 MiB history budget when their touched tiles fit; oversized fill captures release memory and clear history.
+- Verify sparse fill undo/redo and neighboring-pixel preservation on both ordinary and over-budget canvases.
+
 ## 2026-09: Limit Drawing dirty checks to touched tiles
 
 - Track modified state in a compact 32×32 tile map, so sparse stroke undo/redo compares only affected pixels against the saved image.

@@ -144,8 +144,8 @@ int main() {
     noOpStrokeDown.button.x = 1;
     noOpStrokeDown.button.y = drawing.m_canvasTop + 1;
     drawing.handleEvent(noOpStrokeDown);
-    const bool noOpDidNotCapturePixels = drawing.m_strokeHistoryEntry.pixels.empty()
-        && drawing.m_strokeHistoryEntry.tiles.empty();
+    const bool noOpDidNotCapturePixels = drawing.m_sparseHistoryEntry.pixels.empty()
+        && drawing.m_sparseHistoryEntry.tiles.empty();
     SDL_Event noOpStrokeUp = noOpStrokeDown;
     noOpStrokeUp.type = SDL_MOUSEBUTTONUP;
     drawing.handleEvent(noOpStrokeUp);
@@ -200,10 +200,10 @@ int main() {
     savedHistory.onResize(300, 300);
     const std::vector<uint8_t> savedHistoryBaseline = savedHistory.m_pixels;
     savedHistory.m_tool = monolith::app::DrawingApp::Tool::Pen;
-    savedHistory.beginStroke();
+    savedHistory.beginSparseHistory();
     const bool savedHistoryChanged = savedHistory.drawStroke(4, 4, 10, 4);
-    savedHistory.recordStrokeChange();
-    savedHistory.finishStroke();
+    savedHistory.recordSparseHistoryChange();
+    savedHistory.finishSparseHistory();
     const std::vector<uint8_t> savedHistoryPixels = savedHistory.m_pixels;
     const bool savedHistoryStored = savedHistoryChanged
         && savedHistory.saveToPath("/drawings/saved-history.modr")
@@ -228,10 +228,10 @@ int main() {
     multiTileStroke.m_tool = monolith::app::DrawingApp::Tool::Pen;
     multiTileStroke.m_brush = monolith::app::DrawingApp::BrushSize::Small;
     const std::vector<uint8_t> multiTileBaseline = multiTileStroke.m_pixels;
-    multiTileStroke.beginStroke();
+    multiTileStroke.beginSparseHistory();
     const bool multiTileChanged = multiTileStroke.drawStroke(3, 3, 300, 130);
-    multiTileStroke.recordStrokeChange();
-    multiTileStroke.finishStroke();
+    multiTileStroke.recordSparseHistoryChange();
+    multiTileStroke.finishSparseHistory();
     const std::vector<uint8_t> multiTileAfter = multiTileStroke.m_pixels;
     size_t multiTileBytes = 0;
     for (const auto& tile : multiTileStroke.m_undoStack.front().tiles) {
@@ -257,10 +257,10 @@ int main() {
             largeCanvasWidth, largeCanvasHeight, largeCanvasStroke.m_pixels};
         largeCanvasStroke.m_tool = monolith::app::DrawingApp::Tool::Pen;
         largeCanvasStroke.m_brush = monolith::app::DrawingApp::BrushSize::Small;
-        largeCanvasStroke.beginStroke();
+        largeCanvasStroke.beginSparseHistory();
         const bool largeCanvasChanged = largeCanvasStroke.drawStroke(100, 100, 106, 100);
-        largeCanvasStroke.recordStrokeChange();
-        largeCanvasStroke.finishStroke();
+        largeCanvasStroke.recordSparseHistoryChange();
+        largeCanvasStroke.finishSparseHistory();
         const size_t largeCanvasStrokeBytes =
             largeCanvasStroke.m_undoStack.empty()
             ? 0
@@ -284,23 +284,72 @@ int main() {
         const bool oversizedStrokeStartsWithRedo =
             largeCanvasStroke.m_redoStack.size() == 1;
         largeCanvasStroke.m_tool = monolith::app::DrawingApp::Tool::Pen;
-        largeCanvasStroke.beginStroke();
+        largeCanvasStroke.beginSparseHistory();
         for (int y = 0; y < largeCanvasHeight; y += 32) {
             largeCanvasStroke.drawStroke(0, y, largeCanvasWidth - 1, y);
         }
         const bool oversizedStrokeDiscardedHistory =
             oversizedStrokeStartsWithRedo
-            && largeCanvasStroke.m_strokeHistoryOverflowed
-            && largeCanvasStroke.m_strokeHistoryEntry.tiles.empty()
+            && largeCanvasStroke.m_sparseHistoryOverflowed
+            && largeCanvasStroke.m_sparseHistoryEntry.tiles.empty()
             && largeCanvasStroke.m_undoStack.empty()
             && largeCanvasStroke.m_redoStack.empty();
-        largeCanvasStroke.recordStrokeChange();
-        largeCanvasStroke.finishStroke();
+        largeCanvasStroke.recordSparseHistoryChange();
+        largeCanvasStroke.finishSparseHistory();
         check(oversizedStrokeDiscardedHistory
-                  && largeCanvasStroke.m_strokeHistoryBytes == 0
+                  && largeCanvasStroke.m_sparseHistoryBytes == 0
                   && largeCanvasStroke.m_undoStack.empty()
                   && largeCanvasStroke.m_redoStack.empty(),
               "canvas-wide strokes discard oversized transient history and stale redo");
+
+        constexpr int sparseFillX = 1000;
+        constexpr int sparseFillY = 1009;
+        constexpr int preservedLineY = 992;
+        const size_t sparseFillPixel =
+            (static_cast<size_t>(sparseFillY) * largeCanvasWidth + sparseFillX) * 4;
+        const size_t preservedLinePixel =
+            (static_cast<size_t>(preservedLineY) * largeCanvasWidth + sparseFillX) * 4;
+        const bool largeFillSeedSet =
+            largeCanvasStroke.setPixel(sparseFillX, sparseFillY, 1, 2, 3);
+        const uint8_t preservedLine[4] = {
+            largeCanvasStroke.m_pixels[preservedLinePixel],
+            largeCanvasStroke.m_pixels[preservedLinePixel + 1],
+            largeCanvasStroke.m_pixels[preservedLinePixel + 2],
+            largeCanvasStroke.m_pixels[preservedLinePixel + 3],
+        };
+        largeCanvasStroke.m_tool = monolith::app::DrawingApp::Tool::Eraser;
+        largeCanvasStroke.floodFill(sparseFillX, sparseFillY);
+        const uint8_t filledPixel[3] = {
+            largeCanvasStroke.m_pixels[sparseFillPixel],
+            largeCanvasStroke.m_pixels[sparseFillPixel + 1],
+            largeCanvasStroke.m_pixels[sparseFillPixel + 2],
+        };
+        size_t largeFillHistoryBytes = 0;
+        if (!largeCanvasStroke.m_undoStack.empty()) {
+            for (const auto& tile : largeCanvasStroke.m_undoStack.back().tiles) {
+                largeFillHistoryBytes += tile.pixels.size();
+            }
+        }
+        check(largeFillSeedSet
+                  && largeCanvasStroke.m_pixels.size() > 64 * 1024 * 1024
+                  && largeCanvasStroke.m_undoStack.size() == 1
+                  && largeCanvasStroke.m_undoStack.back().pixels.empty()
+                  && largeCanvasStroke.m_undoStack.back().tiles.size() == 1
+                  && largeFillHistoryBytes < largeCanvasStroke.m_pixels.size(),
+              "a localized Fill stores one sparse tile on a canvas above the history budget");
+        largeCanvasStroke.undoCanvas();
+        check(largeCanvasStroke.m_pixels[sparseFillPixel] == 1
+                  && largeCanvasStroke.m_pixels[sparseFillPixel + 1] == 2
+                  && largeCanvasStroke.m_pixels[sparseFillPixel + 2] == 3
+                  && std::equal(preservedLine, preservedLine + 4,
+                                largeCanvasStroke.m_pixels.begin() + preservedLinePixel),
+              "large-canvas sparse Fill undo restores its seed and preserves nearby pixels");
+        largeCanvasStroke.redoCanvas();
+        check(std::equal(filledPixel, filledPixel + 3,
+                         largeCanvasStroke.m_pixels.begin() + sparseFillPixel)
+                  && std::equal(preservedLine, preservedLine + 4,
+                                largeCanvasStroke.m_pixels.begin() + preservedLinePixel),
+              "large-canvas sparse Fill redo reapplies only the filled region");
     }
 
     TestDrawing stateLimitedHistory(font, &fs);
@@ -402,7 +451,7 @@ int main() {
     promptGestureDrawing.handleEvent(promptStrokeDown);
     promptGestureDrawing.beginPathPrompt(TestDrawing::PathPromptMode::Open);
     check(!promptGestureDrawing.m_drawing
-              && !promptGestureDrawing.m_strokeHistoryPending
+              && !promptGestureDrawing.m_sparseHistoryPending
               && promptGestureDrawing.m_lastCanvasX == -1
               && promptGestureDrawing.m_lastCanvasY == -1,
           "Drawing path prompts end an active mouse stroke");
@@ -418,7 +467,7 @@ int main() {
     focusGestureDrawing.handleEvent(focusStrokeDown);
     focusGestureDrawing.onFocusLost();
     check(!focusGestureDrawing.m_drawing
-              && !focusGestureDrawing.m_strokeHistoryPending
+              && !focusGestureDrawing.m_sparseHistoryPending
               && focusGestureDrawing.m_lastCanvasX == -1
               && focusGestureDrawing.m_lastCanvasY == -1,
           "Drawing focus loss ends an active mouse stroke");
@@ -452,6 +501,17 @@ int main() {
     fillDirtyTracking.refreshDirtyState();
     fillDirtyTracking.m_tool = monolith::app::DrawingApp::Tool::Eraser;
     fillDirtyTracking.floodFill(10, 10);
+    size_t fillHistoryBytes = 0;
+    if (!fillDirtyTracking.m_undoStack.empty()) {
+        for (const auto& tile : fillDirtyTracking.m_undoStack.back().tiles) {
+            fillHistoryBytes += tile.pixels.size();
+        }
+    }
+    check(fillDirtyTracking.m_undoStack.size() == 1
+              && fillDirtyTracking.m_undoStack.back().pixels.empty()
+              && fillDirtyTracking.m_undoStack.back().tiles.size() == 1
+              && fillHistoryBytes < fillDirtyTracking.m_pixels.size(),
+          "localized Drawing Fill history stores touched tiles instead of the full canvas");
     check(!fillDirtyTracking.m_dirty && fillDirtyTracking.m_dirtyTileCount == 0,
           "fill that restores saved pixels clears only the touched tile's dirty state");
     fillDirtyTracking.undoCanvas();

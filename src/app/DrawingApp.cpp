@@ -219,54 +219,54 @@ void DrawingApp::pushUndoHistoryEntry(CanvasHistoryEntry entry) {
     m_undoStack.push_back(std::move(entry));
 }
 
-void DrawingApp::beginStroke() {
-    m_strokeHistoryEntry = {};
-    m_strokeHistoryEntry.width = m_canvasWidth;
-    m_strokeHistoryEntry.height = m_canvasHeight;
-    m_strokeTileColumns = m_canvasWidth > 0
+void DrawingApp::beginSparseHistory() {
+    m_sparseHistoryEntry = {};
+    m_sparseHistoryEntry.width = m_canvasWidth;
+    m_sparseHistoryEntry.height = m_canvasHeight;
+    m_sparseHistoryTileColumns = m_canvasWidth > 0
         ? (static_cast<size_t>(m_canvasWidth - 1) / kHistoryTileSize) + 1
         : 0;
     const size_t tileRows = m_canvasHeight > 0
         ? (static_cast<size_t>(m_canvasHeight - 1) / kHistoryTileSize) + 1
         : 0;
     const size_t tileCount = tileRows != 0
-        && m_strokeTileColumns > std::numeric_limits<size_t>::max() / tileRows
+        && m_sparseHistoryTileColumns > std::numeric_limits<size_t>::max() / tileRows
         ? 0
-        : m_strokeTileColumns * tileRows;
+        : m_sparseHistoryTileColumns * tileRows;
     if (m_dirtyTileWidth != m_canvasWidth || m_dirtyTileHeight != m_canvasHeight
         || m_dirtyTiles.size() != tileCount) {
         rebuildDirtyTiles();
     }
-    m_strokeCapturedTiles.assign(tileCount, 0);
-    m_strokeHistoryBytes = 0;
-    m_strokeHistoryOverflowed = false;
-    m_strokeHistoryPending = true;
-    m_strokeChanged = false;
+    m_sparseHistoryCapturedTiles.assign(tileCount, 0);
+    m_sparseHistoryBytes = 0;
+    m_sparseHistoryOverflowed = false;
+    m_sparseHistoryPending = true;
+    m_sparseHistoryChanged = false;
 }
 
-void DrawingApp::recordStrokeChange() {
-    if (!m_strokeHistoryPending || m_strokeChanged) return;
-    m_strokeChanged = m_strokeHistoryOverflowed || !m_strokeHistoryEntry.tiles.empty();
+void DrawingApp::recordSparseHistoryChange() {
+    if (!m_sparseHistoryPending || m_sparseHistoryChanged) return;
+    m_sparseHistoryChanged = m_sparseHistoryOverflowed || !m_sparseHistoryEntry.tiles.empty();
 }
 
-void DrawingApp::finishStroke() {
-    if (m_strokeHistoryPending && m_strokeChanged && !m_strokeHistoryOverflowed) {
-        pushUndoHistoryEntry(std::move(m_strokeHistoryEntry));
+void DrawingApp::finishSparseHistory() {
+    if (m_sparseHistoryPending && m_sparseHistoryChanged && !m_sparseHistoryOverflowed) {
+        pushUndoHistoryEntry(std::move(m_sparseHistoryEntry));
     }
-    m_strokeHistoryPending = false;
-    m_strokeChanged = false;
-    m_strokeHistoryEntry = {};
-    m_strokeCapturedTiles.clear();
-    m_strokeTileColumns = 0;
-    m_strokeHistoryBytes = 0;
-    m_strokeHistoryOverflowed = false;
+    m_sparseHistoryPending = false;
+    m_sparseHistoryChanged = false;
+    m_sparseHistoryEntry = {};
+    m_sparseHistoryCapturedTiles.clear();
+    m_sparseHistoryTileColumns = 0;
+    m_sparseHistoryBytes = 0;
+    m_sparseHistoryOverflowed = false;
 }
 
-void DrawingApp::observeStrokePixelWrite(void* context, int x, int y) {
-    if (context) static_cast<DrawingApp*>(context)->captureStrokeTile(x, y);
+void DrawingApp::observeSparseHistoryPixelWrite(void* context, int x, int y) {
+    if (context) static_cast<DrawingApp*>(context)->captureSparseHistoryTile(x, y);
 }
 
-void DrawingApp::captureStrokeTile(int x, int y) {
+void DrawingApp::captureSparseHistoryTile(int x, int y) {
     if (x < 0 || y < 0 || x >= m_canvasWidth || y >= m_canvasHeight) {
         return;
     }
@@ -280,15 +280,15 @@ void DrawingApp::captureStrokeTile(int x, int y) {
     if (dirtyTileIndex < m_dirtyTiles.size() && !m_dirtyTiles[dirtyTileIndex]) {
         markDirtyTile(dirtyTileIndex);
     }
-    if (!m_strokeHistoryPending || m_strokeTileColumns == 0) return;
+    if (!m_sparseHistoryPending || m_sparseHistoryTileColumns == 0) return;
 
     const size_t tileX = static_cast<size_t>(x) / kHistoryTileSize;
     const size_t tileY = static_cast<size_t>(y) / kHistoryTileSize;
-    const size_t tileIndex = tileY * m_strokeTileColumns + tileX;
-    if (tileIndex >= m_strokeCapturedTiles.size()) return;
-    if (m_strokeCapturedTiles[tileIndex]) return;
-    m_strokeCapturedTiles[tileIndex] = 1;
-    if (m_strokeHistoryOverflowed) return;
+    const size_t tileIndex = tileY * m_sparseHistoryTileColumns + tileX;
+    if (tileIndex >= m_sparseHistoryCapturedTiles.size()) return;
+    if (m_sparseHistoryCapturedTiles[tileIndex]) return;
+    m_sparseHistoryCapturedTiles[tileIndex] = 1;
+    if (m_sparseHistoryOverflowed) return;
 
     CanvasTileSnapshot tile;
     tile.x = static_cast<int>(tileX * kHistoryTileSize);
@@ -297,11 +297,11 @@ void DrawingApp::captureStrokeTile(int x, int y) {
     tile.height = std::min(kHistoryTileSize, m_canvasHeight - tile.y);
     const size_t rowBytes = static_cast<size_t>(tile.width) * 4;
     const size_t tileBytes = rowBytes * static_cast<size_t>(tile.height);
-    if (tileBytes > kMaxHistoryBytes - m_strokeHistoryBytes) {
-        m_strokeHistoryOverflowed = true;
-        m_strokeChanged = true;
-        m_strokeHistoryEntry.tiles.clear();
-        std::vector<CanvasTileSnapshot>().swap(m_strokeHistoryEntry.tiles);
+    if (tileBytes > kMaxHistoryBytes - m_sparseHistoryBytes) {
+        m_sparseHistoryOverflowed = true;
+        m_sparseHistoryChanged = true;
+        m_sparseHistoryEntry.tiles.clear();
+        std::vector<CanvasTileSnapshot>().swap(m_sparseHistoryEntry.tiles);
         m_undoStack.clear();
         m_redoStack.clear();
         return;
@@ -314,11 +314,11 @@ void DrawingApp::captureStrokeTile(int x, int y) {
         std::memcpy(tile.pixels.data() + static_cast<size_t>(row) * rowBytes,
                     m_pixels.data() + source, rowBytes);
     }
-    m_strokeHistoryEntry.tiles.push_back(std::move(tile));
-    m_strokeHistoryBytes += tileBytes;
+    m_sparseHistoryEntry.tiles.push_back(std::move(tile));
+    m_sparseHistoryBytes += tileBytes;
 }
 
-void DrawingApp::toggleStrokeTiles(CanvasHistoryEntry& entry) {
+void DrawingApp::toggleSparseHistoryTiles(CanvasHistoryEntry& entry) {
     if (entry.width != m_canvasWidth || entry.height != m_canvasHeight) return;
     const size_t canvasStride = static_cast<size_t>(m_canvasWidth) * 4;
     for (auto& tile : entry.tiles) {
@@ -341,7 +341,7 @@ void DrawingApp::endActiveStroke() {
     m_lastCanvasY = -1;
     m_shapeAnchorX = -1;
     m_shapeAnchorY = -1;
-    finishStroke();
+    finishSparseHistory();
 }
 
 void DrawingApp::restoreCanvasSnapshot(CanvasSnapshot&& snapshot) {
@@ -523,9 +523,15 @@ void DrawingApp::beginDirtyTileTracking() {
     m_dirtyTrackedTileIndices.clear();
 }
 
-void DrawingApp::observeDirtySpanWrite(void* context, int y, int left, int right) {
-    if (context) {
-        static_cast<DrawingApp*>(context)->noteDirtySpanWrite(y, left, right);
+void DrawingApp::observeFillSpanWrite(void* context, int y, int left, int right) {
+    auto* drawing = static_cast<DrawingApp*>(context);
+    if (!drawing) return;
+
+    drawing->noteDirtySpanWrite(y, left, right);
+    const int firstTileX = left / kHistoryTileSize;
+    const int lastTileX = right / kHistoryTileSize;
+    for (int tileX = firstTileX; tileX <= lastTileX; ++tileX) {
+        drawing->captureSparseHistoryTile(tileX * kHistoryTileSize, y);
     }
 }
 
@@ -577,7 +583,7 @@ void DrawingApp::finishDirtyTileTracking() {
 }
 
 void DrawingApp::undoCanvas() {
-    if (m_strokeHistoryPending) endActiveStroke();
+    if (m_sparseHistoryPending) endActiveStroke();
     if (m_undoStack.empty()) {
         setStatus("Nothing to undo.");
         return;
@@ -593,7 +599,7 @@ void DrawingApp::undoCanvas() {
         m_redoStack.push_back(std::move(current));
         restoreCanvasSnapshot({entry.width, entry.height, std::move(entry.pixels)});
     } else {
-        toggleStrokeTiles(entry);
+        toggleSparseHistoryTiles(entry);
         m_redoStack.push_back(std::move(entry));
         for (const auto& tile : m_redoStack.back().tiles) refreshDirtyTile(tile);
         updateDirtyFlag();
@@ -604,7 +610,7 @@ void DrawingApp::undoCanvas() {
 }
 
 void DrawingApp::redoCanvas() {
-    if (m_strokeHistoryPending) endActiveStroke();
+    if (m_sparseHistoryPending) endActiveStroke();
     if (m_redoStack.empty()) {
         setStatus("Nothing to redo.");
         return;
@@ -620,7 +626,7 @@ void DrawingApp::redoCanvas() {
         m_undoStack.push_back(std::move(current));
         restoreCanvasSnapshot({entry.width, entry.height, std::move(entry.pixels)});
     } else {
-        toggleStrokeTiles(entry);
+        toggleSparseHistoryTiles(entry);
         m_undoStack.push_back(std::move(entry));
         for (const auto& tile : m_undoStack.back().tiles) refreshDirtyTile(tile);
         updateDirtyFlag();
@@ -714,7 +720,7 @@ uint8_t DrawingApp::activeBlue() const {
 bool DrawingApp::setPixel(int x, int y, uint8_t r, uint8_t g, uint8_t b) {
     return monolith::drawing::setPixel(
         m_pixels, m_canvasWidth, m_canvasHeight, x, y, r, g, b,
-        &DrawingApp::observeStrokePixelWrite, this);
+        &DrawingApp::observeSparseHistoryPixelWrite, this);
 }
 
 bool DrawingApp::commitShape(int x0, int y0, int x1, int y1) {
@@ -725,11 +731,11 @@ bool DrawingApp::commitShape(int x0, int y0, int x1, int y1) {
     if (m_tool == Tool::Line) {
         changed = monolith::drawing::drawLine(
             m_pixels, m_canvasWidth, m_canvasHeight, x0, y0, x1, y1, r, g, b,
-            &DrawingApp::observeStrokePixelWrite, this);
+            &DrawingApp::observeSparseHistoryPixelWrite, this);
     } else if (m_tool == Tool::Rect) {
         changed = monolith::drawing::drawRect(
             m_pixels, m_canvasWidth, m_canvasHeight, x0, y0, x1, y1, r, g, b,
-            &DrawingApp::observeStrokePixelWrite, this);
+            &DrawingApp::observeSparseHistoryPixelWrite, this);
     }
     return changed;
 }
@@ -738,7 +744,7 @@ bool DrawingApp::stampBrush(int x, int y) {
     return monolith::drawing::stampBrush(
         m_pixels, m_canvasWidth, m_canvasHeight, x, y, brushRadius(),
         activeRed(), activeGreen(), activeBlue(),
-        &DrawingApp::observeStrokePixelWrite, this);
+        &DrawingApp::observeSparseHistoryPixelWrite, this);
 }
 
 void DrawingApp::floodFill(int x, int y) {
@@ -760,11 +766,13 @@ void DrawingApp::floodFill(int x, int y) {
         return;
     }
 
-    pushUndoSnapshot();
+    beginSparseHistory();
     beginDirtyTileTracking();
-    monolith::drawing::fillRegion(
+    const size_t filledPixels = monolith::drawing::fillRegion(
         m_pixels, m_canvasWidth, m_canvasHeight, x, y, fillR, fillG, fillB,
-        &DrawingApp::observeDirtySpanWrite, this);
+        &DrawingApp::observeFillSpanWrite, this);
+    if (filledPixels > 0) recordSparseHistoryChange();
+    finishSparseHistory();
 
     m_dirty = true;
     finishDirtyTileTracking();
@@ -793,7 +801,7 @@ bool DrawingApp::drawStroke(int x0, int y0, int x1, int y1) {
     return monolith::drawing::drawBrushStroke(
         m_pixels, m_canvasWidth, m_canvasHeight, x0, y0, x1, y1, brushRadius(),
         activeRed(), activeGreen(), activeBlue(),
-        &DrawingApp::observeStrokePixelWrite, this);
+        &DrawingApp::observeSparseHistoryPixelWrite, this);
 }
 
 bool DrawingApp::isInCanvas(int x, int y) const {
@@ -1831,12 +1839,12 @@ void DrawingApp::handleEvent(const SDL_Event& event) {
             m_lastCanvasY = cy;
             m_shapeAnchorX = cx;
             m_shapeAnchorY = cy;
-            beginStroke();
+            beginSparseHistory();
             if (m_tool == Tool::Line || m_tool == Tool::Rect) {
                 return;
             }
             if (stampBrush(cx, cy)) {
-                recordStrokeChange();
+                recordSparseHistoryChange();
                 m_dirty = true;
                 clearDiscardArm();
                 markTextureDirty();
@@ -1852,7 +1860,7 @@ void DrawingApp::handleEvent(const SDL_Event& event) {
             int cy = 0;
             canvasPointFromClient(event.button.x, event.button.y, cx, cy);
             if (commitShape(m_shapeAnchorX, m_shapeAnchorY, cx, cy)) {
-                recordStrokeChange();
+                recordSparseHistoryChange();
                 m_dirty = true;
                 clearDiscardArm();
                 markTextureDirty();
@@ -1863,7 +1871,7 @@ void DrawingApp::handleEvent(const SDL_Event& event) {
         m_lastCanvasY = -1;
         m_shapeAnchorX = -1;
         m_shapeAnchorY = -1;
-        finishStroke();
+        finishSparseHistory();
         return;
     }
 
@@ -1880,13 +1888,13 @@ void DrawingApp::handleEvent(const SDL_Event& event) {
 
         if (m_lastCanvasX >= 0 && m_lastCanvasY >= 0) {
             if (drawStroke(m_lastCanvasX, m_lastCanvasY, cx, cy)) {
-                recordStrokeChange();
+                recordSparseHistoryChange();
                 m_dirty = true;
                 clearDiscardArm();
                 markTextureDirty();
             }
         } else if (stampBrush(cx, cy)) {
-            recordStrokeChange();
+            recordSparseHistoryChange();
             m_dirty = true;
             clearDiscardArm();
             markTextureDirty();
