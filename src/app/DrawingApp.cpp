@@ -223,7 +223,8 @@ void DrawingApp::beginSparseHistory() {
         || m_dirtyTiles.size() != tileCount) {
         rebuildDirtyTiles();
     }
-    m_sparseHistoryCapturedTiles.assign(tileCount, 0);
+    m_sparseHistoryCapturedTiles.resize(tileCount, 0);
+    m_sparseHistoryCapturedTileIndices.clear();
     m_sparseHistoryBytes = 0;
     m_sparseHistoryOverflowed = false;
     m_sparseHistoryPending = true;
@@ -236,6 +237,12 @@ void DrawingApp::recordSparseHistoryChange() {
 }
 
 void DrawingApp::finishSparseHistory() {
+    for (const size_t index : m_sparseHistoryCapturedTileIndices) {
+        if (index < m_sparseHistoryCapturedTiles.size()) {
+            m_sparseHistoryCapturedTiles[index] = 0;
+        }
+    }
+    m_sparseHistoryCapturedTileIndices.clear();
     if (m_sparseHistoryPending && m_sparseHistoryChanged && !m_sparseHistoryOverflowed) {
         pushUndoHistoryEntry(std::move(m_sparseHistoryEntry));
     }
@@ -266,7 +273,10 @@ void DrawingApp::captureSparseHistoryTile(int x, int y) {
     if (dirtyTileIndex < m_dirtyTiles.size() && !m_dirtyTiles[dirtyTileIndex]) {
         markDirtyTile(dirtyTileIndex);
     }
-    if (!m_sparseHistoryPending || m_sparseHistoryTileColumns == 0) return;
+    if (!m_sparseHistoryPending || m_sparseHistoryTileColumns == 0
+        || m_sparseHistoryOverflowed) {
+        return;
+    }
 
     const size_t tileX = static_cast<size_t>(x) / kHistoryTileSize;
     const size_t tileY = static_cast<size_t>(y) / kHistoryTileSize;
@@ -274,7 +284,7 @@ void DrawingApp::captureSparseHistoryTile(int x, int y) {
     if (tileIndex >= m_sparseHistoryCapturedTiles.size()) return;
     if (m_sparseHistoryCapturedTiles[tileIndex]) return;
     m_sparseHistoryCapturedTiles[tileIndex] = 1;
-    if (m_sparseHistoryOverflowed) return;
+    m_sparseHistoryCapturedTileIndices.push_back(tileIndex);
 
     CanvasTileSnapshot tile;
     tile.x = static_cast<int>(tileX * kHistoryTileSize);
@@ -494,7 +504,7 @@ void DrawingApp::beginDirtyTileTracking() {
         || m_dirtyTiles.size() != tileCount) {
         rebuildDirtyTiles();
     }
-    m_dirtyTrackingTiles.assign(m_dirtyTiles.size(), 0);
+    m_dirtyTrackingTiles.resize(m_dirtyTiles.size(), 0);
     m_dirtyTrackedTileIndices.clear();
 }
 
@@ -553,7 +563,11 @@ void DrawingApp::finishDirtyTileTracking() {
         }
         updateDirtyFlag();
     }
-    m_dirtyTrackingTiles.clear();
+    for (const size_t index : m_dirtyTrackedTileIndices) {
+        if (index < m_dirtyTrackingTiles.size()) {
+            m_dirtyTrackingTiles[index] = 0;
+        }
+    }
     m_dirtyTrackedTileIndices.clear();
 }
 

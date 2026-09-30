@@ -188,6 +188,7 @@ private:
     bool m_sparseHistoryChanged = false;
     CanvasHistoryEntry m_sparseHistoryEntry;
     std::vector<uint8_t> m_sparseHistoryCapturedTiles;
+    std::vector<std::size_t> m_sparseHistoryCapturedTileIndices;
     std::size_t m_sparseHistoryTileColumns = 0;
     std::size_t m_sparseHistoryBytes = 0;
     bool m_sparseHistoryOverflowed = false;

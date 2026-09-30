@@ -265,7 +265,7 @@ Top row:
 - **New**: clears the canvas, resets the file path, and restores the window's instance title (`Drawing`, `Drawing 2`, etc.).
 - **Save**: writes the current bound file immediately, or prompts for a path when the sketch has no file path yet.
 - **Open**: prompts for a `.modr` file path.
-- **Undo**: undoes the last stroke or clear.
+- **Undo**: undoes the last changed stroke, fill, or clear.
 - **Redo**: redoes the last undone change.
 
 Second row:
@@ -376,7 +376,7 @@ Pick samples the RGB value at the clicked canvas pixel, stores it as the custom 
 | Ctrl+S | Save the current sketch |
 | Ctrl+O | Open a `.modr` sketch by path |
 | Ctrl+N | Start a new sketch |
-| Ctrl+Z | Undo the last stroke or clear |
+| Ctrl+Z | Undo the last changed stroke, fill, or clear |
 | Ctrl+Y / Ctrl+Shift+Z | Redo |
 | Tab | Complete paths in save/open prompt |
 | Enter | Confirm the active Save, Open, or RGB prompt |
@@ -524,7 +524,7 @@ Drawing stores a capped history of canvas edits.
 - Opening a file clears history.
 - Resizing the canvas clears history so old edits are not applied to the wrong canvas size.
 
-Undo and redo share a combined limit of 32 history states and 64 MiB of stored pixel data. The oldest undo states are discarded first when either limit is reached. Sparse strokes, localized fills, and clears of sparse artwork remain undoable on canvases larger than 64 MiB when their changed tiles fit the budget. If an operation exceeds the budget, Drawing immediately releases its pending tile captures and clears undo/redo rather than growing memory without bound. Clear scans the canvas by 32×32 tiles, recording and resetting only tiles that contain non-background pixels. Tile preimages swap their pixel data in place for undo and redo; a compact dirty-tile map keeps the modified marker accurate after saves and undo/redo, rechecking only tiles changed by each sparse edit.
+Undo and redo share a combined limit of 32 history states and 64 MiB of stored pixel data. The oldest undo states are discarded first when either limit is reached. Sparse strokes, localized fills, and clears of sparse artwork remain undoable on canvases larger than 64 MiB when their changed tiles fit the budget. If an operation exceeds the budget, Drawing immediately releases its pending tile captures and clears undo/redo rather than growing memory without bound. Clear scans the canvas by 32×32 tiles, recording and resetting only tiles that contain non-background pixels. Tile preimages swap their pixel data in place for undo and redo; compact dirty and capture scratch maps are reused between edits and reset through touched-tile indices, avoiding a full scratch-map clear for each stroke, fill, or clear. The dirty map keeps the modified marker accurate after saves and undo/redo by rechecking only tiles changed by each sparse edit.
 
 ## File Format
 

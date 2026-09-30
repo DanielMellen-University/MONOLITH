@@ -161,6 +161,39 @@ int main() {
               && drawing.m_undoStack.size() == clearUndoCount,
           "an eraser stroke on a blank Drawing stays clean without capturing undo pixels");
 
+    TestDrawing scratchTracking(font, &fs);
+    scratchTracking.resizeCanvas(1024, 1024, false);
+    scratchTracking.m_savedSnapshot = {
+        scratchTracking.m_canvasWidth,
+        scratchTracking.m_canvasHeight,
+        scratchTracking.m_pixels};
+    scratchTracking.beginSparseHistory();
+    const bool firstScratchWrite = scratchTracking.setPixel(33, 65, 1, 2, 3);
+    const size_t firstScratchTile = 2 * 32 + 1;
+    const bool firstScratchMarked = firstScratchWrite
+        && scratchTracking.m_sparseHistoryCapturedTileIndices.size() == 1
+        && scratchTracking.m_sparseHistoryCapturedTileIndices.front() == firstScratchTile
+        && scratchTracking.m_sparseHistoryCapturedTiles[firstScratchTile] == 1;
+    scratchTracking.recordSparseHistoryChange();
+    scratchTracking.finishSparseHistory();
+    const bool firstScratchCleared =
+        scratchTracking.m_sparseHistoryCapturedTileIndices.empty()
+        && scratchTracking.m_sparseHistoryCapturedTiles[firstScratchTile] == 0;
+    scratchTracking.beginSparseHistory();
+    const bool secondScratchWrite = scratchTracking.setPixel(500, 500, 4, 5, 6);
+    const size_t secondScratchTile = 15 * 32 + 15;
+    const bool secondScratchMarked = secondScratchWrite
+        && scratchTracking.m_sparseHistoryCapturedTileIndices.size() == 1
+        && scratchTracking.m_sparseHistoryCapturedTileIndices.front() == secondScratchTile
+        && scratchTracking.m_sparseHistoryCapturedTiles[firstScratchTile] == 0
+        && scratchTracking.m_sparseHistoryCapturedTiles[secondScratchTile] == 1;
+    scratchTracking.recordSparseHistoryChange();
+    scratchTracking.finishSparseHistory();
+    check(firstScratchMarked && firstScratchCleared && secondScratchMarked
+              && scratchTracking.m_sparseHistoryCapturedTileIndices.empty()
+              && scratchTracking.m_sparseHistoryCapturedTiles[secondScratchTile] == 0,
+          "sparse stroke scratch marks reset only their touched indices between edits");
+
     TestDrawing redoDrawing(font, &fs);
     redoDrawing.onResize(300, 300);
     redoDrawing.m_tool = monolith::app::DrawingApp::Tool::Pen;
@@ -385,6 +418,15 @@ int main() {
                   && largeCanvasStroke.m_undoStack.back().tiles.size() == 2
                   && sparseClearHistoryBytes == 32 * 32 * 4 + 32 * 4,
               "large sparse Clear stores only changed tiles");
+        check(largeCanvasStroke.m_sparseHistoryCapturedTileIndices.empty()
+                  && std::none_of(largeCanvasStroke.m_sparseHistoryCapturedTiles.begin(),
+                                  largeCanvasStroke.m_sparseHistoryCapturedTiles.end(),
+                                  [](uint8_t captured) { return captured != 0; })
+                  && largeCanvasStroke.m_dirtyTrackedTileIndices.empty()
+                  && std::none_of(largeCanvasStroke.m_dirtyTrackingTiles.begin(),
+                                  largeCanvasStroke.m_dirtyTrackingTiles.end(),
+                                  [](uint8_t tracked) { return tracked != 0; }),
+              "Drawing Clear resets only captured and dirty marks it touched");
         check(largeCanvasStroke.m_pixels == largeCanvasStroke.m_savedSnapshot.pixels
                   && !largeCanvasStroke.m_dirty,
               "large sparse Clear returns the modified marker to the saved baseline");
@@ -607,6 +649,11 @@ int main() {
               && fillDirtyTracking.m_undoStack.back().tiles.size() == 1
               && fillHistoryBytes < fillDirtyTracking.m_pixels.size(),
           "localized Drawing Fill history stores touched tiles instead of the full canvas");
+    check(fillDirtyTracking.m_dirtyTrackedTileIndices.empty()
+              && std::none_of(fillDirtyTracking.m_dirtyTrackingTiles.begin(),
+                              fillDirtyTracking.m_dirtyTrackingTiles.end(),
+                              [](uint8_t tracked) { return tracked != 0; }),
+          "Drawing Fill clears its touched dirty marks while retaining scratch storage");
     check(!fillDirtyTracking.m_dirty && fillDirtyTracking.m_dirtyTileCount == 0,
           "fill that restores saved pixels clears only the touched tile's dirty state");
     fillDirtyTracking.undoCanvas();

@@ -1,5 +1,7 @@
 # Session log
 
+| 2026-09-29 | perf | Reused Drawing's per-canvas scratch maps and reset only touched stroke-capture or Fill/Clear dirty indices; added cross-edit state coverage. |
+
 | 2026-09-29 | refactor | Removed Drawing's dead full-canvas history path now that strokes, Fill, and Clear all use sparse tiles; retained undo/redo, 32-state, and 64 MiB coverage using real edits and sparse entries; hosted workflow #66 passed. |
 
 | 2026-09-29 | perf | Replaced Drawing Clear's full-canvas history copy with changed-tile preimages, keeping sparse large canvases undoable while retaining the 64 MiB overflow fallback; covered partial edge tiles, undo/redo, saved-baseline state, and hosted workflow #64. |

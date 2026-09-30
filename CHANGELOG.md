@@ -1,5 +1,10 @@
 # Changelog
 
+## 2026-09: Reuse Drawing sparse scratch marks
+
+- Reuse stroke-capture and Fill/Clear dirty-tracking maps across edits instead of zeroing every canvas tile marker each time.
+- Reset only tile indices touched by the previous operation and cover reuse through stroke, Fill, and Clear state tests.
+
 ## 2026-09: Remove full-canvas Drawing history path
 
 - Use tile preimages as the only Drawing undo/redo representation now that strokes, Fill, and Clear all record sparse history.
