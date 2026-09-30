@@ -34,6 +34,7 @@ The human funds token budget and lives in the desktop. You:
 
 | When | Kind | Note |
 |------|------|------|
+| 2026-09-29 | 7.48 | Drawing Clear captures only changed 32×32 tiles, keeping sparse large canvases undoable; hosted headless workflow #64 passed |
 | 2026-09-27 | 7.47 | Drawing Fill captures only touched 32×32 preimage tiles, keeping localized fills undoable on canvases above the history budget; hosted headless workflow #61 passed |
 | 2026-09-27 | 7.46 | Drawing tracks dirty state per 32×32 tile, avoiding full-canvas comparisons after sparse undo/redo while preserving save-mid-history semantics; hosted headless workflow #59 passed |
 | 2026-09-27 | 7.45 | Drawing stroke history captures reversible 32×32 preimage tiles lazily instead of cloning the full canvas at gesture start; hosted headless workflow #56 passed |
@@ -166,7 +167,7 @@ Older recent-work rows: [`SESSION_LOG.md`](SESSION_LOG.md).
 | 7.45 | Store sparse Drawing stroke history | done | Capture each touched 32×32 tile before its first actual stroke write, toggle its pixels for undo/redo, retain full snapshots for Fill and Clear, and discard over-budget transient captures |
 | 7.46 | Cache Drawing dirty state by tile | done | Maintain exact modified-state bits per 32×32 tile; sparse undo/redo and Fill/Clear recheck only touched tiles against the saved baseline |
 | 7.47 | Store sparse Drawing Fill history | done | Capture each touched 32×32 tile before its first fill-span write; keep localized fills undoable on canvases above 64 MiB while releasing over-budget captures |
-| 7.48 | Store sparse Drawing Clear history | in progress | Capture only non-background 32×32 tiles during Clear; keep sparse canvases above 64 MiB undoable, preserve saved-baseline dirty tracking, and retain bounded fallback for oversized clears |
+| 7.48 | Store sparse Drawing Clear history | done | Capture only non-background 32×32 tiles during Clear; keep sparse canvases above 64 MiB undoable, preserve saved-baseline dirty tracking, and retain bounded fallback for oversized clears |
 
 ## Commit voice
 
