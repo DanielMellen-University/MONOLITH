@@ -34,6 +34,7 @@ If a bound file's parent directory is deleted, the editor keeps the document buf
 - Line numbers appear in the left margin.
 - Empty files open as one editable blank line. A file that ends with a newline keeps its final blank line.
 - Files opened with CRLF or lone-CR line endings are normalized to LF in the editor. Saving writes the document with LF separators.
+- File opens stream in bounded 16 KiB chunks. Documents above 16 MiB or 65,536 lines are rejected on open and save; a rejected open leaves the current document untouched.
 - Syntax highlighting colors comments, strings, signed and unsigned numbers, and (for code files) keywords.
 - A `*` in the status bar indicates that the buffer differs from the last loaded or saved content; undoing back to that content clears the marker.
 - Open/save results and errors appear in the status bar (e.g. `Saved: note.txt`, `Open failed: …`).
@@ -124,6 +125,7 @@ Path prompts support Left/Right/Home/End, UTF-8-safe Backspace/Delete, and inser
 - Undo/redo share a limit of 50 full-buffer states and an estimated 64 MiB of snapshot memory. Oldest undo states are evicted first; snapshots larger than the budget are not retained, and the status bar explains when history is unavailable for that reason. Consecutive typing or in-line backspace within ~1s remains one undo step; Enter, paste, and other edits start a new step.
 - Multiline string literals and language-specific syntax edge cases are not parsed; highlighting is a lightweight token scan, not a full language parser.
 - No multiple buffers/tabs.
+- Open and save are limited to 16 MiB and 65,536 lines so large or newline-heavy files cannot cause unbounded editor allocations.
 - Long lines remain editable without wrapping; horizontal scrolling moves the text viewport in pixel increments while preserving document columns.
 - Long-line rendering rasterizes only UTF-8 syntax-span slices near the visible text viewport. A renderer-aware LRU reuses those textures between frames and across edits, scrolling, and resizing; it is capped at 256 entries and an estimated 16 MiB, and clears on renderer or UI-scale changes.
 - Horizontal scrolling is clamped to the current line after wheel input and window resizing, so widening the editor cannot leave the text viewport stranded past the line end.

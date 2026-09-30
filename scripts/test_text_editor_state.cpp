@@ -569,6 +569,19 @@ int main() {
           "write CRLF editor file");
     check(fs.writeFile("/classic-mac.txt", "first\rsecond\r"),
           "write lone-CR editor file");
+    std::string chunkBoundaryContent(16 * 1024 - 1, 'x');
+    chunkBoundaryContent += "\r\nend\r";
+    check(fs.writeFile("/chunk-boundary.txt", chunkBoundaryContent),
+          "write editor line endings across a read-chunk boundary");
+    check(fs.writeFile("/oversized.txt",
+                       std::string(TestEditor::kMaxDocumentBytes + 1, 'x')),
+          "write editor file above the byte limit");
+    check(fs.writeFile("/too-many-lines.txt",
+                       std::string(TestEditor::kMaxDocumentLines, '\n')),
+          "write editor file above the line limit");
+    check(fs.writeFile("/max-lines.txt",
+                       std::string(TestEditor::kMaxDocumentLines - 1, '\n')),
+          "write editor file at the line limit");
     check(fs.createDirectory("/folder"), "create unwritable save target directory");
     check(fs.createDirectory("/unicode"), "create Unicode completion directory");
     const std::string eAcuteName = std::string("\xC3\xA9") + "clair.txt";
@@ -589,6 +602,53 @@ int main() {
     TestEditor classicMacEditor(nullptr, &fs, "/classic-mac.txt");
     check(classicMacEditor.m_lines == std::vector<std::string>{"first", "second", ""},
           "lone-CR files open with normalized line endings");
+
+    TestEditor chunkBoundaryEditor(nullptr, &fs, "/chunk-boundary.txt");
+    check(chunkBoundaryEditor.m_lines.size() == 3
+              && chunkBoundaryEditor.m_lines[0] == std::string(16 * 1024 - 1, 'x')
+              && chunkBoundaryEditor.m_lines[1] == "end"
+              && chunkBoundaryEditor.m_lines[2].empty(),
+          "streamed editor open normalizes CRLF split across chunks and trailing CR");
+
+    TestEditor maxLinesEditor(nullptr, &fs, "/max-lines.txt");
+    check(maxLinesEditor.m_lines.size() == TestEditor::kMaxDocumentLines
+              && maxLinesEditor.m_lines.front().empty()
+              && maxLinesEditor.m_lines.back().empty(),
+          "Text Editor accepts a file exactly at its line limit");
+
+    TestEditor boundedEditor(nullptr, &fs, "/old.txt");
+    boundedEditor.m_lines = {"unsaved buffer"};
+    boundedEditor.m_savedLines = {"saved baseline"};
+    boundedEditor.m_dirty = true;
+    const auto linesBeforeLimitedOpen = boundedEditor.m_lines;
+    check(!boundedEditor.loadInitialFile("/oversized.txt")
+              && boundedEditor.m_lines == linesBeforeLimitedOpen
+              && boundedEditor.m_savedLines == std::vector<std::string>{"saved baseline"}
+              && boundedEditor.m_filePath == "/old.txt"
+              && boundedEditor.m_dirty
+              && boundedEditor.m_statusMessage.find("16 MiB") != std::string::npos,
+          "oversized streamed open preserves the current dirty document");
+    check(!boundedEditor.loadInitialFile("/too-many-lines.txt")
+              && boundedEditor.m_lines == linesBeforeLimitedOpen
+              && boundedEditor.m_filePath == "/old.txt"
+              && boundedEditor.m_dirty
+              && boundedEditor.m_statusMessage.find("65,536") != std::string::npos,
+          "over-limit line count is rejected without replacing the current document");
+
+    TestEditor oversizedSaveEditor(nullptr, &fs, "");
+    oversizedSaveEditor.m_filePath = "/oversized-save.txt";
+    oversizedSaveEditor.m_lines = {
+        std::string(TestEditor::kMaxDocumentBytes + 1, 'x')};
+    oversizedSaveEditor.m_dirty = true;
+    check(!oversizedSaveEditor.saveCurrentFile()
+              && !fs.exists("/oversized-save.txt")
+              && oversizedSaveEditor.m_statusMessage.find("16 MiB") != std::string::npos,
+          "Text Editor refuses saves beyond its byte limit");
+    oversizedSaveEditor.m_lines.assign(TestEditor::kMaxDocumentLines + 1, "");
+    check(!oversizedSaveEditor.saveCurrentFile()
+              && !fs.exists("/oversized-save.txt")
+              && oversizedSaveEditor.m_statusMessage.find("65,536") != std::string::npos,
+          "Text Editor refuses saves beyond its line limit");
 
     TestEditor editor(nullptr, &fs, "/old.txt");
     TestController controller;

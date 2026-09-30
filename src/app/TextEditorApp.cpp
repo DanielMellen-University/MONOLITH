@@ -13,22 +13,6 @@ namespace monolith::app {
 
 namespace {
 
-std::string normalizeLineEndings(const std::string& text) {
-    std::string normalized;
-    normalized.reserve(text.size());
-    for (size_t i = 0; i < text.size(); ++i) {
-        if (text[i] == '\r') {
-            if (i + 1 < text.size() && text[i + 1] == '\n') {
-                ++i;
-            }
-            normalized.push_back('\n');
-        } else {
-            normalized.push_back(text[i]);
-        }
-    }
-    return normalized;
-}
-
 bool isCodeExtension(const std::string& ext) {
     static const std::unordered_set<std::string> kCodeExtensions = {
         "c", "cc", "cpp", "cxx", "h", "hh", "hpp", "hxx",
@@ -397,6 +381,18 @@ void TextEditorApp::drawColoredLine(SDL_Renderer* renderer, const std::string& l
     }
 }
 
+bool TextEditorApp::documentFitsFileLimits(const std::vector<std::string>& lines) {
+    if (lines.size() > kMaxDocumentLines) return false;
+
+    size_t bytes = lines.empty() ? 0 : lines.size() - 1;
+    if (bytes > kMaxDocumentBytes) return false;
+    for (const auto& line : lines) {
+        if (line.size() > kMaxDocumentBytes - bytes) return false;
+        bytes += line.size();
+    }
+    return true;
+}
+
 bool TextEditorApp::loadInitialFile(const std::string& virtualPath) {
     if (!m_fs) {
         setStatus("Open failed: filesystem not available");
@@ -409,25 +405,74 @@ bool TextEditorApp::loadInitialFile(const std::string& virtualPath) {
         return false;
     }
 
-    std::string content;
-    if (!m_fs->readFile(normalized, content)) {
+    std::vector<std::string> loadedLines;
+    std::string line;
+    size_t bytesRead = 0;
+    bool pendingCarriageReturn = false;
+    bool tooLarge = false;
+    bool tooManyLines = false;
+    auto appendLine = [&]() {
+        if (loadedLines.size() >= kMaxDocumentLines) {
+            tooManyLines = true;
+            return false;
+        }
+        loadedLines.emplace_back();
+        loadedLines.back().swap(line);
+        return true;
+    };
+
+    const bool readSucceeded = m_fs->readFileChunks(normalized, [&](std::string_view chunk) {
+        if (chunk.size() > kMaxDocumentBytes - bytesRead) {
+            tooLarge = true;
+            return false;
+        }
+        bytesRead += chunk.size();
+
+        for (const char character : chunk) {
+            if (pendingCarriageReturn) {
+                if (!appendLine()) return false;
+                pendingCarriageReturn = false;
+                if (character == '\n') continue;
+            }
+
+            if (character == '\r') {
+                pendingCarriageReturn = true;
+            } else if (character == '\n') {
+                if (!appendLine()) return false;
+            } else {
+                line.push_back(character);
+            }
+        }
+        return true;
+    });
+
+    if (tooLarge) {
+        setStatus("Open failed: exceeds 16 MiB limit.");
+        return false;
+    }
+    if (tooManyLines) {
+        setStatus("Open failed: exceeds 65,536-line limit.");
+        return false;
+    }
+    if (!readSucceeded) {
         setStatus("Open failed: could not read " + normalized);
         return false;
     }
-    m_lines.clear();
-    const std::string normalizedContent = normalizeLineEndings(content);
-    std::istringstream iss(normalizedContent);
-    std::string line;
-    while (std::getline(iss, line)) {
-        // getline strips the newline; trailing newline yields a final empty line below
-        m_lines.push_back(line);
+
+    if (pendingCarriageReturn && !appendLine()) {
+        setStatus("Open failed: exceeds 65,536-line limit.");
+        return false;
     }
-    if (!normalizedContent.empty() && normalizedContent.back() == '\n') {
-        m_lines.emplace_back("");
+    if (!appendLine()) {
+        setStatus("Open failed: exceeds 65,536-line limit.");
+        return false;
     }
-    if (m_lines.empty()) {
-        m_lines = { "" };
+    if (!documentFitsFileLimits(loadedLines)) {
+        setStatus("Open failed: exceeds document limits.");
+        return false;
     }
+
+    m_lines = std::move(loadedLines);
     m_filePath = normalized;
     m_savedLines = m_lines;
     m_cursorRow = 0;
@@ -451,6 +496,11 @@ bool TextEditorApp::saveCurrentFile() {
     if (m_filePath.empty()) {
         clearDiscardArm();
         setStatus("Save failed: no path (use Save as)");
+        return false;
+    }
+    if (!documentFitsFileLimits(m_lines)) {
+        clearDiscardArm();
+        setStatus("Save failed: exceeds 16 MiB or 65,536 lines.");
         return false;
     }
 

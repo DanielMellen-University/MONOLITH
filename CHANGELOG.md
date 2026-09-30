@@ -1,5 +1,10 @@
 # Changelog
 
+## 2026-09: Bound Text Editor file loading
+
+- Stream file opens in 16 KiB chunks and normalize CRLF or lone-CR endings without constructing full raw and normalized copies.
+- Reject files above 16 MiB or 65,536 lines on open and save; failed opens preserve the active document.
+
 ## 2026-09: Reuse Drawing sparse scratch marks
 
 - Reuse stroke-capture and Fill/Clear dirty-tracking maps across edits instead of zeroing every canvas tile marker each time.

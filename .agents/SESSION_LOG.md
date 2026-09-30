@@ -1,5 +1,7 @@
 # Session log
 
+| 2026-09-29 | fix | Streamed Text Editor file opens through bounded chunks, capped documents at 16 MiB and 65,536 lines for open/save, preserved the active document on rejection, and covered cross-chunk CRLF plus both limits. |
+
 | 2026-09-29 | perf | Reused Drawing's per-canvas scratch maps and reset only touched stroke-capture or Fill/Clear dirty indices; added cross-edit state coverage and passed hosted workflow #69. |
 
 | 2026-09-29 | refactor | Removed Drawing's dead full-canvas history path now that strokes, Fill, and Clear all use sparse tiles; retained undo/redo, 32-state, and 64 MiB coverage using real edits and sparse entries; hosted workflow #66 passed. |

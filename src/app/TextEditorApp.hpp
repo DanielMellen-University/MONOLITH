@@ -86,6 +86,9 @@ private:
                           bool clampToViewport = false) const;
 
     // === File I/O ===
+    static constexpr size_t kMaxDocumentBytes = 16 * 1024 * 1024;
+    static constexpr size_t kMaxDocumentLines = 65'536;
+    static bool documentFitsFileLimits(const std::vector<std::string>& lines);
     bool loadInitialFile(const std::string& virtualPath);
     std::string getDisplayName() const;
     void updateTitleForPath();
