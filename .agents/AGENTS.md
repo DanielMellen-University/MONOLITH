@@ -34,7 +34,7 @@ The human funds token budget and lives in the desktop. You:
 
 | When | Kind | Note |
 |------|------|------|
-| 2026-09-29 | 7.51 | Text Editor streams file opens and rejects documents above 16 MiB or 65,536 lines; hosted verification pending |
+| 2026-09-29 | 7.51 | Text Editor streams file opens and rejects documents above 16 MiB or 65,536 lines; hosted headless workflow #71 passed |
 | 2026-09-29 | 7.50 | Drawing reuses stroke-capture and Fill/Clear dirty-tracking scratch maps, resetting only touched tile indices; hosted headless workflow #69 passed |
 | 2026-09-29 | 7.49 | Drawing history now stores only sparse tile preimages; removed full-buffer undo/redo branches and revalidated state/byte caps; hosted headless workflow #66 passed |
 | 2026-09-29 | 7.48 | Drawing Clear captures only changed 32×32 tiles, keeping sparse large canvases undoable; hosted headless workflow #64 passed |
@@ -173,7 +173,7 @@ Older recent-work rows: [`SESSION_LOG.md`](SESSION_LOG.md).
 | 7.48 | Store sparse Drawing Clear history | done | Capture only non-background 32×32 tiles during Clear; keep sparse canvases above 64 MiB undoable, preserve saved-baseline dirty tracking, and retain bounded fallback for oversized clears |
 | 7.49 | Remove full-snapshot Drawing history | done | Use tile preimages as the sole undo-entry representation; preserve 32-state and 64 MiB limits with real edit and sparse-budget coverage |
 | 7.50 | Reuse Drawing touched-tile scratch maps | done | Keep per-canvas stroke-capture and Fill/Clear dirty-tracking maps allocated between edits and clear only indices touched by the prior operation |
-| 7.51 | Bound Text Editor file I/O | in progress | Stream file opens in 16 KiB chunks, normalize line endings across chunk boundaries, and enforce 16 MiB / 65,536-line limits on open and save without replacing the current document on rejected opens |
+| 7.51 | Bound Text Editor file I/O | done | Stream file opens in 16 KiB chunks, normalize line endings across chunk boundaries, and enforce 16 MiB / 65,536-line limits on open and save without replacing the current document on rejected opens |
 
 ## Commit voice
 
