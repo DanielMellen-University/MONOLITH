@@ -1,5 +1,10 @@
 # Changelog
 
+## 2026-09: Remove full-canvas Drawing history path
+
+- Use tile preimages as the only Drawing undo/redo representation now that strokes, Fill, and Clear all record sparse history.
+- Remove dead full-buffer history creation, restoration, and accounting branches; keep state and byte-budget coverage on sparse entries.
+
 ## 2026-09: Keep Drawing Clear history sparse
 
 - Capture original pixels only for 32×32 tiles containing non-background pixels when clearing a sketch.

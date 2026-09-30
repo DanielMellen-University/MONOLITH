@@ -152,63 +152,32 @@ void DrawingApp::markTextureDirty() {
     m_textureDirty = true;
 }
 
-void DrawingApp::pushUndoSnapshot() {
-    if (m_pixels.size() > kMaxHistoryBytes) {
-        m_undoStack.clear();
-        m_redoStack.clear();
-        return;
-    }
-    pushUndoSnapshot({m_canvasWidth, m_canvasHeight, m_pixels});
-}
-
-void DrawingApp::pushUndoSnapshot(CanvasSnapshot snapshot) {
-    if (snapshot.width <= 0 || snapshot.height <= 0) return;
-    const size_t width = static_cast<size_t>(snapshot.width);
-    const size_t height = static_cast<size_t>(snapshot.height);
-    if (width > std::numeric_limits<size_t>::max() / height / 4
-        || snapshot.pixels.size() != width * height * 4) {
-        return;
-    }
-
-    CanvasHistoryEntry entry;
-    entry.width = snapshot.width;
-    entry.height = snapshot.height;
-    entry.pixels = std::move(snapshot.pixels);
-    pushUndoHistoryEntry(std::move(entry));
-}
-
 void DrawingApp::pushUndoHistoryEntry(CanvasHistoryEntry entry) {
     if (entry.width <= 0 || entry.height <= 0) return;
     const size_t width = static_cast<size_t>(entry.width);
     const size_t height = static_cast<size_t>(entry.height);
     if (width > std::numeric_limits<size_t>::max() / height / 4) return;
-    const size_t expectedBytes = width * height * 4;
+    if (entry.tiles.empty()) return;
 
-    size_t entryBytes = entry.pixels.size();
-    if (!entry.pixels.empty()) {
-        if (!entry.tiles.empty() || entryBytes != expectedBytes) return;
-    } else {
-        if (entry.tiles.empty()) return;
-        for (const auto& tile : entry.tiles) {
-            if (tile.x < 0 || tile.y < 0 || tile.width <= 0 || tile.height <= 0
-                || static_cast<size_t>(tile.x) > width
-                || static_cast<size_t>(tile.y) > height
-                || static_cast<size_t>(tile.width) > width - static_cast<size_t>(tile.x)
-                || static_cast<size_t>(tile.height) > height - static_cast<size_t>(tile.y)) {
-                return;
-            }
-            const size_t tileWidth = static_cast<size_t>(tile.width);
-            const size_t tileHeight = static_cast<size_t>(tile.height);
-            if (tileWidth > std::numeric_limits<size_t>::max() / tileHeight / 4) return;
-            const size_t tileBytes = tileWidth * tileHeight * 4;
-            if (tile.pixels.size() != tileBytes) return;
-            if (entryBytes > kMaxHistoryBytes
-                || tileBytes > kMaxHistoryBytes - entryBytes) {
-                entryBytes = kMaxHistoryBytes + 1;
-                break;
-            }
-            entryBytes += tileBytes;
+    size_t entryBytes = 0;
+    for (const auto& tile : entry.tiles) {
+        if (tile.x < 0 || tile.y < 0 || tile.width <= 0 || tile.height <= 0
+            || static_cast<size_t>(tile.x) > width
+            || static_cast<size_t>(tile.y) > height
+            || static_cast<size_t>(tile.width) > width - static_cast<size_t>(tile.x)
+            || static_cast<size_t>(tile.height) > height - static_cast<size_t>(tile.y)) {
+            return;
         }
+        const size_t tileWidth = static_cast<size_t>(tile.width);
+        const size_t tileHeight = static_cast<size_t>(tile.height);
+        if (tileWidth > std::numeric_limits<size_t>::max() / tileHeight / 4) return;
+        const size_t tileBytes = tileWidth * tileHeight * 4;
+        if (tile.pixels.size() != tileBytes) return;
+        if (tileBytes > kMaxHistoryBytes - entryBytes) {
+            entryBytes = kMaxHistoryBytes + 1;
+            break;
+        }
+        entryBytes += tileBytes;
     }
 
     m_redoStack.clear();
@@ -218,7 +187,7 @@ void DrawingApp::pushUndoHistoryEntry(CanvasHistoryEntry entry) {
     }
 
     auto stateBytes = [](const CanvasHistoryEntry& state) {
-        size_t bytes = state.pixels.size();
+        size_t bytes = 0;
         for (const auto& tile : state.tiles) bytes += tile.pixels.size();
         return bytes;
     };
@@ -359,17 +328,6 @@ void DrawingApp::endActiveStroke() {
     m_shapeAnchorX = -1;
     m_shapeAnchorY = -1;
     finishSparseHistory();
-}
-
-void DrawingApp::restoreCanvasSnapshot(CanvasSnapshot&& snapshot) {
-    if (snapshot.width <= 0 || snapshot.height <= 0 || snapshot.pixels.empty()) return;
-
-    m_canvasWidth = snapshot.width;
-    m_canvasHeight = snapshot.height;
-    m_pixels = std::move(snapshot.pixels);
-    refreshDirtyState();
-    clearDiscardArm();
-    markTextureDirty();
 }
 
 void DrawingApp::refreshDirtyState() {
@@ -608,21 +566,12 @@ void DrawingApp::undoCanvas() {
 
     CanvasHistoryEntry entry = std::move(m_undoStack.back());
     m_undoStack.pop_back();
-    if (!entry.pixels.empty()) {
-        CanvasHistoryEntry current;
-        current.width = m_canvasWidth;
-        current.height = m_canvasHeight;
-        current.pixels.swap(m_pixels);
-        m_redoStack.push_back(std::move(current));
-        restoreCanvasSnapshot({entry.width, entry.height, std::move(entry.pixels)});
-    } else {
-        toggleSparseHistoryTiles(entry);
-        m_redoStack.push_back(std::move(entry));
-        for (const auto& tile : m_redoStack.back().tiles) refreshDirtyTile(tile);
-        updateDirtyFlag();
-        clearDiscardArm();
-        markTextureDirty();
-    }
+    toggleSparseHistoryTiles(entry);
+    m_redoStack.push_back(std::move(entry));
+    for (const auto& tile : m_redoStack.back().tiles) refreshDirtyTile(tile);
+    updateDirtyFlag();
+    clearDiscardArm();
+    markTextureDirty();
     setStatus("Undo.");
 }
 
@@ -635,21 +584,12 @@ void DrawingApp::redoCanvas() {
 
     CanvasHistoryEntry entry = std::move(m_redoStack.back());
     m_redoStack.pop_back();
-    if (!entry.pixels.empty()) {
-        CanvasHistoryEntry current;
-        current.width = m_canvasWidth;
-        current.height = m_canvasHeight;
-        current.pixels.swap(m_pixels);
-        m_undoStack.push_back(std::move(current));
-        restoreCanvasSnapshot({entry.width, entry.height, std::move(entry.pixels)});
-    } else {
-        toggleSparseHistoryTiles(entry);
-        m_undoStack.push_back(std::move(entry));
-        for (const auto& tile : m_undoStack.back().tiles) refreshDirtyTile(tile);
-        updateDirtyFlag();
-        clearDiscardArm();
-        markTextureDirty();
-    }
+    toggleSparseHistoryTiles(entry);
+    m_undoStack.push_back(std::move(entry));
+    for (const auto& tile : m_undoStack.back().tiles) refreshDirtyTile(tile);
+    updateDirtyFlag();
+    clearDiscardArm();
+    markTextureDirty();
     setStatus("Redo.");
 }
 

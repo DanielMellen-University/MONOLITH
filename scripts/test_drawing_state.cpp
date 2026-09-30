@@ -55,6 +55,15 @@ struct TestDrawing final : monolith::app::DrawingApp {
         : DrawingApp(font, fs, initialPath) {}
 };
 
+bool recordPixelEdit(TestDrawing& drawing, int x, int y,
+                     uint8_t r, uint8_t g, uint8_t b) {
+    drawing.beginSparseHistory();
+    const bool changed = drawing.setPixel(x, y, r, g, b);
+    if (changed) drawing.recordSparseHistoryChange();
+    drawing.finishSparseHistory();
+    return changed;
+}
+
 } // namespace
 
 int main() {
@@ -101,9 +110,7 @@ int main() {
     failedInitialDrawing.onResize(300, 300);
     check(failedInitialDrawing.m_filePath.empty() && !failedInitialDrawing.m_dirty,
           "failed initial Drawing open falls back to a clean untitled canvas");
-    failedInitialDrawing.pushUndoSnapshot();
-    failedInitialDrawing.setPixel(0, 0, 9, 8, 7);
-    failedInitialDrawing.m_dirty = true;
+    recordPixelEdit(failedInitialDrawing, 0, 0, 9, 8, 7);
     failedInitialDrawing.undoCanvas();
     check(!failedInitialDrawing.m_dirty,
           "undoing after a failed initial Drawing open clears the modified state");
@@ -144,8 +151,7 @@ int main() {
     noOpStrokeDown.button.x = 1;
     noOpStrokeDown.button.y = drawing.m_canvasTop + 1;
     drawing.handleEvent(noOpStrokeDown);
-    const bool noOpDidNotCapturePixels = drawing.m_sparseHistoryEntry.pixels.empty()
-        && drawing.m_sparseHistoryEntry.tiles.empty();
+    const bool noOpDidNotCapturePixels = drawing.m_sparseHistoryEntry.tiles.empty();
     SDL_Event noOpStrokeUp = noOpStrokeDown;
     noOpStrokeUp.type = SDL_MOUSEBUTTONUP;
     drawing.handleEvent(noOpStrokeUp);
@@ -172,7 +178,6 @@ int main() {
         strokeHistoryBytes += tile.pixels.size();
     }
     check(redoDrawing.m_dirty && redoDrawing.m_undoStack.size() == 1
-              && redoDrawing.m_undoStack.front().pixels.empty()
               && !redoDrawing.m_undoStack.front().tiles.empty()
               && strokeHistoryBytes < redoBaseline.size(),
           "a changed Drawing stroke records sparse tile history instead of a full canvas");
@@ -268,7 +273,6 @@ int main() {
         check(largeCanvasStroke.m_pixels.size() > 64 * 1024 * 1024
                   && largeCanvasChanged
                   && largeCanvasStroke.m_undoStack.size() == 1
-                  && largeCanvasStroke.m_undoStack.back().pixels.empty()
                   && largeCanvasStrokeBytes < largeCanvasStroke.m_pixels.size(),
               "sparse strokes remain undoable on canvases larger than the history byte cap");
         largeCanvasStroke.undoCanvas();
@@ -333,7 +337,6 @@ int main() {
         check(largeFillSeedSet
                   && largeCanvasStroke.m_pixels.size() > 64 * 1024 * 1024
                   && largeCanvasStroke.m_undoStack.size() == 1
-                  && largeCanvasStroke.m_undoStack.back().pixels.empty()
                   && largeCanvasStroke.m_undoStack.back().tiles.size() == 1
                   && largeFillHistoryBytes < largeCanvasStroke.m_pixels.size(),
               "a localized Fill stores one sparse tile on a canvas above the history budget");
@@ -379,7 +382,6 @@ int main() {
                   && largeCanvasStroke.m_pixels.size() > 64 * 1024 * 1024,
               "large sparse Clear fixture contains separated marks above the history budget");
         check(largeCanvasStroke.m_undoStack.size() == 1
-                  && largeCanvasStroke.m_undoStack.back().pixels.empty()
                   && largeCanvasStroke.m_undoStack.back().tiles.size() == 2
                   && sparseClearHistoryBytes == 32 * 32 * 4 + 32 * 4,
               "large sparse Clear stores only changed tiles");
@@ -420,30 +422,58 @@ int main() {
 
     TestDrawing stateLimitedHistory(font, &fs);
     stateLimitedHistory.onResize(300, 300);
-    for (int i = 0; i < 40; ++i) stateLimitedHistory.pushUndoSnapshot();
+    for (int i = 0; i < 40; ++i) {
+        recordPixelEdit(stateLimitedHistory, 10, 10,
+                        static_cast<uint8_t>(i + 1), 8, 7);
+    }
     for (int i = 0; i < 20; ++i) stateLimitedHistory.undoCanvas();
     check(stateLimitedHistory.m_undoStack.size() + stateLimitedHistory.m_redoStack.size() == 32,
           "Drawing keeps undo and redo within 32 combined history states");
 
-    TestDrawing byteLimitedHistory(font, &fs);
-    byteLimitedHistory.onResize(3072, 2166);
     constexpr int historyWidth = 3072;
     constexpr int historyHeight = 2048;
+    TestDrawing byteLimitedHistory(font, &fs);
+    byteLimitedHistory.resizeCanvas(historyWidth, historyHeight, false);
     constexpr size_t historyStateBytes = 24 * 1024 * 1024;
+    auto makeSparseHistoryEntry = [&](uint8_t value) {
+        TestDrawing::CanvasHistoryEntry entry;
+        entry.width = historyWidth;
+        entry.height = historyHeight;
+        for (int y = 0; y < historyHeight; y += 32) {
+            for (int x = 0; x < historyWidth; x += 32) {
+                TestDrawing::CanvasTileSnapshot tile;
+                tile.x = x;
+                tile.y = y;
+                tile.width = std::min(32, historyWidth - x);
+                tile.height = std::min(32, historyHeight - y);
+                tile.pixels.resize(static_cast<size_t>(tile.width)
+                                   * static_cast<size_t>(tile.height) * 4);
+                for (size_t i = 0; i < tile.pixels.size(); i += 4) {
+                    tile.pixels[i + 0] = value;
+                    tile.pixels[i + 1] = value;
+                    tile.pixels[i + 2] = value;
+                    tile.pixels[i + 3] = 255;
+                }
+                entry.tiles.push_back(std::move(tile));
+            }
+        }
+        return entry;
+    };
     for (uint8_t value = 1; value <= 3; ++value) {
-        std::vector<uint8_t> historyPixels(historyStateBytes, value);
-        byteLimitedHistory.pushUndoSnapshot({historyWidth, historyHeight,
-                                             std::move(historyPixels)});
+        byteLimitedHistory.pushUndoHistoryEntry(makeSparseHistoryEntry(value));
     }
     size_t retainedHistoryBytes = 0;
-    for (const auto& snapshot : byteLimitedHistory.m_undoStack) {
-        retainedHistoryBytes += snapshot.pixels.size();
+    for (const auto& state : byteLimitedHistory.m_undoStack) {
+        for (const auto& tile : state.tiles) {
+            retainedHistoryBytes += tile.pixels.size();
+        }
     }
     check(byteLimitedHistory.m_undoStack.size() == 2
-              && byteLimitedHistory.m_undoStack[0].pixels[0] == 2
-              && byteLimitedHistory.m_undoStack[1].pixels[0] == 3
+              && byteLimitedHistory.m_undoStack[0].tiles.front().pixels[0] == 2
+              && byteLimitedHistory.m_undoStack[1].tiles.front().pixels[0] == 3
+              && retainedHistoryBytes == historyStateBytes * 2
               && retainedHistoryBytes <= 64 * 1024 * 1024,
-          "Drawing evicts oldest full-canvas snapshots at the 64 MiB budget");
+          "Drawing evicts oldest sparse states at the 64 MiB budget");
 
     TestDrawing capturedLine(font, &fs);
     capturedLine.onResize(300, 300);
@@ -574,7 +604,6 @@ int main() {
         }
     }
     check(fillDirtyTracking.m_undoStack.size() == 1
-              && fillDirtyTracking.m_undoStack.back().pixels.empty()
               && fillDirtyTracking.m_undoStack.back().tiles.size() == 1
               && fillHistoryBytes < fillDirtyTracking.m_pixels.size(),
           "localized Drawing Fill history stores touched tiles instead of the full canvas");
@@ -592,8 +621,10 @@ int main() {
     const int baseCanvasWidth = drawing.m_canvasWidth;
     const int baseCanvasHeight = drawing.m_canvasHeight;
     const std::vector<uint8_t> pixelsBeforeScale = drawing.m_pixels;
-    drawing.pushUndoSnapshot();
+    recordPixelEdit(drawing, 0, 0, 9, 8, 7);
+    drawing.undoCanvas();
     const size_t undoCountBeforeScale = drawing.m_undoStack.size();
+    const size_t redoCountBeforeScale = drawing.m_redoStack.size();
     drawing.m_btnNew = {10, 10, 40, 20};
     drawing.m_colorSwatches[0] = {10, 40, 12, 12};
     check(TTF_SetFontSize(font, 22) == 0, "drawing state applies larger test font");
@@ -605,6 +636,7 @@ int main() {
               && drawing.m_canvasHeight == baseCanvasHeight
               && drawing.m_pixels == pixelsBeforeScale
               && drawing.m_undoStack.size() == undoCountBeforeScale
+              && drawing.m_redoStack.size() == redoCountBeforeScale
               && !drawing.m_dirty,
           "Drawing text scaling preserves canvas data and history");
     check(drawing.m_btnNew.w == 0 && drawing.m_colorSwatches[0].w == 0,
@@ -676,9 +708,7 @@ int main() {
     check(drawing.m_filePath.empty() && !drawing.m_dirty
               && drawing.m_savedSnapshot.pixels == drawing.m_pixels,
           "New Drawing starts with a clean blank baseline");
-    drawing.pushUndoSnapshot();
-    drawing.setPixel(0, 0, 9, 8, 7);
-    drawing.m_dirty = true;
+    recordPixelEdit(drawing, 0, 0, 9, 8, 7);
     drawing.undoCanvas();
     check(!drawing.m_dirty,
           "undoing a new Drawing edit clears the modified state");
@@ -689,9 +719,7 @@ int main() {
           "reload Drawing fixture after new-sketch baseline coverage");
     check(!drawing.m_dirty, "reloaded Drawing remains clean after baseline coverage");
 
-    drawing.pushUndoSnapshot();
-    drawing.setPixel(0, 0, 1, 2, 3);
-    drawing.m_dirty = true;
+    recordPixelEdit(drawing, 0, 0, 1, 2, 3);
     drawing.undoCanvas();
     check(!drawing.m_dirty && drawing.m_pixels == loadedPixels,
           "undoing back to the saved canvas clears the modified state");

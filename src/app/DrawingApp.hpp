@@ -71,7 +71,6 @@ private:
     struct CanvasHistoryEntry {
         int width = 0;
         int height = 0;
-        std::vector<uint8_t> pixels;
         std::vector<CanvasTileSnapshot> tiles;
     };
 
@@ -81,8 +80,6 @@ private:
     void clearCanvas(bool recordUndo = true);
     void markTextureDirty();
     void syncTexture(SDL_Renderer* renderer);
-    void pushUndoSnapshot();
-    void pushUndoSnapshot(CanvasSnapshot snapshot);
     void pushUndoHistoryEntry(CanvasHistoryEntry entry);
     void beginSparseHistory();
     void recordSparseHistoryChange();
@@ -91,7 +88,6 @@ private:
     static void observeSparseHistoryPixelWrite(void* context, int x, int y);
     void captureSparseHistoryTile(int x, int y);
     void toggleSparseHistoryTiles(CanvasHistoryEntry& entry);
-    void restoreCanvasSnapshot(CanvasSnapshot&& snapshot);
     void undoCanvas();
     void redoCanvas();
     void refreshDirtyState();
