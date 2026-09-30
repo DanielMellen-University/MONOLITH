@@ -1,5 +1,7 @@
 # Session log
 
+| 2026-09-29 | refactor | Removed Drawing's dead full-canvas history path now that strokes, Fill, and Clear all use sparse tiles; retained undo/redo, 32-state, and 64 MiB coverage using real edits and sparse entries; hosted workflow #66 passed. |
+
 | 2026-09-29 | perf | Replaced Drawing Clear's full-canvas history copy with changed-tile preimages, keeping sparse large canvases undoable while retaining the 64 MiB overflow fallback; covered partial edge tiles, undo/redo, saved-baseline state, and hosted workflow #64. |
 
 | 2026-09-27 | perf | Reused sparse 32×32 history for Drawing Fill so localized regions avoid full-canvas copies and remain undoable above 64 MiB; covered undo/redo, neighbor preservation, and hosted headless workflow #61. |
