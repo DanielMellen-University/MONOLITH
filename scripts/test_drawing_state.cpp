@@ -350,6 +350,72 @@ int main() {
                   && std::equal(preservedLine, preservedLine + 4,
                                 largeCanvasStroke.m_pixels.begin() + preservedLinePixel),
               "large-canvas sparse Fill redo reapplies only the filled region");
+
+        std::copy(largeCanvasStroke.m_savedSnapshot.pixels.begin(),
+                  largeCanvasStroke.m_savedSnapshot.pixels.end(),
+                  largeCanvasStroke.m_pixels.begin());
+        largeCanvasStroke.m_undoStack.clear();
+        largeCanvasStroke.m_redoStack.clear();
+        largeCanvasStroke.refreshDirtyState();
+        constexpr int sparseClearX = 1000;
+        constexpr int sparseClearY = 1000;
+        constexpr int sparseClearEdgeX = largeCanvasWidth - 1;
+        constexpr int sparseClearEdgeY = largeCanvasHeight - 1;
+        const size_t sparseClearPixel =
+            (static_cast<size_t>(sparseClearY) * largeCanvasWidth + sparseClearX) * 4;
+        const size_t sparseClearEdgePixel =
+            (static_cast<size_t>(sparseClearEdgeY) * largeCanvasWidth + sparseClearEdgeX) * 4;
+        const bool sparseClearSeedsSet =
+            largeCanvasStroke.setPixel(sparseClearX, sparseClearY, 12, 34, 56)
+            && largeCanvasStroke.setPixel(sparseClearEdgeX, sparseClearEdgeY, 78, 90, 123);
+        largeCanvasStroke.clearCanvas();
+        size_t sparseClearHistoryBytes = 0;
+        if (!largeCanvasStroke.m_undoStack.empty()) {
+            for (const auto& tile : largeCanvasStroke.m_undoStack.back().tiles) {
+                sparseClearHistoryBytes += tile.pixels.size();
+            }
+        }
+        check(sparseClearSeedsSet
+                  && largeCanvasStroke.m_pixels.size() > 64 * 1024 * 1024,
+              "large sparse Clear fixture contains separated marks above the history budget");
+        check(largeCanvasStroke.m_undoStack.size() == 1
+                  && largeCanvasStroke.m_undoStack.back().pixels.empty()
+                  && largeCanvasStroke.m_undoStack.back().tiles.size() == 2
+                  && sparseClearHistoryBytes == 32 * 32 * 4 + 32 * 4,
+              "large sparse Clear stores only changed tiles");
+        check(largeCanvasStroke.m_pixels == largeCanvasStroke.m_savedSnapshot.pixels
+                  && !largeCanvasStroke.m_dirty,
+              "large sparse Clear returns the modified marker to the saved baseline");
+        largeCanvasStroke.undoCanvas();
+        check(largeCanvasStroke.m_pixels[sparseClearPixel] == 12
+                  && largeCanvasStroke.m_pixels[sparseClearPixel + 1] == 34
+                  && largeCanvasStroke.m_pixels[sparseClearPixel + 2] == 56
+                  && largeCanvasStroke.m_pixels[sparseClearEdgePixel] == 78
+                  && largeCanvasStroke.m_pixels[sparseClearEdgePixel + 1] == 90
+                  && largeCanvasStroke.m_pixels[sparseClearEdgePixel + 2] == 123
+                  && largeCanvasStroke.m_dirty,
+              "large sparse Clear undo restores separated marks and the modified state");
+        largeCanvasStroke.redoCanvas();
+        check(largeCanvasStroke.m_pixels == largeCanvasStroke.m_savedSnapshot.pixels
+                  && !largeCanvasStroke.m_dirty,
+              "large sparse Clear redo restores the saved baseline");
+
+        for (size_t i = 0; i < largeCanvasStroke.m_pixels.size(); i += 4) {
+            largeCanvasStroke.m_pixels[i + 0] = 1;
+            largeCanvasStroke.m_pixels[i + 1] = 2;
+            largeCanvasStroke.m_pixels[i + 2] = 3;
+            largeCanvasStroke.m_pixels[i + 3] = 255;
+        }
+        largeCanvasStroke.m_undoStack.clear();
+        largeCanvasStroke.m_redoStack.clear();
+        largeCanvasStroke.refreshDirtyState();
+        largeCanvasStroke.clearCanvas();
+        check(largeCanvasStroke.m_undoStack.empty()
+                  && largeCanvasStroke.m_redoStack.empty()
+                  && largeCanvasStroke.m_pixels == largeCanvasStroke.m_savedSnapshot.pixels
+                  && !largeCanvasStroke.m_dirty
+                  && largeCanvasStroke.m_sparseHistoryBytes == 0,
+              "dense Clear beyond the history budget releases captures and clears the canvas");
     }
 
     TestDrawing stateLimitedHistory(font, &fs);

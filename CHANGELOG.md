@@ -1,5 +1,11 @@
 # Changelog
 
+## 2026-09: Keep Drawing Clear history sparse
+
+- Capture original pixels only for 32×32 tiles containing non-background pixels when clearing a sketch.
+- Keep Clear undoable for sparse artwork on canvases larger than 64 MiB, while preserving the bounded-history fallback for dense clears.
+- Verify separated marks, partial edge tiles, undo/redo, and saved-baseline tracking.
+
 ## 2026-09: Keep Drawing Fill history sparse
 
 - Capture original pixels only for 32×32 tiles touched by Fill, instead of copying the full canvas for each region.

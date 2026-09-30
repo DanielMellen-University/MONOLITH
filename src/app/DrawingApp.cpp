@@ -87,41 +87,58 @@ void DrawingApp::resizeCanvas(int width, int height, bool preserveContent) {
 }
 
 void DrawingApp::clearCanvas(bool recordUndo) {
+    if (recordUndo) beginSparseHistory();
+    beginDirtyTileTracking();
     bool changed = false;
-    for (size_t i = 0; i + 3 < m_pixels.size(); i += 4) {
-        if (m_pixels[i + 0] != kCanvasBackgroundR
-            || m_pixels[i + 1] != kCanvasBackgroundG
-            || m_pixels[i + 2] != kCanvasBackgroundB
-            || m_pixels[i + 3] != 255) {
+    for (int tileY = 0; tileY < m_canvasHeight; tileY += kHistoryTileSize) {
+        for (int tileX = 0; tileX < m_canvasWidth; tileX += kHistoryTileSize) {
+            const int tileWidth = std::min(kHistoryTileSize, m_canvasWidth - tileX);
+            const int tileHeight = std::min(kHistoryTileSize, m_canvasHeight - tileY);
+            bool tileChanged = false;
+            for (int row = 0; row < tileHeight && !tileChanged; ++row) {
+                const size_t rowOffset =
+                    (static_cast<size_t>(tileY + row) * static_cast<size_t>(m_canvasWidth)
+                     + static_cast<size_t>(tileX)) * 4;
+                for (int x = 0; x < tileWidth; ++x) {
+                    const size_t i = rowOffset + static_cast<size_t>(x) * 4;
+                    if (m_pixels[i + 0] != kCanvasBackgroundR
+                        || m_pixels[i + 1] != kCanvasBackgroundG
+                        || m_pixels[i + 2] != kCanvasBackgroundB
+                        || m_pixels[i + 3] != 255) {
+                        tileChanged = true;
+                        break;
+                    }
+                }
+            }
+            if (!tileChanged) continue;
+
             changed = true;
-            break;
+            noteDirtyTileWrite(tileX, tileY);
+            if (recordUndo) captureSparseHistoryTile(tileX, tileY);
+            for (int row = 0; row < tileHeight; ++row) {
+                const size_t rowOffset =
+                    (static_cast<size_t>(tileY + row) * static_cast<size_t>(m_canvasWidth)
+                     + static_cast<size_t>(tileX)) * 4;
+                for (int x = 0; x < tileWidth; ++x) {
+                    const size_t i = rowOffset + static_cast<size_t>(x) * 4;
+                    m_pixels[i + 0] = kCanvasBackgroundR;
+                    m_pixels[i + 1] = kCanvasBackgroundG;
+                    m_pixels[i + 2] = kCanvasBackgroundB;
+                    m_pixels[i + 3] = 255;
+                }
+            }
         }
     }
+    if (recordUndo) {
+        if (changed) recordSparseHistoryChange();
+        finishSparseHistory();
+    }
     if (!changed) {
+        finishDirtyTileTracking();
         if (recordUndo) setStatus("Canvas already clear.");
         return;
     }
 
-    if (recordUndo) {
-        pushUndoSnapshot();
-    }
-
-    beginDirtyTileTracking();
-    for (int y = 0; y < m_canvasHeight; y += kHistoryTileSize) {
-        for (int x = 0; x < m_canvasWidth; x += kHistoryTileSize) {
-            noteDirtyTileWrite(x, y);
-        }
-    }
-    for (int y = 0; y < m_canvasHeight; ++y) {
-        const size_t row = static_cast<size_t>(y) * static_cast<size_t>(m_canvasWidth) * 4;
-        for (int x = 0; x < m_canvasWidth; ++x) {
-            const size_t i = row + static_cast<size_t>(x) * 4;
-            m_pixels[i + 0] = kCanvasBackgroundR;
-            m_pixels[i + 1] = kCanvasBackgroundG;
-            m_pixels[i + 2] = kCanvasBackgroundB;
-            m_pixels[i + 3] = 255;
-        }
-    }
     m_dirty = true;
     finishDirtyTileTracking();
     clearDiscardArm();
