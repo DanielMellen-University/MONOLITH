@@ -1,0 +1,22 @@
+name: Agent patch Drawing state test
+on:
+  workflow_dispatch:
+permissions:
+  contents: write
+concurrency:
+  group: agent-patch-drawing-state
+  cancel-in-progress: false
+jobs:
+  patch:
+    runs-on: ubuntu-24.04
+    timeout-minutes: 10
+    steps:
+      - uses: actions/checkout@v5
+        with:
+          ref: beta
+      - name: Apply patch script
+        run: |
+          cat > /tmp/patch_drawing_7_52.py << 'PATCH_EOF'
+PLACEHOLDER_WILL_FAIL
+          PATCH_EOF
+          python3 /tmp/patch_drawing_7_52.py
