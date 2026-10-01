@@ -79,7 +79,7 @@ run_sdl() {
 }
 
 echo "[check] static integration"
-./scripts/verify_drawing_integration.sh
+bash scripts/verify_drawing_integration.sh
 ./scripts/verify_games_integration.sh
 ./scripts/verify_desktop_icons.sh
 ./scripts/verify_start_menu_filter.sh
