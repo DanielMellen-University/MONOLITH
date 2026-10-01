@@ -30,9 +30,10 @@ grep -R -q 'claimNextAppInstanceTitle("Drawing")' src/window \
   || fail "Drawing instance titling missing"
 
 grep -q 'kModrMagic' src/app/DrawingRaster.cpp || fail "MODR format missing in DrawingRaster"
-grep -q 'Ctrl+S' src/app/DrawingApp.cpp || fail "save shortcut missing"
-grep -q 'Tool::Eraser' src/app/DrawingApp.cpp || fail "eraser tool missing"
-grep -q 'Tool::Eyedropper' src/app/DrawingApp.cpp || fail "eyedropper tool missing"
+drawing_sources=(src/app/DrawingApp.cpp src/app/DrawingApp_body_*.inc)
+grep -q 'Ctrl+S' "${drawing_sources[@]}" || fail "save shortcut missing"
+grep -q 'Tool::Eraser' "${drawing_sources[@]}" || fail "eraser tool missing"
+grep -q 'Tool::Eyedropper' "${drawing_sources[@]}" || fail "eyedropper tool missing"
 grep -q 'getPixel' src/app/DrawingRaster.cpp || fail "pixel sampling helper missing"
 
 ok "all static integration checks passed"
