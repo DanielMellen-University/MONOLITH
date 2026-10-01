@@ -7,20 +7,18 @@ jobs:
     permissions:
       contents: write
     steps:
-      - name: Point beta at main tip
+      - name: Point beta at current main tip
         env:
           GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
         run: |
           set -euo pipefail
-          TARGET=8f71c1d366a6cf9fbf768930a8e70e451f699556
-          # Verify target is on main
-          curl -fsS -H "Authorization: Bearer $GH_TOKEN" -H "Accept: application/vnd.github+json" \
+          TARGET=$(curl -fsS -H "Authorization: Bearer $GH_TOKEN" -H "Accept: application/vnd.github+json" \
             "https://api.github.com/repos/DanielMellen-University/MONOLITH/git/ref/heads/main" \
-            | python3 -c "import sys,json; sha=json.load(sys.stdin)['object']['sha']; assert sha.startswith('8f71c1d'), sha"
-          # Force-update beta ref to TARGET (preserves wip/7.52-drawing-modr-io)
+            | python3 -c "import sys,json; print(json.load(sys.stdin)['object']['sha'])")
+          echo "main tip=$TARGET"
           curl -fsS -X PATCH -H "Authorization: Bearer $GH_TOKEN" -H "Accept: application/vnd.github+json" \
             "https://api.github.com/repos/DanielMellen-University/MONOLITH/git/refs/heads/beta" \
             -d "{\"sha\":\"$TARGET\",\"force\":true}"
           curl -fsS -H "Authorization: Bearer $GH_TOKEN" -H "Accept: application/vnd.github+json" \
             "https://api.github.com/repos/DanielMellen-University/MONOLITH/git/ref/heads/beta" \
-            | python3 -c "import sys,json; sha=json.load(sys.stdin)['object']['sha']; print(sha); assert sha=='$TARGET'"
+            | python3 -c "import sys,json; sha=json.load(sys.stdin)['object']['sha']; print('beta tip='+sha); assert sha=='$TARGET'"
