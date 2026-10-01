@@ -292,7 +292,10 @@ std::size_t fillRegion(std::vector<uint8_t>& rgba, int width, int height,
 }
 
 std::string encodeModr(int width, int height, const std::vector<uint8_t>& rgba) {
-    if (width <= 0 || height <= 0) return {};
+    if (width <= 0 || height <= 0
+        || width > kMaxCanvasDimension || height > kMaxCanvasDimension) {
+        return {};
+    }
     const size_t expected = static_cast<size_t>(width) * static_cast<size_t>(height) * 4;
     if (rgba.size() < expected) return {};
 
@@ -316,7 +319,9 @@ bool decodeModr(const std::string& blob, int& width, int& height, std::vector<ui
     if (blob.size() < 12 || std::memcmp(blob.data(), kModrMagic, 4) != 0) return false;
     const int w = static_cast<int>(readU32LE(blob, 4));
     const int h = static_cast<int>(readU32LE(blob, 8));
-    if (w <= 0 || h <= 0 || w > 4096 || h > 4096) return false;
+    if (w <= 0 || h <= 0 || w > kMaxCanvasDimension || h > kMaxCanvasDimension) {
+        return false;
+    }
     const size_t expected = static_cast<size_t>(w) * static_cast<size_t>(h) * 3;
     if (blob.size() != 12 + expected) return false;
 
