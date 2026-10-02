@@ -323,7 +323,7 @@ void TerminalApp::executeCommand(const std::string& commandLine) {
         addOutput("  pwd             - Print working directory");
         addOutput("  cd [dir]        - Change directory");
         addOutput("  mkdir <dir>     - Create directory");
-        addOutput("  touch <file>    - Create empty file");
+        addOutput("  touch <file>    - Create file or update modification time");
         addOutput("  cp [-r] <src> <dst> - Copy file (or dir tree with -r); dst dir supported");
         addOutput("  rm [-r] <path>  - Remove file or directory (-r for recursive)");
         addOutput("  mv <src> <dst>  - Move/rename file or directory (dst dir supported)");
@@ -695,7 +695,9 @@ void TerminalApp::executeCommand(const std::string& commandLine) {
             if (m_fs->isDirectory(path)) {
                 addOutput("touch: cannot touch '" + operand + "': Is a directory");
             } else if (m_fs->isFile(path)) {
-                // Already exists: leave content unchanged (do not truncate).
+                if (!m_fs->updateModifiedTime(path)) {
+                    addOutput("touch: cannot touch '" + operand + "'");
+                }
             } else if (m_fs->writeFile(path, "")) {
                 if (auto* ctrl = getController()) {
                     ctrl->notifyVirtualPathCreated(path);

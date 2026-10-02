@@ -4,6 +4,7 @@
 #include <SDL2/SDL_ttf.h>
 
 #include <algorithm>
+#include <chrono>
 #include <filesystem>
 #include <iostream>
 #include <iterator>
@@ -337,6 +338,23 @@ int main() {
     check(!controller.createdPaths.empty()
               && controller.createdPaths.back() == "/home/monolith/created.txt",
           "touch notifies the shell about a created file");
+
+    const std::string existingTouchPath = "/home/monolith/existing-touch.txt";
+    const auto existingTouchHostPath = hostRoot / existingTouchPath.substr(1);
+    check(fs.writeFile(existingTouchPath, "preserve this content"),
+          "create existing-file touch fixture");
+    const auto oldModifiedTime = std::filesystem::file_time_type::clock::now()
+        - std::chrono::hours(24);
+    std::filesystem::last_write_time(existingTouchHostPath, oldModifiedTime, ec);
+    check(!ec, "age existing-file touch fixture");
+    controller.changedPaths.clear();
+    terminal.executeCommand("touch " + existingTouchPath);
+    const auto newModifiedTime = std::filesystem::last_write_time(existingTouchHostPath, ec);
+    check(!ec && newModifiedTime > oldModifiedTime
+              && fs.readFile(existingTouchPath) == "preserve this content"
+              && controller.changedPaths.empty(),
+          "touch updates existing file time without changing content or signaling content edits");
+
     terminal.executeCommand("cp /home/monolith/note.txt /home/monolith/copied.txt");
     check(!controller.createdPaths.empty()
               && controller.createdPaths.back() == "/home/monolith/copied.txt",

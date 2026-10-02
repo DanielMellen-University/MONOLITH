@@ -486,6 +486,23 @@ bool Filesystem::writeFile(const std::string& virtualPath, const std::string& co
     });
 }
 
+bool Filesystem::updateModifiedTime(const std::string& virtualPath) {
+    try {
+        const std::string hostPath = toHostPath(virtualPath);
+        if (hostPath.empty()) return false;
+
+        std::error_code ec;
+        const stdfs::path path(hostPath);
+        if (!stdfs::is_regular_file(path, ec) || ec) return false;
+
+        stdfs::last_write_time(
+            path, stdfs::file_time_type::clock::now(), ec);
+        return !ec;
+    } catch (...) {
+        return false;
+    }
+}
+
 std::string Filesystem::readFile(const std::string& virtualPath) const {
     std::string content;
     if (!readFile(virtualPath, content)) return "";
