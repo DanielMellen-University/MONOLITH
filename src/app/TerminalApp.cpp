@@ -121,6 +121,7 @@ void TerminalApp::addOutput(const std::string& line, bool lineWasTruncated) {
                 + static_cast<std::vector<HistoryViewportMeasure>::difference_type>(excess));
     }
     m_scrollOffset = 0;   // auto-scroll to bottom on new output
+    m_historyHorizontalScrollPx = 0;
 }
 
 void TerminalApp::submitInput() {
@@ -311,6 +312,7 @@ void TerminalApp::executeCommand(const std::string& commandLine) {
         m_historyViewportMeasures.clear();
         m_historyBytes = 0;
         m_scrollOffset = 0;
+        m_historyHorizontalScrollPx = 0;
     }
     else if (cmd == "help") {
         addOutput("Available commands:");
@@ -335,6 +337,7 @@ void TerminalApp::executeCommand(const std::string& commandLine) {
         addOutput("  exit / quit     - Close this terminal");
         addOutput("");
         addOutput("Quoting: use \"...\" or '...' to keep spaces in an argument.");
+        addOutput("Scroll output: Page Up/Down; Shift+Page Up/Down pans long rows.");
     }
     else if (cmd == "date") {
         std::time_t now = std::time(nullptr);
@@ -932,11 +935,13 @@ void TerminalApp::handleKeyDown(const SDL_Keysym& keysym) {
             break;
 
         case SDLK_PAGEUP:
-            scrollHistory(3);
+            if (keysym.mod & KMOD_SHIFT) scrollHistoryHorizontally(1);
+            else scrollHistory(3);
             break;
 
         case SDLK_PAGEDOWN:
-            scrollHistory(-3);
+            if (keysym.mod & KMOD_SHIFT) scrollHistoryHorizontally(-1);
+            else scrollHistory(-3);
             break;
 
         case SDLK_TAB:
