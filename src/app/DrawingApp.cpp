@@ -894,10 +894,24 @@ bool DrawingApp::saveToPath(const std::string& virtualPath) {
         setStatus("Save failed: canvas is empty.");
         return false;
     }
+    if (m_canvasWidth > monolith::drawing::kMaxModrDimension
+        || m_canvasHeight > monolith::drawing::kMaxModrDimension) {
+        clearDiscardArm();
+        setStatus("Save failed: canvas exceeds the .modr dimension limit.");
+        return false;
+    }
 
     std::string path = m_fs->normalize(virtualPath);
     if (!hasCaseInsensitiveSuffix(path, ".modr")) {
         path += ".modr";
+    }
+
+    const std::string blob = monolith::drawing::encodeModr(
+        m_canvasWidth, m_canvasHeight, m_pixels);
+    if (blob.empty()) {
+        clearDiscardArm();
+        setStatus("Save failed: could not encode canvas.");
+        return false;
     }
 
     const bool wasExisting = m_fs->exists(path);
@@ -909,13 +923,6 @@ bool DrawingApp::saveToPath(const std::string& virtualPath) {
         if (!parent.empty()) {
             m_fs->createDirectory(parent);
         }
-    }
-
-    const std::string blob = monolith::drawing::encodeModr(m_canvasWidth, m_canvasHeight, m_pixels);
-    if (blob.empty()) {
-        clearDiscardArm();
-        setStatus("Save failed: could not encode canvas.");
-        return false;
     }
 
     if (!m_fs->writeFile(path, blob)) {

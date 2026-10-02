@@ -7,6 +7,8 @@
 
 namespace monolith::drawing {
 
+inline constexpr int kMaxModrDimension = 4096;
+
 /** Called before each actual pixel change, allowing sparse history capture. */
 using PixelWriteObserver = void (*)(void* context, int x, int y);
 /** Called once before the pixels in a changed fill span are written. */
@@ -49,7 +51,7 @@ std::size_t fillRegion(std::vector<uint8_t>& rgba, int width, int height,
                        PixelSpanWriteObserver observer = nullptr,
                        void* observerContext = nullptr);
 
-/** Encode live RGBA canvas as .modr (magic + w/h + RGB payload). */
+/** Encode live RGBA canvas as .modr; reject unsupported dimensions or buffer sizes. */
 std::string encodeModr(int width, int height, const std::vector<uint8_t>& rgba);
 
 /** Decode .modr into an RGBA buffer (A=255). Returns false on corrupt data. */

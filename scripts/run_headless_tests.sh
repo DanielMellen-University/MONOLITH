@@ -105,7 +105,7 @@ compile_plain test_drawing_roadmap scripts/test_drawing_roadmap.cpp src/app/Draw
 compile_sdl test_drawing_state \
     scripts/test_drawing_state.cpp src/app/DrawingApp.cpp \
     src/app/DrawingRaster.cpp src/fs/Filesystem.cpp
-compile_plain test_modr_format scripts/test_modr_format.cpp
+compile_plain test_modr_format scripts/test_modr_format.cpp src/app/DrawingRaster.cpp
 compile_plain test_desktop_settings scripts/test_desktop_settings.cpp src/settings/DesktopSettings.cpp
 compile_sdl test_settings_app_state \
     -I"$BUILD_DIR/generated/settings" scripts/test_settings_app_state.cpp \
