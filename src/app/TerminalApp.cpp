@@ -234,9 +234,12 @@ void TerminalApp::pasteInputClipboard() {
     if (!raw) return;
 
     std::string pasted;
-    for (const unsigned char c : std::string(raw)) {
-        if (c == '\r' || c == '\n') break;
-        if (c == '\t') {
+    for (std::size_t i = 0; raw[i] != '\0'; ++i) {
+        const auto c = static_cast<unsigned char>(raw[i]);
+        if (c == '\r' || c == '\n') {
+            pasted.push_back(' ');
+            if (c == '\r' && raw[i + 1] == '\n') ++i;
+        } else if (c == '\t') {
             pasted.push_back(' ');
         } else if (c >= 32 && c != 127) {
             pasted.push_back(static_cast<char>(c));
