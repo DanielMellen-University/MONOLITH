@@ -1,5 +1,6 @@
 #include "MinesweeperApp.hpp"
 
+#include "../detail/BoundedLineReader.hpp"
 #include "../detail/AtomicFile.hpp"
 #include "../detail/RendererClip.hpp"
 
@@ -53,12 +54,21 @@ void MinesweeperApp::loadBestTimes() {
     m_bestBeginner = m_bestIntermediate = m_bestExpert = 0;
     std::ifstream in(bestTimesHostPath());
     if (!in) return;
+
+    constexpr std::size_t kMaxBestTimeRows = 16;
+    constexpr std::size_t kMaxBestTimeLineBytes = 64;
     std::string line;
-    while (std::getline(in, line)) {
+    for (std::size_t row = 0; row < kMaxBestTimeRows; ++row) {
+        const auto result = monolith::detail::readBoundedLine(
+            in, line, kMaxBestTimeLineBytes);
+        if (result != monolith::detail::BoundedLineResult::Line) break;
+
         std::istringstream iss(line);
         std::string key;
         int value = 0;
-        if (!(iss >> key >> value) || value <= 0) continue;
+        if (!(iss >> key >> value)) continue;
+        iss >> std::ws;
+        if (!iss.eof() || value <= 0 || value > 999) continue;
         if (key == "beginner") m_bestBeginner = value;
         else if (key == "intermediate") m_bestIntermediate = value;
         else if (key == "expert") m_bestExpert = value;

@@ -15,7 +15,10 @@ enum class BoundedLineResult {
     Error,
 };
 
-inline BoundedLineResult readBoundedLine(std::istream& in, std::string& line) {
+inline BoundedLineResult readBoundedLine(
+    std::istream& in,
+    std::string& line,
+    std::size_t maxBytes = kMaxPersistedLineBytes) {
     line.clear();
     while (true) {
         const int next = in.get();
@@ -24,7 +27,7 @@ inline BoundedLineResult readBoundedLine(std::istream& in, std::string& line) {
             return line.empty() ? BoundedLineResult::End : BoundedLineResult::Line;
         }
         if (next == '\n') return BoundedLineResult::Line;
-        if (line.size() == kMaxPersistedLineBytes) {
+        if (line.size() == maxBytes) {
             line.clear();
             return BoundedLineResult::TooLong;
         }
