@@ -744,6 +744,28 @@ int main() {
     check(externalEditor.m_lines == std::vector<std::string>{"original"}
               && externalEditor.m_statusMessage.find("changed externally") != std::string::npos,
           "external overwrite warns without replacing the editor buffer");
+    externalController.blockedPath = "/new.txt";
+    prepareOpen(externalEditor, "/new.txt");
+    externalEditor.finishPathPrompt(true);
+    check(externalEditor.m_filePath == "/new.txt"
+              && externalEditor.m_lines == std::vector<std::string>{"outside change"}
+              && !externalEditor.m_dirty,
+          "Open reloads the current file instead of focusing its own singleton window");
+
+    externalEditor.m_lines = {"local edit"};
+    externalEditor.m_dirty = true;
+    check(fs.writeFile("/new.txt", "newer external change"),
+          "write a second external editor version");
+    externalEditor.onVirtualPathChanged("/new.txt");
+    prepareOpen(externalEditor, "/new.txt");
+    externalEditor.finishPathPrompt(true);
+    check(externalEditor.m_discardKind == TestEditor::DiscardKind::Open
+              && externalEditor.m_lines == std::vector<std::string>{"local edit"},
+          "reloading the same file still confirms before discarding dirty editor text");
+    externalEditor.finishPathPrompt(true);
+    check(externalEditor.m_lines == std::vector<std::string>{"newer external change"}
+              && !externalEditor.m_dirty,
+          "confirmed same-file reload loads the external editor version");
 
     TestEditor selfSaveEditor(nullptr, &fs, "/new.txt");
     TestController selfSaveController;

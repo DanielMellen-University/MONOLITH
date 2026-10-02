@@ -760,10 +760,12 @@ void TextEditorApp::finishPathPrompt(bool commit) {
             return;
         }
 
-        if (auto* ctrl = getController()) {
-            if (ctrl->focusEditorForFile(path)) {
-                setStatus("Already open: " + path);
-                return;
+        if (path != m_filePath) {
+            if (auto* ctrl = getController()) {
+                if (ctrl->focusEditorForFile(path)) {
+                    setStatus("Already open: " + path);
+                    return;
+                }
             }
         }
 

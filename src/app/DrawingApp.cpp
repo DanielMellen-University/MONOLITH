@@ -1217,9 +1217,11 @@ void DrawingApp::finishPathPrompt(bool commit) {
         }
         saveToPath(buffer);
     } else if (mode == PathPromptMode::Open) {
-        if (auto* ctrl = getController(); ctrl && ctrl->focusDrawingForFile(path)) {
-            setStatus("Already open: " + path);
-            return;
+        if (path != m_filePath) {
+            if (auto* ctrl = getController(); ctrl && ctrl->focusDrawingForFile(path)) {
+                setStatus("Already open: " + path);
+                return;
+            }
         }
         if (m_discardKind == DiscardKind::Open && m_discardPath != path) {
             clearDiscardArm();
