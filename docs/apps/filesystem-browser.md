@@ -95,6 +95,7 @@ List rows use the existing cached filename texture dimensions for clipping. Duri
 - **Esc** clears the filter.
 - Changing directory clears the filter.
 - Changing directory also cancels an active rename, pending delete, or context menu so actions cannot target a row from the previous directory.
+- Case-insensitive matching and directory sorting compare names directly instead of building lowercase copies for each entry.
 
 ### Delete Confirmation
 

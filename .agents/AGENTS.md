@@ -34,6 +34,7 @@ The human funds token budget and lives in the desktop. You:
 
 | When | Kind | Note |
 |------|------|------|
+| 2026-10-02 | filesystem-filter | Directory sort/filter now avoids lowercase copies per comparison, normalizes the query once per listing pass, and preserves mixed-case matching/order; headless filesystem tests passed |
 | 2026-10-02 | text-editor-hit-test | Long-line mouse hit testing measures the clicked prefix once and maps UTF-8 codepoints to byte columns; hosted workflow #113 passed |
 | 2026-10-02 | text-editor-find-memory | Find stores one location checkpoint per 256 non-overlapping hits, resolves navigation from checkpoints, renders only viewport-intersecting highlights, and performs dense Replace All with linear output building; hosted workflow #109 passed |
 | 2026-10-02 | drawing-dirty-upload | Drawing streams only the accumulated changed canvas rectangle to its texture; paint/fill use pixel/span bounds, undo/redo use changed tile bounds, and resize/load/Clear remain full refreshes |
@@ -183,6 +184,7 @@ Older recent-work rows: [`SESSION_LOG.md`](SESSION_LOG.md).
 | 7.52 | Upload dirty Drawing regions | done | Accumulate changed pixel/span/tile bounds and update only that region of the streaming texture; resize, load, and Clear force full refreshes |
 | 7.53 | Bound Text Editor Find results | done | Store one match location per 256 hits, resolve navigation from checkpoints, cache only viewport-intersecting highlights, and Replace All with linear output building |
 | 7.54 | Speed up Text Editor hit testing | done | Map mouse x positions to UTF-8 byte columns with one `TTF_MeasureUTF8` pass instead of measuring every growing line prefix; hosted workflow #113 passed |
+| 7.55 | Reduce Filesystem Browser filter allocations | done | Compare names case-insensitively without per-entry lowercase copies during sorting/filtering; lowercase the query once per listing pass and preserve existing mixed-case matching and ordering |
 | fs-browser-filter-cache | Reuse Filesystem Browser filter snapshots | done | Reuse one directory listing for filter edits; refresh it on F5 and Monolith filesystem notifications, including while filtering |
 | terminal-input-editing | Terminal command-line selection | done | Support UTF-8-safe keyboard/mouse selection and Ctrl+A/C/X/V; paste only the first clipboard line |
 | terminal-touch-mtime | Complete Terminal touch semantics | done | Update existing regular-file last-write time without truncation; reject outside-root symlink targets |

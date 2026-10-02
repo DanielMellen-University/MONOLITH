@@ -455,8 +455,20 @@ int main() {
     check(all.size() == listed.size(), "empty query returns all entries");
     check(Filesystem::entryNameMatches("Notes.TXT", "note"),
           "entryNameMatches is case-insensitive");
+    check(Filesystem::entryNameMatches("Alpha.TXT", "PHA."),
+          "entryNameMatches finds a mixed-case substring inside a name");
     check(!Filesystem::entryNameMatches("other.dat", "note"),
           "entryNameMatches rejects non-matching name");
+    check(!Filesystem::entryNameMatches("note", "notes"),
+          "entryNameMatches rejects a query longer than the name");
+    const std::vector<Filesystem::DirEntry> mixedCaseEntries = {
+        {"ALPHA.txt", false}, {"notes.TXT", false}, {"other.dat", false},
+    };
+    const auto mixedCaseMatches = Filesystem::filterEntries(mixedCaseEntries, "tXt");
+    check(mixedCaseMatches.size() == 2
+              && mixedCaseMatches[0].name == "ALPHA.txt"
+              && mixedCaseMatches[1].name == "notes.TXT",
+          "filterEntries matches mixed-case queries without changing entry order");
 
     stdfs::remove_all(hostRoot, ec);
     stdfs::remove_all(outsideRoot, ec);
