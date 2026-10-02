@@ -30,6 +30,7 @@ The **APPEARANCE** section at the top lets you change live desktop preferences.
 - If a configured wallpaper path moves while the field is focused, the prompt follows the move and preserves the caret's suffix position on a UTF-8 boundary.
 - **Clear** removes the image and returns to solid color only.
 - Empty path means solid color only. Missing or unloadable files fail soft (solid color stays).
+- PNG/JPEG images decode from the host file after a header check and are limited to 16,777,216 pixels to bound temporary decode memory; BMP retains SDL's existing load path.
 - Sample wallpapers are seeded at `/Wallpapers/sample.bmp` and `/Wallpapers/sample.png` on first launch (from `assets/wallpapers/`).
 - By default the image is cover-scaled to fill the logical desktop.
 - Renaming or moving the configured wallpaper in Filesystem Browser or Terminal updates the setting and persists the new virtual path. If the wallpaper field is being edited at the same time, its prompt follows the move too.
@@ -89,7 +90,7 @@ Long information labels and values stay at their normal text size. If a Settings
 ## Current Limitations
 
 - Desktop background color uses six presets only (no custom RGB picker).
-- Wallpaper images: BMP via `SDL_LoadBMP`; PNG/JPEG via build-time `stb_image` (`WallpaperImage`). No `SDL_image` package.
+- Wallpaper images: BMP via `SDL_LoadBMP`; PNG/JPEG via build-time `stb_image` (`WallpaperImage`), decoded directly from file and capped at 16,777,216 pixels. No `SDL_image` package.
 - Wallpaper fit is cover, contain, or center only (no custom crop/zoom UI yet).
 - Path entry is typed with Tab completion (no full file picker dialog yet).
 - Session restore and other shell prefs are not controlled from Settings (session is automatic via `~/.monolith/session.txt`).
