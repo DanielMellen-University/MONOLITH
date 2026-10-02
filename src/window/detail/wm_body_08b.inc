@@ -31,6 +31,7 @@ std::string WindowManager::getWallpaperPath() const {
 }
 
 void WindowManager::setWallpaperPath(const std::string& virtualPath) {
+    if (!monolith::settings::DesktopSettings::isValidWallpaperPath(virtualPath)) return;
     std::string normalized;
     if (!virtualPath.empty() && m_fs) {
         normalized = m_fs->normalize(virtualPath);
@@ -40,6 +41,7 @@ void WindowManager::setWallpaperPath(const std::string& virtualPath) {
     if (normalized == "/") {
         normalized.clear();
     }
+    if (!monolith::settings::DesktopSettings::isValidWallpaperPath(normalized)) return;
     if (m_desktopSettings.wallpaperPath() == normalized) {
         return;
     }
