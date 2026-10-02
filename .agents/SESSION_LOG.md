@@ -1,6 +1,6 @@
 # Session log
 
-| 2026-10-02 | perf | Reuse the Filesystem Browser directory snapshot across filter edits, retain refreshes from F5 and filesystem notifications, and verify both paths; hosted verification pending. |
+| 2026-10-02 | perf | Reused the Filesystem Browser directory snapshot across filter edits, retained refreshes from F5 and filesystem notifications, and passed hosted headless workflow #100. |
 
 | 2026-09-29 | fix | Streamed Text Editor file opens through bounded chunks, capped documents at 16 MiB and 65,536 lines for open/save, preserved the active document on rejection, and covered cross-chunk CRLF plus both limits; hosted headless workflow #71 passed. |
 
