@@ -599,6 +599,13 @@ int main() {
     terminal.scrollHistory(1000);
     check(terminal.m_scrollOffset == 40 - visibleLines,
           "terminal scrollback stops at the oldest fully visible output");
+    terminal.m_scrollOffset = 0;
+    SDL_Keysym verticalPageUp{};
+    verticalPageUp.sym = SDLK_PAGEUP;
+    terminal.handleKeyDown(verticalPageUp);
+    check(terminal.m_scrollOffset == 3,
+          "Terminal Page Up keeps its vertical history behavior");
+    terminal.m_scrollOffset = 40 - visibleLines;
     terminal.onResize(320, 40);
     check(terminal.getMaxVisibleLines({0, 0, 320, 40}) == 0,
           "terminal reports no history rows when the input strip fills the client");
@@ -726,8 +733,10 @@ int main() {
             renderer, font, "output", terminalTextColor);
         check(outputAfterClear.handle == firstOutputTexture.handle,
               "Terminal reuses scrollback text after output resumes");
+        terminal.m_historyHorizontalScrollPx = 48;
         terminal.onUiScaleChanged();
         check(terminal.m_textTextureCache.size() == 0
+                  && terminal.m_historyHorizontalScrollPx == 0
                   && std::none_of(
                       terminal.m_historyViewportMeasures.begin(),
                       terminal.m_historyViewportMeasures.end(),
@@ -787,6 +796,72 @@ int main() {
                   && largestCachedTextBytes < longUnicodeLine.size() / 10
                   && cachedPrefixesAreCompleteUtf8,
               "Terminal caches viewport-sized, complete UTF-8 prefixes of long rows");
+
+        std::string horizontallyScrollableLine;
+        for (int i = 0; i < 100; ++i) {
+            horizontallyScrollableLine += "\xC3\xA9" "\xF0\x9F\x8C\x8B";
+        }
+        horizontallyScrollableLine += "TAIL";
+        terminal.m_history.assign(2, horizontallyScrollableLine);
+        terminal.m_historyBytes = horizontallyScrollableLine.size() * terminal.m_history.size();
+        terminal.m_historyViewportMeasures.clear();
+        terminal.m_scrollOffset = 0;
+        terminal.m_historyHorizontalScrollPx = 0;
+        terminal.render(renderer, {0, 0, 200, 200});
+        const SDL_Rect horizontalHistoryRect = terminal.getHistoryRect({0, 0, 200, 200});
+        std::size_t initialStartBytes = 0;
+        std::size_t initialVisibleBytes = 0;
+        const bool initialRange = terminal.getVisibleHistoryRangeBytes(
+            0, horizontalHistoryRect.w, 0, initialStartBytes, initialVisibleBytes);
+        SDL_Keysym panRight{};
+        panRight.sym = SDLK_PAGEUP;
+        panRight.mod = KMOD_SHIFT;
+        for (int i = 0; i < 100; ++i) terminal.handleKeyDown(panRight);
+        terminal.render(renderer, {0, 0, 200, 200});
+        std::size_t pannedStartBytes = 0;
+        std::size_t pannedVisibleBytes = 0;
+        const bool pannedRange = terminal.getVisibleHistoryRangeBytes(
+            0, horizontalHistoryRect.w, terminal.m_historyHorizontalScrollPx,
+            pannedStartBytes, pannedVisibleBytes);
+        const std::string pannedText = pannedRange
+            ? horizontallyScrollableLine.substr(pannedStartBytes, pannedVisibleBytes)
+            : std::string{};
+        int pannedPixelWidth = 0;
+        int pannedTextHeight = 0;
+        const bool pannedTextMeasured = TTF_SizeUTF8(
+            font, pannedText.c_str(), &pannedPixelWidth, &pannedTextHeight) == 0;
+        const auto pannedTexture = terminal.m_textTextureCache.get(
+            renderer, font, pannedText.c_str(), terminalTextColor);
+        check(initialRange && initialStartBytes == 0
+                  && horizontallyScrollableLine.substr(
+                         initialStartBytes, initialVisibleBytes).find("TAIL") == std::string::npos,
+              "Terminal starts long output rows at their left edge");
+        check(terminal.m_historyHorizontalScrollPx > 0,
+              "Shift+Page Up advances Terminal's horizontal output offset");
+        check(pannedRange && pannedStartBytes > 0,
+              "Terminal measures a later UTF-8-safe output range after horizontal panning");
+        check(pannedRange && pannedText.find("TAIL") != std::string::npos,
+              "Terminal horizontal panning can reveal the end of a long output row");
+        check(pannedTextMeasured && pannedPixelWidth <= horizontalHistoryRect.w
+                  && pannedTexture && pannedTexture.width <= horizontalHistoryRect.w
+                  && monolith::app::utf8ClampToCodepointBoundary(
+                         horizontallyScrollableLine, pannedStartBytes) == pannedStartBytes
+                  && monolith::app::utf8ClampToCodepointBoundary(
+                         horizontallyScrollableLine,
+                         pannedStartBytes + pannedVisibleBytes)
+                      == pannedStartBytes + pannedVisibleBytes,
+              "Terminal pans and renders only a viewport-sized UTF-8 segment");
+
+        SDL_Keysym panLeft{};
+        panLeft.sym = SDLK_PAGEDOWN;
+        panLeft.mod = KMOD_SHIFT;
+        for (int i = 0; i < 100; ++i) terminal.handleKeyDown(panLeft);
+        check(terminal.m_historyHorizontalScrollPx == 0,
+              "Shift+Page Down returns Terminal output to the left edge");
+        terminal.handleKeyDown(panRight);
+        terminal.addOutput("new output resets the panned view");
+        check(terminal.m_historyHorizontalScrollPx == 0,
+              "new Terminal output resets horizontal scrollback to the left edge");
 
         terminal.m_history.assign(40, "output");
         terminal.m_historyBytes = 40 * std::string("output").size();
