@@ -1,5 +1,10 @@
 # Changelog
 
+## 2026-10: Bound session restore records
+
+- Read session lines with a 16 KiB limit and stop restore at the first overlong record, preventing corrupt host-side session data from forcing an unbounded line allocation.
+- Cover the line bound in the session format and Window Manager restore tests.
+
 ## 2026-10: Bound Drawing `.modr` input buffering
 
 - Check file size before loading and stream valid-size candidates in bounded chunks, rejecting files above the format's maximum encoded size without unbounded allocation.
