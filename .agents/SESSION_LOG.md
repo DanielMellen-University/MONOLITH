@@ -1,5 +1,7 @@
 # Session log
 
+| 2026-10-02 | perf | Removed per-comparison/per-entry lowercase string allocations from Filesystem Browser sorting and filtering; each query is normalized once per pass, with mixed-case substring and ordering regressions added. |
+
 | 2026-10-02 | perf | Replaced Text Editor mouse hit testing's growing-prefix allocation/measurement loop with one `TTF_MeasureUTF8` scan and UTF-8 codepoint-to-byte mapping; added multibyte and far-scrolled 100,000-character regressions; hosted headless workflow #113 passed. |
 
 | 2026-10-02 | perf | Replaced Text Editor's per-hit Find vector with sparse checkpoints (one per 256 hits), limited cached highlight geometry to the visible text viewport, and changed Replace All to linear output building; added million-hit navigation/memory and dense-long-line regressions; hosted headless workflow #109 passed. |

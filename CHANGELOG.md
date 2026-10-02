@@ -1,5 +1,10 @@
 # Changelog
 
+## 2026-10: Reduce Filesystem Browser filter allocations
+
+- Compare names case-insensitively without allocating lowercase copies for every sort comparison or filter row.
+- Normalize each filter query once per listing pass and cover mixed-case substring and result-order behavior.
+
 ## 2026-10: Speed up Text Editor long-line hit testing
 
 - Replace repeated per-codepoint prefix measurements with one `TTF_MeasureUTF8` pass and map measured characters back to UTF-8 byte columns.
