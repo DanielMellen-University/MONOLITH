@@ -537,15 +537,15 @@ int main() {
     check(terminal.m_inputBuffer == "echo az" && !terminal.hasInputSelection(),
           "typed text replaces the selected input range");
 
-    check(SDL_SetClipboardText("echo pasted\nignored second line") == 0,
+    check(SDL_SetClipboardText("echo\tpasted\r\nsecond\tline\nthird line") == 0,
           "set multiline terminal paste fixture");
     terminal.m_inputBuffer = "draft";
     terminal.m_inputCursorPos = static_cast<int>(terminal.m_inputBuffer.size());
     key(SDLK_a, KMOD_CTRL);
     key(SDLK_v, KMOD_CTRL);
-    check(terminal.m_inputBuffer == "echo pasted"
+    check(terminal.m_inputBuffer == "echo pasted second line third line"
               && terminal.m_inputCursorPos == static_cast<int>(terminal.m_inputBuffer.size()),
-          "terminal paste replaces selection and stops before a clipboard newline");
+          "terminal paste replaces selection and flattens all clipboard lines and tabs");
 
     terminal.m_inputBuffer = "A\xF0\x9F\x8C\x8B" "B";
     terminal.m_inputCursorPos = static_cast<int>(terminal.m_inputBuffer.size());

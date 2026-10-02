@@ -1,5 +1,10 @@
 # Changelog
 
+## 2026-10: Preserve multiline Terminal clipboard paste
+
+- Keep all pasted clipboard lines in the single-line prompt by converting line breaks and tabs to spaces; CRLF becomes one separator.
+- Cover multiline, mixed-newline, and tab normalization in the Terminal headless suite.
+
 ## 2026-10: Pan long Terminal output rows
 
 - Add Shift+Page Up/Down horizontal panning for scrollback while preserving vertical Page Up/Down behavior.
