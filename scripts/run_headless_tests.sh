@@ -107,6 +107,8 @@ compile_sdl test_drawing_state \
     src/app/DrawingRaster.cpp src/fs/Filesystem.cpp
 compile_plain test_modr_format scripts/test_modr_format.cpp src/app/DrawingRaster.cpp
 compile_plain test_desktop_settings scripts/test_desktop_settings.cpp src/settings/DesktopSettings.cpp
+compile_sdl test_wallpaper_image -I"$BUILD_DIR/generated" \
+    scripts/test_wallpaper_image.cpp src/window/WallpaperImage.cpp
 compile_sdl test_settings_app_state \
     -I"$BUILD_DIR/generated/settings" scripts/test_settings_app_state.cpp \
     src/app/SettingsApp.cpp src/fs/Filesystem.cpp
@@ -140,6 +142,7 @@ run_plain test_drawing_roadmap
 run_sdl test_drawing_state
 run_plain test_modr_format
 run_plain test_desktop_settings
+run_sdl test_wallpaper_image
 run_sdl test_settings_app_state
 run_sdl test_text_texture_cache
 run_plain test_session_format
