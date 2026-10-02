@@ -96,13 +96,22 @@ bool WindowManager::loadSession(const std::string& hostPath) {
     if (!in) return false;
 
     std::string header;
-    if (!std::getline(in, header)) return false;
+    if (monolith::window::session::readBoundedLine(in, header)
+        != monolith::window::session::BoundedLineResult::Line) {
+        return false;
+    }
     // Trim CR
     if (!header.empty() && header.back() == '\r') header.pop_back();
     if (header != "session_v1") return false;
 
     std::string line;
-    while (std::getline(in, line)) {
+    while (true) {
+        const auto lineResult = monolith::window::session::readBoundedLine(in, line);
+        if (lineResult == monolith::window::session::BoundedLineResult::End
+            || lineResult == monolith::window::session::BoundedLineResult::Error
+            || lineResult == monolith::window::session::BoundedLineResult::TooLong) {
+            break;
+        }
         if (!line.empty() && line.back() == '\r') line.pop_back();
         if (line.empty() || line[0] == '#') continue;
 

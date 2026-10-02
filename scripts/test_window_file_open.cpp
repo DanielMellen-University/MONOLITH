@@ -2,6 +2,7 @@
 
 #include "../src/app/DrawingRaster.hpp"
 #include "../src/fs/Filesystem.hpp"
+#include "../src/window/SessionFormat.hpp"
 #define private public
 #include "../src/app/DrawingApp.hpp"
 #include "../src/app/TextEditorApp.hpp"
@@ -332,6 +333,19 @@ int main() {
         check(!invalidSessionWm.loadSession(invalidSessionPath.string())
                   && invalidSessionWm.m_windows.empty(),
               "invalid session headers still request the startup fallback");
+
+        const auto oversizedSessionPath = hostRoot / "oversized-session.txt";
+        {
+            std::ofstream oversizedSession(oversizedSessionPath);
+            oversizedSession << "session_v1\n"
+                             << std::string(monolith::window::session::kMaxLineBytes + 1, 'x')
+                             << "\nsnake 10 10 240 160 0 0 -\n";
+        }
+        monolith::window::WindowManager oversizedSessionWm;
+        oversizedSessionWm.setAppResources(font, &fs);
+        check(oversizedSessionWm.loadSession(oversizedSessionPath.string())
+                  && oversizedSessionWm.m_windows.empty(),
+              "overlong session record stops restore before later entries are launched");
     }
 
     {

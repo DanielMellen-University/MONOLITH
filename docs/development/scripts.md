@@ -183,7 +183,7 @@ Headless Settings app test for wallpaper directory/image filename completion, sh
 g++ -std=c++23 -Ibuild/generated/settings scripts/test_settings_app_state.cpp src/app/SettingsApp.cpp src/fs/Filesystem.cpp $(pkg-config --cflags --libs sdl2 SDL2_ttf) -o build/test_settings_app_state && ./build/test_settings_app_state
 ```
 
-Headless test of quoted session paths, including spaces and legacy unquoted paths:
+Headless test of quoted session paths, legacy unquoted paths, and bounded session-record reads:
 
 ```bash
 g++ -std=c++23 scripts/test_session_format.cpp -o build/test_session_format && ./build/test_session_format
@@ -207,7 +207,7 @@ Headless Text Editor state test for bounded streamed file loading, CRLF across c
 g++ -std=c++23 scripts/test_text_editor_state.cpp src/app/TextEditorApp.cpp src/fs/Filesystem.cpp $(pkg-config --cflags --libs sdl2 SDL2_ttf) -o build/test_text_editor_state && ./build/test_text_editor_state
 ```
 
-Headless WindowManager test that failed Editor and Drawing opens do not reserve stale file singletons, can be retried, skip stale file-backed session entries without seeding demo windows, and release bare-app instance slots when they become file-backed:
+Headless WindowManager test that failed Editor and Drawing opens do not reserve stale file singletons, can be retried, skip stale or overlong session records, avoid launching records after an oversized line, and release bare-app instance slots when they become file-backed:
 
 ```bash
 cmake --build build --target monolith_settings_bodies monolith_stb_image
