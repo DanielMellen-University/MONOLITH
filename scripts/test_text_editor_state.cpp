@@ -619,6 +619,7 @@ int main() {
         if (surface) SDL_FreeSurface(surface);
     }
     check(fs.writeFile("/old.txt", "original"), "write original editor file");
+    check(fs.writeFile("/retry-open.txt", "retry target"), "write editor retry target");
     check(fs.writeFile("/empty.txt", ""), "write empty editor file");
     check(fs.writeFile("/windows.txt", "first\r\nsecond\r\n"),
           "write CRLF editor file");
@@ -690,6 +691,45 @@ int main() {
               && boundedEditor.m_statusMessage.find("65,536") != std::string::npos,
           "over-limit line count is rejected without replacing the current document");
 
+    TestEditor retryOpenEditor(nullptr, &fs, "/old.txt");
+    prepareOpen(retryOpenEditor, "/oversized.txt");
+    retryOpenEditor.m_pathPromptCursorPos = 5;
+    retryOpenEditor.m_statusHorizontalScrollPx = 19;
+    retryOpenEditor.finishPathPrompt(true);
+    check(retryOpenEditor.m_pathPromptMode == TestEditor::PathPromptMode::Open
+              && retryOpenEditor.m_pathPromptBuffer == "/oversized.txt"
+              && retryOpenEditor.m_pathPromptCursorPos == 5
+              && retryOpenEditor.m_statusHorizontalScrollPx == 19
+              && retryOpenEditor.m_filePath == "/old.txt"
+              && retryOpenEditor.m_lines == std::vector<std::string>{"original"},
+          "rejected oversized Open keeps its prompt text, caret, scroll, and document");
+    retryOpenEditor.m_pathPromptBuffer = "/retry-open.txt";
+    retryOpenEditor.m_pathPromptCursorPos = retryOpenEditor.m_pathPromptBuffer.size();
+    retryOpenEditor.finishPathPrompt(true);
+    check(retryOpenEditor.m_pathPromptMode == TestEditor::PathPromptMode::None
+              && retryOpenEditor.m_filePath == "/retry-open.txt"
+              && retryOpenEditor.m_lines == std::vector<std::string>{"retry target"},
+          "correcting a rejected Open path retries successfully");
+
+    TestEditor retryLineEditor(nullptr, &fs, "/old.txt");
+    retryLineEditor.m_lines = {"first", "second", "third"};
+    retryLineEditor.beginPathPrompt(TestEditor::PathPromptMode::GoToLine);
+    retryLineEditor.m_pathPromptBuffer = "0";
+    retryLineEditor.m_pathPromptCursorPos = 1;
+    retryLineEditor.m_statusHorizontalScrollPx = 7;
+    retryLineEditor.finishPathPrompt(true);
+    check(retryLineEditor.m_pathPromptMode == TestEditor::PathPromptMode::GoToLine
+              && retryLineEditor.m_pathPromptBuffer == "0"
+              && retryLineEditor.m_pathPromptCursorPos == 1
+              && retryLineEditor.m_statusHorizontalScrollPx == 7,
+          "invalid Go to Line input remains editable for correction");
+    retryLineEditor.m_pathPromptBuffer = "2";
+    retryLineEditor.m_pathPromptCursorPos = 1;
+    retryLineEditor.finishPathPrompt(true);
+    check(retryLineEditor.m_pathPromptMode == TestEditor::PathPromptMode::None
+              && retryLineEditor.m_cursorRow == 1,
+          "correcting invalid Go to Line input completes the jump");
+
     TestEditor oversizedSaveEditor(nullptr, &fs, "");
     oversizedSaveEditor.m_filePath = "/oversized-save.txt";
     oversizedSaveEditor.m_lines = {
@@ -720,14 +760,23 @@ int main() {
 
     controller.blockedPath.clear();
     prepareSaveAs(editor, "/folder");
+    editor.m_pathPromptCursorPos = 3;
+    editor.m_statusHorizontalScrollPx = 23;
     editor.finishPathPrompt(true);
-    check(editor.m_filePath == "/old.txt",
-          "failed Save As preserves the current file path");
+    check(editor.m_filePath == "/old.txt"
+              && editor.m_pathPromptMode == TestEditor::PathPromptMode::SaveAs
+              && editor.m_pathPromptBuffer == "/folder"
+              && editor.m_pathPromptCursorPos == 3
+              && editor.m_statusHorizontalScrollPx == 23,
+          "failed Save As preserves the binding and editable prompt state");
     check(fs.isDirectory("/folder"), "failed Save As leaves the existing target intact");
 
-    prepareSaveAs(editor, "/new.txt");
+    editor.m_pathPromptBuffer = "/new.txt";
+    editor.m_pathPromptCursorPos = editor.m_pathPromptBuffer.size();
     editor.finishPathPrompt(true);
-    check(editor.m_filePath == "/new.txt", "successful Save As updates the file path");
+    check(editor.m_filePath == "/new.txt"
+              && editor.m_pathPromptMode == TestEditor::PathPromptMode::None,
+          "correcting a failed Save As path updates the file binding and closes the prompt");
     check(fs.readFile("/new.txt") == "original", "successful Save As writes the document");
     check(controller.boundPath == "/new.txt", "successful Save As updates the shell binding");
     check(controller.lifecycleEvents.size() >= 2

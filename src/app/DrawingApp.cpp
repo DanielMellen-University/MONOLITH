@@ -1174,10 +1174,18 @@ void DrawingApp::beginPathPrompt(PathPromptMode mode) {
 void DrawingApp::finishPathPrompt(bool commit) {
     const PathPromptMode mode = m_pathPromptMode;
     const std::string buffer = m_pathPromptBuffer;
+    const size_t promptCursorPos = m_pathPromptCursorPos;
+    const int promptScrollPx = m_pathPromptScrollPx;
     m_pathPromptMode = PathPromptMode::None;
     m_pathPromptBuffer.clear();
     m_pathPromptCursorPos = 0;
     m_pathPromptScrollPx = 0;
+    auto restorePrompt = [&] {
+        m_pathPromptMode = mode;
+        m_pathPromptBuffer = buffer;
+        m_pathPromptCursorPos = std::min(promptCursorPos, buffer.size());
+        m_pathPromptScrollPx = promptScrollPx;
+    };
 
     if (!commit) {
         clearDiscardArm();
@@ -1187,6 +1195,7 @@ void DrawingApp::finishPathPrompt(bool commit) {
 
     if (buffer.empty()) {
         setStatus(mode == PathPromptMode::Rgb ? "RGB cannot be empty." : "Path cannot be empty.");
+        restorePrompt();
         return;
     }
 
@@ -1194,6 +1203,7 @@ void DrawingApp::finishPathPrompt(bool commit) {
         uint8_t r = 0, g = 0, b = 0;
         if (!monolith::drawing::parseRgb(buffer, r, g, b)) {
             setStatus("RGB failed: use r,g,b with each channel 0-255.");
+            restorePrompt();
             return;
         }
         m_customR = r;
@@ -1222,7 +1232,9 @@ void DrawingApp::finishPathPrompt(bool commit) {
                 return;
             }
         }
-        saveToPath(buffer);
+        if (!saveToPath(buffer)) {
+            restorePrompt();
+        }
     } else if (mode == PathPromptMode::Open) {
         if (path != m_filePath) {
             if (auto* ctrl = getController(); ctrl && ctrl->focusDrawingForFile(path)) {
@@ -1237,14 +1249,13 @@ void DrawingApp::finishPathPrompt(bool commit) {
                 DiscardKind::Open,
                 "Unsaved changes — open again to discard, or save first")) {
             m_discardPath = path;
-            m_pathPromptMode = PathPromptMode::Open;
-            m_pathPromptBuffer = path;
-            m_pathPromptCursorPos = m_pathPromptBuffer.size();
-            m_pathPromptScrollPx = 0;
+            restorePrompt();
             return;
         }
         if (loadFromPath(path)) {
             clearDiscardArm();
+        } else {
+            restorePrompt();
         }
     }
 }
