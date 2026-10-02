@@ -1,5 +1,10 @@
 # Changelog
 
+## 2026-10: Make Terminal touch update existing files
+
+- `touch` now updates an existing regular file's last-write time without modifying its contents.
+- Keep outside-root symlink targets protected and avoid reporting metadata-only touches as content changes.
+
 ## 2026-10: Add Terminal input selection and clipboard editing
 
 - Support UTF-8-safe keyboard and mouse selection in the command line, plus Ctrl+A/C/X/V editing.

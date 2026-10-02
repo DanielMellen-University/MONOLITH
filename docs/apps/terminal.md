@@ -76,7 +76,7 @@ Run `help` for the full list. Current commands:
 | `pwd` | Print working directory |
 | `cd [dir]` | Change directory (no arg → `/home/monolith`) |
 | `mkdir <dir>` | Create directory |
-| `touch <file>` | Create empty file |
+| `touch <file>` | Create an empty file or update an existing file's modification time |
 | `cat <file>` | Show file contents |
 | `edit <file>` | Open a text file in the Text Editor |
 | `open <path>` | Open via shell routing (case-insensitive `.modr` → Drawing, else Text Editor) |
@@ -101,7 +101,9 @@ When the cursor is immediately after a closed quoted token, Tab does nothing. Th
 
 After a successful `mv`, any open Text Editor or Drawing window bound to the source path follows the normalized destination path. Moving a directory also updates bindings for open files beneath it, and any Terminal or Filesystem Browser currently inside that directory follows the new location.
 
-After a successful `mkdir`, `touch`, or `cp`, open Filesystem Browser windows refresh when the new or changed entry belongs directly to the folder they are viewing. If the operation also creates missing parent directories, ancestor Browser windows refresh as well. Recursive `cp -r` into an existing directory reports the destination tree's changed paths, so open Text Editor and Drawing windows below that tree receive external-change notifications too. Creating or overwriting a file by saving a Text Editor document or Drawing sketch uses the same notification path. If the changed path is the active wallpaper image, the desktop reloads it on the next render.
+`touch` creates a missing empty file or updates the last-write time of an existing regular file without changing its contents. Existing-file touches do not send a content-change notification; timestamps are not displayed by Monolith.
+
+After a successful `mkdir`, a newly created `touch` target, or `cp`, open Filesystem Browser windows refresh when the new or changed entry belongs directly to the folder they are viewing. If the operation also creates missing parent directories, ancestor Browser windows refresh as well. Recursive `cp -r` into an existing directory reports the destination tree's changed paths, so open Text Editor and Drawing windows below that tree receive external-change notifications too. Creating or overwriting a file by saving a Text Editor document or Drawing sketch uses the same notification path. If the changed path is the active wallpaper image, the desktop reloads it on the next render.
 
 The shared Filesystem Browser clipboard also follows a moved source, so a pending Copy or Cut can still be pasted after another window renames or moves that source.
 
@@ -153,7 +155,7 @@ Unterminated quotes print `parse error: ...` and do not run the command.
 
 - No pipes, redirection, or job control.
 - No script execution or custom language integration yet.
-- `touch` creates an empty file if missing; existing files are left unchanged (no mtime update yet).
+- File modification times can be updated by Terminal `touch`, but Monolith does not display timestamps in its apps.
 - The prompt is a single line; clipboard paste uses only the first line and does not preserve tabs as tab characters.
 - Scrollback lines stay at native text size and clip at the viewport edge instead of being horizontally scaled or scrolled sideways.
 - Esc clears the current input and resets the insertion point, so typing can continue immediately.
