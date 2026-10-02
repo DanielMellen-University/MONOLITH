@@ -24,10 +24,37 @@ std::string lowercaseAscii(std::string value) {
     return value;
 }
 
+int compareCaseInsensitive(std::string_view left, std::string_view right) {
+    const size_t sharedLength = std::min(left.size(), right.size());
+    for (size_t i = 0; i < sharedLength; ++i) {
+        const int leftLower = std::tolower(static_cast<unsigned char>(left[i]));
+        const int rightLower = std::tolower(static_cast<unsigned char>(right[i]));
+        if (leftLower != rightLower) return leftLower < rightLower ? -1 : 1;
+    }
+    if (left.size() == right.size()) return 0;
+    return left.size() < right.size() ? -1 : 1;
+}
+
+bool containsCaseInsensitive(std::string_view name, std::string_view lowercaseQuery) {
+    if (lowercaseQuery.empty()) return true;
+    if (lowercaseQuery.size() > name.size()) return false;
+
+    const size_t lastStart = name.size() - lowercaseQuery.size();
+    for (size_t start = 0; start <= lastStart; ++start) {
+        size_t offset = 0;
+        while (offset < lowercaseQuery.size()
+               && std::tolower(static_cast<unsigned char>(name[start + offset]))
+                   == static_cast<unsigned char>(lowercaseQuery[offset])) {
+            ++offset;
+        }
+        if (offset == lowercaseQuery.size()) return true;
+    }
+    return false;
+}
+
 bool entryNameLess(const Filesystem::DirEntry& left, const Filesystem::DirEntry& right) {
-    const std::string leftLower = lowercaseAscii(left.name);
-    const std::string rightLower = lowercaseAscii(right.name);
-    if (leftLower != rightLower) return leftLower < rightLower;
+    const int foldedOrder = compareCaseInsensitive(left.name, right.name);
+    if (foldedOrder != 0) return foldedOrder < 0;
     return left.name < right.name;
 }
 
@@ -407,24 +434,17 @@ int Filesystem::moveItemsInto(const std::vector<std::string>& srcVirtualPaths,
 
 bool Filesystem::entryNameMatches(const std::string& name, const std::string& query) {
     if (query.empty()) return true;
-    auto lower = [](std::string s) {
-        for (char& c : s) {
-            c = static_cast<char>(std::tolower(static_cast<unsigned char>(c)));
-        }
-        return s;
-    };
-    const std::string n = lower(name);
-    const std::string q = lower(query);
-    return n.find(q) != std::string::npos;
+    return containsCaseInsensitive(name, lowercaseAscii(query));
 }
 
 std::vector<Filesystem::DirEntry> Filesystem::filterEntries(const std::vector<DirEntry>& entries,
                                                             const std::string& query) {
     if (query.empty()) return entries;
+    const std::string lowercaseQuery = lowercaseAscii(query);
     std::vector<DirEntry> out;
     out.reserve(entries.size());
     for (const auto& entry : entries) {
-        if (entryNameMatches(entry.name, query)) {
+        if (containsCaseInsensitive(entry.name, lowercaseQuery)) {
             out.push_back(entry);
         }
     }
