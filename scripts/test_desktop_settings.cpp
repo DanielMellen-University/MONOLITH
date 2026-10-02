@@ -2,6 +2,7 @@
 
 #include "../src/settings/DesktopSettings.hpp"
 #include "../src/detail/AtomicFile.hpp"
+#include "../src/detail/BoundedLineReader.hpp"
 
 #include <cstdio>
 #include <filesystem>
@@ -197,6 +198,45 @@ int main() {
               && windowsLineEndings.clock24Hour()
               && windowsLineEndings.uiScalePercent() == 115,
           "CRLF settings preserve every persisted value");
+
+    const std::string maxWallpaperPath(
+        monolith::detail::kMaxPersistedLineBytes - std::string_view("wallpaper_path=").size(),
+        'p');
+    check(DesktopSettings::isValidWallpaperPath(maxWallpaperPath),
+          "wallpaper path at the persisted line limit is representable");
+    check(!DesktopSettings::isValidWallpaperPath(maxWallpaperPath + "p")
+              && !DesktopSettings::isValidWallpaperPath("/wallpaper\nclock_24_hour=1")
+              && !DesktopSettings::isValidWallpaperPath(std::string("/wallpaper\0bad", 14)),
+          "unrepresentable wallpaper paths are rejected");
+
+    {
+        std::ofstream maxPathFile(path, std::ios::trunc);
+        maxPathFile << "wallpaper_path=" << maxWallpaperPath << '\n';
+    }
+    DesktopSettings maxPathSettings;
+    check(maxPathSettings.loadFromHostPath(path.string())
+              && maxPathSettings.wallpaperPath() == maxWallpaperPath,
+          "settings loader accepts a maximum-length wallpaper path");
+
+    {
+        std::ofstream oversized(path, std::ios::trunc);
+        oversized << "desktop_background=11,22,33\n"
+                  << "wallpaper_path=" << std::string(maxWallpaperPath.size() + 1, 'x') << '\n'
+                  << "clock_24_hour=1\n";
+    }
+    DesktopSettings partial;
+    check(partial.loadFromHostPath(path.string()),
+          "bounded settings reader keeps valid records before an oversized line");
+    const auto partialBackground = partial.desktopBackground();
+    check(partialBackground.r == 11 && partialBackground.g == 22 && partialBackground.b == 33
+              && partial.wallpaperPath().empty() && !partial.clock24Hour(),
+          "oversized settings record is not applied and later records are ignored");
+
+    DesktopSettings setterGuard;
+    setterGuard.setWallpaperPath("/existing.bmp");
+    setterGuard.setWallpaperPath(maxWallpaperPath + "p");
+    check(setterGuard.wallpaperPath() == "/existing.bmp",
+          "invalid wallpaper path cannot replace the persisted setting");
 
     std::filesystem::remove(path, ec);
     std::filesystem::remove_all(blockedPath, ec);
