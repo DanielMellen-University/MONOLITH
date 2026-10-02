@@ -1,5 +1,10 @@
 # Changelog
 
+## 2026-10: Speed up Text Editor long-line hit testing
+
+- Replace repeated per-codepoint prefix measurements with one `TTF_MeasureUTF8` pass and map measured characters back to UTF-8 byte columns.
+- Cover multibyte cursor mapping and far-scrolled clicks in a 100,000-character line.
+
 ## 2026-10: Bound Text Editor Find result memory
 
 - Retain one search-location checkpoint per 256 non-overlapping matches, resolving next/previous navigation without storing every hit.
