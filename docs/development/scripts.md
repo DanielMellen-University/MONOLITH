@@ -85,7 +85,7 @@ Headless test of Terminal quoting, UTF-8-safe command inputs, and quoted or esca
 g++ -std=c++23 scripts/test_terminal_lexer.cpp src/app/TerminalLexer.cpp -o build/test_terminal_lexer && ./build/test_terminal_lexer
 ```
 
-Headless Terminal filesystem command test for empty directories, regular files, missing paths, recursive-copy notifications, root completion, scrollback bounds, and undersized input-bar containment:
+Headless Terminal state test for UTF-8-safe input selection and clipboard editing, mouse selection, filesystem commands, completion, history and scrollback bounds, and undersized input-bar containment:
 
 ```bash
 g++ -std=c++23 scripts/test_terminal_filesystem_state.cpp src/app/TerminalApp.cpp src/app/TerminalLexer.cpp src/fs/Filesystem.cpp $(pkg-config --cflags --libs sdl2 SDL2_ttf) -o build/test_terminal_filesystem_state && ./build/test_terminal_filesystem_state
@@ -136,13 +136,13 @@ g++ -std=c++23 scripts/test_minesweeper_state.cpp src/app/MinesweeperApp.cpp $(p
 
 ## Filesystem Roadmap Checks
 
-Headless test of shipped `Filesystem` initialization, multi-item copy/paste, `/`-rejecting rename, and listing filter:
+Headless test of shipped `Filesystem` initialization, safe last-write-time updates, multi-item copy/paste, `/`-rejecting rename, and listing filter:
 
 ```bash
 g++ -std=c++23 scripts/test_fs_roadmap.cpp src/fs/Filesystem.cpp -o build/test_fs_roadmap && ./build/test_fs_roadmap
 ```
 
-Headless Filesystem Browser state test for filtering, multi-selection restoration, direct inline rename notifications, scaled chrome bands, status-bar hit testing, complete-row hit testing in tiny clients, resize and scale scroll clamping, delete confirmation, and partial cut/paste:
+Headless Filesystem Browser state test for filtered snapshot reuse and F5 refresh, multi-selection restoration, direct inline rename notifications, scaled chrome bands, status-bar hit testing, complete-row hit testing in tiny clients, resize and scale scroll clamping, delete confirmation, and partial cut/paste:
 
 ```bash
 g++ -std=c++23 scripts/test_filesystem_app_state.cpp src/app/FilesystemApp.cpp src/fs/Filesystem.cpp $(pkg-config --cflags --libs sdl2 SDL2_ttf) -o build/test_filesystem_app_state && ./build/test_filesystem_app_state

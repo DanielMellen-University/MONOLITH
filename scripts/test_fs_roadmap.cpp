@@ -4,6 +4,7 @@
 #include "../src/fs/Filesystem.hpp"
 
 #include <algorithm>
+#include <chrono>
 #include <cstdint>
 #include <filesystem>
 #include <fstream>
@@ -40,6 +41,8 @@ int main() {
     check(fs.initialize(), "filesystem initialize");
     check(!fs.remove("/"), "non-recursive remove rejects the virtual root");
     check(fs.isDirectory("/"), "virtual root remains after a rejected remove");
+    check(!fs.updateModifiedTime("/") && !fs.updateModifiedTime("/missing.txt"),
+          "modified-time updates reject directories and missing paths");
 
     const stdfs::path outsideRoot = stdfs::temp_directory_path()
         / ("monolith-fs-outside-" + std::to_string(getpid()));
@@ -65,6 +68,15 @@ int main() {
                   return true;
               }),
               "chunk reader rejects outside symlink target");
+        const stdfs::path outsideFile = outsideRoot / "secret.txt";
+        const auto outsideModifiedBefore = stdfs::last_write_time(outsideFile, ec);
+        const bool outsideTimeRead = !ec;
+        ec.clear();
+        const bool outsideTimeRejected = !fs.updateModifiedTime("/escape/secret.txt");
+        const auto outsideModifiedAfter = stdfs::last_write_time(outsideFile, ec);
+        check(outsideTimeRead && outsideTimeRejected && !ec
+                  && outsideModifiedAfter == outsideModifiedBefore,
+              "modified-time updates cannot follow a symlink outside the virtual root");
         check(!fs.writeFile("/escape/new.txt", "blocked"),
               "write rejects outside symlink target");
         const auto rootEntries = fs.list("/");
@@ -124,6 +136,17 @@ int main() {
         stdfs::create_symlink(hostRoot / "symlink-target/keep.txt", internalFileLink, ec);
         check(!ec, "create in-root file symlink");
         if (!ec) {
+            const stdfs::path internalFile = hostRoot / "symlink-target/keep.txt";
+            const auto oldInternalModified = stdfs::file_time_type::clock::now()
+                - std::chrono::hours(24);
+            stdfs::last_write_time(internalFile, oldInternalModified, ec);
+            const bool agedInternalFile = !ec;
+            ec.clear();
+            const bool updatedInternalLink = fs.updateModifiedTime("/internal-file-link");
+            const auto newInternalModified = stdfs::last_write_time(internalFile, ec);
+            check(agedInternalFile && updatedInternalLink && !ec
+                      && newInternalModified > oldInternalModified,
+                  "modified-time updates follow in-root file symlinks");
             check(fs.remove("/internal-file-link"),
                   "remove unlinks an in-root file symlink entry");
             check(!stdfs::exists(internalFileLink) && fs.isFile("/symlink-target/keep.txt")

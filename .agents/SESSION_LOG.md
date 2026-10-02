@@ -1,5 +1,13 @@
 # Session log
 
+| 2026-10-02 | perf | Drawing now accumulates changed pixel, fill-span, and undo/redo tile bounds and partially updates its streaming canvas texture; resize/load/Clear retain full refreshes, with headless dirty-region regression coverage. |
+
+| 2026-10-02 | perf | Reused the Filesystem Browser directory snapshot across filter edits, retained refreshes from F5 and filesystem notifications, and passed hosted headless workflow #100. |
+
+| 2026-10-02 | fix | Completed Terminal `touch` semantics: existing regular files receive a last-write-time update without content changes, outside-root symlinks stay protected, and metadata-only touches avoid content-change notifications; hosted headless workflow #105 passed. |
+
+| 2026-10-02 | fix | Added UTF-8-safe keyboard/mouse selection and Ctrl+A/C/X/V to the Terminal command line; multiline clipboard paste stops at its first newline, with focused regression coverage and hosted headless workflow #103 passing. |
+
 | 2026-09-29 | fix | Streamed Text Editor file opens through bounded chunks, capped documents at 16 MiB and 65,536 lines for open/save, preserved the active document on rejection, and covered cross-chunk CRLF plus both limits; hosted headless workflow #71 passed. |
 
 | 2026-09-29 | perf | Reused Drawing's per-canvas scratch maps and reset only touched stroke-capture or Fill/Clear dirty indices; added cross-edit state coverage and passed hosted workflow #69. |

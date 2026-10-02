@@ -77,6 +77,9 @@ public:
     /** Writes (or overwrites) a file with the given content. */
     bool writeFile(const std::string& virtualPath, const std::string& content);
 
+    /** Updates the last-write time of an existing regular file without changing its content. */
+    bool updateModifiedTime(const std::string& virtualPath);
+
     /** Reads the entire content of a file. Returns empty string on failure. */
     std::string readFile(const std::string& virtualPath) const;
 

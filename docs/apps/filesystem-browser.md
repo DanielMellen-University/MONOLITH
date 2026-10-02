@@ -90,6 +90,7 @@ List rows use the existing cached filename texture dimensions for clipping. Duri
 - While filtering, Left/Right/Home/End move the caret, typed text is inserted at the caret, Delete removes the next complete UTF-8 character, and Backspace removes the previous one.
 - Long filter queries stay at native text size and scroll horizontally to keep the caret visible.
 - The caret-prefix width is reused between frames until the caret prefix or shared font changes.
+- Filter edits reuse the current folder snapshot instead of re-enumerating the directory on every keystroke. **F5** refreshes that snapshot even while the filter has focus; Monolith filesystem change notifications also refresh it.
 - **Enter** keeps the filter and leaves typing mode.
 - **Esc** clears the filter.
 - Changing directory clears the filter.

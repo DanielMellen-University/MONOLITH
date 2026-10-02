@@ -52,7 +52,7 @@ The `monolith::fs::Filesystem` class provides:
 
 - `exists`, `isFile`, `isDirectory`
 - `createDirectory`, `remove`, `removeRecursive`, `rename`, `renameEntry`
-- `readFile`, `readFileChunks`, `readFileTailChunks`, `writeFile`, `fileSize` (`readFile(path, out)` reports read success separately from empty content)
+- `readFile`, `readFileChunks`, `readFileTailChunks`, `writeFile`, `updateModifiedTime` (last-write time only), `fileSize` (`readFile(path, out)` reports read success separately from empty content)
 - `copyRecursive` (file or directory tree; blocks copy into self/descendant)
 - `copyItemsInto` (multi-source paste into a directory, via `copyRecursive`)
 - `moveItemsInto` (multi-source cut/paste into a directory, via non-overwriting rename)
@@ -102,7 +102,7 @@ Terminal (`cp -r` / `rm -r`) and the Filesystem Browser (delete, cut/paste) both
 
 ## Current Limitations
 
-- No permissions, ownership, or metadata layer; symlinks remain host filesystem entries.
+- No permissions, ownership, or metadata browsing layer; timestamps are not displayed, though Terminal `touch` can update a file's last-write time.
 - Symlink targets that resolve outside the host root are rejected and omitted from virtual directory listings. Removing a symlink entry, including a hidden outside symlink, unlinks the entry itself without touching the target. Symlinks that remain inside the root are still host filesystem entries, not a separate metadata layer.
 - Recursive copy rejects a symlink source instead of traversing it. Recursive remove deletes a symlink entry itself and never walks through that link into its target tree.
 - A failed recursive copy does not leave a partial newly created destination tree behind; an existing destination is not rolled back.

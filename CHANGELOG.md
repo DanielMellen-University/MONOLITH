@@ -1,5 +1,25 @@
 # Changelog
 
+## 2026-10: Upload only changed Drawing canvas regions
+
+- Accumulate changed pixel, fill-span, and undo/redo tile bounds, then upload only that rectangle to the streaming canvas texture.
+- Keep full texture refreshes for canvas resize, load, and Clear; cover dirty-region accumulation and partial-upload state in headless tests.
+
+## 2026-10: Make Terminal touch update existing files
+
+- `touch` now updates an existing regular file's last-write time without modifying its contents.
+- Keep outside-root symlink targets protected and avoid reporting metadata-only touches as content changes.
+
+## 2026-10: Add Terminal input selection and clipboard editing
+
+- Support UTF-8-safe keyboard and mouse selection in the command line, plus Ctrl+A/C/X/V editing.
+- Keep clipboard paste single-line by stopping at the first newline; document the shortcuts and behavior.
+
+## 2026-10: Reuse Filesystem Browser filter snapshots
+
+- Filter edits now reuse one directory listing instead of re-enumerating and sorting the folder for every query change.
+- F5 refreshes the listing while the filter is active, and filesystem notifications continue to refresh filtered results.
+
 ## 2026-09: Bound Text Editor file loading
 
 - Stream file opens in 16 KiB chunks and normalize CRLF or lone-CR endings without constructing full raw and normalized copies.

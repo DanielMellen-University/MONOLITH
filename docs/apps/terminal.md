@@ -39,6 +39,12 @@ Type commands at the prompt and press **Enter** to run them. Output appears abov
 | Left / Right | Move cursor within the input line |
 | Home / End | Jump to start / end of input |
 | Backspace / Delete | Delete the previous or next complete UTF-8 character |
+| Shift + Left / Right | Extend the selection by complete UTF-8 characters |
+| Shift + Home / End | Extend the selection to the start / end of input |
+| Ctrl+A | Select the full input line |
+| Ctrl+C / Ctrl+X | Copy / cut the selected input text |
+| Ctrl+V | Paste the first clipboard line at the caret or over the selection |
+| Mouse drag in the input bar | Select input text |
 | Tab | Complete command name or filesystem path |
 | Ctrl+R | Enter reverse history search |
 | Ctrl+R (in search) | Find older matching command |
@@ -70,7 +76,7 @@ Run `help` for the full list. Current commands:
 | `pwd` | Print working directory |
 | `cd [dir]` | Change directory (no arg → `/home/monolith`) |
 | `mkdir <dir>` | Create directory |
-| `touch <file>` | Create empty file |
+| `touch <file>` | Create an empty file or update an existing file's modification time |
 | `cat <file>` | Show file contents |
 | `edit <file>` | Open a text file in the Text Editor |
 | `open <path>` | Open via shell routing (case-insensitive `.modr` → Drawing, else Text Editor) |
@@ -81,7 +87,7 @@ Run `help` for the full list. Current commands:
 | `help` | Show command list |
 | `exit` / `quit` | Close this terminal window |
 
-Paths may be absolute or relative to the current working directory. Quoted paths preserve their exact whitespace, including repeated spaces. Tab completion works for both command names and paths, including a blank command or path slot after whitespace, the virtual root (`/`), paths inside double or single quotes, filenames containing apostrophes, and paths with backslash-escaped spaces. The input cursor and Backspace move through complete UTF-8 characters, so accented characters and emoji are not split into invalid byte fragments. Long commands scroll horizontally to keep the cursor visible.
+Paths may be absolute or relative to the current working directory. Quoted paths preserve their exact whitespace, including repeated spaces. Tab completion works for both command names and paths, including a blank command or path slot after whitespace, the virtual root (`/`), paths inside double or single quotes, filenames containing apostrophes, and paths with backslash-escaped spaces. The input cursor, selection, and deletion move through complete UTF-8 characters, so accented characters and emoji are not split into invalid byte fragments. Shift + Left/Right and Shift + Home/End extend a keyboard selection; dragging in the input bar selects with the mouse. Ctrl+C and Ctrl+X do nothing when there is no selection. Paste filters control characters, converts tabs to spaces, and stops at the first line break so a multiline clipboard cannot turn one paste into multiple commands. Long commands scroll horizontally to keep the caret visible.
 
 Reverse history search has its own editable query. Left/Right/Home/End move through the query, typed text is inserted at the caret, Delete removes the next complete UTF-8 character, and Backspace removes the previous one. Long search queries scroll horizontally to keep the caret visible. Up/Down cancel search and return to normal history navigation. Canceling restores both the original input and its caret position. Accepting or canceling a search also clears any older Up/Down navigation state, so the accepted or restored input is not overwritten by a stale history slot.
 
@@ -95,7 +101,9 @@ When the cursor is immediately after a closed quoted token, Tab does nothing. Th
 
 After a successful `mv`, any open Text Editor or Drawing window bound to the source path follows the normalized destination path. Moving a directory also updates bindings for open files beneath it, and any Terminal or Filesystem Browser currently inside that directory follows the new location.
 
-After a successful `mkdir`, `touch`, or `cp`, open Filesystem Browser windows refresh when the new or changed entry belongs directly to the folder they are viewing. If the operation also creates missing parent directories, ancestor Browser windows refresh as well. Recursive `cp -r` into an existing directory reports the destination tree's changed paths, so open Text Editor and Drawing windows below that tree receive external-change notifications too. Creating or overwriting a file by saving a Text Editor document or Drawing sketch uses the same notification path. If the changed path is the active wallpaper image, the desktop reloads it on the next render.
+`touch` creates a missing empty file or updates the last-write time of an existing regular file without changing its contents. Existing-file touches do not send a content-change notification; timestamps are not displayed by Monolith.
+
+After a successful `mkdir`, a newly created `touch` target, or `cp`, open Filesystem Browser windows refresh when the new or changed entry belongs directly to the folder they are viewing. If the operation also creates missing parent directories, ancestor Browser windows refresh as well. Recursive `cp -r` into an existing directory reports the destination tree's changed paths, so open Text Editor and Drawing windows below that tree receive external-change notifications too. Creating or overwriting a file by saving a Text Editor document or Drawing sketch uses the same notification path. If the changed path is the active wallpaper image, the desktop reloads it on the next render.
 
 The shared Filesystem Browser clipboard also follows a moved source, so a pending Copy or Cut can still be pasted after another window renames or moves that source.
 
@@ -147,8 +155,8 @@ Unterminated quotes print `parse error: ...` and do not run the command.
 
 - No pipes, redirection, or job control.
 - No script execution or custom language integration yet.
-- `touch` creates an empty file if missing; existing files are left unchanged (no mtime update yet).
-- The prompt is a single line and does not provide Text Editor-style selection or clipboard editing.
+- File modification times can be updated by Terminal `touch`, but Monolith does not display timestamps in its apps.
+- The prompt is a single line; clipboard paste uses only the first line and does not preserve tabs as tab characters.
 - Scrollback lines stay at native text size and clip at the viewport edge instead of being horizontally scaled or scrolled sideways.
 - Esc clears the current input and resets the insertion point, so typing can continue immediately.
 

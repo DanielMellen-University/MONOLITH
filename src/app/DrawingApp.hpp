@@ -79,6 +79,7 @@ private:
     void resizeCanvas(int width, int height, bool preserveContent);
     void clearCanvas(bool recordUndo = true);
     void markTextureDirty();
+    void markTextureRegionDirty(int x, int y, int width, int height);
     void syncTexture(SDL_Renderer* renderer);
     void pushUndoHistoryEntry(CanvasHistoryEntry entry);
     void beginSparseHistory();
@@ -159,6 +160,7 @@ private:
     int m_canvasHeight = 0;
     SDL_Texture* m_canvasTexture = nullptr;
     bool m_textureDirty = true;
+    SDL_Rect m_dirtyTextureRect{};
 
     Tool m_tool = Tool::Pen;
     BrushSize m_brush = BrushSize::Medium;

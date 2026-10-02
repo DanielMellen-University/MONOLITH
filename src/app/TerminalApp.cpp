@@ -127,6 +127,7 @@ void TerminalApp::submitInput() {
     std::string command = m_inputBuffer;
     m_inputBuffer.clear();
     m_inputCursorPos = 0;
+    clearInputSelection();
     m_historyIndex = -1;
     m_savedInputBuffer.clear();
     m_savedInputCursorPos = 0;
@@ -153,6 +154,135 @@ void TerminalApp::leaveHistoryNavigationOnEdit() {
     m_historyIndex = -1;
     m_savedInputBuffer.clear();
     m_savedInputCursorPos = 0;
+}
+
+bool TerminalApp::hasInputSelection() const {
+    return m_inputSelectionAnchor >= 0
+        && m_inputSelectionAnchor != m_inputCursorPos;
+}
+
+std::pair<std::size_t, std::size_t> TerminalApp::inputSelectionRange() const {
+    const int size = static_cast<int>(m_inputBuffer.size());
+    const std::size_t anchor = utf8ClampToCodepointBoundary(
+        m_inputBuffer,
+        static_cast<std::size_t>(std::clamp(m_inputSelectionAnchor, 0, size)));
+    const std::size_t cursor = utf8ClampToCodepointBoundary(
+        m_inputBuffer,
+        static_cast<std::size_t>(std::clamp(m_inputCursorPos, 0, size)));
+    return {std::min(anchor, cursor), std::max(anchor, cursor)};
+}
+
+void TerminalApp::clearInputSelection() {
+    m_inputSelectionAnchor = -1;
+    m_selectingInputWithMouse = false;
+}
+
+void TerminalApp::deleteInputSelection() {
+    if (!hasInputSelection()) {
+        clearInputSelection();
+        return;
+    }
+    const auto [start, end] = inputSelectionRange();
+    m_inputBuffer.erase(start, end - start);
+    m_inputCursorPos = static_cast<int>(start);
+    clearInputSelection();
+}
+
+void TerminalApp::insertInputText(const std::string& text) {
+    if (text.empty()) return;
+    leaveHistoryNavigationOnEdit();
+    deleteInputSelection();
+    m_inputCursorPos = static_cast<int>(utf8ClampToCodepointBoundary(
+        m_inputBuffer,
+        static_cast<std::size_t>(std::clamp(
+            m_inputCursorPos, 0, static_cast<int>(m_inputBuffer.size())))));
+    m_inputBuffer.insert(static_cast<std::size_t>(m_inputCursorPos), text);
+    m_inputCursorPos += static_cast<int>(text.size());
+}
+
+void TerminalApp::moveInputCursor(int position, bool extendSelection) {
+    position = std::clamp(position, 0, static_cast<int>(m_inputBuffer.size()));
+    position = static_cast<int>(utf8ClampToCodepointBoundary(
+        m_inputBuffer, static_cast<std::size_t>(position)));
+    if (extendSelection) {
+        if (m_inputSelectionAnchor < 0) m_inputSelectionAnchor = m_inputCursorPos;
+    } else {
+        clearInputSelection();
+    }
+    m_inputCursorPos = position;
+}
+
+bool TerminalApp::copyInputSelection() {
+    if (!hasInputSelection()) return false;
+    const auto [start, end] = inputSelectionRange();
+    const std::string selected = m_inputBuffer.substr(start, end - start);
+    return SDL_SetClipboardText(selected.c_str()) == 0;
+}
+
+void TerminalApp::cutInputSelection() {
+    if (!hasInputSelection()) return;
+    if (copyInputSelection()) {
+        leaveHistoryNavigationOnEdit();
+        deleteInputSelection();
+    }
+}
+
+void TerminalApp::pasteInputClipboard() {
+    if (!SDL_HasClipboardText()) return;
+    char* raw = SDL_GetClipboardText();
+    if (!raw) return;
+
+    std::string pasted;
+    for (const unsigned char c : std::string(raw)) {
+        if (c == '\r' || c == '\n') break;
+        if (c == '\t') {
+            pasted.push_back(' ');
+        } else if (c >= 32 && c != 127) {
+            pasted.push_back(static_cast<char>(c));
+        }
+    }
+    SDL_free(raw);
+    insertInputText(pasted);
+}
+
+int TerminalApp::inputCursorAtX(int x, const SDL_Rect& contentRect) const {
+    if (!m_font) return 0;
+    constexpr int padding = 8;
+    const std::string prompt = getInputPrompt();
+    const int textOriginX = contentRect.x + padding - m_inputHorizontalScrollPx;
+    const int targetX = x - textOriginX;
+    int promptWidth = 0;
+    int promptHeight = 0;
+    if (TTF_SizeUTF8(m_font, prompt.c_str(), &promptWidth, &promptHeight) != 0) {
+        return 0;
+    }
+    if (targetX <= promptWidth) return 0;
+
+    std::vector<std::size_t> boundaries{0};
+    for (std::size_t pos = 0; pos < m_inputBuffer.size();) {
+        pos = utf8NextCodepointStart(m_inputBuffer, pos);
+        boundaries.push_back(pos);
+    }
+
+    auto measure = [&](std::size_t byteOffset) {
+        const std::string prefix = prompt + m_inputBuffer.substr(0, byteOffset);
+        int width = 0;
+        int height = 0;
+        if (TTF_SizeUTF8(m_font, prefix.c_str(), &width, &height) != 0) return 0;
+        return width;
+    };
+
+    const auto firstAfter = std::lower_bound(
+        boundaries.begin(), boundaries.end(), targetX,
+        [&](std::size_t offset, int pixelX) { return measure(offset) < pixelX; });
+    if (firstAfter == boundaries.begin()) return 0;
+    if (firstAfter == boundaries.end()) return static_cast<int>(m_inputBuffer.size());
+
+    const std::size_t right = *firstAfter;
+    const std::size_t left = *(firstAfter - 1);
+    const int leftWidth = measure(left);
+    const int rightWidth = measure(right);
+    return static_cast<int>(targetX - leftWidth <= rightWidth - targetX ? left : right);
 }
 
 void TerminalApp::executeCommand(const std::string& commandLine) {
@@ -193,7 +323,7 @@ void TerminalApp::executeCommand(const std::string& commandLine) {
         addOutput("  pwd             - Print working directory");
         addOutput("  cd [dir]        - Change directory");
         addOutput("  mkdir <dir>     - Create directory");
-        addOutput("  touch <file>    - Create empty file");
+        addOutput("  touch <file>    - Create file or update modification time");
         addOutput("  cp [-r] <src> <dst> - Copy file (or dir tree with -r); dst dir supported");
         addOutput("  rm [-r] <path>  - Remove file or directory (-r for recursive)");
         addOutput("  mv <src> <dst>  - Move/rename file or directory (dst dir supported)");
@@ -565,7 +695,9 @@ void TerminalApp::executeCommand(const std::string& commandLine) {
             if (m_fs->isDirectory(path)) {
                 addOutput("touch: cannot touch '" + operand + "': Is a directory");
             } else if (m_fs->isFile(path)) {
-                // Already exists: leave content unchanged (do not truncate).
+                if (!m_fs->updateModifiedTime(path)) {
+                    addOutput("touch: cannot touch '" + operand + "'");
+                }
             } else if (m_fs->writeFile(path, "")) {
                 if (auto* ctrl = getController()) {
                     ctrl->notifyVirtualPathCreated(path);
@@ -600,16 +732,7 @@ void TerminalApp::processTextInput(const char* text) {
         return;
     }
 
-    if (text && *text) {
-        leaveHistoryNavigationOnEdit();
-        m_inputCursorPos = std::clamp(
-            m_inputCursorPos,
-            0,
-            static_cast<int>(m_inputBuffer.size())
-        );
-        m_inputBuffer.insert(m_inputCursorPos, text);
-        m_inputCursorPos += strlen(text);
-    }
+    if (text && *text) insertInputText(text);
 
     // Safety clamp
     if (m_inputCursorPos < 0) m_inputCursorPos = 0;
@@ -673,6 +796,27 @@ void TerminalApp::handleKeyDown(const SDL_Keysym& keysym) {
         }
     }
 
+    if ((keysym.mod & KMOD_CTRL) && keysym.sym == SDLK_a) {
+        m_inputSelectionAnchor = 0;
+        m_inputCursorPos = static_cast<int>(m_inputBuffer.size());
+        m_selectingInputWithMouse = false;
+        return;
+    }
+    if ((keysym.mod & KMOD_CTRL) && keysym.sym == SDLK_c) {
+        copyInputSelection();
+        return;
+    }
+    if ((keysym.mod & KMOD_CTRL) && keysym.sym == SDLK_x) {
+        cutInputSelection();
+        return;
+    }
+    if ((keysym.mod & KMOD_CTRL) && keysym.sym == SDLK_v) {
+        pasteInputClipboard();
+        return;
+    }
+
+    const bool extendSelection = (keysym.mod & KMOD_SHIFT) != 0;
+
     switch (keysym.sym) {
         case SDLK_RETURN:
         case SDLK_KP_ENTER:
@@ -680,21 +824,31 @@ void TerminalApp::handleKeyDown(const SDL_Keysym& keysym) {
             break;
 
         case SDLK_BACKSPACE:
-            if (m_inputCursorPos > 0) {
+            if (hasInputSelection()) {
+                leaveHistoryNavigationOnEdit();
+                deleteInputSelection();
+            } else if (m_inputCursorPos > 0) {
                 leaveHistoryNavigationOnEdit();
                 std::size_t cursor = static_cast<std::size_t>(m_inputCursorPos);
                 erasePreviousUtf8Codepoint(m_inputBuffer, cursor);
                 m_inputCursorPos = static_cast<int>(cursor);
+                clearInputSelection();
             }
             break;
 
         case SDLK_DELETE: {
+            if (hasInputSelection()) {
+                leaveHistoryNavigationOnEdit();
+                deleteInputSelection();
+                break;
+            }
             const std::size_t cursor = static_cast<std::size_t>(
                 std::clamp(m_inputCursorPos, 0, static_cast<int>(m_inputBuffer.size())));
             const std::size_t next = utf8NextCodepointStart(m_inputBuffer, cursor);
             if (next > cursor) {
                 leaveHistoryNavigationOnEdit();
                 m_inputBuffer.erase(cursor, next - cursor);
+                clearInputSelection();
             }
             break;
         }
@@ -705,9 +859,11 @@ void TerminalApp::handleKeyDown(const SDL_Keysym& keysym) {
             m_historyIndex = -1;
             m_savedInputBuffer.clear();
             m_savedInputCursorPos = 0;
+            clearInputSelection();
             break;
 
         case SDLK_UP:
+            clearInputSelection();
             if (!m_commandHistory.empty()) {
                 if (m_historyIndex == -1) {
                     m_savedInputBuffer = m_inputBuffer;
@@ -725,6 +881,7 @@ void TerminalApp::handleKeyDown(const SDL_Keysym& keysym) {
             break;
 
         case SDLK_DOWN:
+            clearInputSelection();
             if (m_historyIndex != -1) {
                 m_historyIndex++;
                 if (m_historyIndex >= static_cast<int>(m_commandHistory.size())) {
@@ -743,25 +900,35 @@ void TerminalApp::handleKeyDown(const SDL_Keysym& keysym) {
             break;
 
         case SDLK_LEFT:
-            if (m_inputCursorPos > 0) {
-                m_inputCursorPos = static_cast<int>(utf8PrevCodepointStart(
-                    m_inputBuffer, static_cast<std::size_t>(m_inputCursorPos)));
+            if (!extendSelection && hasInputSelection()) {
+                moveInputCursor(static_cast<int>(inputSelectionRange().first), false);
+            } else if (m_inputCursorPos > 0) {
+                moveInputCursor(static_cast<int>(utf8PrevCodepointStart(
+                    m_inputBuffer, static_cast<std::size_t>(m_inputCursorPos))),
+                    extendSelection);
+            } else if (!extendSelection) {
+                clearInputSelection();
             }
             break;
 
         case SDLK_RIGHT:
-            if (m_inputCursorPos < static_cast<int>(m_inputBuffer.size())) {
-                m_inputCursorPos = static_cast<int>(utf8NextCodepointStart(
-                    m_inputBuffer, static_cast<std::size_t>(m_inputCursorPos)));
+            if (!extendSelection && hasInputSelection()) {
+                moveInputCursor(static_cast<int>(inputSelectionRange().second), false);
+            } else if (m_inputCursorPos < static_cast<int>(m_inputBuffer.size())) {
+                moveInputCursor(static_cast<int>(utf8NextCodepointStart(
+                    m_inputBuffer, static_cast<std::size_t>(m_inputCursorPos))),
+                    extendSelection);
+            } else if (!extendSelection) {
+                clearInputSelection();
             }
             break;
 
         case SDLK_HOME:
-            m_inputCursorPos = 0;
+            moveInputCursor(0, extendSelection);
             break;
 
         case SDLK_END:
-            m_inputCursorPos = static_cast<int>(m_inputBuffer.size());
+            moveInputCursor(static_cast<int>(m_inputBuffer.size()), extendSelection);
             break;
 
         case SDLK_PAGEUP:

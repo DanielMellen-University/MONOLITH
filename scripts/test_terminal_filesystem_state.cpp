@@ -1,9 +1,10 @@
-// Headless regression test for Terminal filesystem command results.
+// Headless regression test for Terminal editing and filesystem command results.
 
 #include <SDL2/SDL.h>
 #include <SDL2/SDL_ttf.h>
 
 #include <algorithm>
+#include <chrono>
 #include <filesystem>
 #include <iostream>
 #include <iterator>
@@ -337,6 +338,23 @@ int main() {
     check(!controller.createdPaths.empty()
               && controller.createdPaths.back() == "/home/monolith/created.txt",
           "touch notifies the shell about a created file");
+
+    const std::string existingTouchPath = "/home/monolith/existing-touch.txt";
+    const auto existingTouchHostPath = hostRoot / existingTouchPath.substr(1);
+    check(fs.writeFile(existingTouchPath, "preserve this content"),
+          "create existing-file touch fixture");
+    const auto oldModifiedTime = std::filesystem::file_time_type::clock::now()
+        - std::chrono::hours(24);
+    std::filesystem::last_write_time(existingTouchHostPath, oldModifiedTime, ec);
+    check(!ec, "age existing-file touch fixture");
+    controller.changedPaths.clear();
+    terminal.executeCommand("touch " + existingTouchPath);
+    const auto newModifiedTime = std::filesystem::last_write_time(existingTouchHostPath, ec);
+    check(!ec && newModifiedTime > oldModifiedTime
+              && fs.readFile(existingTouchPath) == "preserve this content"
+              && controller.changedPaths.empty(),
+          "touch updates existing file time without changing content or signaling content edits");
+
     terminal.executeCommand("cp /home/monolith/note.txt /home/monolith/copied.txt");
     check(!controller.createdPaths.empty()
               && controller.createdPaths.back() == "/home/monolith/copied.txt",
@@ -481,6 +499,96 @@ int main() {
     key(SDLK_DOWN);
     check(terminal.m_inputBuffer == "second command edited" && terminal.m_historyIndex == -1,
           "down does not overwrite an edited recalled command");
+
+    terminal.m_inputBuffer = "echo \xC3\xA9x";
+    terminal.m_inputCursorPos = static_cast<int>(terminal.m_inputBuffer.size());
+    key(SDLK_LEFT, KMOD_SHIFT);
+    key(SDLK_LEFT, KMOD_SHIFT);
+    const auto selectedUtf8 = terminal.inputSelectionRange();
+    check(terminal.hasInputSelection()
+              && terminal.m_inputBuffer.substr(
+                     selectedUtf8.first, selectedUtf8.second - selectedUtf8.first)
+                  == "\xC3\xA9x",
+          "shift selection expands by complete UTF-8 codepoints");
+    key(SDLK_RIGHT);
+    check(!terminal.hasInputSelection()
+              && terminal.m_inputCursorPos == static_cast<int>(terminal.m_inputBuffer.size()),
+          "plain cursor movement collapses selection toward the movement direction");
+
+    terminal.m_inputBuffer = "echo \xC3\xA9x";
+    terminal.m_inputCursorPos = static_cast<int>(terminal.m_inputBuffer.size());
+    key(SDLK_LEFT, KMOD_SHIFT);
+    key(SDLK_LEFT, KMOD_SHIFT);
+    key(SDLK_c, KMOD_CTRL);
+    char* copiedSelection = SDL_GetClipboardText();
+    const bool clipboardCopied = copiedSelection
+        && std::string(copiedSelection) == "\xC3\xA9x";
+    SDL_free(copiedSelection);
+    key(SDLK_x, KMOD_CTRL);
+    check(clipboardCopied && terminal.m_inputBuffer == "echo "
+              && terminal.m_inputCursorPos == 5,
+          "copy and cut preserve selected UTF-8 text and delete its range");
+
+    terminal.m_inputBuffer = "echo abc";
+    terminal.m_inputCursorPos = static_cast<int>(terminal.m_inputBuffer.size());
+    key(SDLK_LEFT, KMOD_SHIFT);
+    key(SDLK_LEFT, KMOD_SHIFT);
+    text("z");
+    check(terminal.m_inputBuffer == "echo az" && !terminal.hasInputSelection(),
+          "typed text replaces the selected input range");
+
+    check(SDL_SetClipboardText("echo pasted\nignored second line") == 0,
+          "set multiline terminal paste fixture");
+    terminal.m_inputBuffer = "draft";
+    terminal.m_inputCursorPos = static_cast<int>(terminal.m_inputBuffer.size());
+    key(SDLK_a, KMOD_CTRL);
+    key(SDLK_v, KMOD_CTRL);
+    check(terminal.m_inputBuffer == "echo pasted"
+              && terminal.m_inputCursorPos == static_cast<int>(terminal.m_inputBuffer.size()),
+          "terminal paste replaces selection and stops before a clipboard newline");
+
+    terminal.m_inputBuffer = "A\xF0\x9F\x8C\x8B" "B";
+    terminal.m_inputCursorPos = static_cast<int>(terminal.m_inputBuffer.size());
+    key(SDLK_LEFT, KMOD_SHIFT);
+    key(SDLK_LEFT, KMOD_SHIFT);
+    key(SDLK_BACKSPACE);
+    check(terminal.m_inputBuffer == "A" && !terminal.hasInputSelection(),
+          "backspace deletes a selected multi-byte UTF-8 range");
+
+    terminal.onResize(360, 200);
+    terminal.m_inputBuffer = "abcdef";
+    terminal.m_inputCursorPos = 0;
+    terminal.m_inputHorizontalScrollPx = 0;
+    const std::string prompt = terminal.getInputPrompt();
+    int afterTwoWidth = 0;
+    int afterFiveWidth = 0;
+    int ignoredHeight = 0;
+    TTF_SizeUTF8(font, (prompt + "ab").c_str(), &afterTwoWidth, &ignoredHeight);
+    TTF_SizeUTF8(font, (prompt + "abcde").c_str(), &afterFiveWidth, &ignoredHeight);
+    const SDL_Rect inputBar = terminal.getInputBarRect({0, 0, 360, 200});
+    SDL_Event mouse{};
+    mouse.type = SDL_MOUSEBUTTONDOWN;
+    mouse.button.button = SDL_BUTTON_LEFT;
+    mouse.button.x = 8 + afterTwoWidth;
+    mouse.button.y = inputBar.y + inputBar.h / 2;
+    terminal.handleEvent(mouse);
+    mouse = {};
+    mouse.type = SDL_MOUSEMOTION;
+    mouse.motion.x = 8 + afterFiveWidth;
+    mouse.motion.y = inputBar.y + inputBar.h / 2;
+    terminal.handleEvent(mouse);
+    const auto mouseSelection = terminal.inputSelectionRange();
+    mouse = {};
+    mouse.type = SDL_MOUSEBUTTONUP;
+    mouse.button.button = SDL_BUTTON_LEFT;
+    mouse.button.x = 8 + afterFiveWidth;
+    mouse.button.y = inputBar.y + inputBar.h / 2;
+    terminal.handleEvent(mouse);
+    check(terminal.m_inputBuffer.substr(
+              mouseSelection.first, mouseSelection.second - mouseSelection.first) == "cde"
+              && !terminal.m_selectingInputWithMouse,
+          "mouse dragging selects text at measured UTF-8 caret boundaries");
+    terminal.clearInputSelection();
 
     terminal.m_history.assign(40, "output");
     terminal.m_historyBytes = 40 * std::string("output").size();

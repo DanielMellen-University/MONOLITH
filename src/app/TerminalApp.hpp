@@ -7,6 +7,7 @@
 #include <SDL2/SDL_ttf.h>
 #include <cstddef>
 #include <string>
+#include <utility>
 #include <vector>
 
 namespace monolith::app {
@@ -36,6 +37,16 @@ private:
     void handleKeyDown(const SDL_Keysym& keysym);
     void handleMouseWheel(const SDL_MouseWheelEvent& e);
     void leaveHistoryNavigationOnEdit();
+    bool hasInputSelection() const;
+    std::pair<std::size_t, std::size_t> inputSelectionRange() const;
+    void clearInputSelection();
+    void deleteInputSelection();
+    void insertInputText(const std::string& text);
+    void moveInputCursor(int position, bool extendSelection);
+    bool copyInputSelection();
+    void cutInputSelection();
+    void pasteInputClipboard();
+    int inputCursorAtX(int x, const SDL_Rect& contentRect) const;
 
     // Scrolling helpers
     void scrollHistory(int delta);
@@ -111,6 +122,8 @@ private:
     // Input line cursor
     int m_inputCursorPos = 0;
     int m_inputHorizontalScrollPx = 0;
+    int m_inputSelectionAnchor = -1;
+    bool m_selectingInputWithMouse = false;
 
     // Scrollback support
     int m_scrollOffset = 0;   // 0 = showing newest (bottom). Higher values = scrolled upward.
