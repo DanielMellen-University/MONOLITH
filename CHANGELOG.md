@@ -1,5 +1,10 @@
 # Changelog
 
+## 2026-10: Make Minesweeper mine placement exactly uniform
+
+- Sample mine locations without replacement from cells allowed by first-click safety, removing the retry cap and deterministic fallback.
+- Cover exact mine counts and safe first reveals at corners and centers across all difficulties.
+
 ## 2026-10: Preserve multiline Terminal clipboard paste
 
 - Keep all pasted clipboard lines in the single-line prompt by converting line breaks and tabs to spaces; CRLF becomes one separator.
