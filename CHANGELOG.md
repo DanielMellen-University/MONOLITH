@@ -1,5 +1,11 @@
 # Changelog
 
+## 2026-10: Bound Text Editor Find result memory
+
+- Retain one search-location checkpoint per 256 non-overlapping matches, resolving next/previous navigation without storing every hit.
+- Build cached highlight geometry only for matches intersecting the visible text viewport; replace dense results with a linear output-building pass.
+- Cover million-hit checkpoint memory/navigation and dense long-line viewport bounds in headless regressions.
+
 ## 2026-10: Upload only changed Drawing canvas regions
 
 - Accumulate changed pixel, fill-span, and undo/redo tile bounds, then upload only that rectangle to the streaming canvas texture.
