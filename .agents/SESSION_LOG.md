@@ -1,5 +1,7 @@
 # Session log
 
+| 2026-10-02 | fix | Terminal clipboard paste now retains all lines in its single-line prompt by converting CR, LF, CRLF, and tabs to spaces; added mixed newline/tab regression coverage. |
+
 | 2026-10-02 | fix | Added Shift+Page Up/Down panning for long Terminal output rows, snapping visible ranges to UTF-8 boundaries and caching only viewport-sized text; vertical scrolling remains unchanged, and new output resets the pan. |
 
 | 2026-10-02 | fix | Bounded Snake and Minesweeper score-file reads by row and line size, rejected malformed or impossible values, and preserved earlier valid Minesweeper times when later data is oversized; added boundary and recovery regressions. |

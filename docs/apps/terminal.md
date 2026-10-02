@@ -43,7 +43,7 @@ Type commands at the prompt and press **Enter** to run them. Output appears abov
 | Shift + Home / End | Extend the selection to the start / end of input |
 | Ctrl+A | Select the full input line |
 | Ctrl+C / Ctrl+X | Copy / cut the selected input text |
-| Ctrl+V | Paste the first clipboard line at the caret or over the selection |
+| Ctrl+V | Paste clipboard text at the caret or over the selection |
 | Mouse drag in the input bar | Select input text |
 | Tab | Complete command name or filesystem path |
 | Ctrl+R | Enter reverse history search |
@@ -88,7 +88,7 @@ Run `help` for the full list. Current commands:
 | `help` | Show command list |
 | `exit` / `quit` | Close this terminal window |
 
-Paths may be absolute or relative to the current working directory. Quoted paths preserve their exact whitespace, including repeated spaces. Tab completion works for both command names and paths, including a blank command or path slot after whitespace, the virtual root (`/`), paths inside double or single quotes, filenames containing apostrophes, and paths with backslash-escaped spaces. The input cursor, selection, and deletion move through complete UTF-8 characters, so accented characters and emoji are not split into invalid byte fragments. Shift + Left/Right and Shift + Home/End extend a keyboard selection; dragging in the input bar selects with the mouse. Ctrl+C and Ctrl+X do nothing when there is no selection. Paste filters control characters, converts tabs to spaces, and stops at the first line break so a multiline clipboard cannot turn one paste into multiple commands. Long commands scroll horizontally to keep the caret visible.
+Paths may be absolute or relative to the current working directory. Quoted paths preserve their exact whitespace, including repeated spaces. Tab completion works for both command names and paths, including a blank command or path slot after whitespace, the virtual root (`/`), paths inside double or single quotes, filenames containing apostrophes, and paths with backslash-escaped spaces. The input cursor, selection, and deletion move through complete UTF-8 characters, so accented characters and emoji are not split into invalid byte fragments. Shift + Left/Right and Shift + Home/End extend a keyboard selection; dragging in the input bar selects with the mouse. Ctrl+C and Ctrl+X do nothing when there is no selection. Paste filters control characters and maps tabs and line breaks to spaces, keeping the clipboard in the single-line prompt without silently dropping later lines or running them as separate commands. Long commands scroll horizontally to keep the caret visible.
 
 Reverse history search has its own editable query. Left/Right/Home/End move through the query, typed text is inserted at the caret, Delete removes the next complete UTF-8 character, and Backspace removes the previous one. Long search queries scroll horizontally to keep the caret visible. Up/Down cancel search and return to normal history navigation. Canceling restores both the original input and its caret position. Accepting or canceling a search also clears any older Up/Down navigation state, so the accepted or restored input is not overwritten by a stale history slot.
 
@@ -157,7 +157,7 @@ Unterminated quotes print `parse error: ...` and do not run the command.
 - No pipes, redirection, or job control.
 - No script execution or custom language integration yet.
 - File modification times can be updated by Terminal `touch`, but Monolith does not display timestamps in its apps.
-- The prompt is a single line; clipboard paste uses only the first line and does not preserve tabs as tab characters.
+- The prompt is a single line; clipboard line breaks become spaces rather than separate command lines.
 - Scrollback rows remain unwrapped; the horizontal pan position is shared across the rows currently visible.
 - Esc clears the current input and resets the insertion point, so typing can continue immediately.
 

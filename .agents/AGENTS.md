@@ -41,6 +41,7 @@ The human funds token budget and lives in the desktop. You:
 | 2026-10-02 | settings-line-bound | Share the 16 KiB persisted-line reader with Desktop Settings and reject wallpaper paths that cannot round-trip |
 | 2026-10-02 | game-record-bound | Bound Snake and Minesweeper save-file reads by row and byte limits; reject malformed or impossible records |
 | 2026-10-02 | terminal-output-pan | Pan clipped Terminal output rows with UTF-8-safe viewport-sized segments and preserve vertical history scrolling |
+| 2026-10-02 | terminal-paste-normalization | Preserve all clipboard lines in the single-line Terminal prompt by converting line breaks and tabs to spaces |
 | 2026-10-02 | prompt-retry | Failed Text Editor and Drawing path, line-number, RGB, or file operations retain the active prompt, input, caret, and horizontal position for correction and retry |
 | 2026-10-02 | same-file-reload | Text Editor and Drawing can reload their current file after an external overwrite; dirty documents retain the existing repeated-discard guard, with headless coverage |
 | 2026-10-02 | filesystem-filter | Directory sort/filter now avoids lowercase copies per comparison, normalizes the query once per listing pass, and preserves mixed-case matching/order; headless filesystem tests passed |
@@ -203,8 +204,9 @@ Older recent-work rows: [`SESSION_LOG.md`](SESSION_LOG.md).
 | 7.62 | Bound Desktop Settings records | done | Read settings records with the shared 16 KiB reader and reject wallpaper paths that exceed or break the persisted line format |
 | 7.63 | Bound game record loading | done | Limit Snake and Minesweeper persisted score rows and line bytes; accept only complete in-range values and preserve earlier valid Minesweeper records |
 | 7.64 | Pan long Terminal output rows | done | Preserve vertical scrollback while panning long rows by complete UTF-8 codepoints; render/cache only the visible viewport-sized segment |
+| 7.65 | Preserve multiline Terminal paste | done | Keep all clipboard text in the single-line prompt by mapping line breaks and tabs to spaces; treat CRLF as one separator and cover the behavior in headless tests |
 | fs-browser-filter-cache | Reuse Filesystem Browser filter snapshots | done | Reuse one directory listing for filter edits; refresh it on F5 and Monolith filesystem notifications, including while filtering |
-| terminal-input-editing | Terminal command-line selection | done | Support UTF-8-safe keyboard/mouse selection and Ctrl+A/C/X/V; paste only the first clipboard line |
+| terminal-input-editing | Terminal command-line selection | done | Support UTF-8-safe keyboard/mouse selection and Ctrl+A/C/X/V; normalize all clipboard lines and tabs into the single-line prompt |
 | terminal-touch-mtime | Complete Terminal touch semantics | done | Update existing regular-file last-write time without truncation; reject outside-root symlink targets |
 
 ## Commit voice
