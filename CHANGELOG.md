@@ -1,5 +1,10 @@
 # Changelog
 
+## 2026-10: Reuse Filesystem Browser filter snapshots
+
+- Filter edits now reuse one directory listing instead of re-enumerating and sorting the folder for every query change.
+- F5 refreshes the listing while the filter is active, and filesystem notifications continue to refresh filtered results.
+
 ## 2026-09: Bound Text Editor file loading
 
 - Stream file opens in 16 KiB chunks and normalize CRLF or lone-CR endings without constructing full raw and normalized copies.

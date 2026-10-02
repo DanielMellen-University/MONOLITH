@@ -249,6 +249,27 @@ int main() {
     key(browser, SDLK_ESCAPE);
     check(browser.m_entries.size() == 15, "clear the filter before delete selection coverage");
 
+    key(browser, SDLK_f, KMOD_CTRL);
+    text(browser, "snapshot");
+    check(browser.m_entries.empty(), "filter snapshot starts with no matching new entry");
+    check(fs.writeFile("/home/monolith/snapshot-new.txt", "new"),
+          "create an unnotified entry during filter editing");
+    text(browser, "-new");
+    check(browser.m_entries.empty(),
+          "filter edits reuse the folder snapshot until an explicit refresh");
+    key(browser, SDLK_F5);
+    check(browser.m_entries.size() == 1
+              && browser.m_entries.front().name == "snapshot-new.txt",
+          "F5 refreshes the folder snapshot while the filter has focus");
+    check(fs.remove("/home/monolith/snapshot-new.txt"),
+          "remove the refreshed filter fixture");
+    browser.onVirtualPathRemoved("/home/monolith/snapshot-new.txt");
+    check(browser.m_entries.empty(),
+          "filesystem notifications refresh the active filter snapshot");
+    key(browser, SDLK_ESCAPE);
+    check(browser.m_entries.size() == 15,
+          "clearing the refreshed filter restores the current folder listing");
+
     check(browser.selectEntryNamed("a.txt", false), "select first item for multi-selection refresh");
     int cIndex = -1;
     for (size_t i = 0; i < browser.m_entries.size(); ++i) {

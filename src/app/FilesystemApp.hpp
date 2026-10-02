@@ -36,7 +36,8 @@ private:
     void setCurrentPath(const std::string& virtualPath);
     void goUp();
     void refreshEntries(const std::string& movedFrom = {},
-                        const std::string& movedTo = {});
+                        const std::string& movedTo = {},
+                        bool reloadDirectory = true);
     void activateEntry(size_t index);           // double-click / enter behavior
     void openFileEntry(const std::string& name, const char* forceApp = nullptr);
     // forceApp: nullptr = default routing, "editor", or "drawing"
@@ -59,6 +60,7 @@ private:
     void beginFilter();
     void clearFilter();
     void applyFilterQuery();
+    void updateFilterStatus();
     void showPropertiesForSelection();
 
     std::string entryBaseName(const std::string& virtualPath) const;
@@ -111,6 +113,8 @@ private:
 
     std::string m_currentPath = "/home/monolith";
     std::vector<monolith::fs::Filesystem::DirEntry> m_entries;
+    std::vector<monolith::fs::Filesystem::DirEntry> m_filterSourceEntries;
+    bool m_filterSourceValid = false;
 
     int m_selectedIndex = -1;   // primary selection (keyboard focus / rename target)
     std::set<int> m_selectedSet; // multi-select indices

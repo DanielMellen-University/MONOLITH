@@ -175,7 +175,8 @@ void FilesystemApp::goUp() {
 }
 
 void FilesystemApp::refreshEntries(const std::string& movedFrom,
-                                   const std::string& movedTo) {
+                                   const std::string& movedTo,
+                                   bool reloadDirectory) {
     // External filesystem events replace the row vector. Any active inline
     // rename points into the old vector, so discard it before rebuilding.
     if (m_renaming) {
@@ -235,13 +236,34 @@ void FilesystemApp::refreshEntries(const std::string& movedFrom,
 
     m_entries.clear();
     if (!m_fs) {
+        m_filterSourceEntries.clear();
+        m_filterSourceValid = false;
         clearMultiSelection();
         m_selectedIndex = -1;
         return;
     }
 
-    auto raw = m_fs->listEntries(m_currentPath);
-    m_entries = monolith::fs::Filesystem::filterEntries(raw, m_filterQuery);
+    const bool filterSourceNeeded = m_filtering || !m_filterQuery.empty();
+    if (reloadDirectory || (filterSourceNeeded && !m_filterSourceValid)) {
+        auto raw = m_fs->listEntries(m_currentPath);
+        if (filterSourceNeeded) {
+            m_filterSourceEntries = std::move(raw);
+            m_filterSourceValid = true;
+            m_entries = monolith::fs::Filesystem::filterEntries(
+                m_filterSourceEntries, m_filterQuery);
+        } else {
+            m_filterSourceEntries.clear();
+            m_filterSourceValid = false;
+            m_entries = std::move(raw);
+        }
+    } else if (filterSourceNeeded) {
+        m_entries = monolith::fs::Filesystem::filterEntries(
+            m_filterSourceEntries, m_filterQuery);
+    } else {
+        m_filterSourceEntries.clear();
+        m_filterSourceValid = false;
+        m_entries = m_fs->listEntries(m_currentPath);
+    }
 
     clearMultiSelection();
     int restoredPrimary = -1;
@@ -829,6 +851,10 @@ void FilesystemApp::finishRename(bool commit) {
 }
 
 void FilesystemApp::beginFilter() {
+    if (!m_filterSourceValid) {
+        m_filterSourceEntries = m_entries;
+        m_filterSourceValid = true;
+    }
     m_filtering = true;
     if (m_renaming) {
         finishRename(false);
@@ -854,7 +880,11 @@ void FilesystemApp::clearFilter() {
 }
 
 void FilesystemApp::applyFilterQuery() {
-    refreshEntries();
+    refreshEntries({}, {}, false);
+    updateFilterStatus();
+}
+
+void FilesystemApp::updateFilterStatus() {
     if (m_filterQuery.empty()) {
         setStatus("Filter: (all items)");
     } else {
@@ -1140,9 +1170,18 @@ void FilesystemApp::handleKeyDown(const SDL_Keysym& keysym) {
     }
 
     if (m_filtering) {
+        if (keysym.sym == SDLK_F5) {
+            refreshEntries();
+            setStatus("Refreshed");
+            return;
+        }
         if (keysym.sym == SDLK_RETURN || keysym.sym == SDLK_KP_ENTER) {
             m_filtering = false;
-            applyFilterQuery();
+            if (m_filterQuery.empty()) {
+                m_filterSourceEntries.clear();
+                m_filterSourceValid = false;
+            }
+            updateFilterStatus();
             return;
         }
         if (keysym.sym == SDLK_ESCAPE) {
