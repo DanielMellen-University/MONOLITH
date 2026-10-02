@@ -1214,20 +1214,22 @@ bool TextEditorApp::clientToDocument(int clientX, int clientY, int& outRow, int&
     }
     const int textX = rawTextX + m_horizontalScrollOffset;
 
-    // Walk codepoints until measured width exceeds click x.
-    int col = 0;
-    int bestCol = 0;
-    while (col < static_cast<int>(line.size())) {
-        const size_t step = utf8CodepointByteLen(line, static_cast<size_t>(col));
-        if (step == 0) break;
-        const int next = col + static_cast<int>(step);
-        const int w = measureTextPrefixWidth(line, next);
-        if (w > textX) break;
-        bestCol = next;
-        col = next;
+    int measuredWidth = 0;
+    int measuredCharacters = 0;
+    if (!m_font || TTF_MeasureUTF8(m_font, line.c_str(), textX,
+                                   &measuredWidth, &measuredCharacters) != 0) {
+        outRow = row;
+        outCol = static_cast<int>(utf8ClampToCodepointBoundary(line, line.size()));
+        return true;
     }
+
+    size_t measuredBytes = 0;
+    for (int i = 0; i < measuredCharacters && measuredBytes < line.size(); ++i) {
+        measuredBytes = utf8NextCodepointStart(line, measuredBytes);
+    }
+
     outRow = row;
-    outCol = bestCol;
+    outCol = static_cast<int>(measuredBytes);
     return true;
 }
 
