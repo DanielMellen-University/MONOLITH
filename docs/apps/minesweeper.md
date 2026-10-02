@@ -44,7 +44,7 @@ Changing difficulty immediately starts a new game.
 - Timer **pauses while the Minesweeper window is unfocused or the Start menu is open** (HUD shows **PAUSED**) and resumes from the exact elapsed time when you focus it again; this matches Snake.
 - Losing focus also clears a pressed-cell preview, so reopening the Start menu or another window cannot leave the face button or board cell visually pressed.
 - HUD shows remaining mines (total − flags), timer, best time for the difficulty, and difficulty name.
-- Mine placement uses a private unbiased random stream, so opening or resetting Snake cannot alter the board sequence.
+- Mine placement samples uniformly without replacement from cells allowed by first-click safety, using a private random stream so opening or resetting Snake cannot alter the board sequence.
 
 ## Best times
 

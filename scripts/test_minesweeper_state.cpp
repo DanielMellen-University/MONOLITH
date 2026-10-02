@@ -3,6 +3,7 @@
 #include <SDL2/SDL.h>
 #include <SDL2/SDL_ttf.h>
 
+#include <cstddef>
 #include <cstdint>
 #include <cstdlib>
 #include <filesystem>
@@ -106,6 +107,64 @@ int main() {
               && invalidTimes.m_bestIntermediate == 0
               && invalidTimes.m_bestExpert == 0,
           "Minesweeper rejects trailing data and times outside its display range");
+
+    struct FirstRevealCase {
+        MinesweeperApp::Difficulty difficulty;
+        int x;
+        int y;
+    };
+    const FirstRevealCase firstRevealCases[] = {
+        {MinesweeperApp::Difficulty::Beginner, 0, 0},
+        {MinesweeperApp::Difficulty::Beginner, 4, 4},
+        {MinesweeperApp::Difficulty::Beginner, 8, 8},
+        {MinesweeperApp::Difficulty::Intermediate, 0, 0},
+        {MinesweeperApp::Difficulty::Intermediate, 15, 0},
+        {MinesweeperApp::Difficulty::Intermediate, 0, 15},
+        {MinesweeperApp::Difficulty::Intermediate, 15, 15},
+        {MinesweeperApp::Difficulty::Intermediate, 8, 8},
+        {MinesweeperApp::Difficulty::Expert, 0, 0},
+        {MinesweeperApp::Difficulty::Expert, 29, 0},
+        {MinesweeperApp::Difficulty::Expert, 0, 15},
+        {MinesweeperApp::Difficulty::Expert, 29, 15},
+        {MinesweeperApp::Difficulty::Expert, 15, 8},
+    };
+    MinesweeperApp placementGame(font);
+    std::uint32_t placementSeed = 0x51afeu;
+    for (const auto& testCase : firstRevealCases) {
+        placementGame.newGame(testCase.difficulty);
+        placementGame.m_random = monolith::detail::Random(placementSeed++);
+        placementGame.revealCell(testCase.x, testCase.y);
+
+        const int clickedIndex = testCase.y * placementGame.m_width + testCase.x;
+        check(placementGame.m_minesPlaced
+                  && !placementGame.m_cells[static_cast<std::size_t>(clickedIndex)].mine
+                  && placementGame.m_state != MinesweeperApp::State::Lost,
+              "Minesweeper first reveal is safe at every difficulty and board edge");
+
+        int placedMines = 0;
+        for (const auto& cell : placementGame.m_cells) {
+            if (cell.mine) ++placedMines;
+        }
+        check(placedMines == placementGame.m_mineCount,
+              "Minesweeper places the configured mine count exactly");
+
+        if (testCase.difficulty != MinesweeperApp::Difficulty::Expert) {
+            bool neighborhoodClear = true;
+            for (int dy = -1; dy <= 1; ++dy) {
+                for (int dx = -1; dx <= 1; ++dx) {
+                    const int x = testCase.x + dx;
+                    const int y = testCase.y + dy;
+                    if (placementGame.inBounds(x, y)
+                        && placementGame.m_cells[static_cast<std::size_t>(
+                            placementGame.index(x, y))].mine) {
+                        neighborhoodClear = false;
+                    }
+                }
+            }
+            check(neighborhoodClear,
+                  "Beginner and Intermediate first reveals clear their 3x3 neighborhood");
+        }
+    }
 
     {
         std::ofstream bestFixture(bestPath, std::ios::binary | std::ios::trunc);
