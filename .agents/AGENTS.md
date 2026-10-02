@@ -34,6 +34,7 @@ The human funds token budget and lives in the desktop. You:
 
 | When | Kind | Note |
 |------|------|------|
+| 2026-10-02 | text-editor-find-memory | Find stores one location checkpoint per 256 non-overlapping hits, resolves navigation from checkpoints, renders only viewport-intersecting highlights, and performs dense Replace All with linear output building; hosted workflow #109 passed |
 | 2026-10-02 | drawing-dirty-upload | Drawing streams only the accumulated changed canvas rectangle to its texture; paint/fill use pixel/span bounds, undo/redo use changed tile bounds, and resize/load/Clear remain full refreshes |
 | 2026-10-02 | fs-browser-filter-cache | Filesystem Browser reuses one directory snapshot during filter edits; F5 and filesystem notifications refresh it; hosted workflow #100 passed |
 | 2026-10-02 | terminal-input-editing | Terminal command input gains UTF-8-safe keyboard/mouse selection and clipboard editing; hosted workflow #103 passed |
@@ -179,6 +180,7 @@ Older recent-work rows: [`SESSION_LOG.md`](SESSION_LOG.md).
 | 7.50 | Reuse Drawing touched-tile scratch maps | done | Keep per-canvas stroke-capture and Fill/Clear dirty-tracking maps allocated between edits and clear only indices touched by the prior operation |
 | 7.51 | Bound Text Editor file I/O | done | Stream file opens in 16 KiB chunks, normalize line endings across chunk boundaries, and enforce 16 MiB / 65,536-line limits on open and save without replacing the current document on rejected opens |
 | 7.52 | Upload dirty Drawing regions | done | Accumulate changed pixel/span/tile bounds and update only that region of the streaming texture; resize, load, and Clear force full refreshes |
+| 7.53 | Bound Text Editor Find results | done | Store one match location per 256 hits, resolve navigation from checkpoints, cache only viewport-intersecting highlights, and Replace All with linear output building |
 | fs-browser-filter-cache | Reuse Filesystem Browser filter snapshots | done | Reuse one directory listing for filter edits; refresh it on F5 and Monolith filesystem notifications, including while filtering |
 | terminal-input-editing | Terminal command-line selection | done | Support UTF-8-safe keyboard/mouse selection and Ctrl+A/C/X/V; paste only the first clipboard line |
 | terminal-touch-mtime | Complete Terminal touch semantics | done | Update existing regular-file last-write time without truncation; reject outside-root symlink targets |

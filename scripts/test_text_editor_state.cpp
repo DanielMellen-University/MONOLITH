@@ -4,9 +4,11 @@
 #include <SDL2/SDL_ttf.h>
 
 #include <algorithm>
+#include <cstddef>
 #include <filesystem>
 #include <iostream>
 #include <string>
+#include <utility>
 #include <unistd.h>
 #include <vector>
 
@@ -328,6 +330,9 @@ int main() {
             findViewportEditor.m_scrollOffset = 128;
             findViewportEditor.m_cursorRow = 0;
             findViewportEditor.m_currentFindMatch = 257;
+            findViewportEditor.m_hasCurrentFindMatch = true;
+            findViewportEditor.m_currentFindPosition =
+                findViewportEditor.findMatchAtIndex(257);
             SDL_BlendMode oldDrawBlend = SDL_BLENDMODE_NONE;
             SDL_GetRenderDrawBlendMode(renderer, &oldDrawBlend);
             SDL_SetRenderDrawBlendMode(renderer, SDL_BLENDMODE_NONE);
@@ -339,7 +344,9 @@ int main() {
                 findViewportEditor.m_renderedFindStartRow == 128
                 && findViewportEditor.m_renderedFindLineCount == visibleFindRows
                 && findViewportEditor.m_renderedFindPrefixWidths.size()
-                    == static_cast<size_t>(visibleFindRows * 2);
+                    == static_cast<size_t>(visibleFindRows * 2)
+                && findViewportEditor.m_renderedFindVisibleMatches.size()
+                    == findViewportEditor.m_renderedFindPrefixWidths.size();
             const auto* findGeometryStorage =
                 findViewportEditor.m_renderedFindPrefixWidths.data();
             findViewportEditor.render(renderer, {0, 0, 240, 200});
@@ -370,8 +377,9 @@ int main() {
                 && SDL_RenderReadPixels(renderer, &activeSample, SDL_PIXELFORMAT_RGBA32,
                                         activeMatchPixel, sizeof(activeMatchPixel)) == 0;
             SDL_SetRenderDrawBlendMode(renderer, oldDrawBlend);
-            check(findViewportEditor.m_findMatches.size() == 512
-                      && findViewportEditor.m_findMatches[257] == std::pair<int, int>{128, 7}
+            check(findViewportEditor.m_findMatchCount == 512
+                      && findViewportEditor.findMatchAtIndex(257)
+                          == std::pair<int, int>{128, 7}
                       && readMatchSamples
                       && inactiveMatchPixel[0] == 36 && inactiveMatchPixel[1] == 48
                       && inactiveMatchPixel[2] == 58
@@ -414,6 +422,21 @@ int main() {
                       && findViewportEditor.m_renderedFindStartRow == -1
                       && findViewportEditor.m_renderedFindPrefixWidths.empty(),
                   "Find query and font changes invalidate cached highlight geometry and width");
+
+            TestEditor denseViewportEditor(scaleFont, &fs, "/dense-find.txt");
+            denseViewportEditor.m_lines = {std::string(100'000, 'x')};
+            denseViewportEditor.m_findQuery = "x";
+            denseViewportEditor.updateFindMatches();
+            denseViewportEditor.onResize(240, 200);
+            denseViewportEditor.render(renderer, {0, 0, 240, 200});
+            const std::size_t denseViewportHighlightLimit =
+                static_cast<std::size_t>(denseViewportEditor.getVisibleLineCount(
+                    {0, 0, 240, 200}) * 64);
+            check(denseViewportEditor.m_findMatchCount == 100'000
+                      && !denseViewportEditor.m_findCheckpoints.empty()
+                      && denseViewportEditor.m_renderedFindVisibleMatches.size()
+                          <= denseViewportHighlightLimit,
+                  "Find caches only viewport-intersecting highlights for dense long lines");
 
             TestEditor syntaxCacheEditor(scaleFont, &fs, "");
             syntaxCacheEditor.m_syntaxMode = TestEditor::SyntaxMode::Code;
@@ -854,8 +877,43 @@ int main() {
     editor.m_searchMode = TestEditor::SearchMode::Find;
     editor.m_findQuery = "aa";
     editor.updateFindMatches();
-    check(editor.m_findMatches == std::vector<std::pair<int, int>>{{0, 0}, {0, 2}},
+    check(editor.m_findMatchCount == 2
+              && editor.findMatchAtIndex(0) == std::pair<int, int>{0, 0}
+              && editor.findMatchAtIndex(1) == std::pair<int, int>{0, 2},
           "find uses non-overlapping matches like replace all");
+
+    TestEditor denseFindEditor(nullptr, &fs, "");
+    constexpr std::size_t denseFindCount = 1'048'576;
+    denseFindEditor.m_lines = {std::string(denseFindCount, 'x')};
+    denseFindEditor.m_findQuery = "x";
+    denseFindEditor.updateFindMatches();
+    const std::size_t checkpointBytes = denseFindEditor.m_findCheckpoints.size()
+        * sizeof(TestEditor::FindMatchCheckpoint);
+    denseFindEditor.m_currentFindMatch = 255;
+    denseFindEditor.m_hasCurrentFindMatch = true;
+    denseFindEditor.m_currentFindPosition = denseFindEditor.findMatchAtIndex(255);
+    denseFindEditor.moveFindMatch(1);
+    const bool crossesCheckpointForward = denseFindEditor.m_currentFindMatch == 256
+        && denseFindEditor.m_currentFindPosition == std::pair<int, int>{0, 256};
+    denseFindEditor.moveFindMatch(-1);
+    const bool crossesCheckpointBackward = denseFindEditor.m_currentFindMatch == 255
+        && denseFindEditor.m_currentFindPosition == std::pair<int, int>{0, 255};
+    denseFindEditor.m_currentFindMatch = 0;
+    denseFindEditor.m_hasCurrentFindMatch = true;
+    denseFindEditor.m_currentFindPosition = denseFindEditor.findMatchAtIndex(0);
+    denseFindEditor.moveFindMatch(-1);
+    check(denseFindEditor.m_findMatchCount == denseFindCount
+              && denseFindEditor.m_findCheckpoints.size()
+                  == denseFindCount / TestEditor::kFindCheckpointStride
+              && checkpointBytes * 100
+                  < denseFindCount * sizeof(std::pair<int, int>)
+              && denseFindEditor.findMatchAtIndex(255) == std::pair<int, int>{0, 255}
+              && denseFindEditor.findMatchAtIndex(256) == std::pair<int, int>{0, 256}
+              && denseFindEditor.findMatchAtIndex(denseFindCount - 1)
+                  == std::pair<int, int>{0, static_cast<int>(denseFindCount - 1)}
+              && crossesCheckpointForward && crossesCheckpointBackward
+              && denseFindEditor.m_currentFindMatch == denseFindCount - 1,
+          "Find uses sparse checkpoints for million-hit navigation and bounded memory");
 
     editor.m_lines = {"ab", "\xF0\x9F\x98\x80"};
     editor.m_cursorRow = 0;

@@ -1,5 +1,7 @@
 # Session log
 
+| 2026-10-02 | perf | Replaced Text Editor's per-hit Find vector with sparse checkpoints (one per 256 hits), limited cached highlight geometry to the visible text viewport, and changed Replace All to linear output building; added million-hit navigation/memory and dense-long-line regressions; hosted headless workflow #109 passed. |
+
 | 2026-10-02 | perf | Drawing now accumulates changed pixel, fill-span, and undo/redo tile bounds and partially updates its streaming canvas texture; resize/load/Clear retain full refreshes, with headless dirty-region regression coverage. |
 
 | 2026-10-02 | perf | Reused the Filesystem Browser directory snapshot across filter edits, retained refreshes from F5 and filesystem notifications, and passed hosted headless workflow #100. |
