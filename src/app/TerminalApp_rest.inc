@@ -19,6 +19,7 @@ void TerminalApp::enterReverseSearch() {
         return;
     }
 
+    clearInputSelection();
     m_searchMode = true;
     m_searchBuffer.clear();
     m_searchCursorPos = 0;
@@ -57,6 +58,7 @@ void TerminalApp::exitReverseSearch(bool accept) {
     m_historyIndex = -1;
     m_savedInputBuffer.clear();
     m_savedInputCursorPos = 0;
+    clearInputSelection();
     m_scrollOffset = 0;
 }
 
@@ -304,6 +306,7 @@ void TerminalApp::handleTabCompletion() {
 
     if (m_inputBuffer != inputBeforeCompletion) {
         leaveHistoryNavigationOnEdit();
+        clearInputSelection();
     }
 }
 
@@ -370,6 +373,27 @@ void TerminalApp::handleEvent(const SDL_Event& event) {
     else if (event.type == SDL_KEYDOWN) {
         // Ignore key repeats for now or handle as needed
         handleKeyDown(event.key.keysym);
+    }
+    else if (event.type == SDL_MOUSEBUTTONDOWN
+             && event.button.button == SDL_BUTTON_LEFT && !m_searchMode) {
+        const SDL_Rect contentRect{0, 0, m_clientWidth, m_clientHeight};
+        const SDL_Rect inputBar = getInputBarRect(contentRect);
+        if (event.button.y < inputBar.y
+            || event.button.y >= inputBar.y + inputBar.h) return;
+        m_inputCursorPos = inputCursorAtX(event.button.x, contentRect);
+        m_inputSelectionAnchor = m_inputCursorPos;
+        m_selectingInputWithMouse = true;
+    }
+    else if (event.type == SDL_MOUSEMOTION && m_selectingInputWithMouse) {
+        const SDL_Rect contentRect{0, 0, m_clientWidth, m_clientHeight};
+        m_inputCursorPos = inputCursorAtX(event.motion.x, contentRect);
+    }
+    else if (event.type == SDL_MOUSEBUTTONUP
+             && event.button.button == SDL_BUTTON_LEFT && m_selectingInputWithMouse) {
+        const SDL_Rect contentRect{0, 0, m_clientWidth, m_clientHeight};
+        m_inputCursorPos = inputCursorAtX(event.button.x, contentRect);
+        m_selectingInputWithMouse = false;
+        if (m_inputSelectionAnchor == m_inputCursorPos) clearInputSelection();
     }
     else if (event.type == SDL_MOUSEWHEEL) {
         handleMouseWheel(event.wheel);
@@ -578,60 +602,92 @@ void TerminalApp::render(SDL_Renderer* renderer, const SDL_Rect& contentRect) {
         SDL_Rect cur = {cursorX, inputLineY + 2, 8, lineHeight - 4};
         SDL_RenderFillRect(renderer, &cur);
     } else {
-        // Normal prompt + input with cursor
+        // Normal prompt, editable text, and an optional selected range.
         std::string prompt = getInputPrompt();
-        std::string beforeCursor = prompt + m_inputBuffer.substr(0, m_inputCursorPos);
-        std::string afterCursor  = m_inputBuffer.substr(m_inputCursorPos);
-        const auto beforeTexture = m_textTextureCache.get(
-            renderer, m_font, beforeCursor.c_str(), textColor);
-        int prefixWidth = beforeTexture ? beforeTexture.width : 0;
-        if (!beforeTexture) {
-            int prefixHeight = 0;
-            TTF_SizeUTF8(m_font, beforeCursor.c_str(), &prefixWidth, &prefixHeight);
+        m_inputCursorPos = static_cast<int>(utf8ClampToCodepointBoundary(
+            m_inputBuffer,
+            static_cast<std::size_t>(std::clamp(
+                m_inputCursorPos, 0, static_cast<int>(m_inputBuffer.size())))));
+        const std::string fullText = prompt + m_inputBuffer;
+        const std::string cursorPrefix = prompt
+            + m_inputBuffer.substr(0, static_cast<std::size_t>(m_inputCursorPos));
+        const auto fullTexture = m_textTextureCache.get(
+            renderer, m_font, fullText.c_str(), textColor);
+        const auto cursorPrefixTexture = m_textTextureCache.get(
+            renderer, m_font, cursorPrefix.c_str(), textColor);
+        int fullWidth = fullTexture ? fullTexture.width : 0;
+        int prefixWidth = cursorPrefixTexture ? cursorPrefixTexture.width : 0;
+        if (!fullTexture) {
+            int fullHeight = 0;
+            TTF_SizeUTF8(m_font, fullText.c_str(), &fullWidth, &fullHeight);
         }
-        const int cursorWidth = 8;
+        if (!cursorPrefixTexture) {
+            int prefixHeight = 0;
+            TTF_SizeUTF8(m_font, cursorPrefix.c_str(), &prefixWidth, &prefixHeight);
+        }
+        constexpr int cursorWidth = 2;
         const int inputViewportWidth = std::max(1, inputBar.w - padding * 2);
         if (prefixWidth + cursorWidth > m_inputHorizontalScrollPx + inputViewportWidth) {
             m_inputHorizontalScrollPx = prefixWidth + cursorWidth - inputViewportWidth;
         } else if (prefixWidth < m_inputHorizontalScrollPx) {
             m_inputHorizontalScrollPx = prefixWidth;
         }
-        if (m_inputHorizontalScrollPx < 0) m_inputHorizontalScrollPx = 0;
+        m_inputHorizontalScrollPx = std::clamp(
+            m_inputHorizontalScrollPx, 0, std::max(0, fullWidth - inputViewportWidth));
 
         const int textOriginX = contentRect.x + padding - m_inputHorizontalScrollPx;
-
-        // Draw text before cursor
-        int cursorX = textOriginX;
-        if (beforeTexture) {
-            SDL_Rect dst = {
-                cursorX,
-                inputLineY,
-                beforeTexture.width,
-                beforeTexture.height
+        const int cursorX = textOriginX + prefixWidth;
+        if (fullTexture) {
+            const SDL_Rect dst{
+                textOriginX, inputLineY, fullTexture.width, fullTexture.height
             };
-            SDL_RenderCopy(renderer, beforeTexture.handle, nullptr, &dst);
-            cursorX += beforeTexture.width;
+            SDL_RenderCopy(renderer, fullTexture.handle, nullptr, &dst);
         }
 
-        // Draw cursor block
-        SDL_SetRenderDrawColor(renderer, 180, 200, 180, 230);
-        SDL_Rect cursorRect = {cursorX, inputLineY + 2, cursorWidth, lineHeight - 4};
-        SDL_RenderFillRect(renderer, &cursorRect);
-
-        // Draw text after cursor
-        if (!afterCursor.empty()) {
-            const auto afterTexture = m_textTextureCache.get(
-                renderer, m_font, afterCursor.c_str(), textColor);
-            if (afterTexture) {
-                SDL_Rect dst2 = {
-                    cursorX + cursorWidth,
+        if (hasInputSelection()) {
+            const auto [start, end] = inputSelectionRange();
+            const std::string selectionStartText = prompt + m_inputBuffer.substr(0, start);
+            const std::string selectionEndText = prompt + m_inputBuffer.substr(0, end);
+            const auto selectionStartTexture = m_textTextureCache.get(
+                renderer, m_font, selectionStartText.c_str(), textColor);
+            const auto selectionEndTexture = m_textTextureCache.get(
+                renderer, m_font, selectionEndText.c_str(), textColor);
+            int selectionStartWidth = selectionStartTexture ? selectionStartTexture.width : 0;
+            int selectionEndWidth = selectionEndTexture ? selectionEndTexture.width : 0;
+            if (!selectionStartTexture) {
+                int ignoredHeight = 0;
+                TTF_SizeUTF8(m_font, selectionStartText.c_str(),
+                             &selectionStartWidth, &ignoredHeight);
+            }
+            if (!selectionEndTexture) {
+                int ignoredHeight = 0;
+                TTF_SizeUTF8(m_font, selectionEndText.c_str(),
+                             &selectionEndWidth, &ignoredHeight);
+            }
+            if (selectionEndWidth > selectionStartWidth) {
+                SDL_SetRenderDrawColor(renderer, 58, 112, 160, 255);
+                const SDL_Rect highlight{
+                    textOriginX + selectionStartWidth,
                     inputLineY,
-                    afterTexture.width,
-                    afterTexture.height
+                    selectionEndWidth - selectionStartWidth,
+                    lineHeight
                 };
-                SDL_RenderCopy(renderer, afterTexture.handle, nullptr, &dst2);
+                SDL_RenderFillRect(renderer, &highlight);
+                const SDL_Rect selectionClip = intersectRendererClip(highlight, inputClip);
+                SDL_RenderSetClipRect(renderer, &selectionClip);
+                if (fullTexture) {
+                    const SDL_Rect dst{
+                        textOriginX, inputLineY, fullTexture.width, fullTexture.height
+                    };
+                    SDL_RenderCopy(renderer, fullTexture.handle, nullptr, &dst);
+                }
+                SDL_RenderSetClipRect(renderer, &inputClip);
             }
         }
+
+        SDL_SetRenderDrawColor(renderer, 180, 200, 180, 255);
+        const SDL_Rect cursorRect{cursorX, inputLineY + 2, cursorWidth, lineHeight - 4};
+        SDL_RenderFillRect(renderer, &cursorRect);
     }
     restoreRendererClip(renderer, previousClip);
 
