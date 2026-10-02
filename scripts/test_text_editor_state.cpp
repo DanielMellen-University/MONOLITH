@@ -109,8 +109,10 @@ int main() {
         int hitRow = -1;
         int hitCol = -1;
         const bool unicodeHitMapped = hitTestEditor.clientToDocument(
-            TestEditor::kPadding + TestEditor::kLineNumWidth + unicodePrefixWidth,
+            TestEditor::kPadding + TestEditor::kLineNumWidth + unicodePrefixWidth + 1,
             TestEditor::kPadding + 1, hitRow, hitCol);
+        check(unicodePrefixMeasured && unicodeHitMapped && hitRow == 0 && hitCol == 3,
+              "Text Editor maps UTF-8 hit-test positions to byte offsets");
 
         constexpr int longLineHitColumn = 70'000;
         const std::string longHitTestLine(100'000, 'x');
@@ -125,10 +127,9 @@ int main() {
         const bool longLineHitMapped = hitTestEditor.clientToDocument(
             TestEditor::kPadding + TestEditor::kLineNumWidth + 1,
             TestEditor::kPadding + 1, hitRow, hitCol);
-        check(unicodePrefixMeasured && unicodeHitMapped && hitRow == 0 && hitCol == 3
-                  && longPrefixMeasured && longLineHitMapped && hitRow == 0
+        check(longPrefixMeasured && longLineHitMapped && hitRow == 0
                   && hitCol == longLineHitColumn,
-              "Text Editor maps UTF-8 and far-scrolled long-line clicks in one text measurement");
+              "Text Editor maps far-scrolled long-line clicks in one text measurement");
 
         TestEditor scaleEditor(scaleFont, &fs, "/old.txt");
         const int baseStatusBarHeight = scaleEditor.getStatusBarHeight();
