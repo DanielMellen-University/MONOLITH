@@ -210,7 +210,7 @@ Drawing keeps the live canvas separate from the file path and from editor-sessio
 | Open fails | The current canvas remains open and unchanged. Correct the path or save the current sketch elsewhere. |
 | Open succeeds | The canvas dimensions and pixels are replaced, the file becomes clean, and undo/redo history is cleared. Tools, brush size, and color stay as session settings. |
 | Resize a loaded sketch | Pixels keep their top-left alignment, the canvas may crop or grow, history is cleared, and the file becomes modified until saved again. |
-| Another app overwrites the bound `.modr` | The open canvas stays in memory and is not silently replaced. Use Open to load the external version, or Save to deliberately write the current canvas back. |
+| Another app overwrites the bound `.modr` | The open canvas stays in memory and is not silently replaced. Open the currently bound path to load the external version, or Save to deliberately write the current canvas back. A dirty canvas still requires the normal repeated Open confirmation before it is discarded. |
 | Close, choose **New**, or open while modified | The first action shows a status-bar warning. Repeat the same action to discard, or save first. |
 
 There is no automatic recovery file. If the process exits before Save succeeds, unsaved pixels and in-memory undo history are lost. A successful first save claims the new `.modr` singleton before notifying other apps that the file was created.
@@ -441,7 +441,7 @@ Use the action that matches your intent:
 | You want to inspect the version written by another app | Press **Ctrl+O**, select the same `.modr`, and confirm the second Open action if the canvas is modified. |
 | You want both versions | Copy the file to a new `.modr` path first, then open the copy or save the current canvas to another path. |
 
-An external overwrite does not change the Drawing title, bound path, dirty marker, or undo history. The status bar says `File changed externally; canvas unchanged. Save to overwrite it.` A successful Save still sends the normal filesystem change notification so other open apps can refresh their views.
+An external overwrite does not change the Drawing title, bound path, dirty marker, or undo history. The status bar says `File changed externally; canvas unchanged. Save to overwrite it.` Opening the currently bound path reloads that external version in the same window; if the canvas is dirty, repeat Open to confirm discarding it. A successful Save still sends the normal filesystem change notification so other open apps can refresh their views.
 
 ## Common File Workflows
 

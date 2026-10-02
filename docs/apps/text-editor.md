@@ -45,7 +45,7 @@ If a bound file's parent directory is deleted, the editor keeps the document buf
 - Closing the window or opening another file while dirty asks once via the status bar; confirm the same action again to discard, or save first (Ctrl+S).
 - A failed save clears any pending discard confirmation, so closing or opening again always asks before discarding the still-dirty buffer.
 - Canceling a dirty Open prompt also clears its pending confirmation; a later Open requires a fresh confirmation before discarding the buffer.
-- If another app overwrites the bound file, the editor keeps its in-memory buffer unchanged and reports the external change in the status bar. Saving afterward deliberately overwrites the file; Open can be used to load the external version instead.
+- If another app overwrites the bound file, the editor keeps its in-memory buffer unchanged and reports the external change in the status bar. Saving afterward deliberately overwrites the file; opening the currently bound path reloads the external version. A dirty buffer still requires the normal repeated Open confirmation before it is discarded.
 
 ## Syntax Highlighting
 

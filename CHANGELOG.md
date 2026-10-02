@@ -1,5 +1,10 @@
 # Changelog
 
+## 2026-10: Restore same-file reload after external changes
+
+- Text Editor and Drawing now reload their currently bound file when Open targets that same path, instead of focusing the current singleton window and returning early.
+- Keep the existing repeated confirmation when reloading would discard a dirty buffer or canvas; cover clean and dirty reloads in headless tests.
+
 ## 2026-10: Reduce Filesystem Browser filter allocations
 
 - Compare names case-insensitively without allocating lowercase copies for every sort comparison or filter row.

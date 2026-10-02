@@ -1,5 +1,7 @@
 # Session log
 
+| 2026-10-02 | fix | Fixed same-path Open in Text Editor and Drawing so external file changes can be reloaded in the already-bound window; dirty editor text and canvas pixels still require the existing repeated discard confirmation. |
+
 | 2026-10-02 | perf | Removed per-comparison/per-entry lowercase string allocations from Filesystem Browser sorting and filtering; each query is normalized once per pass, with mixed-case substring and ordering regressions added. |
 
 | 2026-10-02 | perf | Replaced Text Editor mouse hit testing's growing-prefix allocation/measurement loop with one `TTF_MeasureUTF8` scan and UTF-8 codepoint-to-byte mapping; added multibyte and far-scrolled 100,000-character regressions; hosted headless workflow #113 passed. |
