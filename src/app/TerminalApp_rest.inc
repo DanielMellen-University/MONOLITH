@@ -673,15 +673,17 @@ void TerminalApp::render(SDL_Renderer* renderer, const SDL_Rect& contentRect) {
                     lineHeight
                 };
                 SDL_RenderFillRect(renderer, &highlight);
-                const SDL_Rect selectionClip = intersectRendererClip(highlight, inputClip);
-                SDL_RenderSetClipRect(renderer, &selectionClip);
-                if (fullTexture) {
-                    const SDL_Rect dst{
-                        textOriginX, inputLineY, fullTexture.width, fullTexture.height
-                    };
-                    SDL_RenderCopy(renderer, fullTexture.handle, nullptr, &dst);
+                SDL_Rect selectionClip{};
+                if (SDL_IntersectRect(&highlight, &inputClip, &selectionClip)) {
+                    SDL_RenderSetClipRect(renderer, &selectionClip);
+                    if (fullTexture) {
+                        const SDL_Rect dst{
+                            textOriginX, inputLineY, fullTexture.width, fullTexture.height
+                        };
+                        SDL_RenderCopy(renderer, fullTexture.handle, nullptr, &dst);
+                    }
+                    SDL_RenderSetClipRect(renderer, &inputClip);
                 }
-                SDL_RenderSetClipRect(renderer, &inputClip);
             }
         }
 
