@@ -709,10 +709,18 @@ void TextEditorApp::goToLine(int lineNumber1Based) {
 void TextEditorApp::finishPathPrompt(bool commit) {
     const PathPromptMode mode = m_pathPromptMode;
     const std::string buffer = m_pathPromptBuffer;
+    const size_t promptCursorPos = m_pathPromptCursorPos;
+    const int promptScrollPx = m_statusHorizontalScrollPx;
     m_pathPromptMode = PathPromptMode::None;
     m_pathPromptBuffer.clear();
     m_pathPromptCursorPos = 0;
     m_statusHorizontalScrollPx = 0;
+    auto restorePrompt = [&] {
+        m_pathPromptMode = mode;
+        m_pathPromptBuffer = buffer;
+        m_pathPromptCursorPos = std::min(promptCursorPos, buffer.size());
+        m_statusHorizontalScrollPx = promptScrollPx;
+    };
 
     if (mode == PathPromptMode::GoToLine) {
         if (!commit) {
@@ -723,6 +731,7 @@ void TextEditorApp::finishPathPrompt(bool commit) {
         for (char c : buffer) {
             if (c < '0' || c > '9') {
                 setStatus("Go to line: enter a number");
+                restorePrompt();
                 return;
             }
             if (line > 100000000) break;
@@ -730,6 +739,7 @@ void TextEditorApp::finishPathPrompt(bool commit) {
         }
         if (line <= 0) {
             setStatus("Go to line: enter a number");
+            restorePrompt();
             return;
         }
         goToLine(line);
@@ -745,10 +755,12 @@ void TextEditorApp::finishPathPrompt(bool commit) {
         setStatus(mode == PathPromptMode::Open
             ? "Open failed: filesystem not available"
             : "Save failed: filesystem not available");
+        restorePrompt();
         return;
     }
     if (buffer.empty()) {
         setStatus(mode == PathPromptMode::Open ? "Open failed: path is empty" : "Save failed: path is empty");
+        restorePrompt();
         return;
     }
 
@@ -757,6 +769,7 @@ void TextEditorApp::finishPathPrompt(bool commit) {
     if (mode == PathPromptMode::Open) {
         if (!m_fs->isFile(path)) {
             setStatus("Open failed: not a file — " + path);
+            restorePrompt();
             return;
         }
 
@@ -777,15 +790,14 @@ void TextEditorApp::finishPathPrompt(bool commit) {
                 DiscardKind::Open,
                 "Unsaved changes — open again to discard, or save first")) {
             m_discardPath = path;
-            // Re-open the prompt so the user can confirm or save first.
-            m_pathPromptMode = PathPromptMode::Open;
-            m_pathPromptBuffer = buffer;
-            m_pathPromptCursorPos = m_pathPromptBuffer.size();
-            m_statusHorizontalScrollPx = 0;
+            restorePrompt();
             return;
         }
 
-        if (!loadInitialFile(path)) return;
+        if (!loadInitialFile(path)) {
+            restorePrompt();
+            return;
+        }
         clearUndoHistory();
         clearRedoHistory();
         m_historyBudgetExceeded = false;
@@ -817,6 +829,7 @@ void TextEditorApp::finishPathPrompt(bool commit) {
             // be written. The attempted path remains in the status message.
             m_filePath = previousPath;
             refreshSyntaxMode();
+            restorePrompt();
         }
     }
 }

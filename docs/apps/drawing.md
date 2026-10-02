@@ -399,6 +399,7 @@ While a prompt is active, Drawing routes keyboard input to that prompt and ignor
 - If a bound file or directory in the active Save or Open path moves, the prompt follows the canonical path and keeps the caret at the same suffix position on a UTF-8 boundary.
 - Enter accepts the active prompt and Escape cancels it. Save adds `.modr` when the entered path does not already end in `.modr`; entering `picture.mod` therefore saves as `picture.mod.modr`.
 - If a dirty sketch blocks Open, the first confirmation keeps the path prompt active. Confirming the same open action again discards the unsaved canvas and loads the file.
+- Recoverable Save, Open, and RGB validation or I/O failures keep the prompt active with its text, caret, and horizontal position, so the input can be corrected and retried. Escape cancels it; opening a file already owned by another Drawing focuses that window instead.
 - Editing the Open path after that warning resets the confirmation, so the new target requires its own second confirmation.
 
 ## Saving
@@ -568,7 +569,7 @@ The status bar is both the command hint area and the app's lightweight feedback 
 | `Path completed...` | Tab found a completion. Review the path before confirming it. |
 | `No path matches.` | Tab found no eligible directory or file at the caret. Keep editing the path. |
 | `Saved: ...` / `Opened: ...` | The operation completed and includes the normalized internal path. |
-| `Save failed: ...` / `Open failed: ...` | The operation was rejected. The current canvas remains open so it can be corrected or saved elsewhere. |
+| `Save failed: ...` / `Open failed: ...` | The operation was rejected. The current canvas remains open and the path prompt stays active so its input can be corrected or saved elsewhere. |
 | `RGB failed: ...` | The color was not changed. Enter exactly three integer channels in the accepted range. |
 | `New sketch.` or `Cancelled.` | The requested reset or prompt cancellation completed. |
 

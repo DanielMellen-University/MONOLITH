@@ -88,6 +88,8 @@ int main() {
     check(fs.writeFile("/drawings/resize.modr",
                        monolith::drawing::encodeModr(2, 2, pixels)),
           "write resize drawing");
+    check(fs.writeFile("/drawings/corrupt.modr", "not a drawing"),
+          "write corrupt drawing retry target");
     check(fs.createDirectory("/drawings/unicode"),
           "create Unicode Drawing completion directory");
     check(fs.writeFile("/drawings/unicode/\xC3\xA9" "clair.modr", "placeholder"),
@@ -860,6 +862,71 @@ int main() {
     drawing.finishPathPrompt(true);
     check(drawing.m_filePath == "/drawings/alternate.modr" && !drawing.m_dirty,
           "confirming the changed dirty drawing target loads it");
+
+    TestDrawing retryDrawing(nullptr, &fs, "/drawings/resize.modr");
+    retryDrawing.onResize(300, 300);
+    retryDrawing.beginPathPrompt(monolith::app::DrawingApp::PathPromptMode::Open);
+    retryDrawing.m_pathPromptBuffer = "/drawings/corrupt.modr";
+    retryDrawing.m_pathPromptCursorPos = 10;
+    retryDrawing.m_pathPromptScrollPx = 17;
+    const auto pixelsBeforeRetry = retryDrawing.m_pixels;
+    retryDrawing.finishPathPrompt(true);
+    check(retryDrawing.m_pathPromptMode == monolith::app::DrawingApp::PathPromptMode::Open
+              && retryDrawing.m_pathPromptBuffer == "/drawings/corrupt.modr"
+              && retryDrawing.m_pathPromptCursorPos == 10
+              && retryDrawing.m_pathPromptScrollPx == 17
+              && retryDrawing.m_filePath == "/drawings/resize.modr"
+              && retryDrawing.m_pixels == pixelsBeforeRetry,
+          "rejected Drawing Open keeps its prompt state and current canvas");
+    retryDrawing.m_pathPromptBuffer = "/drawings/alternate.modr";
+    retryDrawing.m_pathPromptCursorPos = retryDrawing.m_pathPromptBuffer.size();
+    retryDrawing.finishPathPrompt(true);
+    check(retryDrawing.m_pathPromptMode == monolith::app::DrawingApp::PathPromptMode::None
+              && retryDrawing.m_filePath == "/drawings/alternate.modr",
+          "correcting a corrupt Drawing path retries successfully");
+
+    TestDrawing retryRgbDrawing(nullptr, &fs);
+    retryRgbDrawing.onResize(300, 300);
+    retryRgbDrawing.beginPathPrompt(monolith::app::DrawingApp::PathPromptMode::Rgb);
+    retryRgbDrawing.m_pathPromptBuffer = "300,0,0";
+    retryRgbDrawing.m_pathPromptCursorPos = 3;
+    retryRgbDrawing.m_pathPromptScrollPx = 11;
+    retryRgbDrawing.finishPathPrompt(true);
+    check(retryRgbDrawing.m_pathPromptMode == monolith::app::DrawingApp::PathPromptMode::Rgb
+              && retryRgbDrawing.m_pathPromptBuffer == "300,0,0"
+              && retryRgbDrawing.m_pathPromptCursorPos == 3
+              && retryRgbDrawing.m_pathPromptScrollPx == 11,
+          "invalid custom RGB input remains editable for correction");
+    retryRgbDrawing.m_pathPromptBuffer = "12,34,56";
+    retryRgbDrawing.m_pathPromptCursorPos = retryRgbDrawing.m_pathPromptBuffer.size();
+    retryRgbDrawing.finishPathPrompt(true);
+    check(retryRgbDrawing.m_pathPromptMode == monolith::app::DrawingApp::PathPromptMode::None
+              && retryRgbDrawing.m_customR == 12
+              && retryRgbDrawing.m_customG == 34
+              && retryRgbDrawing.m_customB == 56,
+          "correcting invalid custom RGB input applies the color");
+
+    TestDrawing retrySaveDrawing(nullptr, &fs, "/blocked.modr");
+    retrySaveDrawing.onResize(300, 300);
+    retrySaveDrawing.m_filePath = "/blocked.modr";
+    retrySaveDrawing.beginPathPrompt(monolith::app::DrawingApp::PathPromptMode::Save);
+    retrySaveDrawing.m_pathPromptBuffer = "/blocked";
+    retrySaveDrawing.m_pathPromptCursorPos = 4;
+    retrySaveDrawing.m_pathPromptScrollPx = 13;
+    retrySaveDrawing.finishPathPrompt(true);
+    check(retrySaveDrawing.m_pathPromptMode == monolith::app::DrawingApp::PathPromptMode::Save
+              && retrySaveDrawing.m_pathPromptBuffer == "/blocked"
+              && retrySaveDrawing.m_pathPromptCursorPos == 4
+              && retrySaveDrawing.m_pathPromptScrollPx == 13
+              && retrySaveDrawing.m_filePath == "/blocked.modr",
+          "failed Drawing Save keeps its path prompt and current file binding");
+    retrySaveDrawing.m_pathPromptBuffer = "/drawings/retry-save";
+    retrySaveDrawing.m_pathPromptCursorPos = retrySaveDrawing.m_pathPromptBuffer.size();
+    retrySaveDrawing.finishPathPrompt(true);
+    check(retrySaveDrawing.m_pathPromptMode == monolith::app::DrawingApp::PathPromptMode::None
+              && retrySaveDrawing.m_filePath == "/drawings/retry-save.modr"
+              && fs.isFile("/drawings/retry-save.modr"),
+          "correcting a failed Drawing Save path retries successfully");
 
     std::vector<uint8_t> occupiedPixels(1 * 1 * 4, 128);
     check(fs.writeFile("/drawings/occupied.modr",

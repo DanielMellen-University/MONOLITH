@@ -1,5 +1,10 @@
 # Changelog
 
+## 2026-10: Keep failed inline prompts editable
+
+- Text Editor and Drawing now preserve prompt input, caret, and horizontal position after recoverable path, line-number, RGB, or file-operation errors so users can correct and retry without re-entering the prompt.
+- Add headless coverage for failed Open/Save recovery, including oversized or corrupt documents and unwritable destinations, plus invalid Go to Line and RGB input.
+
 ## 2026-10: Keep Drawing `.modr` encoding within the format limits
 
 - Make the production encoder and decoder enforce identical 4096-pixel dimension bounds and exact buffer/payload sizes; oversized live canvases remain editable but cannot be saved into files Drawing will refuse to reopen.

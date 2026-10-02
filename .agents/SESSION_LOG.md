@@ -1,5 +1,7 @@
 # Session log
 
+| 2026-10-02 | fix | Kept Text Editor and Drawing prompts active after recoverable path, line-number, RGB, or file-operation failures, preserving input, caret, and horizontal position; added retry coverage for invalid prompts, oversized/corrupt opens, and blocked saves. |
+
 | 2026-10-02 | fix | Aligned `.modr` encoder/decoder limits without restricting larger live canvases; oversized saves now fail rather than writing files Drawing cannot reopen, and format tests exercise the production codec. |
 
 | 2026-10-02 | fix | Fixed same-path Open in Text Editor and Drawing so external file changes can be reloaded in the already-bound window; dirty editor text and canvas pixels still require the existing repeated discard confirmation. |
