@@ -1,5 +1,10 @@
 # Changelog
 
+## 2026-10: Bound Snake and Minesweeper record loading
+
+- Read persisted game scores through per-format byte and row limits, reject malformed or out-of-range values, and preserve valid earlier Minesweeper times when a later record is oversized.
+- Cover CRLF, exact boundaries, overlong files, and invalid values in the headless game tests.
+
 ## 2026-10: Bound Desktop Settings records
 
 - Read persisted preference records with a 16 KiB bound and stop at the first oversized line while retaining earlier valid preferences.

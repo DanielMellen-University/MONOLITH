@@ -75,6 +75,46 @@ int main() {
     SnakeApp reloaded(font);
     check(reloaded.m_highScore == 17, "Snake reloads the replaced high score");
 
+    {
+        std::ofstream scoreFixture(scorePath, std::ios::binary | std::ios::trunc);
+        scoreFixture << "397" << std::string(28, ' ') << "\r\n";
+    }
+    SnakeApp crlfScore(font);
+    check(crlfScore.m_highScore == 397,
+          "Snake accepts a bounded CRLF high-score record at the board limit");
+
+    {
+        std::ofstream scoreFixture(scorePath, std::ios::binary | std::ios::trunc);
+        scoreFixture << "17 trailing\n";
+    }
+    SnakeApp trailingScore(font);
+    check(trailingScore.m_highScore == 0,
+          "Snake rejects trailing data in a high-score record");
+
+    {
+        std::ofstream scoreFixture(scorePath, std::ios::binary | std::ios::trunc);
+        scoreFixture << "398\n";
+    }
+    SnakeApp impossibleScore(font);
+    check(impossibleScore.m_highScore == 0,
+          "Snake rejects scores that exceed the playable board");
+
+    {
+        std::ofstream scoreFixture(scorePath, std::ios::binary | std::ios::trunc);
+        scoreFixture << std::string(33, '9') << '\n';
+    }
+    SnakeApp oversizedScore(font);
+    check(oversizedScore.m_highScore == 0,
+          "Snake ignores an oversized persisted high-score record");
+
+    {
+        std::ofstream scoreFixture(scorePath, std::ios::binary | std::ios::trunc);
+        scoreFixture << std::string(16, '\n') << "17\n";
+    }
+    SnakeApp excessiveScoreRows(font);
+    check(excessiveScoreRows.m_highScore == 0,
+          "Snake bounds the number of rows scanned in its score file");
+
     std::filesystem::remove(scorePath, cleanupError);
     check(std::filesystem::create_directory(scorePath),
           "create blocked Snake score target");

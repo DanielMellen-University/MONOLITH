@@ -1,5 +1,6 @@
 #include "SnakeApp.hpp"
 
+#include "../detail/BoundedLineReader.hpp"
 #include "../detail/AtomicFile.hpp"
 #include "../detail/RendererClip.hpp"
 #include "../detail/TickMath.hpp"
@@ -7,6 +8,7 @@
 #include <algorithm>
 #include <filesystem>
 #include <fstream>
+#include <sstream>
 #include <string>
 
 namespace monolith::app {
@@ -39,9 +41,26 @@ void SnakeApp::loadHighScore() {
     m_highScore = 0;
     std::ifstream in(highScoreHostPath());
     if (!in) return;
-    int value = 0;
-    if (in >> value && value >= 0) {
+
+    constexpr std::size_t kMaxScoreRows = 16;
+    constexpr std::size_t kMaxScoreLineBytes = 32;
+    constexpr int kMaxScore = kGridW * kGridH - 3;
+    std::string line;
+    for (std::size_t row = 0; row < kMaxScoreRows; ++row) {
+        const auto result = monolith::detail::readBoundedLine(
+            in, line, kMaxScoreLineBytes);
+        if (result != monolith::detail::BoundedLineResult::Line) return;
+
+        std::istringstream record(line);
+        int value = 0;
+        if (!(record >> value)) {
+            if (record.eof()) continue;
+            return;
+        }
+        record >> std::ws;
+        if (!record.eof() || value < 0 || value > kMaxScore) return;
         m_highScore = value;
+        return;
     }
 }
 
