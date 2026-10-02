@@ -1,5 +1,7 @@
 # Session log
 
+| 2026-10-02 | fix | Bounded Snake and Minesweeper score-file reads by row and line size, rejected malformed or impossible values, and preserved earlier valid Minesweeper times when later data is oversized; added boundary and recovery regressions. |
+
 | 2026-10-02 | fix | Shared the 16 KiB persisted-line reader between session restore and Desktop Settings; oversized settings records stop parsing, and unrepresentable wallpaper paths no longer replace or save the current setting. |
 
 | 2026-10-02 | fix | Added a bounded 16 KiB session-line reader; oversized rows stop best-effort restore without allocating their full contents or discarding windows already restored. |
