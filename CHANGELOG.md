@@ -1,5 +1,10 @@
 # Changelog
 
+## 2026-10: Bound Drawing `.modr` input buffering
+
+- Check file size before loading and stream valid-size candidates in bounded chunks, rejecting files above the format's maximum encoded size without unbounded allocation.
+- Preserve the current canvas and Open prompt on oversized-file rejection, with headless retry-state coverage.
+
 ## 2026-10: Bound PNG/JPEG wallpaper decoding
 
 - Inspect PNG/JPEG dimensions before decoding directly from the host file, removing the whole-file compressed-data copy and rejecting images above 16,777,216 pixels before allocating decoded pixels.

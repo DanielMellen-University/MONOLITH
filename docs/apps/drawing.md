@@ -587,6 +587,7 @@ Canceling a dirty Open prompt also clears its pending confirmation, so a later O
 | Saving `picture.mod` creates `picture.mod.modr` | Save appends `.modr` when the entered path does not already end in that suffix. Enter the intended `.modr` name explicitly. |
 | `No path matches.` after pressing Tab | Completion compares the typed filename prefix exactly. Move the caret to the final path component, correct the prefix, and press Tab again. |
 | `Open failed: could not read file.` | The virtual path is missing or could not be read. The current canvas remains open; correct the path or save the current sketch elsewhere. |
+| `Open failed: .modr file exceeds the size limit.` | The file is larger than the maximum valid `.modr` payload. Drawing rejects it before buffering the contents; the current canvas and Open prompt remain available. |
 | `Open failed: not a valid .modr drawing file.` | The file header, dimensions, or pixel payload is invalid. Drawing does not partially load corrupt data. |
 | The status bar shows `[modified]` | The canvas has edits that are not saved. Press **Ctrl+S** before closing, choosing **New**, or opening another sketch. |
 | Undo is no longer available after resizing | Resizing changes the canvas dimensions, so Drawing clears history rather than applying edits to a different-sized canvas. |
