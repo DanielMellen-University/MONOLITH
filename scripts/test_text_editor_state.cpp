@@ -99,6 +99,37 @@ int main() {
         : nullptr;
     check(scaleFont != nullptr, "editor state loads test font");
     if (scaleFont) {
+        TestEditor hitTestEditor(scaleFont, &fs, "");
+        hitTestEditor.m_lines = {"A\xC3\xA9\xF0\x9F\x99\x82Z"};
+        hitTestEditor.onResize(320, 120);
+        int unicodePrefixWidth = 0;
+        int unicodePrefixHeight = 0;
+        const bool unicodePrefixMeasured = TTF_SizeUTF8(
+            scaleFont, "A\xC3\xA9", &unicodePrefixWidth, &unicodePrefixHeight) == 0;
+        int hitRow = -1;
+        int hitCol = -1;
+        const bool unicodeHitMapped = hitTestEditor.clientToDocument(
+            TestEditor::kPadding + TestEditor::kLineNumWidth + unicodePrefixWidth,
+            TestEditor::kPadding + 1, hitRow, hitCol);
+
+        constexpr int longLineHitColumn = 70'000;
+        const std::string longHitTestLine(100'000, 'x');
+        int longPrefixWidth = 0;
+        int longPrefixHeight = 0;
+        const bool longPrefixMeasured = TTF_SizeUTF8(
+            scaleFont, longHitTestLine.substr(0, longLineHitColumn).c_str(),
+            &longPrefixWidth, &longPrefixHeight) == 0;
+        hitTestEditor.m_lines = {longHitTestLine};
+        hitTestEditor.onResize(320, 120);
+        hitTestEditor.m_horizontalScrollOffset = longPrefixWidth;
+        const bool longLineHitMapped = hitTestEditor.clientToDocument(
+            TestEditor::kPadding + TestEditor::kLineNumWidth + 1,
+            TestEditor::kPadding + 1, hitRow, hitCol);
+        check(unicodePrefixMeasured && unicodeHitMapped && hitRow == 0 && hitCol == 3
+                  && longPrefixMeasured && longLineHitMapped && hitRow == 0
+                  && hitCol == longLineHitColumn,
+              "Text Editor maps UTF-8 and far-scrolled long-line clicks in one text measurement");
+
         TestEditor scaleEditor(scaleFont, &fs, "/old.txt");
         const int baseStatusBarHeight = scaleEditor.getStatusBarHeight();
         check(TTF_SetFontSize(scaleFont, 22) == 0,
