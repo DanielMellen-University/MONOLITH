@@ -2,10 +2,10 @@
 
 #include "../src/app/DrawingRaster.hpp"
 #include "../src/fs/Filesystem.hpp"
+#include "../src/window/SessionFormat.hpp"
 #define private public
 #include "../src/app/DrawingApp.hpp"
 #include "../src/app/TextEditorApp.hpp"
-#include "../src/window/SessionFormat.hpp"
 #include "../src/window/WindowManager.hpp"
 #undef private
 
