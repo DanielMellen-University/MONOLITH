@@ -90,6 +90,12 @@ int main() {
           "write resize drawing");
     check(fs.writeFile("/drawings/corrupt.modr", "not a drawing"),
           "write corrupt drawing retry target");
+    check(fs.writeFile("/drawings/oversized.modr", ""),
+          "create oversized drawing retry target");
+    std::filesystem::resize_file(
+        fs.toHostPath("/drawings/oversized.modr"),
+        monolith::drawing::kMaxModrEncodedBytes + 1, ec);
+    check(!ec, "resize drawing retry target beyond MODR size limit");
     check(fs.createDirectory("/drawings/unicode"),
           "create Unicode Drawing completion directory");
     check(fs.writeFile("/drawings/unicode/\xC3\xA9" "clair.modr", "placeholder"),
@@ -866,10 +872,21 @@ int main() {
     TestDrawing retryDrawing(nullptr, &fs, "/drawings/resize.modr");
     retryDrawing.onResize(300, 300);
     retryDrawing.beginPathPrompt(monolith::app::DrawingApp::PathPromptMode::Open);
-    retryDrawing.m_pathPromptBuffer = "/drawings/corrupt.modr";
-    retryDrawing.m_pathPromptCursorPos = 10;
+    retryDrawing.m_pathPromptBuffer = "/drawings/oversized.modr";
+    retryDrawing.m_pathPromptCursorPos = retryDrawing.m_pathPromptBuffer.size();
     retryDrawing.m_pathPromptScrollPx = 17;
     const auto pixelsBeforeRetry = retryDrawing.m_pixels;
+    retryDrawing.finishPathPrompt(true);
+    check(retryDrawing.m_pathPromptMode == monolith::app::DrawingApp::PathPromptMode::Open
+              && retryDrawing.m_pathPromptBuffer == "/drawings/oversized.modr"
+              && retryDrawing.m_pathPromptCursorPos == retryDrawing.m_pathPromptBuffer.size()
+              && retryDrawing.m_pathPromptScrollPx == 17
+              && retryDrawing.m_filePath == "/drawings/resize.modr"
+              && retryDrawing.m_pixels == pixelsBeforeRetry
+              && retryDrawing.m_statusMessage == "Open failed: .modr file exceeds the size limit.",
+          "oversized Drawing Open rejects before loading and preserves retry state");
+    retryDrawing.m_pathPromptBuffer = "/drawings/corrupt.modr";
+    retryDrawing.m_pathPromptCursorPos = 10;
     retryDrawing.finishPathPrompt(true);
     check(retryDrawing.m_pathPromptMode == monolith::app::DrawingApp::PathPromptMode::Open
               && retryDrawing.m_pathPromptBuffer == "/drawings/corrupt.modr"

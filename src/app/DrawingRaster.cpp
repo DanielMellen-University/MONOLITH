@@ -301,7 +301,7 @@ std::string encodeModr(int width, int height, const std::vector<uint8_t>& rgba) 
     if (rgba.size() != expected) return {};
 
     std::string blob;
-    blob.reserve(12 + pixelCount * 3);
+    blob.reserve(kModrHeaderBytes + pixelCount * kModrRgbBytesPerPixel);
     blob.append(kModrMagic, 4);
     writeU32LE(blob, static_cast<uint32_t>(width));
     writeU32LE(blob, static_cast<uint32_t>(height));
@@ -317,7 +317,7 @@ std::string encodeModr(int width, int height, const std::vector<uint8_t>& rgba) 
 }
 
 bool decodeModr(const std::string& blob, int& width, int& height, std::vector<uint8_t>& rgba) {
-    if (blob.size() < 12 || std::memcmp(blob.data(), kModrMagic, 4) != 0) return false;
+    if (blob.size() < kModrHeaderBytes || std::memcmp(blob.data(), kModrMagic, 4) != 0) return false;
     const uint32_t rawWidth = readU32LE(blob, 4);
     const uint32_t rawHeight = readU32LE(blob, 8);
     if (rawWidth == 0 || rawHeight == 0
@@ -328,11 +328,11 @@ bool decodeModr(const std::string& blob, int& width, int& height, std::vector<ui
     const int w = static_cast<int>(rawWidth);
     const int h = static_cast<int>(rawHeight);
     const size_t pixelCount = static_cast<size_t>(w) * static_cast<size_t>(h);
-    const size_t expected = pixelCount * 3;
-    if (blob.size() != 12 + expected) return false;
+    const size_t expected = pixelCount * kModrRgbBytesPerPixel;
+    if (blob.size() != kModrHeaderBytes + expected) return false;
 
     rgba.assign(pixelCount * 4, 255);
-    size_t offset = 12;
+    size_t offset = kModrHeaderBytes;
     for (int y = 0; y < h; ++y) {
         for (int x = 0; x < w; ++x) {
             const size_t idx = (static_cast<size_t>(y) * static_cast<size_t>(w) + static_cast<size_t>(x)) * 4;

@@ -6,9 +6,11 @@
 
 #include <algorithm>
 #include <cmath>
+#include <cstdint>
 #include <cstring>
 #include <limits>
 #include <sstream>
+#include <string_view>
 #include <utility>
 #include <vector>
 
@@ -974,11 +976,36 @@ bool DrawingApp::loadFromPath(const std::string& virtualPath) {
         return false;
     }
 
-    std::string blob;
-    if (!m_fs->readFile(path, blob)) {
+    std::uint64_t fileBytes = 0;
+    if (!m_fs->fileSize(path, fileBytes)) {
         setStatus("Open failed: could not read file.");
         return false;
     }
+    if (fileBytes > monolith::drawing::kMaxModrEncodedBytes) {
+        setStatus("Open failed: .modr file exceeds the size limit.");
+        return false;
+    }
+
+    std::string blob;
+    blob.reserve(static_cast<std::size_t>(fileBytes));
+    bool tooLarge = false;
+    const bool readOk = m_fs->readFileChunks(path, [&](std::string_view chunk) {
+        if (chunk.size() > monolith::drawing::kMaxModrEncodedBytes - blob.size()) {
+            tooLarge = true;
+            return false;
+        }
+        blob.append(chunk.data(), chunk.size());
+        return true;
+    });
+    if (!readOk) {
+        setStatus("Open failed: could not read file.");
+        return false;
+    }
+    if (tooLarge) {
+        setStatus("Open failed: .modr file exceeds the size limit.");
+        return false;
+    }
+
     int width = 0;
     int height = 0;
     std::vector<uint8_t> rgba;

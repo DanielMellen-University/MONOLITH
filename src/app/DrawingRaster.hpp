@@ -8,6 +8,13 @@
 namespace monolith::drawing {
 
 inline constexpr int kMaxModrDimension = 4096;
+inline constexpr std::size_t kModrHeaderBytes = 12;
+inline constexpr std::size_t kModrRgbBytesPerPixel = 3;
+inline constexpr std::size_t kMaxModrEncodedBytes =
+    kModrHeaderBytes
+    + static_cast<std::size_t>(kMaxModrDimension)
+        * static_cast<std::size_t>(kMaxModrDimension)
+        * kModrRgbBytesPerPixel;
 
 /** Called before each actual pixel change, allowing sparse history capture. */
 using PixelWriteObserver = void (*)(void* context, int x, int y);

@@ -36,6 +36,7 @@ The human funds token budget and lives in the desktop. You:
 |------|------|------|
 | 2026-10-02 | drawing-format | Keep `.modr` encoder/decoder bounds identical while preserving larger live canvases; oversized saves fail instead of creating files the decoder cannot reopen |
 | 2026-10-02 | wallpaper-decode | Load PNG/JPEG directly from file after checking dimensions; reject inputs above 16,777,216 pixels before decoded allocations while preserving BMP loading |
+| 2026-10-02 | drawing-input-bound | Check `.modr` file size before reading, stream within the format's encoded-size cap, and preserve canvas/prompt state on rejection |
 | 2026-10-02 | prompt-retry | Failed Text Editor and Drawing path, line-number, RGB, or file operations retain the active prompt, input, caret, and horizontal position for correction and retry |
 | 2026-10-02 | same-file-reload | Text Editor and Drawing can reload their current file after an external overwrite; dirty documents retain the existing repeated-discard guard, with headless coverage |
 | 2026-10-02 | filesystem-filter | Directory sort/filter now avoids lowercase copies per comparison, normalizes the query once per listing pass, and preserves mixed-case matching/order; headless filesystem tests passed |
@@ -193,6 +194,7 @@ Older recent-work rows: [`SESSION_LOG.md`](SESSION_LOG.md).
 | 7.57 | Align Drawing `.modr` codec limits | done | Enforce matching encoder/decoder bounds and exact buffers, preserve large-canvas editing, and test the production codec plus oversized-save rejection |
 | 7.58 | Retry failed inline prompts | done | Preserve Text Editor and Drawing prompt mode, input, caret, and horizontal position on recoverable validation or file-operation failures; verify corrections can be retried |
 | 7.59 | Bound wallpaper decoding | done | Inspect PNG/JPEG dimensions before decode, load from file without a whole-file compressed buffer, and reject images above 16,777,216 pixels; keep the BMP path unchanged |
+| 7.60 | Bound Drawing `.modr` opens | done | Reject oversized files before buffering and cap streamed reads at the maximum valid encoded payload; preserve the active canvas and Open prompt on rejection |
 | fs-browser-filter-cache | Reuse Filesystem Browser filter snapshots | done | Reuse one directory listing for filter edits; refresh it on F5 and Monolith filesystem notifications, including while filtering |
 | terminal-input-editing | Terminal command-line selection | done | Support UTF-8-safe keyboard/mouse selection and Ctrl+A/C/X/V; paste only the first clipboard line |
 | terminal-touch-mtime | Complete Terminal touch semantics | done | Update existing regular-file last-write time without truncation; reject outside-root symlink targets |
