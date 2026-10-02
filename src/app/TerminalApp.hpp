@@ -50,6 +50,8 @@ private:
 
     // Scrolling helpers
     void scrollHistory(int delta);
+    void scrollHistoryHorizontally(int direction);
+    int getMaxVisibleHistoryScrollPx();
 
     // Tab completion
     void handleTabCompletion();
@@ -65,9 +67,11 @@ private:
     int getLineHeight() const;
     int getMaxVisibleLines(const SDL_Rect& contentRect) const;
     int getMaxScrollOffset() const;
-    bool getVisibleHistoryPrefixBytes(std::size_t rowIndex,
-                                      int pixelWidth,
-                                      std::size_t& visibleBytes);
+    bool getVisibleHistoryRangeBytes(std::size_t rowIndex,
+                                     int pixelWidth,
+                                     int horizontalOffsetPx,
+                                     std::size_t& startBytes,
+                                     std::size_t& visibleBytes);
     SDL_Rect getInputBarRect(const SDL_Rect& contentRect) const;
     SDL_Rect getHistoryRect(const SDL_Rect& contentRect) const;
     int getInputLineY(const SDL_Rect& contentRect, const SDL_Rect& inputBar) const;
@@ -92,7 +96,11 @@ private:
 
     struct HistoryViewportMeasure {
         int pixelWidth = -1;
+        int horizontalOffsetPx = -1;
+        int linePixelWidth = 0;
+        std::size_t startBytes = 0;
         std::size_t visibleBytes = 0;
+        bool lineWidthValid = false;
         bool valid = false;
     };
 
@@ -127,6 +135,7 @@ private:
 
     // Scrollback support
     int m_scrollOffset = 0;   // 0 = showing newest (bottom). Higher values = scrolled upward.
+    int m_historyHorizontalScrollPx = 0;
 
     // Cached size for scroll calculations
     int m_clientWidth = 0;

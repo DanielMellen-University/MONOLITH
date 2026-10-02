@@ -5,6 +5,52 @@ void TerminalApp::scrollHistory(int delta) {
         static_cast<long long>(getMaxScrollOffset())));
     if (nextOffset == m_scrollOffset) return;
     m_scrollOffset = nextOffset;
+    if (m_historyHorizontalScrollPx > 0) {
+        m_historyHorizontalScrollPx = std::min(
+            m_historyHorizontalScrollPx, getMaxVisibleHistoryScrollPx());
+    }
+}
+
+void TerminalApp::scrollHistoryHorizontally(int direction) {
+    const SDL_Rect contentRect{0, 0, m_clientWidth, m_clientHeight};
+    const int stepPx = std::max(32, getHistoryRect(contentRect).w * 3 / 4);
+    const int maxOffset = getMaxVisibleHistoryScrollPx();
+    const long long nextOffset = std::clamp(
+        static_cast<long long>(m_historyHorizontalScrollPx)
+            + static_cast<long long>(direction) * stepPx,
+        0LL,
+        static_cast<long long>(maxOffset));
+    m_historyHorizontalScrollPx = static_cast<int>(nextOffset);
+}
+
+int TerminalApp::getMaxVisibleHistoryScrollPx() {
+    if (!m_font || m_history.empty()) return 0;
+    if (m_historyViewportMeasures.size() != m_history.size()) {
+        m_historyViewportMeasures.assign(m_history.size(), HistoryViewportMeasure{});
+    }
+
+    const SDL_Rect contentRect{0, 0, m_clientWidth, m_clientHeight};
+    const SDL_Rect historyRect = getHistoryRect(contentRect);
+    const int visibleRows = getMaxVisibleLines(contentRect);
+    if (historyRect.w <= 0 || visibleRows <= 0) return 0;
+
+    const int startIndex = static_cast<int>(m_history.size()) - 1 - m_scrollOffset;
+    int maxLineWidth = 0;
+    for (int row = 0; row < visibleRows; ++row) {
+        const int index = startIndex - row;
+        if (index < 0) break;
+        auto& measure = m_historyViewportMeasures[static_cast<std::size_t>(index)];
+        if (!measure.lineWidthValid) {
+            int height = 0;
+            if (TTF_SizeUTF8(m_font, m_history[static_cast<std::size_t>(index)].c_str(),
+                             &measure.linePixelWidth, &height) != 0) {
+                continue;
+            }
+            measure.lineWidthValid = true;
+        }
+        maxLineWidth = std::max(maxLineWidth, measure.linePixelWidth);
+    }
+    return std::max(0, maxLineWidth - historyRect.w);
 }
 
 void TerminalApp::handleMouseWheel(const SDL_MouseWheelEvent& e) {
@@ -473,36 +519,63 @@ std::string TerminalApp::joinPath(const std::string& base, const std::string& na
     return m_fs->join(base, name);
 }
 
-bool TerminalApp::getVisibleHistoryPrefixBytes(std::size_t rowIndex,
-                                                int pixelWidth,
-                                                std::size_t& visibleBytes) {
+bool TerminalApp::getVisibleHistoryRangeBytes(std::size_t rowIndex,
+                                              int pixelWidth,
+                                              int horizontalOffsetPx,
+                                              std::size_t& startBytes,
+                                              std::size_t& visibleBytes) {
     if (!m_font || pixelWidth <= 0 || rowIndex >= m_history.size()) return false;
     if (m_historyViewportMeasures.size() != m_history.size()) {
         m_historyViewportMeasures.assign(m_history.size(), HistoryViewportMeasure{});
     }
 
     auto& cached = m_historyViewportMeasures[rowIndex];
-    if (!cached.valid || cached.pixelWidth != pixelWidth) {
+    if (!cached.valid || cached.pixelWidth != pixelWidth
+        || cached.horizontalOffsetPx != horizontalOffsetPx) {
         const std::string& line = m_history[rowIndex];
-        int measuredWidth = 0;
-        int characterCount = 0;
-        if (TTF_MeasureUTF8(m_font, line.c_str(), pixelWidth,
-                            &measuredWidth, &characterCount) != 0) {
-            cached.valid = false;
-            return false;
+        std::size_t firstByte = 0;
+        if (horizontalOffsetPx > 0) {
+            int prefixWidth = 0;
+            int characterCount = 0;
+            if (TTF_MeasureUTF8(m_font, line.c_str(), horizontalOffsetPx,
+                                &prefixWidth, &characterCount) != 0) {
+                cached.valid = false;
+                return false;
+            }
+            for (int character = 0;
+                 character < characterCount && firstByte < line.size();
+                 ++character) {
+                firstByte = utf8NextCodepointStart(line, firstByte);
+            }
+            if (firstByte < line.size() && prefixWidth < horizontalOffsetPx) {
+                firstByte = utf8NextCodepointStart(line, firstByte);
+            }
         }
 
-        std::size_t measuredBytes = 0;
-        for (int character = 0;
-             character < characterCount && measuredBytes < line.size();
-             ++character) {
-            measuredBytes = utf8NextCodepointStart(line, measuredBytes);
+        std::size_t endByte = firstByte;
+        if (firstByte < line.size()) {
+            int ignoredWidth = 0;
+            int characterCount = 0;
+            if (TTF_MeasureUTF8(m_font, line.c_str() + firstByte, pixelWidth,
+                                &ignoredWidth, &characterCount) != 0) {
+                cached.valid = false;
+                return false;
+            }
+            for (int character = 0;
+                 character < characterCount && endByte < line.size();
+                 ++character) {
+                endByte = utf8NextCodepointStart(line, endByte);
+            }
         }
+
         cached.pixelWidth = pixelWidth;
-        cached.visibleBytes = measuredBytes;
+        cached.horizontalOffsetPx = horizontalOffsetPx;
+        cached.startBytes = firstByte;
+        cached.visibleBytes = endByte - firstByte;
         cached.valid = true;
     }
 
+    startBytes = cached.startBytes;
     visibleBytes = cached.visibleBytes;
     return true;
 }
@@ -707,15 +780,17 @@ void TerminalApp::render(SDL_Renderer* renderer, const SDL_Rect& contentRect) {
             const std::string& line = m_history[i];
             std::string visibleLine;
             const char* displayText = line.c_str();
+            std::size_t startBytes = 0;
             std::size_t visibleBytes = 0;
-            if (!getVisibleHistoryPrefixBytes(
-                    static_cast<std::size_t>(i), historyRect.w, visibleBytes)) {
+            if (!getVisibleHistoryRangeBytes(
+                    static_cast<std::size_t>(i), historyRect.w,
+                    m_historyHorizontalScrollPx, startBytes, visibleBytes)) {
                 y -= lineHeight;
                 continue;
             }
 
-            if (visibleBytes < line.size()) {
-                visibleLine.assign(line.data(), visibleBytes);
+            if (startBytes > 0 || visibleBytes < line.size()) {
+                visibleLine.assign(line.data() + startBytes, visibleBytes);
                 displayText = visibleLine.c_str();
             }
 
@@ -745,6 +820,10 @@ void TerminalApp::onResize(int clientWidth, int clientHeight) {
     m_clientHeight = clientHeight;
     // Keep scroll within bounds after resize
     m_scrollOffset = std::clamp(m_scrollOffset, 0, getMaxScrollOffset());
+    if (m_historyHorizontalScrollPx > 0) {
+        m_historyHorizontalScrollPx = std::min(
+            m_historyHorizontalScrollPx, getMaxVisibleHistoryScrollPx());
+    }
 }
 
 void TerminalApp::onUiScaleChanged() {
@@ -752,6 +831,7 @@ void TerminalApp::onUiScaleChanged() {
     std::fill(m_historyViewportMeasures.begin(), m_historyViewportMeasures.end(),
               HistoryViewportMeasure{});
     m_scrollOffset = std::clamp(m_scrollOffset, 0, getMaxScrollOffset());
+    m_historyHorizontalScrollPx = 0;
 
     // Font metrics changed, so pixel-based horizontal offsets must be measured
     // again by the next render pass.
