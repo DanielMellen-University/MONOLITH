@@ -76,6 +76,45 @@ int main() {
     check(reloaded.m_bestBeginner == 12 && reloaded.m_bestExpert == 48,
           "Minesweeper reloads the replaced best times");
 
+    std::error_code fixtureError;
+    std::filesystem::create_directories(bestPath.parent_path(), fixtureError);
+    {
+        std::ofstream bestFixture(bestPath, std::ios::binary | std::ios::trunc);
+        bestFixture << "beginner 18" << std::string(52, ' ')
+                    << "\r\nintermediate 45\n";
+    }
+    MinesweeperApp boundaryTimes(font);
+    check(boundaryTimes.m_bestBeginner == 18
+              && boundaryTimes.m_bestIntermediate == 45,
+          "Minesweeper accepts exact-limit and CRLF best-time records");
+
+    {
+        std::ofstream bestFixture(bestPath, std::ios::binary | std::ios::trunc);
+        bestFixture << "beginner 31\n" << std::string(65, 'x')
+                    << "\nexpert 42\n";
+    }
+    MinesweeperApp oversizedTimes(font);
+    check(oversizedTimes.m_bestBeginner == 31 && oversizedTimes.m_bestExpert == 0,
+          "Minesweeper keeps prior best times and stops at an oversized record");
+
+    {
+        std::ofstream bestFixture(bestPath, std::ios::binary | std::ios::trunc);
+        bestFixture << "beginner 18 extra\nintermediate 0\nexpert 1000\n";
+    }
+    MinesweeperApp invalidTimes(font);
+    check(invalidTimes.m_bestBeginner == 0
+              && invalidTimes.m_bestIntermediate == 0
+              && invalidTimes.m_bestExpert == 0,
+          "Minesweeper rejects trailing data and times outside its display range");
+
+    {
+        std::ofstream bestFixture(bestPath, std::ios::binary | std::ios::trunc);
+        bestFixture << std::string(16, '\n') << "beginner 42\n";
+    }
+    MinesweeperApp excessiveTimeRows(font);
+    check(excessiveTimeRows.m_bestBeginner == 0,
+          "Minesweeper bounds the number of rows scanned in its best-time file");
+
     std::filesystem::remove(bestPath, cleanupError);
     check(std::filesystem::create_directory(bestPath),
           "create blocked Minesweeper best-time target");

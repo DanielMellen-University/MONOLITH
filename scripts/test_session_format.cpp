@@ -62,6 +62,16 @@ int main() {
               && decoded.empty(),
           "overlong session records are rejected without retaining their contents");
 
+    std::istringstream smallerBoundaryInput("1234\nnext");
+    check(monolith::detail::readBoundedLine(smallerBoundaryInput, decoded, 4)
+              == monolith::detail::BoundedLineResult::Line
+              && decoded == "1234",
+          "bounded reader accepts a caller-selected exact record limit");
+    check(monolith::detail::readBoundedLine(smallerBoundaryInput, decoded, 3)
+              == monolith::detail::BoundedLineResult::TooLong
+              && decoded.empty(),
+          "bounded reader applies tighter per-format limits");
+
     if (failures == 0) {
         std::cout << "ALL SESSION FORMAT TESTS PASSED\n";
         return 0;
