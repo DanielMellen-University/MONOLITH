@@ -30,11 +30,12 @@ The human funds token budget and lives in the desktop. You:
 
 ## Current state snapshot
 
-**CURRENT_CHUNK:** `await-5.x-unpark` (Phase 5 language parked until unpark)
+**CURRENT_CHUNK:** `await-5.x-unpark` (Phase 5 language remains parked)
 
 | When | Kind | Note |
 |------|------|------|
 | 2026-10-02 | fs-browser-filter-cache | Filesystem Browser reuses one directory snapshot during filter edits; F5 and filesystem notifications refresh it; hosted workflow #100 passed |
+| 2026-10-02 | terminal-input-editing | Terminal command input gains UTF-8-safe keyboard/mouse selection and clipboard editing; hosted workflow #103 passed |
 | 2026-09-29 | 7.51 | Text Editor streams file opens and rejects documents above 16 MiB or 65,536 lines; hosted headless workflow #71 passed |
 | 2026-09-29 | 7.50 | Drawing reuses stroke-capture and Fill/Clear dirty-tracking scratch maps, resetting only touched tile indices; hosted headless workflow #69 passed |
 | 2026-09-29 | 7.49 | Drawing history now stores only sparse tile preimages; removed full-buffer undo/redo branches and revalidated state/byte caps; hosted headless workflow #66 passed |
@@ -176,6 +177,7 @@ Older recent-work rows: [`SESSION_LOG.md`](SESSION_LOG.md).
 | 7.50 | Reuse Drawing touched-tile scratch maps | done | Keep per-canvas stroke-capture and Fill/Clear dirty-tracking maps allocated between edits and clear only indices touched by the prior operation |
 | 7.51 | Bound Text Editor file I/O | done | Stream file opens in 16 KiB chunks, normalize line endings across chunk boundaries, and enforce 16 MiB / 65,536-line limits on open and save without replacing the current document on rejected opens |
 | fs-browser-filter-cache | Reuse Filesystem Browser filter snapshots | done | Reuse one directory listing for filter edits; refresh it on F5 and Monolith filesystem notifications, including while filtering |
+| terminal-input-editing | Terminal command-line selection | done | Support UTF-8-safe keyboard/mouse selection and Ctrl+A/C/X/V; paste only the first clipboard line |
 
 ## Commit voice
 

@@ -1,5 +1,10 @@
 # Changelog
 
+## 2026-10: Add Terminal input selection and clipboard editing
+
+- Support UTF-8-safe keyboard and mouse selection in the command line, plus Ctrl+A/C/X/V editing.
+- Keep clipboard paste single-line by stopping at the first newline; document the shortcuts and behavior.
+
 ## 2026-10: Reuse Filesystem Browser filter snapshots
 
 - Filter edits now reuse one directory listing instead of re-enumerating and sorting the folder for every query change.
