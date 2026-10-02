@@ -751,6 +751,29 @@ int main() {
               && !drawing.m_suppressChangedNotification,
           "Drawing ignores its own synchronous change notification");
 
+    controller.occupiedDrawingPath = "/drawings/resize.modr";
+    check(fs.writeFile("/drawings/resize.modr",
+                       monolith::drawing::encodeModr(1, 1, externalPixels)),
+          "write another external Drawing version");
+    drawing.onVirtualPathChanged("/drawings/resize.modr");
+    recordPixelEdit(drawing, 0, 0, 1, 2, 3);
+    drawing.beginPathPrompt(monolith::app::DrawingApp::PathPromptMode::Open);
+    drawing.m_pathPromptBuffer = "/drawings/resize.modr";
+    drawing.m_pathPromptCursorPos = drawing.m_pathPromptBuffer.size();
+    drawing.finishPathPrompt(true);
+    check(drawing.m_discardKind == monolith::app::DrawingApp::DiscardKind::Open
+              && drawing.m_canvasWidth == 2 && drawing.m_dirty,
+          "opening the current Drawing path asks before discarding local pixels");
+    drawing.finishPathPrompt(true);
+    check(drawing.m_filePath == "/drawings/resize.modr"
+              && drawing.m_canvasWidth == 1 && drawing.m_canvasHeight == 1
+              && drawing.m_pixels == externalPixels && !drawing.m_dirty,
+          "confirmed same-file Open reloads the external Drawing version");
+    controller.occupiedDrawingPath.clear();
+    check(fs.writeFile("/drawings/resize.modr",
+                       monolith::drawing::encodeModr(2, 2, loadedPixels)),
+          "restore the shared Drawing fixture after same-file reload coverage");
+
     drawing.startNewSketch();
     check(drawing.m_filePath.empty() && !drawing.m_dirty
               && drawing.m_savedSnapshot.pixels == drawing.m_pixels,
