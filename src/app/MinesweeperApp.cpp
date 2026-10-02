@@ -184,30 +184,23 @@ void MinesweeperApp::placeMines(int safeX, int safeY) {
         return false;
     };
 
-    int placed = 0;
-    int attempts = 0;
-    const int maxAttempts = m_width * m_height * 20;
-    while (placed < m_mineCount && attempts < maxAttempts) {
-        ++attempts;
-        const int x = m_random.uniformInt(m_width);
-        const int y = m_random.uniformInt(m_height);
-        if (isExcluded(x, y)) continue;
-        Cell& c = m_cells[static_cast<size_t>(index(x, y))];
-        if (c.mine) continue;
-        c.mine = true;
-        ++placed;
-    }
-
-    if (placed < m_mineCount) {
-        for (int y = 0; y < m_height && placed < m_mineCount; ++y) {
-            for (int x = 0; x < m_width && placed < m_mineCount; ++x) {
-                if (isExcluded(x, y)) continue;
-                Cell& c = m_cells[static_cast<size_t>(index(x, y))];
-                if (c.mine) continue;
-                c.mine = true;
-                ++placed;
+    std::vector<int> availableCells;
+    availableCells.reserve(m_cells.size());
+    for (int y = 0; y < m_height; ++y) {
+        for (int x = 0; x < m_width; ++x) {
+            if (!isExcluded(x, y)) {
+                availableCells.push_back(index(x, y));
             }
         }
+    }
+
+    for (int placed = 0; placed < m_mineCount && !availableCells.empty(); ++placed) {
+        const int chosenPosition = m_random.uniformInt(
+            static_cast<int>(availableCells.size()));
+        const int chosenCell = availableCells[static_cast<size_t>(chosenPosition)];
+        m_cells[static_cast<size_t>(chosenCell)].mine = true;
+        availableCells[static_cast<size_t>(chosenPosition)] = availableCells.back();
+        availableCells.pop_back();
     }
 
     computeAdjacents();
