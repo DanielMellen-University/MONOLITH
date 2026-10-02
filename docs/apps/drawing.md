@@ -609,9 +609,9 @@ Main implementation files:
 - `src/window/detail/wm_body_01.inc` / `wm_body_08.inc` — mouse-up forwarding, open routing, and session restore
 - `src/app/App.hpp` — `IWindowController::restoreTrackedInstanceTitle()`, `allowClose` for dirty guards
 
-Canvas GPU path (`syncTexture`): recreate the streaming texture only when missing or size-changed; upload CPU pixels only while `m_textureDirty` is set by paint, undo, load, or resize.
+Canvas GPU path (`syncTexture`): recreate the streaming texture only when missing or size-changed. Paint and fill accumulate their changed pixel/span bounds, while undo and redo accumulate restored tile bounds; only that rectangle is uploaded. Resize, load, and Clear invalidate the full texture.
 
-Drawing toolbar labels and status or prompt text use a renderer-owned `TextTextureCache`, bounded to 256 entries and an estimated 16 MiB. Text, color, and font form each key, so unchanged labels survive status and prompt updates rather than rebuilding a renderer texture every frame. The active prompt also reuses its measured caret-prefix width until the prefix or shared font changes. The texture cache clears when the renderer changes, and shared interface-scale changes also invalidate the caret measurement. It remains separate from the canvas texture, which follows the dirty-upload lifecycle above.
+Drawing toolbar labels and status or prompt text use a renderer-owned `TextTextureCache`, bounded to 256 entries and an estimated 16 MiB. Text, color, and font form each key, so unchanged labels survive status and prompt updates rather than rebuilding a renderer texture every frame. The active prompt also reuses its measured caret-prefix width until the prefix or shared font changes. The text cache clears when the renderer changes, and shared interface-scale changes also invalidate the caret measurement. It remains separate from the canvas texture's bounded dirty-region upload lifecycle above.
 
 Drawing status-bar text uses a narrower internal clip. It intersects that clip with the caller's renderer clip and restores the caller clip after the status bar is drawn, so embedded rendering cannot leak into neighboring shell regions.
 

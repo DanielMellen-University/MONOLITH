@@ -894,6 +894,89 @@ int main() {
     SDL_Renderer* renderer = surface ? SDL_CreateSoftwareRenderer(surface) : nullptr;
     check(renderer != nullptr, "drawing state creates a software renderer");
     if (renderer) {
+        TestDrawing partialUpload(font, &fs);
+        partialUpload.resizeCanvas(128, 96, false);
+        partialUpload.syncTexture(renderer);
+        check(!partialUpload.m_textureDirty
+                  && partialUpload.m_dirtyTextureRect.w == 0
+                  && partialUpload.m_dirtyTextureRect.h == 0,
+              "Drawing uploads a newly created canvas texture in full");
+        check(recordPixelEdit(partialUpload, 9, 13, 1, 2, 3)
+                  && partialUpload.m_textureDirty
+                  && partialUpload.m_dirtyTextureRect.x == 9
+                  && partialUpload.m_dirtyTextureRect.y == 13
+                  && partialUpload.m_dirtyTextureRect.w == 1
+                  && partialUpload.m_dirtyTextureRect.h == 1,
+              "Drawing bounds a sparse pixel edit to its changed texture region");
+        partialUpload.syncTexture(renderer);
+        check(!partialUpload.m_textureDirty
+                  && partialUpload.m_dirtyTextureRect.w == 0
+                  && partialUpload.m_dirtyTextureRect.h == 0,
+              "Drawing clears the dirty texture region after its partial upload");
+        SDL_Rect canvasTarget{0, 0, 128, 96};
+        SDL_RenderClear(renderer);
+        SDL_RenderCopy(renderer, partialUpload.m_canvasTexture, nullptr, &canvasTarget);
+        std::vector<uint8_t> uploadedPixels(128 * 96 * 4);
+        const bool readUploadedPixels = SDL_RenderReadPixels(
+            renderer, &canvasTarget, SDL_PIXELFORMAT_RGBA32,
+            uploadedPixels.data(), 128 * 4) == 0;
+        const auto uploadedPixelIs = [&](int x, int y, uint8_t r, uint8_t g, uint8_t b) {
+            const size_t offset = (static_cast<size_t>(y) * 128 + x) * 4;
+            return uploadedPixels[offset] == r && uploadedPixels[offset + 1] == g
+                && uploadedPixels[offset + 2] == b && uploadedPixels[offset + 3] == 255;
+        };
+        check(readUploadedPixels && uploadedPixelIs(9, 13, 1, 2, 3)
+                  && uploadedPixelIs(0, 0, 245, 245, 248),
+              "Drawing partial texture uploads update edited pixels and preserve untouched pixels");
+        partialUpload.beginSparseHistory();
+        partialUpload.setPixel(40, 7, 4, 5, 6);
+        partialUpload.setPixel(12, 31, 7, 8, 9);
+        partialUpload.recordSparseHistoryChange();
+        partialUpload.finishSparseHistory();
+        check(partialUpload.m_dirtyTextureRect.x == 12
+                  && partialUpload.m_dirtyTextureRect.y == 7
+                  && partialUpload.m_dirtyTextureRect.w == 29
+                  && partialUpload.m_dirtyTextureRect.h == 25,
+              "Drawing merges separated pixel edits into the smallest enclosing upload region");
+        partialUpload.undoCanvas();
+        check(partialUpload.m_dirtyTextureRect.x == 0
+                  && partialUpload.m_dirtyTextureRect.y == 0
+                  && partialUpload.m_dirtyTextureRect.w == 64
+                  && partialUpload.m_dirtyTextureRect.h == 32,
+              "Drawing undo expands the upload region to the restored history tile");
+        partialUpload.syncTexture(renderer);
+        partialUpload.beginSparseHistory();
+        partialUpload.setPixel(60, 50, 90, 91, 92);
+        partialUpload.recordSparseHistoryChange();
+        partialUpload.finishSparseHistory();
+        partialUpload.syncTexture(renderer);
+        partialUpload.floodFill(60, 50);
+        check(partialUpload.m_dirtyTextureRect.x == 60
+                  && partialUpload.m_dirtyTextureRect.y == 50
+                  && partialUpload.m_dirtyTextureRect.w == 1
+                  && partialUpload.m_dirtyTextureRect.h == 1,
+              "Drawing Fill tracks its changed span without dirtying the full canvas");
+        partialUpload.markTextureDirty();
+        partialUpload.setPixel(70, 60, 3, 4, 5);
+        check(partialUpload.m_dirtyTextureRect.x == 0
+                  && partialUpload.m_dirtyTextureRect.y == 0
+                  && partialUpload.m_dirtyTextureRect.w == 128
+                  && partialUpload.m_dirtyTextureRect.h == 96,
+              "Drawing preserves a pending full refresh when new pixel edits arrive");
+        partialUpload.clearCanvas(false);
+        check(partialUpload.m_dirtyTextureRect.x == 0
+                  && partialUpload.m_dirtyTextureRect.y == 0
+                  && partialUpload.m_dirtyTextureRect.w == 128
+                  && partialUpload.m_dirtyTextureRect.h == 96,
+              "Drawing Clear marks the full canvas texture for upload");
+        check(partialUpload.loadFromPath("/drawings/resize.modr")
+                  && partialUpload.m_dirtyTextureRect.x == 0
+                  && partialUpload.m_dirtyTextureRect.y == 0
+                  && partialUpload.m_dirtyTextureRect.w == 2
+                  && partialUpload.m_dirtyTextureRect.h == 2,
+              "Drawing load marks the replacement canvas for a full texture upload");
+        partialUpload.syncTexture(renderer);
+
         const SDL_Rect expectedClip{5, 6, 180, 160};
         SDL_RenderSetClipRect(renderer, &expectedClip);
         drawing.render(renderer, {0, 0, 280, 280});

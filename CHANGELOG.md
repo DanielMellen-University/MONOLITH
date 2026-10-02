@@ -1,5 +1,10 @@
 # Changelog
 
+## 2026-10: Upload only changed Drawing canvas regions
+
+- Accumulate changed pixel, fill-span, and undo/redo tile bounds, then upload only that rectangle to the streaming canvas texture.
+- Keep full texture refreshes for canvas resize, load, and Clear; cover dirty-region accumulation and partial-upload state in headless tests.
+
 ## 2026-10: Make Terminal touch update existing files
 
 - `touch` now updates an existing regular file's last-write time without modifying its contents.

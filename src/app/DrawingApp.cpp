@@ -150,6 +150,38 @@ void DrawingApp::clearCanvas(bool recordUndo) {
 
 void DrawingApp::markTextureDirty() {
     m_textureDirty = true;
+    m_dirtyTextureRect = {0, 0, m_canvasWidth, m_canvasHeight};
+}
+
+void DrawingApp::markTextureRegionDirty(int x, int y, int width, int height) {
+    if (m_canvasWidth <= 0 || m_canvasHeight <= 0 || width <= 0 || height <= 0) return;
+
+    const long long left = std::max(0LL, static_cast<long long>(x));
+    const long long top = std::max(0LL, static_cast<long long>(y));
+    const long long right = std::min(static_cast<long long>(m_canvasWidth),
+                                     static_cast<long long>(x) + width);
+    const long long bottom = std::min(static_cast<long long>(m_canvasHeight),
+                                      static_cast<long long>(y) + height);
+    if (left >= right || top >= bottom) return;
+
+    const SDL_Rect region{static_cast<int>(left), static_cast<int>(top),
+                          static_cast<int>(right - left),
+                          static_cast<int>(bottom - top)};
+    if (!m_textureDirty || m_dirtyTextureRect.w <= 0 || m_dirtyTextureRect.h <= 0) {
+        m_dirtyTextureRect = region;
+        m_textureDirty = true;
+        return;
+    }
+
+    const int unionLeft = std::min(m_dirtyTextureRect.x, region.x);
+    const int unionTop = std::min(m_dirtyTextureRect.y, region.y);
+    const int unionRight = std::max(m_dirtyTextureRect.x + m_dirtyTextureRect.w,
+                                    region.x + region.w);
+    const int unionBottom = std::max(m_dirtyTextureRect.y + m_dirtyTextureRect.h,
+                                     region.y + region.h);
+    m_dirtyTextureRect = {unionLeft, unionTop, unionRight - unionLeft,
+                          unionBottom - unionTop};
+    m_textureDirty = true;
 }
 
 void DrawingApp::pushUndoHistoryEntry(CanvasHistoryEntry entry) {
@@ -256,7 +288,10 @@ void DrawingApp::finishSparseHistory() {
 }
 
 void DrawingApp::observeSparseHistoryPixelWrite(void* context, int x, int y) {
-    if (context) static_cast<DrawingApp*>(context)->captureSparseHistoryTile(x, y);
+    if (!context) return;
+    auto* drawing = static_cast<DrawingApp*>(context);
+    drawing->markTextureRegionDirty(x, y, 1, 1);
+    drawing->captureSparseHistoryTile(x, y);
 }
 
 void DrawingApp::captureSparseHistoryTile(int x, int y) {
@@ -318,6 +353,7 @@ void DrawingApp::toggleSparseHistoryTiles(CanvasHistoryEntry& entry) {
     if (entry.width != m_canvasWidth || entry.height != m_canvasHeight) return;
     const size_t canvasStride = static_cast<size_t>(m_canvasWidth) * 4;
     for (auto& tile : entry.tiles) {
+        markTextureRegionDirty(tile.x, tile.y, tile.width, tile.height);
         const size_t tileStride = static_cast<size_t>(tile.width) * 4;
         for (int row = 0; row < tile.height; ++row) {
             const size_t canvasOffset =
@@ -512,6 +548,7 @@ void DrawingApp::observeFillSpanWrite(void* context, int y, int left, int right)
     auto* drawing = static_cast<DrawingApp*>(context);
     if (!drawing) return;
 
+    drawing->markTextureRegionDirty(left, y, right - left + 1, 1);
     drawing->noteDirtySpanWrite(y, left, right);
     const int firstTileX = left / kHistoryTileSize;
     const int lastTileX = right / kHistoryTileSize;
@@ -585,7 +622,6 @@ void DrawingApp::undoCanvas() {
     for (const auto& tile : m_redoStack.back().tiles) refreshDirtyTile(tile);
     updateDirtyFlag();
     clearDiscardArm();
-    markTextureDirty();
     setStatus("Undo.");
 }
 
@@ -603,7 +639,6 @@ void DrawingApp::redoCanvas() {
     for (const auto& tile : m_undoStack.back().tiles) refreshDirtyTile(tile);
     updateDirtyFlag();
     clearDiscardArm();
-    markTextureDirty();
     setStatus("Redo.");
 }
 
@@ -619,7 +654,7 @@ void DrawingApp::syncTexture(SDL_Renderer* renderer) {
             || texH != m_canvasHeight) {
             SDL_DestroyTexture(m_canvasTexture);
             m_canvasTexture = nullptr;
-            m_textureDirty = true;
+            markTextureDirty();
         }
     }
 
@@ -639,25 +674,34 @@ void DrawingApp::syncTexture(SDL_Renderer* renderer) {
         );
 
         if (!m_canvasTexture) return;
-        m_textureDirty = true;
+        markTextureDirty();
     }
 
     // Upload CPU pixels only when the canvas content actually changed.
     if (!m_textureDirty) return;
 
+    SDL_Rect uploadRect = m_dirtyTextureRect;
+    if (uploadRect.w <= 0 || uploadRect.h <= 0) {
+        uploadRect = {0, 0, m_canvasWidth, m_canvasHeight};
+    }
+
     void* pixels = nullptr;
     int pitch = 0;
-    if (SDL_LockTexture(m_canvasTexture, nullptr, &pixels, &pitch) == 0) {
+    if (SDL_LockTexture(m_canvasTexture, &uploadRect, &pixels, &pitch) == 0) {
         const int rowBytes = m_canvasWidth * 4;
-        for (int y = 0; y < m_canvasHeight; ++y) {
+        const size_t uploadRowBytes = static_cast<size_t>(uploadRect.w) * 4;
+        for (int row = 0; row < uploadRect.h; ++row) {
             std::memcpy(
-                static_cast<uint8_t*>(pixels) + static_cast<size_t>(y) * static_cast<size_t>(pitch),
-                m_pixels.data() + static_cast<size_t>(y) * static_cast<size_t>(rowBytes),
-                static_cast<size_t>(rowBytes)
+                static_cast<uint8_t*>(pixels) + static_cast<size_t>(row) * static_cast<size_t>(pitch),
+                m_pixels.data()
+                    + static_cast<size_t>(uploadRect.y + row) * static_cast<size_t>(rowBytes)
+                    + static_cast<size_t>(uploadRect.x) * 4,
+                uploadRowBytes
             );
         }
         SDL_UnlockTexture(m_canvasTexture);
         m_textureDirty = false;
+        m_dirtyTextureRect = {};
     }
 }
 
@@ -748,7 +792,6 @@ void DrawingApp::floodFill(int x, int y) {
     m_dirty = true;
     finishDirtyTileTracking();
     clearDiscardArm();
-    markTextureDirty();
     setStatus("Filled region.");
 }
 
@@ -1818,7 +1861,6 @@ void DrawingApp::handleEvent(const SDL_Event& event) {
                 recordSparseHistoryChange();
                 m_dirty = true;
                 clearDiscardArm();
-                markTextureDirty();
             }
         }
         return;
@@ -1834,7 +1876,6 @@ void DrawingApp::handleEvent(const SDL_Event& event) {
                 recordSparseHistoryChange();
                 m_dirty = true;
                 clearDiscardArm();
-                markTextureDirty();
             }
         }
         m_drawing = false;
@@ -1862,13 +1903,11 @@ void DrawingApp::handleEvent(const SDL_Event& event) {
                 recordSparseHistoryChange();
                 m_dirty = true;
                 clearDiscardArm();
-                markTextureDirty();
             }
         } else if (stampBrush(cx, cy)) {
             recordSparseHistoryChange();
             m_dirty = true;
             clearDiscardArm();
-            markTextureDirty();
         }
 
         m_lastCanvasX = cx;

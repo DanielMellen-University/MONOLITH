@@ -1,5 +1,7 @@
 # Session log
 
+| 2026-10-02 | perf | Drawing now accumulates changed pixel, fill-span, and undo/redo tile bounds and partially updates its streaming canvas texture; resize/load/Clear retain full refreshes, with headless dirty-region regression coverage. |
+
 | 2026-10-02 | perf | Reused the Filesystem Browser directory snapshot across filter edits, retained refreshes from F5 and filesystem notifications, and passed hosted headless workflow #100. |
 
 | 2026-10-02 | fix | Completed Terminal `touch` semantics: existing regular files receive a last-write-time update without content changes, outside-root symlinks stay protected, and metadata-only touches avoid content-change notifications; hosted headless workflow #105 passed. |
