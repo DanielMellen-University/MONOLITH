@@ -5,8 +5,10 @@
 #include "../fs/Filesystem.hpp"
 #include <SDL2/SDL.h>
 #include <SDL2/SDL_ttf.h>
+#include <cstddef>
 #include <cstdint>
 #include <string>
+#include <utility>
 #include <vector>
 
 namespace monolith::app {
@@ -120,11 +122,19 @@ private:
     enum class SearchMode { None, Find, Replace };
     enum class SearchField { Query, Replacement };
 
+    struct FindMatchCheckpoint {
+        std::size_t index = 0;
+        int row = 0;
+        int col = 0;
+    };
+    static constexpr std::size_t kFindCheckpointStride = 256;
+
     void enterFindMode();
     void enterReplaceMode();
     void exitFindMode();
     void invalidateFindHighlightCache();
     void updateFindMatches();
+    std::pair<int, int> findMatchAtIndex(std::size_t index) const;
     void moveFindMatch(int direction);
     void applyCurrentFindMatch();
     void replaceCurrentMatch();
@@ -223,11 +233,16 @@ private:
     bool m_statusCursorMeasureValid = false;
     int m_findQueryPixelWidth = 0;
     bool m_findQueryPixelWidthValid = false;
-    std::vector<std::pair<int, int>> m_findMatches;  // row, col starts
-    int m_currentFindMatch = -1;
+    std::vector<FindMatchCheckpoint> m_findCheckpoints;
+    std::size_t m_findMatchCount = 0;
+    std::size_t m_currentFindMatch = 0;
+    bool m_hasCurrentFindMatch = false;
+    std::pair<int, int> m_currentFindPosition{-1, -1};
     int m_renderedFindStartRow = -1;
     int m_renderedFindLineCount = -1;
-    int m_renderedFindFirstMatchIndex = -1;
+    int m_renderedFindHorizontalOffset = -1;
+    int m_renderedFindTextWidth = -1;
+    std::vector<std::pair<int, int>> m_renderedFindVisibleMatches;
     std::vector<int> m_renderedFindPrefixWidths;
 
     SyntaxMode m_syntaxMode = SyntaxMode::Light;

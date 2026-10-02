@@ -1552,8 +1552,11 @@ void TextEditorApp::enterFindMode() {
     invalidateFindHighlightCache();
     m_findQuery.clear();
     m_replaceText.clear();
-    m_findMatches.clear();
-    m_currentFindMatch = -1;
+    m_findCheckpoints.clear();
+    m_findMatchCount = 0;
+    m_currentFindMatch = 0;
+    m_hasCurrentFindMatch = false;
+    m_currentFindPosition = {-1, -1};
     m_findCursorPos = 0;
     m_replaceCursorPos = 0;
     m_statusHorizontalScrollPx = 0;
@@ -1565,8 +1568,11 @@ void TextEditorApp::enterReplaceMode() {
     // Keep current find query if already searching.
     if (m_searchMode == SearchMode::None) {
         m_findQuery.clear();
-        m_findMatches.clear();
-        m_currentFindMatch = -1;
+        m_findCheckpoints.clear();
+        m_findMatchCount = 0;
+        m_currentFindMatch = 0;
+        m_hasCurrentFindMatch = false;
+        m_currentFindPosition = {-1, -1};
         invalidateFindHighlightCache();
     }
     m_searchMode = SearchMode::Replace;
@@ -1587,8 +1593,11 @@ void TextEditorApp::exitFindMode() {
     invalidateFindHighlightCache();
     m_findQuery.clear();
     m_replaceText.clear();
-    m_findMatches.clear();
-    m_currentFindMatch = -1;
+    m_findCheckpoints.clear();
+    m_findMatchCount = 0;
+    m_currentFindMatch = 0;
+    m_hasCurrentFindMatch = false;
+    m_currentFindPosition = {-1, -1};
     m_findCursorPos = 0;
     m_replaceCursorPos = 0;
     m_statusHorizontalScrollPx = 0;
@@ -1598,14 +1607,19 @@ void TextEditorApp::exitFindMode() {
 void TextEditorApp::invalidateFindHighlightCache() {
     m_renderedFindStartRow = -1;
     m_renderedFindLineCount = -1;
-    m_renderedFindFirstMatchIndex = -1;
+    m_renderedFindHorizontalOffset = -1;
+    m_renderedFindTextWidth = -1;
+    m_renderedFindVisibleMatches.clear();
     m_renderedFindPrefixWidths.clear();
 }
 
 void TextEditorApp::updateFindMatches() {
     invalidateFindHighlightCache();
-    m_findMatches.clear();
-    m_currentFindMatch = -1;
+    m_findCheckpoints.clear();
+    m_findMatchCount = 0;
+    m_currentFindMatch = 0;
+    m_hasCurrentFindMatch = false;
+    m_currentFindPosition = {-1, -1};
     m_findQueryPixelWidth = 0;
     m_findQueryPixelWidthValid = false;
 
@@ -1614,52 +1628,97 @@ void TextEditorApp::updateFindMatches() {
         return;
     }
 
+    bool haveFirstMatch = false;
+    bool selectedMatchAfterCursor = false;
+    std::pair<int, int> firstMatch{-1, -1};
+    std::pair<int, int> selectedPosition{-1, -1};
+    std::size_t selectedIndex = 0;
     for (int row = 0; row < static_cast<int>(m_lines.size()); ++row) {
         const std::string& line = m_lines[row];
         size_t pos = line.find(m_findQuery);
         while (pos != std::string::npos) {
-            m_findMatches.push_back({row, static_cast<int>(pos)});
+            const std::pair<int, int> location{row, static_cast<int>(pos)};
+            if (m_findMatchCount % kFindCheckpointStride == 0) {
+                m_findCheckpoints.push_back(
+                    {m_findMatchCount, location.first, location.second});
+            }
+            if (!haveFirstMatch) {
+                firstMatch = location;
+                haveFirstMatch = true;
+            }
+            if (!selectedMatchAfterCursor
+                && (row > m_cursorRow
+                    || (row == m_cursorRow && static_cast<int>(pos) >= m_cursorCol))) {
+                selectedMatchAfterCursor = true;
+                selectedIndex = m_findMatchCount;
+                selectedPosition = location;
+            }
+            ++m_findMatchCount;
             // Match the non-overlapping behavior used by Replace All. This
-            // keeps navigation and replacement counts consistent.
+            // keeps navigation and replacement counts consistent. Sparse
+            // checkpoints retain ordinal navigation without storing every hit.
             pos = line.find(m_findQuery, pos + m_findQuery.size());
         }
     }
 
-    if (m_findMatches.empty()) {
+    if (m_findMatchCount == 0) {
         clearSelection();
         return;
     }
 
-    m_currentFindMatch = 0;
-    for (int i = 0; i < static_cast<int>(m_findMatches.size()); ++i) {
-        const auto& match = m_findMatches[i];
-        if (match.first > m_cursorRow ||
-            (match.first == m_cursorRow && match.second >= m_cursorCol)) {
-            m_currentFindMatch = i;
-            break;
-        }
-    }
+    m_hasCurrentFindMatch = true;
+    m_currentFindMatch = selectedMatchAfterCursor ? selectedIndex : 0;
+    m_currentFindPosition = selectedMatchAfterCursor ? selectedPosition : firstMatch;
 
     applyCurrentFindMatch();
 }
 
+std::pair<int, int> TextEditorApp::findMatchAtIndex(std::size_t index) const {
+    if (m_findQuery.empty() || index >= m_findMatchCount) return {-1, -1};
+    const std::size_t checkpointIndex = index / kFindCheckpointStride;
+    if (checkpointIndex >= m_findCheckpoints.size()) return {-1, -1};
+
+    const FindMatchCheckpoint& checkpoint = m_findCheckpoints[checkpointIndex];
+    if (checkpoint.index == index) return {checkpoint.row, checkpoint.col};
+
+    std::size_t matchIndex = checkpoint.index;
+    for (int row = checkpoint.row; row < static_cast<int>(m_lines.size()); ++row) {
+        const std::string& line = m_lines[static_cast<size_t>(row)];
+        std::size_t searchFrom = row == checkpoint.row
+            ? static_cast<std::size_t>(checkpoint.col) + m_findQuery.size()
+            : 0;
+        while (searchFrom <= line.size()) {
+            const std::size_t pos = line.find(m_findQuery, searchFrom);
+            if (pos == std::string::npos) break;
+            ++matchIndex;
+            if (matchIndex == index) return {row, static_cast<int>(pos)};
+            searchFrom = pos + m_findQuery.size();
+        }
+    }
+    return {-1, -1};
+}
+
 void TextEditorApp::moveFindMatch(int direction) {
-    if (m_findMatches.empty()) {
-        return;
-    }
+    if (m_findMatchCount == 0) return;
 
-    if (m_currentFindMatch < 0 || m_currentFindMatch >= static_cast<int>(m_findMatches.size())) {
+    if (!m_hasCurrentFindMatch || m_currentFindMatch >= m_findMatchCount) {
         m_currentFindMatch = 0;
+    } else if (direction < 0) {
+        m_currentFindMatch = m_currentFindMatch == 0
+            ? m_findMatchCount - 1
+            : m_currentFindMatch - 1;
     } else {
-        int count = static_cast<int>(m_findMatches.size());
-        m_currentFindMatch = (m_currentFindMatch + direction + count) % count;
+        m_currentFindMatch = (m_currentFindMatch + 1) % m_findMatchCount;
     }
 
+    m_hasCurrentFindMatch = true;
+    m_currentFindPosition = findMatchAtIndex(m_currentFindMatch);
     applyCurrentFindMatch();
 }
 
 void TextEditorApp::selectCurrentMatch() {
-    if (m_currentFindMatch < 0 || m_currentFindMatch >= static_cast<int>(m_findMatches.size())) {
+    if (!m_hasCurrentFindMatch || m_currentFindMatch >= m_findMatchCount
+        || m_currentFindPosition.first < 0 || m_currentFindPosition.second < 0) {
         clearSelection();
         return;
     }
@@ -1667,11 +1726,10 @@ void TextEditorApp::selectCurrentMatch() {
         clearSelection();
         return;
     }
-    const auto& match = m_findMatches[m_currentFindMatch];
-    m_selAnchorRow = match.first;
-    m_selAnchorCol = match.second;
-    m_cursorRow = match.first;
-    m_cursorCol = match.second + static_cast<int>(m_findQuery.size());
+    m_selAnchorRow = m_currentFindPosition.first;
+    m_selAnchorCol = m_currentFindPosition.second;
+    m_cursorRow = m_currentFindPosition.first;
+    m_cursorCol = m_currentFindPosition.second + static_cast<int>(m_findQuery.size());
     // Clamp to line length
     if (m_cursorRow >= 0 && m_cursorRow < static_cast<int>(m_lines.size())) {
         const int len = static_cast<int>(m_lines[static_cast<size_t>(m_cursorRow)].size());
@@ -1681,13 +1739,11 @@ void TextEditorApp::selectCurrentMatch() {
 }
 
 void TextEditorApp::applyCurrentFindMatch() {
-    if (m_currentFindMatch < 0 || m_currentFindMatch >= static_cast<int>(m_findMatches.size())) {
-        return;
-    }
+    if (!m_hasCurrentFindMatch || m_currentFindMatch >= m_findMatchCount
+        || m_currentFindPosition.first < 0 || m_currentFindPosition.second < 0) return;
 
-    const auto& match = m_findMatches[m_currentFindMatch];
-    m_cursorRow = match.first;
-    m_cursorCol = match.second;
+    m_cursorRow = m_currentFindPosition.first;
+    m_cursorCol = m_currentFindPosition.second;
     selectCurrentMatch();
     ensureCursorVisible();
 }
@@ -1698,12 +1754,12 @@ void TextEditorApp::replaceCurrentMatch() {
         setStatus("Replace: empty find text");
         return;
     }
-    if (m_findMatches.empty() || m_currentFindMatch < 0) {
+    if (!m_hasCurrentFindMatch || m_findMatchCount == 0) {
         setStatus("Replace: no matches");
         return;
     }
 
-    const auto match = m_findMatches[static_cast<size_t>(m_currentFindMatch)];
+    const auto match = m_currentFindPosition;
     if (match.first < 0 || match.first >= static_cast<int>(m_lines.size())) return;
 
     std::string& line = m_lines[static_cast<size_t>(match.first)];
@@ -1734,7 +1790,7 @@ void TextEditorApp::replaceCurrentMatch() {
     clearSelection();
 
     updateFindMatches();
-    if (m_findMatches.empty()) {
+    if (m_findMatchCount == 0) {
         setStatus("Replaced 1 — no more matches");
     } else {
         setStatus("Replaced 1");
@@ -1752,7 +1808,7 @@ void TextEditorApp::replaceAllMatches() {
 
     // Count first so we can no-op cleanly.
     updateFindMatches();
-    if (m_findMatches.empty()) {
+    if (m_findMatchCount == 0) {
         setStatus("Replace all: no matches");
         return;
     }
@@ -1762,24 +1818,28 @@ void TextEditorApp::replaceAllMatches() {
     }
 
     pushUndoState();
-    int count = 0;
+    std::size_t count = 0;
     int firstChangedRow = static_cast<int>(m_lines.size());
-    // Replace the same non-overlapping matches Find reports. Processing the
-    // saved positions from right to left keeps earlier byte offsets stable.
-    const auto matches = m_findMatches;
-    for (auto it = matches.rbegin(); it != matches.rend(); ++it) {
-        const int row = it->first;
-        const int col = it->second;
-        if (row < 0 || row >= static_cast<int>(m_lines.size()) || col < 0) continue;
+    // Build each changed row once, so dense replacements avoid repeated shifts
+    // and inserted text is never searched again.
+    for (int row = 0; row < static_cast<int>(m_lines.size()); ++row) {
         std::string& line = m_lines[static_cast<size_t>(row)];
-        const size_t pos = static_cast<size_t>(col);
-        if (pos + m_findQuery.size() > line.size()
-            || line.compare(pos, m_findQuery.size(), m_findQuery) != 0) {
-            continue;
-        }
-        line.replace(pos, m_findQuery.size(), m_replaceText);
-        firstChangedRow = std::min(firstChangedRow, row);
-        ++count;
+        std::size_t copyFrom = 0;
+        std::size_t pos = line.find(m_findQuery);
+        if (pos == std::string::npos) continue;
+
+        std::string replaced;
+        replaced.reserve(line.size());
+        do {
+            replaced.append(line, copyFrom, pos - copyFrom);
+            replaced.append(m_replaceText);
+            copyFrom = pos + m_findQuery.size();
+            firstChangedRow = std::min(firstChangedRow, row);
+            ++count;
+            pos = line.find(m_findQuery, copyFrom);
+        } while (pos != std::string::npos);
+        replaced.append(line, copyFrom, std::string::npos);
+        line.swap(replaced);
     }
 
     if (count > 0) invalidateSyntaxFrom(firstChangedRow);
@@ -1876,34 +1936,62 @@ void TextEditorApp::render(SDL_Renderer* renderer, const SDL_Rect& contentRect) 
         }
     }
     if (m_renderedFindStartRow != m_scrollOffset
-        || m_renderedFindLineCount != renderedLineCount) {
+        || m_renderedFindLineCount != renderedLineCount
+        || m_renderedFindHorizontalOffset != m_horizontalScrollOffset
+        || m_renderedFindTextWidth != textWidth) {
         m_renderedFindStartRow = m_scrollOffset;
         m_renderedFindLineCount = renderedLineCount;
-        m_renderedFindFirstMatchIndex = -1;
+        m_renderedFindHorizontalOffset = m_horizontalScrollOffset;
+        m_renderedFindTextWidth = textWidth;
+        m_renderedFindVisibleMatches.clear();
         m_renderedFindPrefixWidths.clear();
         if (!m_findQuery.empty() && renderedLineCount > 0) {
-            // Search results are ordered, so only measure prefixes in the current viewport.
-            auto match = std::lower_bound(
-                m_findMatches.begin(), m_findMatches.end(), m_scrollOffset,
-                [](const auto& candidate, int row) { return candidate.first < row; });
-            m_renderedFindFirstMatchIndex =
-                static_cast<int>(match - m_findMatches.begin());
-            const int lastRenderedRow = m_scrollOffset + renderedLineCount;
-            while (match != m_findMatches.end() && match->first < lastRenderedRow) {
-                const std::string& line = m_lines[static_cast<size_t>(match->first)];
-                const std::string before = line.substr(0, static_cast<size_t>(match->second));
-                int prefixWidth = 0;
-                int measuredHeight = 0;
-                if (!before.empty()) {
-                    TTF_SizeUTF8(m_font, before.c_str(), &prefixWidth, &measuredHeight);
+            const std::size_t querySize = m_findQuery.size();
+            for (int rowOffset = 0; rowOffset < renderedLineCount; ++rowOffset) {
+                const int row = m_scrollOffset + rowOffset;
+                const std::string& line = m_lines[static_cast<size_t>(row)];
+                auto& slice = m_renderedTextSlices[static_cast<size_t>(rowOffset)];
+                if (!slice.measured) {
+                    slice = measureTextViewportSlice(line, textWidth);
                 }
-                m_renderedFindPrefixWidths.push_back(prefixWidth);
-                ++match;
+                if (!slice.valid || slice.visibleEndByte <= slice.firstVisibleByte) continue;
+
+                const std::size_t probe = slice.firstVisibleByte >= querySize
+                    ? slice.firstVisibleByte - querySize + 1
+                    : 0;
+                std::size_t searchFrom = probe;
+                while (searchFrom < line.size()) {
+                    const std::size_t pos = line.find(m_findQuery, searchFrom);
+                    if (pos == std::string::npos || pos >= slice.visibleEndByte) break;
+                    if (pos + querySize > slice.firstVisibleByte) {
+                        int prefixWidth = 0;
+                        int measuredHeight = 0;
+                        if (pos < slice.firstVisibleByte) {
+                            const std::string before = line.substr(0, pos);
+                            if (!before.empty()) {
+                                TTF_SizeUTF8(m_font, before.c_str(),
+                                             &prefixWidth, &measuredHeight);
+                            }
+                        } else if (pos > slice.firstVisibleByte) {
+                            const std::string visiblePrefix = line.substr(
+                                slice.firstVisibleByte, pos - slice.firstVisibleByte);
+                            if (!visiblePrefix.empty()) {
+                                TTF_SizeUTF8(m_font, visiblePrefix.c_str(),
+                                             &prefixWidth, &measuredHeight);
+                            }
+                            prefixWidth += slice.hiddenPixelWidth;
+                        } else {
+                            prefixWidth = slice.hiddenPixelWidth;
+                        }
+                        m_renderedFindVisibleMatches.push_back({row, static_cast<int>(pos)});
+                        m_renderedFindPrefixWidths.push_back(prefixWidth);
+                    }
+                    searchFrom = pos + querySize;
+                }
             }
         }
     }
     size_t visibleFindHighlightIndex = 0;
-    int visibleFindMatchIndex = m_renderedFindFirstMatchIndex;
 
     int selR0 = 0, selC0 = 0, selR1 = 0, selC1 = 0;
     const bool drawSel = hasSelection();
@@ -1971,11 +2059,11 @@ void TextEditorApp::render(SDL_Renderer* renderer, const SDL_Rect& contentRect) 
         }
 
         if (!m_findQuery.empty()) {
-            while (visibleFindHighlightIndex < m_renderedFindPrefixWidths.size()) {
-                const auto& match = m_findMatches[static_cast<size_t>(visibleFindMatchIndex)];
+            while (visibleFindHighlightIndex < m_renderedFindVisibleMatches.size()) {
+                const auto& match = m_renderedFindVisibleMatches[visibleFindHighlightIndex];
                 if (match.first != lineIdx) break;
 
-                if (visibleFindMatchIndex == m_currentFindMatch) {
+                if (match == m_currentFindPosition) {
                     SDL_SetRenderDrawColor(renderer, 54, 92, 116, 230);
                 } else {
                     SDL_SetRenderDrawColor(renderer, 36, 48, 58, 190);
@@ -1990,7 +2078,6 @@ void TextEditorApp::render(SDL_Renderer* renderer, const SDL_Rect& contentRect) 
                 };
                 SDL_RenderFillRect(renderer, &highlightRect);
                 ++visibleFindHighlightIndex;
-                ++visibleFindMatchIndex;
             }
         }
 
@@ -2063,11 +2150,11 @@ void TextEditorApp::render(SDL_Renderer* renderer, const SDL_Rect& contentRect) 
             searchPromptActive = true;
             if (m_findQuery.empty()) {
                 status += "   |  type to search";
-            } else if (m_findMatches.empty()) {
+            } else if (m_findMatchCount == 0) {
                 status += "   |  no matches";
             } else {
                 status += "   |  " + std::to_string(m_currentFindMatch + 1) +
-                          "/" + std::to_string(m_findMatches.size());
+                          "/" + std::to_string(m_findMatchCount);
             }
             if (m_searchMode == SearchMode::Replace) {
                 status += "   |  Tab fields  Enter next  Ctrl+R one  Ctrl+Shift+R all  Esc";
