@@ -1,5 +1,7 @@
 # Session log
 
+| 2026-10-02 | fix | Aligned `.modr` encoder/decoder limits without restricting larger live canvases; oversized saves now fail rather than writing files Drawing cannot reopen, and format tests exercise the production codec. |
+
 | 2026-10-02 | fix | Fixed same-path Open in Text Editor and Drawing so external file changes can be reloaded in the already-bound window; dirty editor text and canvas pixels still require the existing repeated discard confirmation. |
 
 | 2026-10-02 | perf | Removed per-comparison/per-entry lowercase string allocations from Filesystem Browser sorting and filtering; each query is normalized once per pass, with mixed-case substring and ordering regressions added. |

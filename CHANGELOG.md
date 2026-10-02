@@ -1,5 +1,10 @@
 # Changelog
 
+## 2026-10: Keep Drawing `.modr` encoding within the format limits
+
+- Make the production encoder and decoder enforce identical 4096-pixel dimension bounds and exact buffer/payload sizes; oversized live canvases remain editable but cannot be saved into files Drawing will refuse to reopen.
+- Replace the duplicate format test with direct codec coverage, including oversized and high-bit dimensions, and verify Drawing leaves no invalid file behind after an oversized save attempt.
+
 ## 2026-10: Restore same-file reload after external changes
 
 - Text Editor and Drawing now reload their currently bound file when Open targets that same path, instead of focusing the current singleton window and returning early.

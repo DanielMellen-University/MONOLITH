@@ -116,6 +116,15 @@ int main() {
           "undoing after a failed initial Drawing open clears the modified state");
 
     TestDrawing drawing(font, &fs);
+    TestDrawing oversizedSave(font, &fs);
+    oversizedSave.resizeCanvas(monolith::drawing::kMaxModrDimension + 1, 1, false);
+    check(!oversizedSave.saveToPath("/drawings/oversized-canvas/oversized.modr")
+              && !fs.exists("/drawings/oversized-canvas")
+              && !fs.exists("/drawings/oversized-canvas/oversized.modr")
+              && oversizedSave.m_statusMessage
+                  == "Save failed: canvas exceeds the .modr dimension limit.",
+          "Drawing rejects an oversized save before creating a directory or unreadable file");
+
     bool occupiedSketchNames = true;
     for (int i = 1; i <= 999; ++i) {
         std::string path = "/home/monolith/drawings/sketch";

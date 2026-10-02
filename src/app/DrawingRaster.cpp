@@ -292,12 +292,16 @@ std::size_t fillRegion(std::vector<uint8_t>& rgba, int width, int height,
 }
 
 std::string encodeModr(int width, int height, const std::vector<uint8_t>& rgba) {
-    if (width <= 0 || height <= 0) return {};
-    const size_t expected = static_cast<size_t>(width) * static_cast<size_t>(height) * 4;
-    if (rgba.size() < expected) return {};
+    if (width <= 0 || height <= 0
+        || width > kMaxModrDimension || height > kMaxModrDimension) {
+        return {};
+    }
+    const size_t pixelCount = static_cast<size_t>(width) * static_cast<size_t>(height);
+    const size_t expected = pixelCount * 4;
+    if (rgba.size() != expected) return {};
 
     std::string blob;
-    blob.reserve(12 + static_cast<size_t>(width) * static_cast<size_t>(height) * 3);
+    blob.reserve(12 + pixelCount * 3);
     blob.append(kModrMagic, 4);
     writeU32LE(blob, static_cast<uint32_t>(width));
     writeU32LE(blob, static_cast<uint32_t>(height));
@@ -314,13 +318,20 @@ std::string encodeModr(int width, int height, const std::vector<uint8_t>& rgba) 
 
 bool decodeModr(const std::string& blob, int& width, int& height, std::vector<uint8_t>& rgba) {
     if (blob.size() < 12 || std::memcmp(blob.data(), kModrMagic, 4) != 0) return false;
-    const int w = static_cast<int>(readU32LE(blob, 4));
-    const int h = static_cast<int>(readU32LE(blob, 8));
-    if (w <= 0 || h <= 0 || w > 4096 || h > 4096) return false;
-    const size_t expected = static_cast<size_t>(w) * static_cast<size_t>(h) * 3;
+    const uint32_t rawWidth = readU32LE(blob, 4);
+    const uint32_t rawHeight = readU32LE(blob, 8);
+    if (rawWidth == 0 || rawHeight == 0
+        || rawWidth > static_cast<uint32_t>(kMaxModrDimension)
+        || rawHeight > static_cast<uint32_t>(kMaxModrDimension)) {
+        return false;
+    }
+    const int w = static_cast<int>(rawWidth);
+    const int h = static_cast<int>(rawHeight);
+    const size_t pixelCount = static_cast<size_t>(w) * static_cast<size_t>(h);
+    const size_t expected = pixelCount * 3;
     if (blob.size() != 12 + expected) return false;
 
-    rgba.assign(static_cast<size_t>(w) * static_cast<size_t>(h) * 4, 255);
+    rgba.assign(pixelCount * 4, 255);
     size_t offset = 12;
     for (int y = 0; y < h; ++y) {
         for (int x = 0; x < w; ++x) {

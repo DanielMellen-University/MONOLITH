@@ -535,7 +535,7 @@ Undo and redo share a combined limit of 32 history states and 64 MiB of stored p
 - Height: 32-bit little-endian integer
 - Pixel payload: RGB bytes, top-to-bottom and left-to-right
 
-Width and height must be between 1 and 4096 pixels. The decoder requires the file to contain exactly the header plus `width * height * 3` payload bytes.
+Width and height must be between 1 and 4096 pixels. The encoder and decoder enforce the same limits. The decoder requires the file to contain exactly the header plus `width * height * 3` payload bytes, and the encoder requires an exact `width * height * 4` RGBA buffer. A live canvas can exceed the file-format limit on an unusually large client area; Save reports that limit before creating a target directory or writing a file. Resize the canvas to supported dimensions before saving.
 
 Internally, the live canvas stores pixels as `R,G,B,A`. The saved file stores only RGB because the canvas is fully opaque.
 
@@ -636,10 +636,10 @@ Verification scripts: see [Development Scripts](../development/scripts.md). The 
 ./scripts/verify_drawing_integration.sh
 g++ -std=c++23 scripts/test_drawing_roadmap.cpp src/app/DrawingRaster.cpp -o build/test_drawing_roadmap && ./build/test_drawing_roadmap
 g++ -std=c++23 scripts/test_drawing_state.cpp src/app/DrawingApp.cpp src/app/DrawingRaster.cpp src/fs/Filesystem.cpp $(pkg-config --cflags --libs sdl2 SDL2_ttf) -o build/test_drawing_state && ./build/test_drawing_state
-g++ -std=c++23 scripts/test_modr_format.cpp -o build/test_modr_format && ./build/test_modr_format
+g++ -std=c++23 scripts/test_modr_format.cpp src/app/DrawingRaster.cpp -o build/test_modr_format && ./build/test_modr_format
 ```
 
-These checks cover shell wiring, the standalone `.modr` raster contract, and
+These checks cover shell wiring, the production `.modr` encoder/decoder, and
 stateful editor paths without requiring an interactive desktop session. The
 optional smoke script exercises the built application through the headless
 display path:

@@ -34,6 +34,7 @@ The human funds token budget and lives in the desktop. You:
 
 | When | Kind | Note |
 |------|------|------|
+| 2026-10-02 | drawing-format | Keep `.modr` encoder/decoder bounds identical while preserving larger live canvases; oversized saves fail instead of creating files the decoder cannot reopen |
 | 2026-10-02 | same-file-reload | Text Editor and Drawing can reload their current file after an external overwrite; dirty documents retain the existing repeated-discard guard, with headless coverage |
 | 2026-10-02 | filesystem-filter | Directory sort/filter now avoids lowercase copies per comparison, normalizes the query once per listing pass, and preserves mixed-case matching/order; headless filesystem tests passed |
 | 2026-10-02 | text-editor-hit-test | Long-line mouse hit testing measures the clicked prefix once and maps UTF-8 codepoints to byte columns; hosted workflow #113 passed |
@@ -187,6 +188,7 @@ Older recent-work rows: [`SESSION_LOG.md`](SESSION_LOG.md).
 | 7.54 | Speed up Text Editor hit testing | done | Map mouse x positions to UTF-8 byte columns with one `TTF_MeasureUTF8` pass instead of measuring every growing line prefix; hosted workflow #113 passed |
 | 7.55 | Reduce Filesystem Browser filter allocations | done | Compare names case-insensitively without per-entry lowercase copies during sorting/filtering; lowercase the query once per listing pass and preserve existing mixed-case matching and ordering |
 | 7.56 | Restore same-file reload after external changes | done | Let Text Editor and Drawing reopen their already-bound path instead of self-focusing; preserve dirty-content confirmation and cover clean/dirty reloads in headless tests |
+| 7.57 | Align Drawing `.modr` codec limits | done | Enforce matching encoder/decoder bounds and exact buffers, preserve large-canvas editing, and test the production codec plus oversized-save rejection |
 | fs-browser-filter-cache | Reuse Filesystem Browser filter snapshots | done | Reuse one directory listing for filter edits; refresh it on F5 and Monolith filesystem notifications, including while filtering |
 | terminal-input-editing | Terminal command-line selection | done | Support UTF-8-safe keyboard/mouse selection and Ctrl+A/C/X/V; paste only the first clipboard line |
 | terminal-touch-mtime | Complete Terminal touch semantics | done | Update existing regular-file last-write time without truncation; reject outside-root symlink targets |

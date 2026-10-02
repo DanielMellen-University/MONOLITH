@@ -243,10 +243,10 @@ g++ -std=c++23 -Ibuild/generated -Ibuild/generated/settings scripts/test_window_
 
 ## `.modr` Format Roundtrip
 
-Compiles and runs a standalone test of the Drawing raster file format:
+Compiles and runs a headless test against the production Drawing raster codec:
 
 ```bash
-g++ -std=c++23 scripts/test_modr_format.cpp -o build/test_modr_format && ./build/test_modr_format
+g++ -std=c++23 scripts/test_modr_format.cpp src/app/DrawingRaster.cpp -o build/test_modr_format && ./build/test_modr_format
 ```
 
 ## Headless Drawing Smoke (Optional)
