@@ -164,7 +164,7 @@ g++ -std=c++23 scripts/test_drawing_state.cpp src/app/DrawingApp.cpp src/app/Dra
 
 ## Desktop Settings Persistence Check
 
-Headless test of desktop preference save/load, UI scale persistence, legacy files, and bounds handling:
+Headless test of desktop preference save/load, UI scale persistence, legacy files, bounded line reads, and wallpaper-path persistence limits:
 
 ```bash
 g++ -std=c++23 scripts/test_desktop_settings.cpp src/settings/DesktopSettings.cpp -o build/test_desktop_settings && ./build/test_desktop_settings

@@ -1,5 +1,10 @@
 # Changelog
 
+## 2026-10: Bound Desktop Settings records
+
+- Read persisted preference records with a 16 KiB bound and stop at the first oversized line while retaining earlier valid preferences.
+- Reject wallpaper paths that cannot round-trip through the persisted record format.
+
 ## 2026-10: Bound session restore records
 
 - Read session lines with a 16 KiB limit and stop restore at the first overlong record, preventing corrupt host-side session data from forcing an unbounded line allocation.
