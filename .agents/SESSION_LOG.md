@@ -1,5 +1,7 @@
 # Session log
 
+| 2026-10-02 | perf | Replaced Filesystem path normalization's stringstream and component-string vector with a direct scan into the canonical path; differential coverage compares generated inputs against the old rules. |
+
 | 2026-10-02 | fix | Replaced Minesweeper's bounded random retries plus deterministic fallback with uniform sampling without replacement; added seeded safe-first-open and exact mine-count coverage across difficulties and edge/corner positions. |
 
 | 2026-10-02 | fix | Terminal clipboard paste now retains all lines in its single-line prompt by converting CR, LF, CRLF, and tabs to spaces; added mixed newline/tab regression coverage. |

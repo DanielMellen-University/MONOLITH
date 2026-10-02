@@ -1,5 +1,10 @@
 # Changelog
 
+## 2026-10: Reduce virtual path normalization allocations
+
+- Resolve path components in one scan without a string stream or per-component string copies, preserving existing normalization rules.
+- Compare generated paths against the prior normalization behavior and cover long redundant separator runs.
+
 ## 2026-10: Make Minesweeper mine placement exactly uniform
 
 - Sample mine locations without replacement from cells allowed by first-click safety, removing the retry cap and deterministic fallback.
