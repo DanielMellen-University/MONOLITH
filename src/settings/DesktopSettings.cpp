@@ -1,6 +1,7 @@
 #include "DesktopSettings.hpp"
 
 #include "../detail/AtomicFile.hpp"
+#include "../detail/BoundedLineReader.hpp"
 
 #include <fstream>
 #include <sstream>
@@ -56,6 +57,14 @@ bool DesktopSettings::isSupportedUiScalePercent(int percent) {
     return percent == 90 || percent == 100 || percent == 115;
 }
 
+bool DesktopSettings::isValidWallpaperPath(std::string_view path) {
+    constexpr std::string_view key = "wallpaper_path=";
+    return path.size() <= monolith::detail::kMaxPersistedLineBytes - key.size()
+        && path.find('\n') == std::string_view::npos
+        && path.find('\0') == std::string_view::npos
+        && (path.empty() || path.back() != '\r');
+}
+
 bool DesktopSettings::isSupportedWallpaperFit(std::string_view fit) {
     return fit == "cover" || fit == "contain" || fit == "center";
 }
@@ -78,7 +87,13 @@ bool DesktopSettings::loadFromHostPath(const std::string& hostPath) {
     int nextUiScalePercent = 100;
     bool loadedAny = false;
     std::string line;
-    while (std::getline(in, line)) {
+    while (true) {
+        const auto lineResult = monolith::detail::readBoundedLine(in, line);
+        if (lineResult == monolith::detail::BoundedLineResult::End
+            || lineResult == monolith::detail::BoundedLineResult::Error
+            || lineResult == monolith::detail::BoundedLineResult::TooLong) {
+            break;
+        }
         if (!line.empty() && line.back() == '\r') line.pop_back();
 
         const std::string bgKey = "desktop_background=";
@@ -93,8 +108,11 @@ bool DesktopSettings::loadFromHostPath(const std::string& hostPath) {
 
         const std::string wallpaperKey = "wallpaper_path=";
         if (line.rfind(wallpaperKey, 0) == 0) {
-            nextWallpaperPath = line.substr(wallpaperKey.size());
-            loadedAny = true;
+            const std::string path = line.substr(wallpaperKey.size());
+            if (isValidWallpaperPath(path)) {
+                nextWallpaperPath = path;
+                loadedAny = true;
+            }
             continue;
         }
 
@@ -137,6 +155,7 @@ bool DesktopSettings::loadFromHostPath(const std::string& hostPath) {
 }
 
 bool DesktopSettings::saveToHostPath(const std::string& hostPath) const {
+    if (!isValidWallpaperPath(m_wallpaperPath)) return false;
     return monolith::detail::writeTextAtomically(
         hostPath,
         [this](std::ostream& out) {

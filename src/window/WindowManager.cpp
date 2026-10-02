@@ -5,6 +5,7 @@
 #include "SessionFormat.hpp"
 #include "../app/App.hpp"
 #include "../detail/AtomicFile.hpp"
+#include "../detail/BoundedLineReader.hpp"
 #include "../detail/RendererClip.hpp"
 #include "../app/FilePath.hpp"
 #include "../app/Utf8.hpp"

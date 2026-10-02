@@ -1,8 +1,8 @@
 // Headless regression test for retrying file opens after an initial load fails.
 
 #include "../src/app/DrawingRaster.hpp"
+#include "../src/detail/BoundedLineReader.hpp"
 #include "../src/fs/Filesystem.hpp"
-#include "../src/window/SessionFormat.hpp"
 #define private public
 #include "../src/app/DrawingApp.hpp"
 #include "../src/app/TextEditorApp.hpp"
@@ -88,6 +88,9 @@ int main() {
         check(fs.writeFile("/Wallpapers/old.bmp", "placeholder"),
               "write wallpaper move source");
         wm.setWallpaperPath("/Wallpapers/old.bmp");
+        wm.setWallpaperPath(std::string(monolith::detail::kMaxPersistedLineBytes + 1, 'x'));
+        check(wm.getWallpaperPath() == "/Wallpapers/old.bmp",
+              "WindowManager rejects a wallpaper path that cannot be persisted");
         check(fs.rename("/Wallpapers/old.bmp", "/archive/moved.bmp"),
               "move configured wallpaper");
         wm.notifyVirtualPathMoved("/Wallpapers/old.bmp", "/archive/moved.bmp");
@@ -338,7 +341,7 @@ int main() {
         {
             std::ofstream oversizedSession(oversizedSessionPath);
             oversizedSession << "session_v1\n"
-                             << std::string(monolith::window::session::kMaxLineBytes + 1, 'x')
+                             << std::string(monolith::detail::kMaxPersistedLineBytes + 1, 'x')
                              << "\nsnake 10 10 240 160 0 0 -\n";
         }
         monolith::window::WindowManager oversizedSessionWm;

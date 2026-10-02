@@ -19,6 +19,7 @@ public:
 
     static bool isSupportedUiScalePercent(int percent);
     static bool isSupportedWallpaperFit(std::string_view fit);
+    static bool isValidWallpaperPath(std::string_view path);
     // Unsupported or empty values become "cover".
     static std::string canonicalizeWallpaperFit(std::string_view fit);
 
@@ -37,7 +38,9 @@ public:
 
     // Empty clears wallpaper (solid color only).
     const std::string& wallpaperPath() const { return m_wallpaperPath; }
-    void setWallpaperPath(std::string path) { m_wallpaperPath = std::move(path); }
+    void setWallpaperPath(std::string path) {
+        if (isValidWallpaperPath(path)) m_wallpaperPath = std::move(path);
+    }
 
     // cover (default) | contain | center. Unsupported values coerce to cover.
     const std::string& wallpaperFit() const { return m_wallpaperFit; }

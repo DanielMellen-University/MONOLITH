@@ -1,4 +1,5 @@
 #include "../src/window/SessionFormat.hpp"
+#include "../src/detail/BoundedLineReader.hpp"
 
 #include <iostream>
 #include <sstream>
@@ -44,20 +45,20 @@ int main() {
     check(readPath(legacyEmpty, decoded) && decoded.empty(),
           "legacy empty path sentinel remains readable");
 
-    const std::string maxLine(monolith::window::session::kMaxLineBytes, 'x');
+    const std::string maxLine(monolith::detail::kMaxPersistedLineBytes, 'x');
     std::istringstream boundaryInput(maxLine + "\nnext");
-    check(monolith::window::session::readBoundedLine(
-              boundaryInput, decoded) == monolith::window::session::BoundedLineResult::Line
+    check(monolith::detail::readBoundedLine(
+              boundaryInput, decoded) == monolith::detail::BoundedLineResult::Line
               && decoded == maxLine,
           "session record at the byte limit is accepted");
-    check(monolith::window::session::readBoundedLine(
-              boundaryInput, decoded) == monolith::window::session::BoundedLineResult::Line
+    check(monolith::detail::readBoundedLine(
+              boundaryInput, decoded) == monolith::detail::BoundedLineResult::Line
               && decoded == "next",
           "bounded reader continues after an exact-limit record");
 
     std::istringstream boundedInput(maxLine + "x");
-    check(monolith::window::session::readBoundedLine(
-              boundedInput, decoded) == monolith::window::session::BoundedLineResult::TooLong
+    check(monolith::detail::readBoundedLine(
+              boundedInput, decoded) == monolith::detail::BoundedLineResult::TooLong
               && decoded.empty(),
           "overlong session records are rejected without retaining their contents");
 

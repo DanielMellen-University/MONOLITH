@@ -96,8 +96,8 @@ bool WindowManager::loadSession(const std::string& hostPath) {
     if (!in) return false;
 
     std::string header;
-    if (monolith::window::session::readBoundedLine(in, header)
-        != monolith::window::session::BoundedLineResult::Line) {
+    if (monolith::detail::readBoundedLine(in, header)
+        != monolith::detail::BoundedLineResult::Line) {
         return false;
     }
     // Trim CR
@@ -106,10 +106,10 @@ bool WindowManager::loadSession(const std::string& hostPath) {
 
     std::string line;
     while (true) {
-        const auto lineResult = monolith::window::session::readBoundedLine(in, line);
-        if (lineResult == monolith::window::session::BoundedLineResult::End
-            || lineResult == monolith::window::session::BoundedLineResult::Error
-            || lineResult == monolith::window::session::BoundedLineResult::TooLong) {
+        const auto lineResult = monolith::detail::readBoundedLine(in, line);
+        if (lineResult == monolith::detail::BoundedLineResult::End
+            || lineResult == monolith::detail::BoundedLineResult::Error
+            || lineResult == monolith::detail::BoundedLineResult::TooLong) {
             break;
         }
         if (!line.empty() && line.back() == '\r') line.pop_back();
