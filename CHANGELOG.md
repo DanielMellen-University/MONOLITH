@@ -1,5 +1,10 @@
 # Changelog
 
+## 2026-10: Pan long Terminal output rows
+
+- Add Shift+Page Up/Down horizontal panning for scrollback while preserving vertical Page Up/Down behavior.
+- Measure and cache UTF-8-safe visible ranges, rasterizing only viewport-sized row segments; reset the pan when new output arrives.
+
 ## 2026-10: Bound Snake and Minesweeper record loading
 
 - Read persisted game scores through per-format byte and row limits, reject malformed or out-of-range values, and preserve valid earlier Minesweeper times when a later record is oversized.

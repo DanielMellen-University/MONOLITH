@@ -52,6 +52,7 @@ Type commands at the prompt and press **Enter** to run them. Output appears abov
 | Esc (in search) | Cancel search, restore input |
 | Page Up / Page Down | Scroll output history |
 | Mouse wheel | Scroll output history |
+| Shift+Page Up / Shift+Page Down | Pan long output rows right / left |
 
 While reverse search is active, each additional `Ctrl+R` moves to the next older matching command. When no older match remains, the current match stays selected.
 
@@ -121,7 +122,7 @@ History is saved after each submitted command. Command history retains at most 5
 
 History loading accepts both Unix and Windows line endings, so recalled commands do not carry a hidden carriage return into command parsing.
 
-Output scrolling is bounded to the history rows that fit above the input strip. Page Up, Page Down, and the mouse wheel cannot scroll beyond the oldest fully visible output, and resizing or changing the interface text scale clamps the saved scroll position to the new history area. If the client is too short to expose a history row, the Terminal leaves the history area empty instead of painting through the input strip.
+Output scrolling is bounded to the history rows that fit above the input strip. Page Up, Page Down, and the mouse wheel cannot scroll beyond the oldest fully visible output, and resizing or changing the interface text scale clamps the saved scroll position to the new history area. Use Shift+Page Up/Down to pan long rows horizontally; the pan snaps to complete UTF-8 codepoints and applies to the rows currently visible. New output returns to the left edge. If the client is too short to expose a history row, the Terminal leaves the history area empty instead of painting through the input strip.
 
 Direct render-size changes update the cached client geometry before scroll bounds are calculated.
 
@@ -129,7 +130,7 @@ The input strip remains inside the client rectangle even when a window is resize
 The history viewport also clamps both width and height to zero for clients smaller than its padding, so narrow windows do not create invalid clip rectangles.
 Terminal intersects its input and history clips with the caller's renderer clip and restores that clip after each region.
 
-Terminal measures each scrollback row against the history viewport and rasterizes only the visible UTF-8 prefix, so an off-screen tail cannot allocate a screen-sized texture. The visible byte boundary is cached per row and viewport width, avoiding repeated SDL_ttf measurement between unchanged frames; resize and shared-font changes trigger fresh measurements. Scrollback rows, command-input fragments, and reverse-search text share a renderer-aware 256-entry LRU with an estimated 16 MiB budget. Text, font, and color are part of each key, so unchanged rows and prompt fragments survive output changes, scrolling, and resizing; renderer switches and shared interface text-scale changes clear the cache. Cached input-prefix texture widths also drive cursor placement, avoiding separate font measurement on steady-state renders.
+Terminal measures each scrollback row's visible UTF-8 range and rasterizes only that viewport-sized segment, so off-screen text never creates a full-width texture. Row widths are measured lazily for horizontal panning; visible byte ranges are cached by row, viewport width, and horizontal offset. Resize and shared-font changes clamp or reset the pixel-based pan state. Scrollback rows, command-input fragments, and reverse-search text share a renderer-aware 256-entry LRU with an estimated 16 MiB budget. Text, font, and color are part of each key, so unchanged rows and prompt fragments survive output changes, scrolling, and resizing; renderer switches and shared interface text-scale changes clear the cache. Cached input-prefix texture widths also drive cursor placement, avoiding separate font measurement on steady-state renders.
 
 ## Argument Quoting
 
@@ -157,7 +158,7 @@ Unterminated quotes print `parse error: ...` and do not run the command.
 - No script execution or custom language integration yet.
 - File modification times can be updated by Terminal `touch`, but Monolith does not display timestamps in its apps.
 - The prompt is a single line; clipboard paste uses only the first line and does not preserve tabs as tab characters.
-- Scrollback lines stay at native text size and clip at the viewport edge instead of being horizontally scaled or scrolled sideways.
+- Scrollback rows remain unwrapped; the horizontal pan position is shared across the rows currently visible.
 - Esc clears the current input and resets the insertion point, so typing can continue immediately.
 
 ## Developer Notes

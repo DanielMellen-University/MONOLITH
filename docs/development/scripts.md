@@ -85,7 +85,7 @@ Headless test of Terminal quoting, UTF-8-safe command inputs, and quoted or esca
 g++ -std=c++23 scripts/test_terminal_lexer.cpp src/app/TerminalLexer.cpp -o build/test_terminal_lexer && ./build/test_terminal_lexer
 ```
 
-Headless Terminal state test for UTF-8-safe input selection and clipboard editing, mouse selection, filesystem commands, completion, history and scrollback bounds, and undersized input-bar containment:
+Headless Terminal state test for UTF-8-safe input selection and clipboard editing, mouse selection, filesystem commands, completion, bounded history, vertical and horizontal scrollback, and undersized input-bar containment:
 
 ```bash
 g++ -std=c++23 scripts/test_terminal_filesystem_state.cpp src/app/TerminalApp.cpp src/app/TerminalLexer.cpp src/fs/Filesystem.cpp $(pkg-config --cflags --libs sdl2 SDL2_ttf) -o build/test_terminal_filesystem_state && ./build/test_terminal_filesystem_state

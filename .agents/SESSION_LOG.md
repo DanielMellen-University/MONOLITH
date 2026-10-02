@@ -1,5 +1,7 @@
 # Session log
 
+| 2026-10-02 | fix | Added Shift+Page Up/Down panning for long Terminal output rows, snapping visible ranges to UTF-8 boundaries and caching only viewport-sized text; vertical scrolling remains unchanged, and new output resets the pan. |
+
 | 2026-10-02 | fix | Bounded Snake and Minesweeper score-file reads by row and line size, rejected malformed or impossible values, and preserved earlier valid Minesweeper times when later data is oversized; added boundary and recovery regressions. |
 
 | 2026-10-02 | fix | Shared the 16 KiB persisted-line reader between session restore and Desktop Settings; oversized settings records stop parsing, and unrepresentable wallpaper paths no longer replace or save the current setting. |
