@@ -1,5 +1,10 @@
 # Changelog
 
+## 2026-10: Bound PNG/JPEG wallpaper decoding
+
+- Inspect PNG/JPEG dimensions before decoding directly from the host file, removing the whole-file compressed-data copy and rejecting images above 16,777,216 pixels before allocating decoded pixels.
+- Keep BMP on the existing SDL loader and add a headless regression for valid PNG loading, oversized headers, and unsupported extensions.
+
 ## 2026-10: Keep failed inline prompts editable
 
 - Text Editor and Drawing now preserve prompt input, caret, and horizontal position after recoverable path, line-number, RGB, or file-operation errors so users can correct and retry without re-entering the prompt.

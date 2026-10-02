@@ -1,5 +1,7 @@
 # Session log
 
+| 2026-10-02 | perf | Removed PNG/JPEG wallpaper's full compressed-file copy, checked pixel dimensions before decode, and added focused coverage; BMP continues through SDL's unchanged loader. |
+
 | 2026-10-02 | fix | Kept Text Editor and Drawing prompts active after recoverable path, line-number, RGB, or file-operation failures, preserving input, caret, and horizontal position; added retry coverage for invalid prompts, oversized/corrupt opens, and blocked saves. |
 
 | 2026-10-02 | fix | Aligned `.modr` encoder/decoder limits without restricting larger live canvases; oversized saves now fail rather than writing files Drawing cannot reopen, and format tests exercise the production codec. |

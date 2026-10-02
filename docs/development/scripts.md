@@ -170,6 +170,13 @@ Headless test of desktop preference save/load, UI scale persistence, legacy file
 g++ -std=c++23 scripts/test_desktop_settings.cpp src/settings/DesktopSettings.cpp -o build/test_desktop_settings && ./build/test_desktop_settings
 ```
 
+Headless PNG wallpaper decoder check for direct file loading, pixel-count rejection before decode, and unsupported-extension rejection:
+
+```bash
+cmake --build build --target monolith_stb_image
+g++ -std=c++23 -Ibuild/generated scripts/test_wallpaper_image.cpp src/window/WallpaperImage.cpp $(pkg-config --cflags --libs sdl2 SDL2_ttf) -o build/test_wallpaper_image && ./build/test_wallpaper_image
+```
+
 Headless Settings app test for wallpaper directory/image filename completion, shell binding, font-scaled layout metrics, and tiny-client footer containment:
 
 ```bash

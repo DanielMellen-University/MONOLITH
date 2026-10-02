@@ -3,16 +3,24 @@
 #include "../app/FilePath.hpp"
 
 #include <cstdio>
+#include <cstdint>
 #include <cstring>
 
 #define STB_IMAGE_IMPLEMENTATION
 #define STBI_ONLY_PNG
 #define STBI_ONLY_JPEG
-#define STBI_NO_STDIO
 #include "stb_image.h"
 
 namespace monolith::window {
 namespace {
+
+constexpr std::uint64_t kMaxWallpaperPixels = 16'777'216;
+
+bool wallpaperDimensionsAllowed(int width, int height) {
+    return width > 0 && height > 0
+        && static_cast<std::uint64_t>(width) * static_cast<std::uint64_t>(height)
+            <= kMaxWallpaperPixels;
+}
 
 SDL_Surface* surfaceFromRgba(unsigned char* rgba, int width, int height) {
     if (!rgba || width <= 0 || height <= 0) {
@@ -51,38 +59,24 @@ SDL_Surface* loadWithStb(const std::string& hostPath) {
     if (!file) {
         return nullptr;
     }
-    if (std::fseek(file, 0, SEEK_END) != 0) {
-        std::fclose(file);
-        return nullptr;
-    }
-    const long fileSize = std::ftell(file);
-    if (fileSize <= 0) {
-        std::fclose(file);
-        return nullptr;
-    }
-    if (std::fseek(file, 0, SEEK_SET) != 0) {
-        std::fclose(file);
-        return nullptr;
-    }
-
-    std::string bytes(static_cast<size_t>(fileSize), '\0');
-    const size_t readCount = std::fread(bytes.data(), 1, bytes.size(), file);
-    std::fclose(file);
-    if (readCount != bytes.size()) {
-        return nullptr;
-    }
 
     int width = 0;
     int height = 0;
     int components = 0;
-    unsigned char* rgba = stbi_load_from_memory(
-        reinterpret_cast<const stbi_uc*>(bytes.data()),
-        static_cast<int>(bytes.size()),
-        &width,
-        &height,
-        &components,
-        4);
+    if (!stbi_info_from_file(file, &width, &height, &components)
+        || !wallpaperDimensionsAllowed(width, height)) {
+        std::fclose(file);
+        return nullptr;
+    }
+
+    unsigned char* rgba = stbi_load_from_file(
+        file, &width, &height, &components, 4);
+    std::fclose(file);
     if (!rgba) {
+        return nullptr;
+    }
+    if (!wallpaperDimensionsAllowed(width, height)) {
+        stbi_image_free(rgba);
         return nullptr;
     }
 
