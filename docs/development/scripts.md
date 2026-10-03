@@ -170,7 +170,7 @@ Headless test of desktop preference save/load, UI scale persistence, legacy file
 g++ -std=c++23 scripts/test_desktop_settings.cpp src/settings/DesktopSettings.cpp -o build/test_desktop_settings && ./build/test_desktop_settings
 ```
 
-Headless PNG wallpaper decoder check for direct file loading, pixel-count rejection before decode, and unsupported-extension rejection:
+Headless wallpaper decoder check for BMP/PNG decoding, pixel-count rejection before decode, and unsupported-extension rejection:
 
 ```bash
 cmake --build build --target monolith_stb_image

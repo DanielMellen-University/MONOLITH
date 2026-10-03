@@ -1,5 +1,10 @@
 # Changelog
 
+## 2026-10: Bound BMP wallpaper decoding
+
+- Inspect BMP dimensions from the same open file SDL later decodes, rejecting images above 16,777,216 pixels before pixel allocation.
+- Keep accepted BMP decoding in SDL and add valid-pixel plus oversized-header regression coverage.
+
 ## 2026-10: Resolve recursive copy paths once
 
 - Stream each regular file from its resolved source into the atomic destination writer, avoiding repeated virtual-path resolution and status checks for every copy step.
