@@ -5,10 +5,13 @@
 
 #include <cstddef>
 #include <cstdint>
+#include <functional>
 #include <iterator>
 #include <list>
 #include <string>
+#include <string_view>
 #include <unordered_map>
+#include <utility>
 
 namespace monolith::detail {
 
@@ -40,8 +43,8 @@ public:
             m_renderer = renderer;
         }
 
-        std::string key = makeKey(font, text, color);
-        auto cached = m_entries.find(key);
+        const KeyView lookup{font, text, color};
+        auto cached = m_entries.find(lookup);
         if (cached != m_entries.end()) {
             m_lru.splice(m_lru.begin(), m_lru, cached->second.lruPosition);
             cached->second.lruPosition = m_lru.begin();
@@ -58,8 +61,9 @@ public:
         SDL_FreeSurface(surface);
         if (!texture) return {};
 
+        CacheKey key{font, std::string(text), color};
         m_lru.push_front(key);
-        auto inserted = m_entries.emplace(m_lru.front(), Entry{
+        auto inserted = m_entries.emplace(std::move(key), Entry{
             texture, width, height, estimatedBytes, m_lru.begin()});
         if (!inserted.second) {
             m_lru.pop_front();
@@ -86,25 +90,63 @@ public:
     std::uint64_t estimatedBytes() const { return m_estimatedBytes; }
 
 private:
+    struct CacheKey {
+        TTF_Font* font = nullptr;
+        std::string text;
+        SDL_Color color{};
+    };
+
+    struct KeyView {
+        TTF_Font* font = nullptr;
+        std::string_view text;
+        SDL_Color color{};
+    };
+
+    struct KeyHash {
+        using is_transparent = void;
+
+        template <typename Key>
+        std::size_t operator()(const Key& key) const noexcept {
+            std::size_t seed = std::hash<TTF_Font*>{}(key.font);
+            combine(seed, std::hash<std::string_view>{}(
+                std::string_view(key.text)));
+            const std::uint32_t packedColor =
+                (static_cast<std::uint32_t>(key.color.r) << 24)
+                | (static_cast<std::uint32_t>(key.color.g) << 16)
+                | (static_cast<std::uint32_t>(key.color.b) << 8)
+                | static_cast<std::uint32_t>(key.color.a);
+            combine(seed, std::hash<std::uint32_t>{}(packedColor));
+            return seed;
+        }
+
+    private:
+        static void combine(std::size_t& seed, std::size_t value) noexcept {
+            seed ^= value + static_cast<std::size_t>(0x9e3779b9)
+                + (seed << 6) + (seed >> 2);
+        }
+    };
+
+    struct KeyEqual {
+        using is_transparent = void;
+
+        template <typename Left, typename Right>
+        bool operator()(const Left& left, const Right& right) const noexcept {
+            return left.font == right.font
+                && std::string_view(left.text) == std::string_view(right.text)
+                && left.color.r == right.color.r
+                && left.color.g == right.color.g
+                && left.color.b == right.color.b
+                && left.color.a == right.color.a;
+        }
+    };
+
     struct Entry {
         SDL_Texture* handle = nullptr;
         int width = 0;
         int height = 0;
         std::uint64_t estimatedBytes = 0;
-        std::list<std::string>::iterator lruPosition;
+        std::list<CacheKey>::iterator lruPosition;
     };
-
-    static std::string makeKey(TTF_Font* font, const char* text, SDL_Color color) {
-        std::string key;
-        key.append(reinterpret_cast<const char*>(&font), sizeof(font));
-        key.append(text);
-        key.push_back('\0');
-        key.push_back(static_cast<char>(color.r));
-        key.push_back(static_cast<char>(color.g));
-        key.push_back(static_cast<char>(color.b));
-        key.push_back(static_cast<char>(color.a));
-        return key;
-    }
 
     static std::uint64_t estimateBytes(int width, int height) {
         if (width <= 0 || height <= 0) return 0;
@@ -131,8 +173,8 @@ private:
     }
 
     mutable SDL_Renderer* m_renderer = nullptr;
-    mutable std::unordered_map<std::string, Entry> m_entries;
-    mutable std::list<std::string> m_lru;
+    mutable std::unordered_map<CacheKey, Entry, KeyHash, KeyEqual> m_entries;
+    mutable std::list<CacheKey> m_lru;
     mutable std::uint64_t m_estimatedBytes = 0;
 };
 
