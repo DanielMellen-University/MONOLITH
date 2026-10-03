@@ -207,7 +207,7 @@ Headless Text Editor state test for bounded streamed file loading, CRLF across c
 g++ -std=c++23 scripts/test_text_editor_state.cpp src/app/TextEditorApp.cpp src/fs/Filesystem.cpp $(pkg-config --cflags --libs sdl2 SDL2_ttf) -o build/test_text_editor_state && ./build/test_text_editor_state
 ```
 
-Headless WindowManager test that failed Editor and Drawing opens do not reserve stale file singletons, can be retried, skip stale or overlong session records, stop after 1,024 session rows or once 128 windows are live, and release bare-app instance slots when they become file-backed:
+Headless WindowManager test that failed Editor and Drawing opens do not reserve stale file singletons, can be retried, skip stale or overlong session records, stop after 1,024 session rows or once 128 windows are live, save only the topmost 128 restorable windows in stacking order, and release bare-app instance slots when they become file-backed:
 
 ```bash
 cmake --build build --target monolith_settings_bodies monolith_stb_image
