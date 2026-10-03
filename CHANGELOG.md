@@ -1,5 +1,10 @@
 # Changelog
 
+## 2026-10: Cache Drawing history byte totals
+
+- Maintain per-entry and per-stack preimage-pixel byte totals so new edits and budget eviction do not rescan retained tile history.
+- Preserve the combined 32-state/64 MiB behavior and cover byte accounting through undo, redo, reset, overflow, and eviction.
+
 ## 2026-10: Preserve line-break session paths
 
 - Escape newline characters in quoted session paths so filenames cannot split a saved session record.
