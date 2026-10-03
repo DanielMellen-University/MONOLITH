@@ -50,9 +50,7 @@ void WindowManager::notifyVirtualPathRemoved(const std::string& virtualPath) {
         m_desktopSettings.setWallpaperPath("");
         destroyWallpaperTexture();
         m_wallpaperLoadedPath.clear();
-        if (!m_desktopSettingsHostPath.empty()) {
-            m_desktopSettings.saveToHostPath(m_desktopSettingsHostPath);
-        }
+        persistDesktopSettings();
     }
 
     std::vector<std::string> remainingClipboardPaths;

@@ -95,6 +95,8 @@ private:
     }};
 
     static constexpr int kWallpaperFitCount = 3;
+    static constexpr const char* kSaveFailureMessage =
+        "Change is live, but could not be saved.";
     static constexpr std::array<WallpaperFitOption, kWallpaperFitCount> kWallpaperFitOptions{{
         {"Cover", "cover"},
         {"Contain", "contain"},

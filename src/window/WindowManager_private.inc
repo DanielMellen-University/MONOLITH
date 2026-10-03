@@ -121,8 +121,9 @@ private:
 
     monolith::settings::DesktopSettings m_desktopSettings;
     std::string m_desktopSettingsHostPath;
+    bool m_desktopSettingsSaveFailed = false;
 
-    bool persistDesktopSettings() const;
+    bool persistDesktopSettings();
     void applyUiScaleFont();
 
     // Wallpaper image via WallpaperImage. Cover-scaled over the solid background.

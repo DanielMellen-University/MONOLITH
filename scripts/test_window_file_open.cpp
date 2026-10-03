@@ -135,6 +135,39 @@ int main() {
                       != std::string::npos,
               "successful retry persists all current live settings");
 
+        const auto autoSettingsParent = hostRoot / "auto-settings-parent";
+        const auto autoSettingsPath = autoSettingsParent / "desktop_settings.txt";
+        wm.loadDesktopSettings(autoSettingsPath.string());
+        check(fs.writeFile("/Wallpapers/failure.bmp", "placeholder"),
+              "create wallpaper for automatic persistence failure coverage");
+        check(wm.setWallpaperPath("/Wallpapers/failure.bmp")
+                  == monolith::app::SettingChangeResult::PersistenceFailed
+                  && wm.desktopSettingsSaveFailed(),
+              "WindowManager retains save-failure state for Settings to display");
+        check(fs.rename("/Wallpapers/failure.bmp", "/archive/failure.bmp"),
+              "rename wallpaper while settings persistence is unavailable");
+        wm.notifyVirtualPathMoved("/Wallpapers/failure.bmp", "/archive/failure.bmp");
+        check(wm.getWallpaperPath() == "/archive/failure.bmp"
+                  && wm.desktopSettingsSaveFailed(),
+              "automatic wallpaper move preserves and exposes its failed save state");
+        check(fs.removeRecursive("/archive/failure.bmp"),
+              "delete wallpaper while settings persistence is unavailable");
+        wm.notifyVirtualPathRemoved("/archive/failure.bmp");
+        check(wm.getWallpaperPath().empty() && wm.desktopSettingsSaveFailed(),
+              "automatic wallpaper deletion preserves and exposes its failed save state");
+        ec.clear();
+        std::filesystem::create_directories(autoSettingsParent, ec);
+        check(!ec, "create automatic settings parent after failed writes");
+        check(wm.setClock24Hour(wm.getClock24Hour())
+                  == monolith::app::SettingChangeResult::Applied
+                  && !wm.desktopSettingsSaveFailed(),
+              "a later successful preference save clears automatic save failure state");
+        std::ifstream autoRecoveredSettings(autoSettingsPath);
+        const std::string autoRecoveredSettingsText(
+            std::istreambuf_iterator<char>(autoRecoveredSettings), {});
+        check(autoRecoveredSettingsText.find("wallpaper_path=\n") != std::string::npos,
+              "recovery persists the wallpaper path after its file was deleted");
+
         check(fs.writeFile("/docs/queued.txt", "queued"),
               "write clipboard move source");
         wm.setFilesystemClipboard({"/docs/queued.txt"}, true);

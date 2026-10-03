@@ -106,6 +106,10 @@
         }
         return monolith::app::SettingChangeResult::Rejected;
     }
+
+    bool desktopSettingsSaveFailed() const override {
+        return wm && wm->desktopSettingsSaveFailed();
+    }
 };
 
 } // anonymous namespace

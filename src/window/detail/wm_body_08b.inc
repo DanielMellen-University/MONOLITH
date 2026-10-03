@@ -1,12 +1,13 @@
 void WindowManager::loadDesktopSettings(const std::string& hostPath) {
     m_desktopSettingsHostPath = hostPath;
+    m_desktopSettingsSaveFailed = false;
     m_desktopSettings.loadFromHostPath(hostPath);
     if (m_fs && !m_desktopSettings.wallpaperPath().empty()) {
         const std::string rawWallpaperPath = m_desktopSettings.wallpaperPath();
         const std::string normalizedWallpaperPath = m_fs->normalize(rawWallpaperPath);
         if (rawWallpaperPath != normalizedWallpaperPath) {
             m_desktopSettings.setWallpaperPath(normalizedWallpaperPath);
-            m_desktopSettings.saveToHostPath(hostPath);
+            persistDesktopSettings();
         }
     }
     applyUiScaleFont();
@@ -19,9 +20,14 @@ monolith::settings::RGB WindowManager::getDesktopBackground() const {
     return m_desktopSettings.desktopBackground();
 }
 
-bool WindowManager::persistDesktopSettings() const {
-    return m_desktopSettingsHostPath.empty()
-        || m_desktopSettings.saveToHostPath(m_desktopSettingsHostPath);
+bool WindowManager::persistDesktopSettings() {
+    if (m_desktopSettingsHostPath.empty()) {
+        m_desktopSettingsSaveFailed = false;
+        return true;
+    }
+    const bool saved = m_desktopSettings.saveToHostPath(m_desktopSettingsHostPath);
+    m_desktopSettingsSaveFailed = !saved;
+    return saved;
 }
 
 monolith::app::SettingChangeResult WindowManager::setDesktopBackground(
