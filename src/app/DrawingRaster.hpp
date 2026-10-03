@@ -1,9 +1,11 @@
 #pragma once
 
+#include <array>
 #include <cstddef>
 #include <cstdint>
 #include <iosfwd>
 #include <string>
+#include <string_view>
 #include <vector>
 
 namespace monolith::drawing {
@@ -65,6 +67,36 @@ std::string encodeModr(int width, int height, const std::vector<uint8_t>& rgba);
 /** Stream live RGBA canvas as .modr using a bounded temporary buffer. */
 bool writeModr(std::ostream& output, int width, int height,
                const std::vector<uint8_t>& rgba);
+
+/** Incrementally validates and decodes a .modr file without buffering its RGB payload. */
+class ModrStreamDecoder {
+public:
+    explicit ModrStreamDecoder(std::uint64_t fileBytes);
+
+    /** Consume one input chunk. Returns false as soon as the stream is invalid. */
+    bool consume(std::string_view chunk);
+
+    /** Commit decoded outputs only after the complete file has been validated. */
+    bool finish(int& width, int& height, std::vector<uint8_t>& rgba);
+
+private:
+    bool parseHeader();
+    bool appendPayload(std::string_view bytes);
+
+    std::uint64_t m_fileBytes = 0;
+    std::array<char, kModrHeaderBytes> m_header{};
+    std::array<uint8_t, kModrRgbBytesPerPixel> m_partialPixel{};
+    std::size_t m_headerBytes = 0;
+    std::size_t m_expectedPayloadBytes = 0;
+    std::size_t m_writtenPixels = 0;
+    std::size_t m_partialPixelBytes = 0;
+    int m_width = 0;
+    int m_height = 0;
+    std::vector<uint8_t> m_rgba;
+    bool m_headerParsed = false;
+    bool m_failed = false;
+    bool m_finished = false;
+};
 
 /** Decode .modr into an RGBA buffer (A=255). Returns false on corrupt data. */
 bool decodeModr(const std::string& blob, int& width, int& height, std::vector<uint8_t>& rgba);
