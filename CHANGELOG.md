@@ -1,5 +1,10 @@
 # Changelog
 
+## 2026-10: Report game-record save failures
+
+- Keep new Snake scores and Minesweeper best times active for the session while clearly warning when atomic persistence fails.
+- Retry failed writes on focus return or game restart, and cover warning rendering plus recovery in headless tests.
+
 ## 2026-10: Surface automatic Desktop Settings save failures
 
 - Carry atomic-save failures from wallpaper moves and deletions into a shell status that Settings can display later.

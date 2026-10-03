@@ -118,11 +118,22 @@ int main() {
     std::filesystem::remove(scorePath, cleanupError);
     check(std::filesystem::create_directory(scorePath),
           "create blocked Snake score target");
-    game.m_highScore = 23;
-    game.saveHighScore();
+    game.m_highScore = 17;
+    game.m_score = 23;
+    game.maybeUpdateHighScore();
+    check(game.m_highScore == 23 && game.m_newHighScore
+              && game.m_highScoreSaveFailed,
+          "Snake keeps a new in-session record and reports a failed save");
     check(std::filesystem::is_directory(scorePath)
               && !std::filesystem::exists(scorePath.string() + ".tmp"),
           "failed Snake score replacement preserves the target and cleans up");
+    std::filesystem::remove_all(scorePath, cleanupError);
+    game.onFocusGained();
+    std::ifstream recoveredScoreFile(scorePath);
+    const std::string recoveredScore(
+        std::istreambuf_iterator<char>(recoveredScoreFile), {});
+    check(!game.m_highScoreSaveFailed && recoveredScore == "23\n",
+          "Snake retries and persists the record after focus returns");
 
     const int baseHudHeight = game.hudHeight();
     check(TTF_SetFontSize(font, 22) == 0, "Snake state scales test font");
@@ -197,6 +208,7 @@ int main() {
     if (snakeRenderer) {
         SDL_SetRenderDrawBlendMode(snakeRenderer, SDL_BLENDMODE_ADD);
         game.m_state = SnakeApp::State::GameOver;
+        game.m_highScoreSaveFailed = true;
         game.m_clientWidth = 1;
         game.m_clientHeight = 1;
         game.render(snakeRenderer, {0, 0, 240, 240});
@@ -212,6 +224,12 @@ int main() {
                   == gameOverTexture.handle
                   && game.m_textTextureCache.size() == cachedTextureCount,
               "Snake reuses cached text textures between frames");
+        const size_t warningTextureCount = game.m_textTextureCache.size();
+        const auto warningTexture = game.m_textTextureCache.get(
+            snakeRenderer, font, "BEST NOT SAVED", {240, 160, 90, 255});
+        check(warningTexture.handle
+                  && game.m_textTextureCache.size() == warningTextureCount,
+              "Snake renders a warning instead of a false new-best claim");
         game.onUiScaleChanged();
         check(game.m_textTextureCache.size() == 0,
               "Snake releases cached text textures when UI scale changes");

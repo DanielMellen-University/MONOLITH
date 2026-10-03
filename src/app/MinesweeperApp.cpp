@@ -20,6 +20,7 @@ constexpr SDL_Color kOverlayText{245, 245, 250, 255};
 constexpr SDL_Color kBtnBg{55, 60, 75, 255};
 constexpr SDL_Color kBtnActive{70, 95, 145, 255};
 constexpr SDL_Color kGold{230, 190, 70, 255};
+constexpr SDL_Color kSaveWarning{240, 160, 90, 255};
 } // namespace
 
 using monolith::detail::RendererClipState;
@@ -75,8 +76,8 @@ void MinesweeperApp::loadBestTimes() {
     }
 }
 
-void MinesweeperApp::saveBestTimes() const {
-    monolith::detail::writeTextAtomically(
+bool MinesweeperApp::saveBestTimes() {
+    m_bestTimesSaveFailed = !monolith::detail::writeTextAtomically(
         bestTimesHostPath(),
         [this](std::ostream& out) {
             if (m_bestBeginner > 0) out << "beginner " << m_bestBeginner << '\n';
@@ -84,6 +85,7 @@ void MinesweeperApp::saveBestTimes() const {
             if (m_bestExpert > 0) out << "expert " << m_bestExpert << '\n';
         },
         true);
+    return !m_bestTimesSaveFailed;
 }
 
 int MinesweeperApp::bestTimeFor(Difficulty d) const {
@@ -121,6 +123,9 @@ MinesweeperApp::MinesweeperApp(TTF_Font* font) : m_font(font) {
 }
 
 void MinesweeperApp::newGame(Difficulty d) {
+    if (m_bestTimesSaveFailed) {
+        saveBestTimes();
+    }
     m_difficulty = d;
     const auto& s = specFor(d);
     m_width = s.width;
@@ -355,6 +360,9 @@ void MinesweeperApp::onFocusLost() {
 }
 
 void MinesweeperApp::onFocusGained() {
+    if (m_bestTimesSaveFailed) {
+        saveBestTimes();
+    }
     if (m_focusPaused && m_state == State::Playing && m_minesPlaced) {
         m_focusPaused = false;
         // Resume from the exact frozen millisecond count, not the rounded HUD second.
@@ -802,8 +810,12 @@ void MinesweeperApp::render(SDL_Renderer* renderer, const SDL_Rect& contentRect)
         std::max(0, contentRect.w - 20),
         footer.h
     };
-    drawText(renderer, "L open  R flag/?  M/chord  face=new", contentRect.x + 10,
-             footer.y + std::max(0, (footerH - fontHeight) / 2), kDimText, &footerTextClip);
+    const char* footerMessage = m_bestTimesSaveFailed
+        ? "BEST TIME NOT SAVED"
+        : "L open  R flag/?  M/chord  face=new";
+    drawText(renderer, footerMessage, contentRect.x + 10,
+             footer.y + std::max(0, (footerH - fontHeight) / 2),
+             m_bestTimesSaveFailed ? kSaveWarning : kDimText, &footerTextClip);
 
     // End overlays — centered vertical stack
     if (m_state == State::Won || m_state == State::Lost) {
@@ -825,7 +837,10 @@ void MinesweeperApp::render(SDL_Renderer* renderer, const SDL_Rect& contentRect)
             if (bestNow > 0) {
                 line2 += "  ·  Best " + std::to_string(bestNow) + "s";
             }
-            if (m_newBest) {
+            if (m_bestTimesSaveFailed) {
+                line3 = "BEST TIME NOT SAVED";
+                line3Color = kSaveWarning;
+            } else if (m_newBest) {
                 line3 = "NEW BEST!";
                 line3Color = kGold;
             } else {

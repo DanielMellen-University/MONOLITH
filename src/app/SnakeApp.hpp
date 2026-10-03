@@ -61,7 +61,7 @@ private:
     void drawCenteredLine(SDL_Renderer* renderer, const char* text,
                           const SDL_Rect& area, int topY, SDL_Color color) const;
     void loadHighScore();
-    void saveHighScore() const;
+    bool saveHighScore();
     void maybeUpdateHighScore();
     static std::string highScoreHostPath();
 
@@ -77,6 +77,7 @@ private:
     int m_score = 0;
     int m_highScore = 0;
     bool m_newHighScore = false;
+    bool m_highScoreSaveFailed = false;
     State m_state = State::Playing;
     bool m_paused = false;
     Uint32 m_lastStepMs = 0;

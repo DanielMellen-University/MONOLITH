@@ -177,11 +177,25 @@ int main() {
     std::filesystem::remove(bestPath, cleanupError);
     check(std::filesystem::create_directory(bestPath),
           "create blocked Minesweeper best-time target");
-    game.m_bestBeginner = 21;
-    game.saveBestTimes();
+    game.m_bestBeginner = 30;
+    game.m_state = MinesweeperApp::State::Won;
+    game.m_difficulty = MinesweeperApp::Difficulty::Beginner;
+    game.m_elapsedSec = 21;
+    game.recordBestTimeIfNeeded();
+    check(game.m_bestBeginner == 21 && game.m_newBest
+              && game.m_bestTimesSaveFailed,
+          "Minesweeper keeps a new in-session best and reports a failed save");
     check(std::filesystem::is_directory(bestPath)
               && !std::filesystem::exists(bestPath.string() + ".tmp"),
           "failed Minesweeper replacement preserves the target and cleans up");
+    std::filesystem::remove_all(bestPath, cleanupError);
+    game.onFocusGained();
+    std::ifstream recoveredBestFile(bestPath);
+    const std::string recoveredBest(
+        std::istreambuf_iterator<char>(recoveredBestFile), {});
+    check(!game.m_bestTimesSaveFailed
+              && recoveredBest == "beginner 21\nexpert 48\n",
+          "Minesweeper retries and persists best times after focus returns");
 
     const int baseButtonHeight = game.m_difficultyButtonHeight;
     const int baseHudHeight = game.hudHeight();
@@ -322,6 +336,17 @@ int main() {
         check(cachedTextureCount > 0
                   && game.m_textTextureCache.size() == cachedTextureCount,
               "Minesweeper reuses repeated number-glyph textures between frames");
+        game.m_state = MinesweeperApp::State::Won;
+        game.m_newBest = true;
+        game.m_bestTimesSaveFailed = true;
+        game.render(minesweeperRenderer, {0, 0, 240, 240});
+        const size_t warningTextureCount = game.m_textTextureCache.size();
+        const auto warningTexture = game.m_textTextureCache.get(
+            minesweeperRenderer, font, "BEST TIME NOT SAVED",
+            {240, 160, 90, 255});
+        check(warningTexture.handle
+                  && game.m_textTextureCache.size() == warningTextureCount,
+              "Minesweeper renders a warning instead of a false new-best claim");
         game.onUiScaleChanged();
         check(game.m_textTextureCache.size() == 0,
               "Minesweeper releases text textures when UI scale changes");

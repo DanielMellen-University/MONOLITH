@@ -86,7 +86,7 @@ private:
                           const SDL_Rect& area, int topY, SDL_Color color) const;
     SDL_Color numberColor(int n) const;
     void loadBestTimes();
-    void saveBestTimes() const;
+    bool saveBestTimes();
     static std::string bestTimesHostPath();
     int bestTimeFor(Difficulty d) const;
     void setBestTime(Difficulty d, int seconds);
@@ -118,6 +118,7 @@ private:
     int m_bestBeginner = 0;
     int m_bestIntermediate = 0;
     int m_bestExpert = 0;
+    bool m_bestTimesSaveFailed = false;
 
     // Pressed cell preview (client grid coords)
     bool m_pressing = false;
