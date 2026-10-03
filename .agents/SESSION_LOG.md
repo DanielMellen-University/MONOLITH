@@ -1,5 +1,7 @@
 # Session log
 
+| 2026-10-03 | perf | Terminal now caches its abbreviated cwd prompt and reuses input, caret, selection, and reverse-search strings across frames; mouse hit-testing reuses its prefix buffer through binary-search measurements. State tests verify unchanged storage and prompt invalidation. Full hosted workflow #271 passed; the focused state test also passed locally under ASan/UBSan. |
+
 | 2026-10-03 | perf | TextTextureCache now stores each owned font/text/color key only in the map; LRU nodes hold views into those stable keys, avoiding duplicate strings on misses. Cache stress coverage checks the oldest retained texture across map rehashes and count eviction; normal and sanitized hosted workflow #266 passed. |
 
 | 2026-10-03 | perf | Shared text texture cache hits now hash and compare transparent font/text/color views instead of constructing an owned composite key on every draw; cache misses retain an owned text key. Coverage verifies font identity and caller-string ownership; normal and sanitized hosted workflow #262 passed. |

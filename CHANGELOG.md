@@ -1,5 +1,10 @@
 # Changelog
 
+## 2026-10: Reuse Terminal prompt render buffers
+
+- Cache the abbreviated working-directory prompt until the current directory changes.
+- Reuse input, caret-prefix, selection, and reverse-search strings across frames; reuse prefix storage during mouse hit-testing.
+
 ## 2026-10: Store text cache keys once
 
 - Keep LRU entries as non-owning views into the cache's immutable map keys, avoiding a second owned text string per cached texture.
