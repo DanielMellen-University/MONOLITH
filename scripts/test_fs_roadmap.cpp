@@ -41,6 +41,19 @@ static std::string referenceNormalize(const std::string& path) {
     return result;
 }
 
+static std::string referenceJoin(const std::string& directory,
+                                 const std::string& child) {
+    if (child.empty()) {
+        return referenceNormalize(directory.empty() ? "/" : directory);
+    }
+
+    std::string joined = directory.empty() ? "/" : directory;
+    if (joined == "/") return referenceNormalize("/" + child);
+    if (joined.back() != '/') joined.push_back('/');
+    joined += child;
+    return referenceNormalize(joined);
+}
+
 int main() {
     int failures = 0;
     auto check = [&](bool ok, const char* msg) {
@@ -72,6 +85,11 @@ int main() {
     check(fs.normalize("") == "/" && fs.normalize("////") == "/"
               && fs.normalize("../../alpha/../beta/") == "/beta",
           "path normalization preserves empty, repeated-slash, and root-clamping behavior");
+    check(fs.join("", "") == "/"
+              && fs.join("", "child") == "/child"
+              && fs.join("/root", "/child") == "/root/child"
+              && fs.join("/root", "../child") == "/child",
+          "path joining preserves empty-root, slash-prefixed child, and parent traversal behavior");
     const std::vector<std::string> pathComponents = {
         "", ".", "..", "alpha", "two words", "\xC3\xA9" "clair"};
     const std::vector<std::string> pathPrefixes = {"", "/", "///"};
@@ -91,6 +109,23 @@ int main() {
     }
     check(matchesReference,
           "single-pass path normalization matches the previous rules across component combinations");
+    const std::vector<std::string> joinChildren = {
+        "", ".", "..", "child", "../child", "/absolute", "///", "two words"};
+    bool joinsMatchReference = true;
+    for (const auto& prefix : pathPrefixes) {
+        for (const auto& first : pathComponents) {
+            for (const auto& second : pathComponents) {
+                const std::string directory = prefix + first + "/" + second + "/";
+                for (const auto& child : joinChildren) {
+                    if (fs.join(directory, child) != referenceJoin(directory, child)) {
+                        joinsMatchReference = false;
+                    }
+                }
+            }
+        }
+    }
+    check(joinsMatchReference,
+          "direct path joining matches previous semantics for relative and slash-prefixed children");
     check(fs.normalize(std::string(65536, '/')) == "/",
           "normalization handles long redundant separator runs");
 

@@ -1,5 +1,7 @@
 # Session log
 
+| 2026-10-03 | perf | Reused Filesystem's component scanner in `join()` to avoid combined-path temporaries and removed the extra substring allocation in host mapping; generated differential tests cover existing join semantics. |
+
 | 2026-10-02 | perf | Replaced Filesystem path normalization's stringstream and component-string vector with a direct scan into the canonical path; differential coverage compares generated inputs against the old rules. |
 
 | 2026-10-02 | fix | Replaced Minesweeper's bounded random retries plus deterministic fallback with uniform sampling without replacement; added seeded safe-first-open and exact mine-count coverage across difficulties and edge/corner positions. |

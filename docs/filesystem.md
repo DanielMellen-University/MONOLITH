@@ -15,7 +15,7 @@ All filesystem operations use paths starting with `/`. Common locations:
 | `/home/monolith/welcome.txt` | Sample text file created on first run |
 | `/home/monolith/.terminal_history` | Persistent Terminal command history |
 
-Paths are normalized by `Filesystem::normalize()` — `..`, `.`, duplicate slashes, and relative segments are resolved consistently across Terminal, Filesystem Browser, and Drawing. Normalization scans components directly into the canonical output instead of allocating a stream and a separate string for every component.
+Paths are normalized by `Filesystem::normalize()` — `..`, `.`, duplicate slashes, and relative segments are resolved consistently across Terminal, Filesystem Browser, and Drawing. Normalization and `join()` scan components directly into the canonical output instead of allocating a stream, a combined path, or separate strings for every component.
 
 ## Host Persistence
 

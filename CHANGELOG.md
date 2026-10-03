@@ -1,5 +1,10 @@
 # Changelog
 
+## 2026-10: Normalize joined paths without temporary concatenation
+
+- Share the direct component scanner between `normalize()` and `join()`, avoiding an intermediate joined string; remove the leading virtual slash in place during host mapping.
+- Differential-test joined paths, including parent segments, empty values, and slash-prefixed children.
+
 ## 2026-10: Reduce virtual path normalization allocations
 
 - Resolve path components in one scan without a string stream or per-component string copies, preserving existing normalization rules.

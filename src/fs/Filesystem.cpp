@@ -10,6 +10,7 @@
 #include <fstream>
 #include <iostream>
 #include <stdexcept>
+#include <string_view>
 
 namespace stdfs = std::filesystem;
 
@@ -70,6 +71,33 @@ bool hostEntryExists(const stdfs::path& path) {
     return !ec && status.type() != stdfs::file_type::not_found;
 }
 
+void appendNormalizedPathComponents(std::string& result, std::string_view path) {
+    for (std::size_t cursor = 0; cursor < path.size();) {
+        while (cursor < path.size() && path[cursor] == '/') ++cursor;
+        const std::size_t componentStart = cursor;
+        while (cursor < path.size() && path[cursor] != '/') ++cursor;
+        const std::size_t componentLength = cursor - componentStart;
+
+        if (componentLength == 0
+            || (componentLength == 1 && path[componentStart] == '.')) {
+            continue;
+        }
+
+        if (componentLength == 2
+            && path[componentStart] == '.'
+            && path[componentStart + 1] == '.') {
+            if (result.size() > 1) {
+                const std::size_t lastSeparator = result.find_last_of('/');
+                result.resize(lastSeparator == 0 ? 1 : lastSeparator);
+            }
+            continue;
+        }
+
+        if (result.size() > 1) result.push_back('/');
+        result.append(path.data() + componentStart, componentLength);
+    }
+}
+
 } // namespace
 
 Filesystem::Filesystem(const std::string& hostRootPath)
@@ -123,7 +151,7 @@ std::string Filesystem::toHostPath(const std::string& virtualPath) const {
     std::string normalized = normalize(virtualPath);
     // Remove leading slash so it becomes relative to root
     if (!normalized.empty() && normalized[0] == '/') {
-        normalized = normalized.substr(1);
+        normalized.erase(0, 1);
     }
     const std::string hostPath = (stdfs::path(m_hostRoot) / normalized).string();
     if (!isWithinHostRoot(hostPath)) return {};
@@ -135,32 +163,7 @@ std::string Filesystem::normalize(const std::string& path) const {
 
     std::string result = "/";
     result.reserve(std::min(path.size(), std::size_t{255}) + 1);
-
-    for (std::size_t cursor = 0; cursor < path.size();) {
-        while (cursor < path.size() && path[cursor] == '/') ++cursor;
-        const std::size_t componentStart = cursor;
-        while (cursor < path.size() && path[cursor] != '/') ++cursor;
-        const std::size_t componentLength = cursor - componentStart;
-
-        if (componentLength == 0
-            || (componentLength == 1 && path[componentStart] == '.')) {
-            continue;
-        }
-
-        if (componentLength == 2
-            && path[componentStart] == '.'
-            && path[componentStart + 1] == '.') {
-            if (result.size() > 1) {
-                const std::size_t lastSeparator = result.find_last_of('/');
-                result.resize(lastSeparator == 0 ? 1 : lastSeparator);
-            }
-            continue;
-        }
-
-        if (result.size() > 1) result.push_back('/');
-        result.append(path, componentStart, componentLength);
-    }
-
+    appendNormalizedPathComponents(result, path);
     return result;
 }
 
@@ -695,17 +698,17 @@ std::vector<Filesystem::DirEntry> Filesystem::listEntries(const std::string& vir
 }
 
 std::string Filesystem::join(const std::string& dirVirtualPath, const std::string& childName) const {
-    if (childName.empty()) {
-        return normalize(dirVirtualPath.empty() ? "/" : dirVirtualPath);
-    }
-    std::string dir = dirVirtualPath.empty() ? "/" : dirVirtualPath;
-    if (dir == "/") {
-        return normalize("/" + childName);
-    }
-    if (!dir.empty() && dir.back() != '/') {
-        dir += '/';
-    }
-    return normalize(dir + childName);
+    const std::string_view directory = dirVirtualPath.empty()
+        ? std::string_view("/")
+        : std::string_view(dirVirtualPath);
+    const std::size_t initialPathBytes = std::min(directory.size(), std::size_t{255})
+        + std::min(childName.size(), std::size_t{255});
+
+    std::string result = "/";
+    result.reserve(std::min(initialPathBytes, std::size_t{255}) + 1);
+    appendNormalizedPathComponents(result, directory);
+    appendNormalizedPathComponents(result, childName);
+    return result;
 }
 
 bool Filesystem::isSameOrDescendant(const std::string& ancestor, const std::string& path) const {
