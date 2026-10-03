@@ -323,16 +323,36 @@ bool Filesystem::copyRecursive(const std::string& srcVirtualPath, const std::str
         return false;
     }
 
-    for (const auto& entry : listEntries(src)) {
-        if (!copyRecursive(join(src, entry.name), join(dst, entry.name))) {
-            // A new destination is owned by this copy operation. Remove it
-            // on failure so callers never mistake a partial tree for success.
-            if (!destinationExisted) {
-                removeRecursive(dst);
-            }
-            return false;
+    auto failCopy = [&]() {
+        if (!destinationExisted) removeRecursive(dst);
+        return false;
+    };
+
+    std::error_code iteratorEc;
+    const stdfs::directory_iterator end;
+    for (stdfs::directory_iterator it(sourceHostPathString, iteratorEc);
+         it != end;
+         it.increment(iteratorEc)) {
+        if (iteratorEc) return failCopy();
+
+        const stdfs::path entryPath = it->path();
+        std::error_code statusEc;
+        const auto entryStatus = stdfs::symlink_status(entryPath, statusEc);
+        if (statusEc) return failCopy();
+
+        // Outside-root links are hidden from virtual listings and stay omitted
+        // from copies; in-root links reach copyRecursive and are rejected.
+        if (stdfs::is_symlink(entryStatus)
+            && !isWithinHostRoot(entryPath.string())) {
+            continue;
+        }
+
+        const std::string childName = entryPath.filename().string();
+        if (!copyRecursive(join(src, childName), join(dst, childName))) {
+            return failCopy();
         }
     }
+    if (iteratorEc) return failCopy();
     return true;
 }
 

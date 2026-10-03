@@ -1,5 +1,10 @@
 # Changelog
 
+## 2026-10: Walk recursive copies without listing snapshots
+
+- Copy directory entries directly instead of building and sorting UI listing vectors, while preserving external-symlink filtering, in-root symlink rejection, and rollback of new partial destinations.
+- Cover a multi-level directory with 96 files and an outside-root symlink.
+
 ## 2026-10: Avoid temporary strings in filesystem descendant checks
 
 - Compare normalized path components and the boundary separator directly, removing one prefix allocation from recursive copy and move checks.
