@@ -5,16 +5,22 @@
 
 #include <algorithm>
 #include <chrono>
+#include <cstddef>
 #include <filesystem>
 #include <iostream>
 #include <iterator>
+#include <ostream>
 #include <string>
+#include <string_view>
+#include <streambuf>
 #include <unistd.h>
+#include <vector>
 
 #include "../src/app/App.hpp"
 #include "../src/fs/Filesystem.hpp"
 #include "../src/app/TerminalLexer.hpp"
 #include "../src/app/Utf8.hpp"
+#include "../src/detail/BufferedStreamWriter.hpp"
 
 #define private public
 #include "../src/app/TerminalApp.hpp"
@@ -45,6 +51,42 @@ struct TestTerminal final : monolith::app::TerminalApp {
         : TerminalApp(font, fs) {}
 };
 
+struct FailingStreamBuffer final : std::streambuf {
+protected:
+    std::streamsize xsputn(const char*, std::streamsize count) override {
+        return count > 0 ? count - 1 : 0;
+    }
+};
+
+bool persistedHistoryMatches(monolith::fs::Filesystem& fs, const std::string& path,
+                             const std::vector<std::string>& commands) {
+    size_t commandIndex = 0;
+    size_t commandOffset = 0;
+    bool matches = true;
+    const bool readOk = fs.readFileChunks(path, [&](std::string_view chunk) {
+        for (const char byte : chunk) {
+            if (commandIndex >= commands.size()) {
+                matches = false;
+                return false;
+            }
+            const std::string& command = commands[commandIndex];
+            const char expected = commandOffset < command.size()
+                ? command[commandOffset] : '\n';
+            if (byte != expected) {
+                matches = false;
+                return false;
+            }
+            ++commandOffset;
+            if (commandOffset == command.size() + 1) {
+                commandOffset = 0;
+                ++commandIndex;
+            }
+        }
+        return true;
+    });
+    return readOk && matches && commandIndex == commands.size() && commandOffset == 0;
+}
+
 } // namespace
 
 int main() {
@@ -57,6 +99,13 @@ int main() {
             std::cout << "ok: " << message << '\n';
         }
     };
+
+    FailingStreamBuffer failingStreamBuffer;
+    std::ostream failingOutput(&failingStreamBuffer);
+    monolith::detail::BufferedStreamWriter failingWriter(failingOutput);
+    const std::string fullWriterChunk(16 * 1024, 'x');
+    check(!failingWriter.append(fullWriterChunk) && !failingWriter.finish(),
+          "bounded stream writer propagates a failed chunk write");
 
     const std::filesystem::path hostRoot = std::filesystem::temp_directory_path()
         / ("monolith-terminal-fs-state-" + std::to_string(getpid()));
@@ -189,6 +238,27 @@ int main() {
               && fs.fileSize(monolith::app::TerminalApp::HISTORY_FILE, savedHistoryBytes)
               && savedHistoryBytes <= monolith::app::TerminalApp::kMaxCommandHistoryBytes,
           "command history trims oldest entries to its byte budget before persisting");
+
+    TestTerminal streamedHistoryTerminal(font, &fs);
+    streamedHistoryTerminal.m_commandHistory.clear();
+    for (int index = 0; index < 32; ++index) {
+        const size_t commandBytes = index % 2 == 0
+            ? monolith::app::TerminalApp::kMaxCommandHistoryEntryBytes
+            : monolith::app::TerminalApp::kMaxCommandHistoryEntryBytes - 2;
+        streamedHistoryTerminal.m_commandHistory.emplace_back(
+            commandBytes, static_cast<char>('a' + index % 26));
+    }
+    std::uint64_t streamedHistoryBytes = 0;
+    check(streamedHistoryTerminal.saveCommandHistory()
+              && !streamedHistoryTerminal.m_commandHistorySaveFailed
+              && fs.fileSize(monolith::app::TerminalApp::HISTORY_FILE,
+                             streamedHistoryBytes)
+              && streamedHistoryBytes
+                  == monolith::app::TerminalApp::kMaxCommandHistoryBytes
+              && persistedHistoryMatches(
+                  fs, monolith::app::TerminalApp::HISTORY_FILE,
+                  streamedHistoryTerminal.m_commandHistory),
+          "Terminal streams exact command history at the 2 MiB limit");
 
     const auto historyBeforeOversizedCommand = terminal.m_commandHistory;
     terminal.m_inputBuffer = std::string(

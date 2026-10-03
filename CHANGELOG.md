@@ -1,5 +1,10 @@
 # Changelog
 
+## 2026-10: Stream Terminal history saves
+
+- Persist command history through the filesystem's atomic producer with a fixed 16 KiB scratch buffer, avoiding a second history-sized string on eligible submissions.
+- Preserve command order, newline framing, save-failure reporting, and retry behavior.
+
 ## 2026-10: Stream Text Editor saves
 
 - Serialize LF-separated document bytes through the filesystem's atomic producer in bounded 16 KiB chunks, avoiding a full-size temporary output string.

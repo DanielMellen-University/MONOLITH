@@ -1,5 +1,7 @@
 # Session log
 
+| 2026-10-03 | perf | Terminal now persists its capped command history through the atomic producer using a shared fixed 16 KiB `BufferedStreamWriter`, eliminating the duplicate history string on eligible submissions. Text Editor uses the same helper. Tests cover short-write propagation, exact 2 MiB history output with non-aligned line boundaries, and existing failure/retry behavior; full headless suite, production build, and hosted workflow #244 passed. |
+
 | 2026-10-03 | perf | Text Editor now validates its existing byte/line caps, then serializes LF-separated lines through the filesystem's atomic producer with a fixed 16 KiB scratch buffer, eliminating a second document-sized output string. Tests stream-verify exact 16 MiB content, line separators across output chunk boundaries, blank/trailing lines, and existing save failure/retry behavior; full headless suite, app build, and hosted workflow #240 passed. |
 
 | 2026-10-03 | perf | Drawing now validates and decodes `.modr` input incrementally from bounded filesystem chunks, then adopts the decoded RGBA buffer directly instead of retaining an encoded-file string or allocating a discarded blank canvas. Invalid/incomplete input leaves the current sketch and decoder outputs unchanged; chunk-boundary and rollback coverage, AddressSanitizer, full headless suite, production build, and hosted workflow #236 passed. |
