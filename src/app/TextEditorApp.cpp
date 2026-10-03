@@ -1,10 +1,9 @@
 #include "TextEditorApp.hpp"
 #include "Utf8.hpp"
+#include "../detail/BufferedStreamWriter.hpp"
 #include "../detail/RendererClip.hpp"
 #include <algorithm>
-#include <array>
 #include <cctype>
-#include <cstring>
 #include <limits>
 #include <ostream>
 #include <unordered_set>
@@ -508,32 +507,12 @@ bool TextEditorApp::saveCurrentFile() {
 
     const bool wasExisting = m_fs->exists(m_filePath);
     const bool ok = m_fs->writeFileWithProducer(m_filePath, [this](std::ostream& output) {
-        std::array<char, 16 * 1024> chunk{};
-        size_t buffered = 0;
-        const auto flush = [&]() {
-            if (buffered == 0) return true;
-            output.write(chunk.data(), static_cast<std::streamsize>(buffered));
-            if (!output) return false;
-            buffered = 0;
-            return true;
-        };
-        const auto append = [&](const char* data, size_t length) {
-            while (length > 0) {
-                const size_t count = std::min(chunk.size() - buffered, length);
-                std::memcpy(chunk.data() + buffered, data, count);
-                buffered += count;
-                data += count;
-                length -= count;
-                if (buffered == chunk.size() && !flush()) return false;
-            }
-            return true;
-        };
-
+        monolith::detail::BufferedStreamWriter writer(output);
         for (size_t i = 0; i < m_lines.size(); ++i) {
-            if (i > 0 && !append("\n", 1)) return false;
-            if (!append(m_lines[i].data(), m_lines[i].size())) return false;
+            if (i > 0 && !writer.append("\n")) return false;
+            if (!writer.append(m_lines[i])) return false;
         }
-        return flush();
+        return writer.finish();
     });
     if (ok) {
         m_savedLines = m_lines;

@@ -2,12 +2,14 @@
 #include "FilePath.hpp"
 #include "TerminalLexer.hpp"
 #include "Utf8.hpp"
+#include "../detail/BufferedStreamWriter.hpp"
 #include "../detail/RendererClip.hpp"
 #include <algorithm>
 #include <cctype>
 #include <ctime>
 #include <deque>
 #include <iomanip>
+#include <ostream>
 #include <sstream>
 #include <string_view>
 #include <utility>

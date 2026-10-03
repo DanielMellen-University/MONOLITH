@@ -250,17 +250,17 @@ bool TerminalApp::saveCommandHistory() {
     if (!m_fs) return true;
 
     trimCommandHistory();
-    size_t contentBytes = 0;
-    for (const auto& cmd : m_commandHistory) {
-        contentBytes += cmd.size() + 1;
-    }
-    std::string content;
-    content.reserve(contentBytes);
-    for (const auto& cmd : m_commandHistory) {
-        content += cmd;
-        content.push_back('\n');
-    }
-    m_commandHistorySaveFailed = !m_fs->writeFile(HISTORY_FILE, content);
+    const bool saved = m_fs->writeFileWithProducer(
+        HISTORY_FILE, [this](std::ostream& output) {
+            monolith::detail::BufferedStreamWriter writer(output);
+            for (const auto& command : m_commandHistory) {
+                if (!writer.append(command) || !writer.append("\n")) {
+                    return false;
+                }
+            }
+            return writer.finish();
+        });
+    m_commandHistorySaveFailed = !saved;
     return !m_commandHistorySaveFailed;
 }
 
