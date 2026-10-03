@@ -1,10 +1,13 @@
 #pragma once
 
+#include <cstddef>
 #include <cstdint>
 #include <string>
 #include <string_view>
 
 namespace monolith::settings {
+
+inline constexpr std::size_t kMaxSettingsRecords = 64;
 
 struct RGB {
     uint8_t r = 25;

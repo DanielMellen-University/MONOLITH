@@ -1,5 +1,10 @@
 # Changelog
 
+## 2026-10: Bound Desktop Settings record loading
+
+- Stop reading settings after 64 records in addition to the existing 16 KiB per-record limit, bounding work on malformed host-side preference files.
+- Cover the record budget and preservation of current preferences in the headless settings test.
+
 ## 2026-10: Keep saved sessions within the restore limit
 
 - When more than 128 restorable windows are open, save the topmost 128 entries in their existing stacking order so every persisted entry is within the restore limit.
