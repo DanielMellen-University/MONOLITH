@@ -18,6 +18,39 @@ void appendBigEndian32(std::vector<std::uint8_t>& output, std::uint32_t value) {
     output.push_back(static_cast<std::uint8_t>(value));
 }
 
+void appendLittleEndian16(std::vector<std::uint8_t>& output, std::uint16_t value) {
+    output.push_back(static_cast<std::uint8_t>(value));
+    output.push_back(static_cast<std::uint8_t>(value >> 8));
+}
+
+void appendLittleEndian32(std::vector<std::uint8_t>& output, std::uint32_t value) {
+    output.push_back(static_cast<std::uint8_t>(value));
+    output.push_back(static_cast<std::uint8_t>(value >> 8));
+    output.push_back(static_cast<std::uint8_t>(value >> 16));
+    output.push_back(static_cast<std::uint8_t>(value >> 24));
+}
+
+std::vector<std::uint8_t> bmpImage(std::uint32_t width, std::uint32_t height) {
+    std::vector<std::uint8_t> bmp{'B', 'M'};
+    appendLittleEndian32(bmp, 58);
+    appendLittleEndian16(bmp, 0);
+    appendLittleEndian16(bmp, 0);
+    appendLittleEndian32(bmp, 54);
+    appendLittleEndian32(bmp, 40);
+    appendLittleEndian32(bmp, width);
+    appendLittleEndian32(bmp, height);
+    appendLittleEndian16(bmp, 1);
+    appendLittleEndian16(bmp, 24);
+    appendLittleEndian32(bmp, 0);
+    appendLittleEndian32(bmp, 4);
+    appendLittleEndian32(bmp, 0);
+    appendLittleEndian32(bmp, 0);
+    appendLittleEndian32(bmp, 0);
+    appendLittleEndian32(bmp, 0);
+    bmp.insert(bmp.end(), {56, 34, 12, 0});
+    return bmp;
+}
+
 std::uint32_t crc32(const std::uint8_t* bytes, std::size_t length) {
     std::uint32_t crc = 0xffffffffu;
     for (std::size_t i = 0; i < length; ++i) {
@@ -122,6 +155,29 @@ int main() {
         pixelMatches = red == 12 && green == 34 && blue == 56 && alpha == 255;
     }
     check(pixelMatches, "PNG decodes directly from its file with exact RGBA pixels");
+    if (surface) SDL_FreeSurface(surface);
+
+    const auto validBmpPath = root / "one.bmp";
+    const auto validBmp = bmpImage(1, 1);
+    check(writeBytes(validBmpPath, validBmp), "write valid one-pixel BMP fixture");
+    surface = monolith::window::loadWallpaperSurface(validBmpPath.string());
+    pixelMatches = false;
+    if (surface && surface->w == 1 && surface->h == 1) {
+        Uint32 packedPixel = 0;
+        std::memcpy(&packedPixel, surface->pixels, sizeof(packedPixel));
+        Uint8 red = 0, green = 0, blue = 0, alpha = 0;
+        SDL_GetRGBA(packedPixel, surface->format, &red, &green, &blue, &alpha);
+        pixelMatches = red == 12 && green == 34 && blue == 56 && alpha == 255;
+    }
+    check(pixelMatches, "BMP retains SDL decoding for accepted dimensions");
+    if (surface) SDL_FreeSurface(surface);
+
+    const auto oversizedBmpPath = root / "oversized.bmp";
+    const auto oversizedBmp = bmpImage(5000, 4000);
+    check(writeBytes(oversizedBmpPath, oversizedBmp),
+          "write over-limit BMP header fixture");
+    surface = monolith::window::loadWallpaperSurface(oversizedBmpPath.string());
+    check(surface == nullptr, "BMP above the wallpaper pixel cap is rejected");
     if (surface) SDL_FreeSurface(surface);
 
     const auto oversizedPath = root / "oversized.png";

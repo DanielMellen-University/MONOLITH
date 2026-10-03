@@ -2,6 +2,7 @@
 
 #include "../app/FilePath.hpp"
 
+#include <array>
 #include <cstdio>
 #include <cstdint>
 #include <cstring>
@@ -16,10 +17,76 @@ namespace {
 
 constexpr std::uint64_t kMaxWallpaperPixels = 16'777'216;
 
+bool wallpaperDimensionsAllowed(std::uint64_t width, std::uint64_t height) {
+    return width > 0 && height > 0
+        && width <= kMaxWallpaperPixels
+        && height <= kMaxWallpaperPixels
+        && width * height <= kMaxWallpaperPixels;
+}
+
 bool wallpaperDimensionsAllowed(int width, int height) {
     return width > 0 && height > 0
-        && static_cast<std::uint64_t>(width) * static_cast<std::uint64_t>(height)
-            <= kMaxWallpaperPixels;
+        && wallpaperDimensionsAllowed(
+            static_cast<std::uint64_t>(width), static_cast<std::uint64_t>(height));
+}
+
+std::uint16_t littleEndian16(const unsigned char* bytes) {
+    return static_cast<std::uint16_t>(bytes[0])
+        | static_cast<std::uint16_t>(static_cast<std::uint16_t>(bytes[1]) << 8);
+}
+
+std::uint32_t littleEndian32(const unsigned char* bytes) {
+    return static_cast<std::uint32_t>(bytes[0])
+        | (static_cast<std::uint32_t>(bytes[1]) << 8)
+        | (static_cast<std::uint32_t>(bytes[2]) << 16)
+        | (static_cast<std::uint32_t>(bytes[3]) << 24);
+}
+
+std::int64_t signedLittleEndian32(const unsigned char* bytes) {
+    const std::uint32_t bits = littleEndian32(bytes);
+    return bits <= 0x7fffffffU
+        ? static_cast<std::int64_t>(bits)
+        : static_cast<std::int64_t>(bits) - 0x1'0000'0000LL;
+}
+
+bool bmpDimensionsAllowed(FILE* file) {
+    std::array<unsigned char, 26> header{};
+    if (std::fread(header.data(), 1, header.size(), file) != header.size()
+        || header[0] != 'B' || header[1] != 'M') {
+        return false;
+    }
+
+    const std::uint32_t dibHeaderSize = littleEndian32(header.data() + 14);
+    if (dibHeaderSize == 12) {
+        const std::uint64_t width = littleEndian16(header.data() + 18);
+        const std::uint64_t height = littleEndian16(header.data() + 20);
+        return wallpaperDimensionsAllowed(width, height);
+    }
+    if (dibHeaderSize < 40) return false;
+
+    const std::int64_t width = signedLittleEndian32(header.data() + 18);
+    const std::int64_t signedHeight = signedLittleEndian32(header.data() + 22);
+    if (width <= 0 || signedHeight == 0) return false;
+    const std::uint64_t height = static_cast<std::uint64_t>(
+        signedHeight < 0 ? -signedHeight : signedHeight);
+    return wallpaperDimensionsAllowed(static_cast<std::uint64_t>(width), height);
+}
+
+SDL_Surface* loadBmpWithLimit(const std::string& hostPath) {
+    FILE* file = std::fopen(hostPath.c_str(), "rb");
+    if (!file) return nullptr;
+
+    if (!bmpDimensionsAllowed(file) || std::fseek(file, 0, SEEK_SET) != 0) {
+        std::fclose(file);
+        return nullptr;
+    }
+
+    SDL_RWops* rw = SDL_RWFromFP(file, SDL_TRUE);
+    if (!rw) {
+        std::fclose(file);
+        return nullptr;
+    }
+    return SDL_LoadBMP_RW(rw, 1);
 }
 
 SDL_Surface* surfaceFromRgba(unsigned char* rgba, int width, int height) {
@@ -95,9 +162,8 @@ SDL_Surface* loadWallpaperSurface(const std::string& hostPath) {
         return nullptr;
     }
 
-    // Keep the original BMP path exact for existing samples and regressions.
     if (hasCaseInsensitiveSuffix(hostPath, ".bmp")) {
-        return SDL_LoadBMP(hostPath.c_str());
+        return loadBmpWithLimit(hostPath);
     }
 
     return loadWithStb(hostPath);
