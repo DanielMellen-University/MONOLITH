@@ -320,6 +320,32 @@ int main() {
     }
     check(fs.removeRecursive("/partial-src"), "remove partial-copy source");
 
+    const stdfs::path bulkSource = hostRoot / "bulk-src";
+    stdfs::create_directories(bulkSource / "nested", ec);
+    bool bulkFilesCreated = !ec;
+    for (int i = 0; i < 96 && bulkFilesCreated; ++i) {
+        const stdfs::path directory = i % 2 == 0 ? bulkSource : bulkSource / "nested";
+        std::ofstream file(directory / ("item-" + std::to_string(i) + ".txt"),
+                           std::ios::binary);
+        file << "item-" << i;
+        bulkFilesCreated = static_cast<bool>(file);
+    }
+    check(bulkFilesCreated, "create multi-entry recursive-copy source");
+    const stdfs::path bulkOutsideLink = bulkSource / "outside-link";
+    stdfs::create_symlink(outsideRoot / "secret.txt", bulkOutsideLink, ec);
+    check(!ec, "create outside symlink in recursive-copy source");
+    if (!ec && bulkFilesCreated) {
+        check(fs.copyRecursive("/bulk-src", "/bulk-dst"),
+              "recursive copy walks a large directory tree");
+        check(fs.listEntries("/bulk-dst").size() == 49
+                  && fs.listEntries("/bulk-dst/nested").size() == 48,
+              "recursive copy preserves every regular child without copying outside links");
+        check(fs.readFile("/bulk-dst/item-0.txt") == "item-0"
+                  && fs.readFile("/bulk-dst/nested/item-95.txt") == "item-95"
+                  && !fs.exists("/bulk-dst/outside-link"),
+              "recursive copy preserves nested contents and omits external symlinks");
+    }
+
     check(fs.writeFile("/rename-source.txt", "keep source"),
           "write rename source for dangling-link coverage");
     const stdfs::path danglingDestination = hostRoot / "dangling-destination";
