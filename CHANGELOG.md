@@ -1,5 +1,10 @@
 # Changelog
 
+## 2026-10: Reuse Filesystem Browser filter label storage
+
+- Build the active filter label in a retained buffer instead of creating prefix and suffix substring temporaries every frame.
+- Measure the caret from the same label buffer and refresh the cached width only when the prefix or font changes.
+
 ## 2026-10: Avoid Filesystem Browser rename-prefix copies
 
 - Compare the active rename caret prefix directly against its cached value instead of allocating a temporary prefix string each frame.
