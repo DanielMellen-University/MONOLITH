@@ -1,5 +1,7 @@
 # Session log
 
+| 2026-10-03 | perf | Text Editor save validates line/byte limits while computing exact serialized size, reserves one output buffer, and avoids the extra `ostringstream::str()` copy. Added exact 16 MiB save and blank/trailing-newline coverage; full headless suite, executable build, and hosted workflow #223 passed. |
+
 | 2026-10-03 | fix | Terminal now reports command-history write failures without blocking commands, retries on later eligible submissions, and announces recovery; failed startup migration reports the problem and preserves the original history file. Full headless suite, executable build, and hosted workflow #219 passed. |
 
 | 2026-10-03 | fix | Snake and Minesweeper now keep new records active in-session and replace false NEW BEST messages with persistence warnings; both retry after focus return or restart. Failure, warning rendering, recovery, full headless suite, executable build, and hosted workflow #215 passed. |
