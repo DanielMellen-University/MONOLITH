@@ -64,6 +64,7 @@ private:
     void updateFilterStatus();
     std::size_t visibleEntryCount() const;
     const monolith::fs::Filesystem::DirEntry& visibleEntryAt(std::size_t index) const;
+    std::size_t sourceEntryIndexAtVisible(std::size_t index) const;
     void rebuildVisibleEntryIndices();
     void showPropertiesForSelection();
 

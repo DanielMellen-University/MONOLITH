@@ -672,6 +672,14 @@ int main() {
     check(browser.selectEntryNamed("a.txt", false), "select an item before filtered delete");
     browser.requestDeleteSelected();
     key(browser, SDLK_f, KMOD_CTRL);
+    text(browser, "a");
+    check(browser.m_confirmingDelete && browser.m_selectedIndex >= 0
+              && browser.visibleEntryAt(static_cast<size_t>(browser.m_selectedIndex)).name == "a.txt",
+          "query edits preserve delete confirmation while its selected source row remains visible");
+    key(browser, SDLK_ESCAPE);
+    check(browser.m_confirmingDelete,
+          "clearing the filter preserves confirmation for the same selected entry");
+    key(browser, SDLK_f, KMOD_CTRL);
     text(browser, "does-not-exist");
     check(!browser.m_confirmingDelete && browser.m_selectedIndex == -1,
           "filtering away a delete target cancels its confirmation");

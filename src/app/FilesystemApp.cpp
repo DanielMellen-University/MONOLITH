@@ -189,6 +189,100 @@ void FilesystemApp::refreshEntries(const std::string& movedFrom,
         closeContextMenu();
     }
 
+    if (!m_fs) {
+        m_entries.clear();
+        m_visibleEntryIndices.clear();
+        m_visibleUsesIndices = false;
+        clearMultiSelection();
+        m_selectedIndex = -1;
+        return;
+    }
+
+    const bool shouldReloadDirectory = reloadDirectory
+        || !movedFrom.empty()
+        || !movedTo.empty();
+    if (!shouldReloadDirectory) {
+        // Filtered rows preserve snapshot order, so this source-index list stays sorted.
+        std::vector<std::size_t> selectedSourceIndices;
+        selectedSourceIndices.reserve(m_selectedSet.size() + 1);
+        for (const int row : m_selectedSet) {
+            if (row >= 0 && row < static_cast<int>(visibleEntryCount())) {
+                selectedSourceIndices.push_back(
+                    sourceEntryIndexAtVisible(static_cast<std::size_t>(row)));
+            }
+        }
+
+        const bool hadPrimarySelection = m_selectedIndex >= 0
+            && m_selectedIndex < static_cast<int>(visibleEntryCount());
+        std::size_t primarySourceIndex = 0;
+        if (hadPrimarySelection) {
+            primarySourceIndex = sourceEntryIndexAtVisible(
+                static_cast<std::size_t>(m_selectedIndex));
+            if (!m_selectedSet.count(m_selectedIndex)) {
+                const auto position = std::lower_bound(
+                    selectedSourceIndices.begin(), selectedSourceIndices.end(), primarySourceIndex);
+                selectedSourceIndices.insert(position, primarySourceIndex);
+            }
+        }
+
+        const bool hadAnchor = m_anchorIndex >= 0
+            && m_anchorIndex < static_cast<int>(visibleEntryCount());
+        const std::size_t anchorSourceIndex = hadAnchor
+            ? sourceEntryIndexAtVisible(static_cast<std::size_t>(m_anchorIndex))
+            : 0;
+
+        rebuildVisibleEntryIndices();
+        clearMultiSelection();
+        int restoredPrimary = -1;
+        int restoredAnchor = -1;
+        std::size_t selectedCursor = 0;
+        std::size_t restoredSelectionCount = 0;
+        // Merge the selected source indices against the new visible-index list.
+        for (std::size_t row = 0; row < visibleEntryCount(); ++row) {
+            const std::size_t sourceIndex = sourceEntryIndexAtVisible(row);
+            while (selectedCursor < selectedSourceIndices.size()
+                   && selectedSourceIndices[selectedCursor] < sourceIndex) {
+                ++selectedCursor;
+            }
+            if (selectedCursor < selectedSourceIndices.size()
+                && selectedSourceIndices[selectedCursor] == sourceIndex) {
+                const int visibleRow = static_cast<int>(row);
+                m_selectedSet.insert(visibleRow);
+                ++restoredSelectionCount;
+                if (hadPrimarySelection && sourceIndex == primarySourceIndex) {
+                    restoredPrimary = visibleRow;
+                }
+                ++selectedCursor;
+            }
+            if (hadAnchor && sourceIndex == anchorSourceIndex) {
+                restoredAnchor = static_cast<int>(row);
+            }
+        }
+
+        if (restoredPrimary >= 0) {
+            m_selectedIndex = restoredPrimary;
+        } else if (!m_selectedSet.empty()) {
+            m_selectedIndex = *m_selectedSet.begin();
+        } else {
+            m_selectedIndex = -1;
+        }
+        m_anchorIndex = restoredAnchor >= 0 ? restoredAnchor : m_selectedIndex;
+        clampSelection();
+
+        const bool restoredPrimarySelection = m_selectedIndex >= 0
+            && m_selectedIndex < static_cast<int>(visibleEntryCount());
+        const bool primaryChanged = hadPrimarySelection && restoredPrimarySelection
+            && sourceEntryIndexAtVisible(static_cast<std::size_t>(m_selectedIndex))
+                != primarySourceIndex;
+        if (m_confirmingDelete
+            && (restoredSelectionCount != selectedSourceIndices.size()
+                || hadPrimarySelection != restoredPrimarySelection
+                || primaryChanged)) {
+            cancelPendingDelete();
+        }
+        return;
+    }
+
     using SelectionIdentity = std::pair<std::string, bool>;
     SelectionIdentity movedFromIdentity;
     SelectionIdentity movedToIdentity;
@@ -235,16 +329,7 @@ void FilesystemApp::refreshEntries(const std::string& movedFrom,
         anchorIdentity = remapIdentity({entry.name, entry.isDirectory});
     }
 
-    if (!m_fs) {
-        m_entries.clear();
-        m_visibleEntryIndices.clear();
-        m_visibleUsesIndices = false;
-        clearMultiSelection();
-        m_selectedIndex = -1;
-        return;
-    }
-
-    if (reloadDirectory) {
+    if (shouldReloadDirectory) {
         m_entries = m_fs->listEntries(m_currentPath);
     }
     rebuildVisibleEntryIndices();
@@ -880,10 +965,11 @@ std::size_t FilesystemApp::visibleEntryCount() const {
 
 const monolith::fs::Filesystem::DirEntry& FilesystemApp::visibleEntryAt(
     std::size_t index) const {
-    const std::size_t sourceIndex = m_visibleUsesIndices
-        ? m_visibleEntryIndices[index]
-        : index;
-    return m_entries[sourceIndex];
+    return m_entries[sourceEntryIndexAtVisible(index)];
+}
+
+std::size_t FilesystemApp::sourceEntryIndexAtVisible(std::size_t index) const {
+    return m_visibleUsesIndices ? m_visibleEntryIndices[index] : index;
 }
 
 void FilesystemApp::rebuildVisibleEntryIndices() {
