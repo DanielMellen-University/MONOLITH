@@ -66,7 +66,7 @@ Scroll with the mouse wheel or Page Up/Down if the window is resized smaller. Ba
 
 The settings file accepts both Unix and Windows line endings, so copying it between systems does not add a hidden carriage return to a wallpaper path or other value.
 
-Persisted records are limited to 16 KiB. Loading stops at the first oversized record, keeping earlier valid preferences and ignoring later ones. Wallpaper paths must fit their record and cannot contain line breaks or NUL bytes; rejected paths leave the current wallpaper setting unchanged.
+Persisted records are limited to 16 KiB, and the loader examines at most 64 records. Loading stops at the first oversized record or after the record budget, keeping earlier valid preferences and ignoring later ones. Wallpaper paths must fit their record and cannot contain line breaks or NUL bytes; rejected paths leave the current wallpaper setting unchanged.
 
 Wallpaper paths are canonicalized when settings load, so legacy values containing repeated separators or `.` and `..` segments are rewritten to their normalized virtual path before use.
 
