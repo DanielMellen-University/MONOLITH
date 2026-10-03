@@ -45,6 +45,7 @@ The human funds token budget and lives in the desktop. You:
 | 2026-10-03 | settings-save-feedback | Report rejected preference changes and failed atomic saves in Settings while keeping live choices active and retryable; hosted workflow #207 passed |
 | 2026-10-03 | settings-notification-save-failure | Retain atomic-save failure state from wallpaper path notifications so Settings can display it later; hosted workflow #211 passed |
 | 2026-10-03 | game-record-save-feedback | Keep new Snake and Minesweeper records active in-session, report failed persistence in their UI, and retry on focus return or restart; hosted workflow #215 passed |
+| 2026-10-03 | terminal-history-save-feedback | Report failed command-history writes without blocking commands; retry on later history-eligible submissions and preserve the old file on failed startup migration; hosted workflow #219 passed |
 | 2026-10-02 | settings-line-bound | Share the 16 KiB persisted-line reader with Desktop Settings and reject wallpaper paths that cannot round-trip |
 | 2026-10-02 | game-record-bound | Bound Snake and Minesweeper save-file reads by row and byte limits; reject malformed or impossible records |
 | 2026-10-02 | terminal-output-pan | Pan clipped Terminal output rows with UTF-8-safe viewport-sized segments and preserve vertical history scrolling |
@@ -243,6 +244,7 @@ Older recent-work rows: [`SESSION_LOG.md`](SESSION_LOG.md).
 | 7.82 | Report Desktop Settings save failures | done | Keep settings changes live on disk failure, report rejection or temporary persistence in the footer, and retry writes when the active choice is reselected; hosted workflow #207 passed |
 | 7.83 | Surface automatic settings save failures | done | Retain failed wallpaper move/delete saves in shell state for the Settings footer; clear after successful persistence and cover recovery; hosted workflow #211 passed |
 | 7.84 | Report game-record save failures | done | Keep new Snake scores and Minesweeper best times active in-session, show a warning instead of a false new-record claim, retry on focus return or restart, and cover failure plus recovery; hosted workflow #215 passed |
+| 7.85 | Report Terminal history save failures | done | Keep commands running on history-write failure, report failed persistence and recovery, preserve failed startup-migration input, and cover recovery plus reload; hosted workflow #219 passed |
 | fs-browser-filter-cache | Reuse Filesystem Browser filter snapshots | done | Reuse one directory listing for filter edits; refresh it on F5 and Monolith filesystem notifications, including while filtering |
 | terminal-input-editing | Terminal command-line selection | done | Support UTF-8-safe keyboard/mouse selection and Ctrl+A/C/X/V; normalize all clipboard lines and tabs into the single-line prompt |
 | terminal-touch-mtime | Complete Terminal touch semantics | done | Update existing regular-file last-write time without truncation; reject outside-root symlink targets |
