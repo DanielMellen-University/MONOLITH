@@ -51,6 +51,7 @@ The human funds token budget and lives in the desktop. You:
 | 2026-10-03 | filesystem-list-checks | Avoid per-file canonicalization without hiding in-root dangling symlinks; hosted workflow #166 passed |
 | 2026-10-03 | filesystem-no-follow-status | Classify regular listing entries from one no-follow status lookup and preserve dangling links; hosted workflow #170 passed |
 | 2026-10-03 | filesystem-browser-filter-indices | Keep the raw folder snapshot and store filter results as indices instead of copying matching filenames; hosted workflow #174 passed |
+| 2026-10-03 | filesystem-browser-selection-indices | Remap query-only selection changes against sorted source indices, avoiding per-keystroke filename identity sets; hosted workflow #179 passed |
 | 2026-10-02 | prompt-retry | Failed Text Editor and Drawing path, line-number, RGB, or file operations retain the active prompt, input, caret, and horizontal position for correction and retry |
 | 2026-10-02 | same-file-reload | Text Editor and Drawing can reload their current file after an external overwrite; dirty documents retain the existing repeated-discard guard, with headless coverage |
 | 2026-10-02 | filesystem-filter | Directory sort/filter now avoids lowercase copies per comparison, normalizes the query once per listing pass, and preserves mixed-case matching/order; headless filesystem tests passed |
@@ -223,6 +224,7 @@ Older recent-work rows: [`SESSION_LOG.md`](SESSION_LOG.md).
 | 7.72 | Reduce directory listing path checks | done | Avoid canonicalizing ordinary files during directory listings while retaining containment checks for symlink and directory entries; hosted workflow #166 passed |
 | 7.73 | Classify listings from no-follow status | done | Reuse one no-follow entry status for ordinary files; only resolve in-root symlinks to determine directory type while retaining containment checks; hosted workflow #170 passed |
 | 7.74 | Filter browser rows by snapshot index | done | Keep one directory snapshot and represent visible matches as indices so query edits avoid copying matching entry names; hosted workflow #174 passed |
+| 7.75 | Remap filter selection by source index | done | Preserve visible selection across query edits by merging source indices rather than allocating filename identity sets; hosted workflow #179 passed |
 | fs-browser-filter-cache | Reuse Filesystem Browser filter snapshots | done | Reuse one directory listing for filter edits; refresh it on F5 and Monolith filesystem notifications, including while filtering |
 | terminal-input-editing | Terminal command-line selection | done | Support UTF-8-safe keyboard/mouse selection and Ctrl+A/C/X/V; normalize all clipboard lines and tabs into the single-line prompt |
 | terminal-touch-mtime | Complete Terminal touch semantics | done | Update existing regular-file last-write time without truncation; reject outside-root symlink targets |
