@@ -115,7 +115,7 @@ public:
      * Copies a file or directory tree to a new path.
      * Destination parent directories are created as needed.
      * A newly created destination is removed again if a child copy fails.
-     * Returns false if the destination is the same as (or inside) the source tree.
+     * Returns false if the resolved destination aliases the source or is inside its tree.
      */
     bool copyRecursive(const std::string& srcVirtualPath, const std::string& dstVirtualPath);
 
