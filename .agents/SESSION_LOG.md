@@ -1,5 +1,7 @@
 # Session log
 
+| 2026-10-03 | perf | Replaced recursive delete's per-directory child-path vector and application recursion with `std::filesystem::remove_all`; the virtual root stays protected and symlink targets remain untouched; hosted headless workflow #161 passed. |
+
 | 2026-10-03 | perf | Changed recursive folder copies to traverse native directory entries directly, avoiding sorted UI listing snapshots; retained outside-root symlink filtering and failed-copy cleanup, with 96-file nested-tree coverage; hosted headless workflow #157 passed. |
 
 | 2026-10-03 | perf | Removed the temporary `ancestor + "/"` string from recursive path-boundary checks; generated differential cases cover exact paths, root, and sibling prefixes. |

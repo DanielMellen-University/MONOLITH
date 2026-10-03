@@ -47,6 +47,7 @@ The human funds token budget and lives in the desktop. You:
 | 2026-10-02 | filesystem-path-join | Compose directory and child paths directly through the shared component scanner, preserving join semantics without concatenated temporaries |
 | 2026-10-03 | filesystem-descendant-boundary | Compare normalized path boundaries directly, avoiding a temporary ancestor-prefix string in recursive operations |
 | 2026-10-03 | filesystem-copy-walk | Direct iterator traversal avoids sorted listing snapshots for tree copies; hosted workflow #157 passed |
+| 2026-10-03 | filesystem-remove-all | Delegate directory-tree cleanup without staging child paths; hosted workflow #161 passed |
 | 2026-10-02 | prompt-retry | Failed Text Editor and Drawing path, line-number, RGB, or file operations retain the active prompt, input, caret, and horizontal position for correction and retry |
 | 2026-10-02 | same-file-reload | Text Editor and Drawing can reload their current file after an external overwrite; dirty documents retain the existing repeated-discard guard, with headless coverage |
 | 2026-10-02 | filesystem-filter | Directory sort/filter now avoids lowercase copies per comparison, normalizes the query once per listing pass, and preserves mixed-case matching/order; headless filesystem tests passed |
@@ -215,6 +216,7 @@ Older recent-work rows: [`SESSION_LOG.md`](SESSION_LOG.md).
 | 7.68 | Normalize joined paths directly | done | Reuse the component scanner for `join()` so directory/child combinations are normalized in one output buffer; preserve existing semantics with generated differential coverage |
 | 7.69 | Check filesystem path boundaries directly | done | Test equality, root, sibling-prefix, and generated cases while removing the allocated `ancestor + "/"` prefix from descendant checks |
 | 7.70 | Walk recursive copies directly | done | Avoid per-directory listing vectors, type sorting, and ordering work during tree copies while preserving symlink and rollback behavior; hosted workflow #157 passed |
+| 7.71 | Remove trees without child staging | done | Avoid an application-side vector of every directory entry while preserving root refusal, error reporting, and symlink target safety; hosted workflow #161 passed |
 | fs-browser-filter-cache | Reuse Filesystem Browser filter snapshots | done | Reuse one directory listing for filter edits; refresh it on F5 and Monolith filesystem notifications, including while filtering |
 | terminal-input-editing | Terminal command-line selection | done | Support UTF-8-safe keyboard/mouse selection and Ctrl+A/C/X/V; normalize all clipboard lines and tabs into the single-line prompt |
 | terminal-touch-mtime | Complete Terminal touch semantics | done | Update existing regular-file last-write time without truncation; reject outside-root symlink targets |

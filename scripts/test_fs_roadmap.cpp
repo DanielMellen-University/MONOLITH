@@ -344,6 +344,9 @@ int main() {
                   && fs.readFile("/bulk-dst/nested/item-95.txt") == "item-95"
                   && !fs.exists("/bulk-dst/outside-link"),
               "recursive copy preserves nested contents and omits external symlinks");
+        check(fs.removeRecursive("/bulk-src") && !fs.exists("/bulk-src")
+                  && stdfs::is_regular_file(outsideRoot / "secret.txt"),
+              "recursive deletion clears a wide tree without following external symlinks");
     }
 
     check(fs.writeFile("/rename-source.txt", "keep source"),
