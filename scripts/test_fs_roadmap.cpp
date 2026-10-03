@@ -54,6 +54,19 @@ static std::string referenceJoin(const std::string& directory,
     return referenceNormalize(joined);
 }
 
+static bool referenceIsSameOrDescendant(const std::string& ancestor,
+                                        const std::string& path) {
+    const std::string normalizedAncestor = referenceNormalize(ancestor);
+    const std::string normalizedPath = referenceNormalize(path);
+    if (normalizedAncestor.empty() || normalizedPath.empty()) return false;
+    if (normalizedAncestor == normalizedPath) return true;
+    if (normalizedAncestor == "/") return true;
+
+    std::string prefix = normalizedAncestor;
+    if (prefix.back() != '/') prefix.push_back('/');
+    return normalizedPath.compare(0, prefix.size(), prefix) == 0;
+}
+
 int main() {
     int failures = 0;
     auto check = [&](bool ok, const char* msg) {
@@ -126,6 +139,32 @@ int main() {
     }
     check(joinsMatchReference,
           "direct path joining matches previous semantics for relative and slash-prefixed children");
+    check(fs.isSameOrDescendant("/a", "/a/b")
+              && fs.isSameOrDescendant("/a", "/a")
+              && !fs.isSameOrDescendant("/a", "/ab")
+              && fs.isSameOrDescendant("/", "../child"),
+          "descendant checks respect component boundaries and the virtual root");
+    std::vector<std::string> boundaryPaths = {
+        "", "/", "///", "a", "a/b", "../x", "/a", "/a/b", "/ab",
+        "/a/./b", "/a/b/../../a/child", "two words/file", "\xC3\xA9" "clair/item"};
+    for (const auto& prefix : pathPrefixes) {
+        for (const auto& first : pathComponents) {
+            for (const auto& second : pathComponents) {
+                boundaryPaths.push_back(prefix + first + "/" + second);
+            }
+        }
+    }
+    bool descendantChecksMatch = true;
+    for (const auto& ancestor : boundaryPaths) {
+        for (const auto& path : boundaryPaths) {
+            if (fs.isSameOrDescendant(ancestor, path)
+                != referenceIsSameOrDescendant(ancestor, path)) {
+                descendantChecksMatch = false;
+            }
+        }
+    }
+    check(descendantChecksMatch,
+          "direct descendant-boundary checks match previous semantics across generated paths");
     check(fs.normalize(std::string(65536, '/')) == "/",
           "normalization handles long redundant separator runs");
 

@@ -717,10 +717,9 @@ bool Filesystem::isSameOrDescendant(const std::string& ancestor, const std::stri
     if (a.empty() || p.empty()) return false;
     if (a == p) return true;
     if (a == "/") return true; // everything is under root
-
-    std::string prefix = a;
-    if (prefix.back() != '/') prefix += '/';
-    return p.compare(0, prefix.size(), prefix) == 0;
+    return p.size() > a.size()
+        && p.compare(0, a.size(), a) == 0
+        && p[a.size()] == '/';
 }
 
 } // namespace monolith::fs
