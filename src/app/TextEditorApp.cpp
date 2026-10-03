@@ -4,7 +4,6 @@
 #include <algorithm>
 #include <cctype>
 #include <limits>
-#include <sstream>
 #include <unordered_set>
 #include <utility>
 #include <vector>
@@ -381,7 +380,8 @@ void TextEditorApp::drawColoredLine(SDL_Renderer* renderer, const std::string& l
     }
 }
 
-bool TextEditorApp::documentFitsFileLimits(const std::vector<std::string>& lines) {
+bool TextEditorApp::documentFitsFileLimits(const std::vector<std::string>& lines,
+                                           size_t* outSerializedBytes) {
     if (lines.size() > kMaxDocumentLines) return false;
 
     size_t bytes = lines.empty() ? 0 : lines.size() - 1;
@@ -390,6 +390,7 @@ bool TextEditorApp::documentFitsFileLimits(const std::vector<std::string>& lines
         if (line.size() > kMaxDocumentBytes - bytes) return false;
         bytes += line.size();
     }
+    if (outSerializedBytes) *outSerializedBytes = bytes;
     return true;
 }
 
@@ -498,23 +499,22 @@ bool TextEditorApp::saveCurrentFile() {
         setStatus("Save failed: no path (use Save as)");
         return false;
     }
-    if (!documentFitsFileLimits(m_lines)) {
+    size_t serializedBytes = 0;
+    if (!documentFitsFileLimits(m_lines, &serializedBytes)) {
         clearDiscardArm();
         setStatus("Save failed: exceeds 16 MiB or 65,536 lines.");
         return false;
     }
 
-    std::ostringstream oss;
+    std::string contents;
+    contents.reserve(serializedBytes);
     for (size_t i = 0; i < m_lines.size(); ++i) {
-        oss << m_lines[i];
-        if (i + 1 < m_lines.size()) {
-            oss << '\n';
-        }
+        if (i > 0) contents.push_back('\n');
+        contents.append(m_lines[i]);
     }
-    // If last line is non-empty we may want a trailing newline? For now match common behavior: no forced trailing newline unless present.
 
     const bool wasExisting = m_fs->exists(m_filePath);
-    bool ok = m_fs->writeFile(m_filePath, oss.str());
+    const bool ok = m_fs->writeFile(m_filePath, contents);
     if (ok) {
         m_savedLines = m_lines;
         m_dirty = false;

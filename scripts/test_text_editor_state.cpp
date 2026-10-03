@@ -5,6 +5,7 @@
 
 #include <algorithm>
 #include <cstddef>
+#include <cstdint>
 #include <filesystem>
 #include <iostream>
 #include <string>
@@ -744,6 +745,24 @@ int main() {
               && !fs.exists("/oversized-save.txt")
               && oversizedSaveEditor.m_statusMessage.find("65,536") != std::string::npos,
           "Text Editor refuses saves beyond its line limit");
+
+    TestEditor boundarySaveEditor(nullptr, &fs, "");
+    boundarySaveEditor.m_filePath = "/maximum-valid-save.txt";
+    boundarySaveEditor.m_lines = {
+        std::string(TestEditor::kMaxDocumentBytes, 'z')};
+    std::uint64_t maximumSaveBytes = 0;
+    check(boundarySaveEditor.saveCurrentFile()
+              && fs.fileSize(boundarySaveEditor.m_filePath, maximumSaveBytes)
+              && maximumSaveBytes == TestEditor::kMaxDocumentBytes,
+          "Text Editor saves a document exactly at its 16 MiB byte limit");
+
+    TestEditor serializationEditor(nullptr, &fs, "");
+    serializationEditor.m_filePath = "/serialized-lines.txt";
+    serializationEditor.m_lines = {"first", "", "last", ""};
+    check(serializationEditor.saveCurrentFile()
+              && fs.readFile(serializationEditor.m_filePath)
+                  == "first\n\nlast\n",
+          "Text Editor preserves blank lines and a trailing newline when saving");
 
     TestEditor editor(nullptr, &fs, "/old.txt");
     TestController controller;
