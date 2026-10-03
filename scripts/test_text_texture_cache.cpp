@@ -60,6 +60,23 @@ int main() {
     check(colored && colored.handle != first.handle && cache.size() == 2,
           "text color participates in the cache key");
 
+    TTF_Font* alternateFont = TTF_OpenFont("assets/fonts/DejaVuSans.ttf", 16);
+    check(alternateFont != nullptr, "text texture cache loads an alternate font");
+    if (alternateFont) {
+        const auto alternate = cache.get(firstRenderer, alternateFont, "Shared HUD", white);
+        check(alternate && alternate.handle != first.handle,
+              "font identity participates in the cache key");
+    }
+    cache.clear();
+    if (alternateFont) TTF_CloseFont(alternateFont);
+
+    std::string changingText = "Mutable cache key";
+    const auto originalText = cache.get(firstRenderer, font, changingText.c_str(), white);
+    changingText[0] = 'm';
+    const auto changedText = cache.get(firstRenderer, font, changingText.c_str(), white);
+    check(originalText && changedText && originalText.handle != changedText.handle,
+          "cache misses own text instead of retaining a caller's key view");
+
     SDL_Texture* newest = nullptr;
     for (int i = 0; i < 300; ++i) {
         const std::string label = "status-" + std::to_string(i);
