@@ -2,8 +2,11 @@
 #include "Utf8.hpp"
 #include "../detail/RendererClip.hpp"
 #include <algorithm>
+#include <array>
 #include <cctype>
+#include <cstring>
 #include <limits>
+#include <ostream>
 #include <unordered_set>
 #include <utility>
 #include <vector>
@@ -380,8 +383,7 @@ void TextEditorApp::drawColoredLine(SDL_Renderer* renderer, const std::string& l
     }
 }
 
-bool TextEditorApp::documentFitsFileLimits(const std::vector<std::string>& lines,
-                                           size_t* outSerializedBytes) {
+bool TextEditorApp::documentFitsFileLimits(const std::vector<std::string>& lines) {
     if (lines.size() > kMaxDocumentLines) return false;
 
     size_t bytes = lines.empty() ? 0 : lines.size() - 1;
@@ -390,7 +392,6 @@ bool TextEditorApp::documentFitsFileLimits(const std::vector<std::string>& lines
         if (line.size() > kMaxDocumentBytes - bytes) return false;
         bytes += line.size();
     }
-    if (outSerializedBytes) *outSerializedBytes = bytes;
     return true;
 }
 
@@ -499,22 +500,41 @@ bool TextEditorApp::saveCurrentFile() {
         setStatus("Save failed: no path (use Save as)");
         return false;
     }
-    size_t serializedBytes = 0;
-    if (!documentFitsFileLimits(m_lines, &serializedBytes)) {
+    if (!documentFitsFileLimits(m_lines)) {
         clearDiscardArm();
         setStatus("Save failed: exceeds 16 MiB or 65,536 lines.");
         return false;
     }
 
-    std::string contents;
-    contents.reserve(serializedBytes);
-    for (size_t i = 0; i < m_lines.size(); ++i) {
-        if (i > 0) contents.push_back('\n');
-        contents.append(m_lines[i]);
-    }
-
     const bool wasExisting = m_fs->exists(m_filePath);
-    const bool ok = m_fs->writeFile(m_filePath, contents);
+    const bool ok = m_fs->writeFileWithProducer(m_filePath, [this](std::ostream& output) {
+        std::array<char, 16 * 1024> chunk{};
+        size_t buffered = 0;
+        const auto flush = [&]() {
+            if (buffered == 0) return true;
+            output.write(chunk.data(), static_cast<std::streamsize>(buffered));
+            if (!output) return false;
+            buffered = 0;
+            return true;
+        };
+        const auto append = [&](const char* data, size_t length) {
+            while (length > 0) {
+                const size_t count = std::min(chunk.size() - buffered, length);
+                std::memcpy(chunk.data() + buffered, data, count);
+                buffered += count;
+                data += count;
+                length -= count;
+                if (buffered == chunk.size() && !flush()) return false;
+            }
+            return true;
+        };
+
+        for (size_t i = 0; i < m_lines.size(); ++i) {
+            if (i > 0 && !append("\n", 1)) return false;
+            if (!append(m_lines[i].data(), m_lines[i].size())) return false;
+        }
+        return flush();
+    });
     if (ok) {
         m_savedLines = m_lines;
         m_dirty = false;

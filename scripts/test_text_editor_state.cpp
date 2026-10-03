@@ -9,6 +9,7 @@
 #include <filesystem>
 #include <iostream>
 #include <string>
+#include <string_view>
 #include <utility>
 #include <unistd.h>
 #include <vector>
@@ -751,10 +752,25 @@ int main() {
     boundarySaveEditor.m_lines = {
         std::string(TestEditor::kMaxDocumentBytes, 'z')};
     std::uint64_t maximumSaveBytes = 0;
+    size_t streamedMaximumBytes = 0;
+    bool streamedMaximumContentsMatch = true;
     check(boundarySaveEditor.saveCurrentFile()
               && fs.fileSize(boundarySaveEditor.m_filePath, maximumSaveBytes)
-              && maximumSaveBytes == TestEditor::kMaxDocumentBytes,
-          "Text Editor saves a document exactly at its 16 MiB byte limit");
+              && maximumSaveBytes == TestEditor::kMaxDocumentBytes
+              && fs.readFileChunks(boundarySaveEditor.m_filePath,
+                  [&](std::string_view chunk) {
+                      for (const char byte : chunk) {
+                          if (byte != 'z') {
+                              streamedMaximumContentsMatch = false;
+                              return false;
+                          }
+                          ++streamedMaximumBytes;
+                      }
+                      return true;
+                  })
+              && streamedMaximumBytes == TestEditor::kMaxDocumentBytes
+              && streamedMaximumContentsMatch,
+          "Text Editor streams exact content at its 16 MiB byte limit");
 
     TestEditor serializationEditor(nullptr, &fs, "");
     serializationEditor.m_filePath = "/serialized-lines.txt";
@@ -763,6 +779,17 @@ int main() {
               && fs.readFile(serializationEditor.m_filePath)
                   == "first\n\nlast\n",
           "Text Editor preserves blank lines and a trailing newline when saving");
+
+    TestEditor chunkedSaveEditor(nullptr, &fs, "");
+    chunkedSaveEditor.m_filePath = "/chunked-save.txt";
+    chunkedSaveEditor.m_lines = {
+        std::string(16 * 1024 - 1, 'a'), "b", std::string(16 * 1024, 'c'), "", "end"};
+    const std::string chunkedSaveExpected =
+        std::string(16 * 1024 - 1, 'a') + "\nb\n"
+        + std::string(16 * 1024, 'c') + "\n\nend";
+    check(chunkedSaveEditor.saveCurrentFile()
+              && fs.readFile(chunkedSaveEditor.m_filePath) == chunkedSaveExpected,
+          "Text Editor preserves line separators across bounded save chunks");
 
     TestEditor editor(nullptr, &fs, "/old.txt");
     TestController controller;

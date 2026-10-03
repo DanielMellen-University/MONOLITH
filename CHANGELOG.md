@@ -1,5 +1,10 @@
 # Changelog
 
+## 2026-10: Stream Text Editor saves
+
+- Serialize LF-separated document bytes through the filesystem's atomic producer in bounded 16 KiB chunks, avoiding a full-size temporary output string.
+- Preserve exact blank-line and trailing-newline output while retaining atomic replacement and the existing document limits.
+
 ## 2026-10: Stream Drawing opens
 
 - Decode `.modr` files incrementally from bounded filesystem chunks, validating exact payload size before committing the canvas.

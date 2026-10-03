@@ -34,7 +34,7 @@ If a bound file's parent directory is deleted, the editor keeps the document buf
 - Line numbers appear in the left margin.
 - Empty files open as one editable blank line. A file that ends with a newline keeps its final blank line.
 - Files opened with CRLF or lone-CR line endings are normalized to LF in the editor. Saving writes the document with LF separators.
-- File opens stream in bounded 16 KiB chunks. Documents above 16 MiB or 65,536 lines are rejected on open and save; a rejected open leaves the current document untouched.
+- File opens and saves stream in bounded 16 KiB chunks. Documents above 16 MiB or 65,536 lines are rejected on open and save; a rejected open leaves the current document untouched.
 - Syntax highlighting colors comments, strings, signed and unsigned numbers, and (for code files) keywords.
 - A `*` in the status bar indicates that the buffer differs from the last loaded or saved content; undoing back to that content clears the marker.
 - Open/save results and errors appear in the status bar (e.g. `Saved: note.txt`, `Open failed: …`).
