@@ -60,6 +60,7 @@ The human funds token budget and lives in the desktop. You:
 | 2026-10-03 | terminal-render-buffers | Cache the cwd prompt and reuse Terminal input, cursor, selection, reverse-search, and hit-test strings across steady-state frames; hosted workflow #271 passed |
 | 2026-10-03 | browser-rename-prefix | Compare the rename caret prefix directly against the current name and only rebuild the owned measured prefix when it changes; hosted workflow #275 passed |
 | 2026-10-03 | browser-filter-buffer | Build the active filter label and cursor measurement in one retained buffer, avoiding prefix/suffix temporaries on each frame; hosted workflow #279 passed |
+| 2026-10-03 | window-traversal-reuse | Reuse nesting-safe identity snapshots across update/render passes and validate live windows through a pointer/ID index; normal and sanitized hosted workflow #283 passed |
 | 2026-10-02 | settings-line-bound | Share the 16 KiB persisted-line reader with Desktop Settings and reject wallpaper paths that cannot round-trip |
 | 2026-10-02 | game-record-bound | Bound Snake and Minesweeper save-file reads by row and byte limits; reject malformed or impossible records |
 | 2026-10-02 | terminal-output-pan | Pan clipped Terminal output rows with UTF-8-safe viewport-sized segments and preserve vertical history scrolling |
@@ -273,6 +274,7 @@ Older recent-work rows: [`SESSION_LOG.md`](SESSION_LOG.md).
 | 7.97 | Reuse Terminal render buffers | done | Cache the cwd prompt until its path changes; reuse normal/reverse-search/selection text and mouse hit-test prefix storage; normal and sanitized hosted workflow #271 passed |
 | 7.98 | Avoid rename-prefix copies | done | Compare the inline rename cursor prefix in place and update its owned measurement string only when it changes; preserve cached width invalidation and verify suffix-only edits reuse the prefix; normal and sanitized hosted workflow #275 passed |
 | 7.99 | Reuse Filesystem Browser filter buffers | done | Build the active filter label in retained storage and measure from its prefix-plus-cursor text; verify the label's backing storage survives suffix-only edits; normal and sanitized hosted workflow #279 passed |
+| 7.100 | Reuse Window Manager traversal snapshots | done | Reuse nesting-safe update/render snapshots after warm-up, index live pointer/ID identities for expected constant-time validation, and cover nested callbacks plus close-during-render; normal and sanitized hosted workflow #283 passed |
 | fs-browser-filter-cache | Reuse Filesystem Browser filter snapshots | done | Reuse one directory listing for filter edits; refresh it on F5 and Monolith filesystem notifications, including while filtering |
 | terminal-input-editing | Terminal command-line selection | done | Support UTF-8-safe keyboard/mouse selection and Ctrl+A/C/X/V; normalize all clipboard lines and tabs into the single-line prompt |
 | terminal-touch-mtime | Complete Terminal touch semantics | done | Update existing regular-file last-write time without truncation; reject outside-root symlink targets |

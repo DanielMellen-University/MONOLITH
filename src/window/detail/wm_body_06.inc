@@ -272,6 +272,7 @@ void WindowManager::closeWindow(Window* window) {
             m_titleCache.erase(cacheIt);
         }
 
+        m_liveWindowIds.erase(window);
         m_windows.erase(it);
         invalidateShellHitTargets();
 

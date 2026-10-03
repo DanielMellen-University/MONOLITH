@@ -170,6 +170,7 @@ Window* WindowManager::createWindow(const std::string& title, int x, int y, int 
     Window* ptr = window.get();
     const int windowId = ptr->id;
     m_windows.push_back(std::move(window));
+    m_liveWindowIds.emplace(ptr, windowId);
     invalidateShellHitTargets();
     clampSingleWindow(*ptr);
 

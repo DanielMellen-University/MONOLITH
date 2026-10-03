@@ -1,5 +1,47 @@
 private:
+    struct WindowTarget {
+        Window* window;
+        int id;
+    };
+
+    std::unordered_map<const Window*, int> m_liveWindowIds;
     std::vector<std::unique_ptr<Window>> m_windows;
+    std::deque<std::vector<WindowTarget>> m_windowTargetBuffers;
+    std::size_t m_windowTargetDepth = 0;
+
+    class WindowTargetSnapshot {
+    public:
+        explicit WindowTargetSnapshot(WindowManager& owner)
+            : m_owner(owner), m_depth(owner.m_windowTargetDepth) {
+            while (owner.m_windowTargetBuffers.size() <= m_depth) {
+                owner.m_windowTargetBuffers.emplace_back();
+            }
+
+            auto& targets = owner.m_windowTargetBuffers[m_depth];
+            targets.clear();
+            targets.reserve(owner.m_windows.size());
+            for (const auto& window : owner.m_windows) {
+                if (window) targets.push_back({window.get(), window->id});
+            }
+            ++owner.m_windowTargetDepth;
+        }
+
+        ~WindowTargetSnapshot() {
+            --m_owner.m_windowTargetDepth;
+        }
+
+        WindowTargetSnapshot(const WindowTargetSnapshot&) = delete;
+        WindowTargetSnapshot& operator=(const WindowTargetSnapshot&) = delete;
+
+        const std::vector<WindowTarget>& targets() const {
+            return m_owner.m_windowTargetBuffers[m_depth];
+        }
+
+    private:
+        WindowManager& m_owner;
+        std::size_t m_depth;
+    };
+
     int m_nextId = 0;
 
     // Currently focused window (top of z-order)
@@ -279,28 +321,11 @@ private:
     // m_windows directly while invoking one.
     template <typename Callback>
     void forEachLiveWindow(Callback&& callback) {
-        struct Target {
-            Window* window;
-            int id;
-        };
+        const WindowTargetSnapshot snapshot(*this);
+        for (const WindowTarget& target : snapshot.targets()) {
+            if (!isLiveWindow(target.window, target.id)) continue;
 
-        std::vector<Target> targets;
-        targets.reserve(m_windows.size());
-        for (const auto& window : m_windows) {
-            if (window) targets.push_back({window.get(), window->id});
-        }
-
-        for (const Target& target : targets) {
-            const auto live = std::find_if(
-                m_windows.begin(),
-                m_windows.end(),
-                [&target](const auto& candidate) {
-                    return candidate.get() == target.window
-                        && candidate->id == target.id;
-                });
-            if (live == m_windows.end()) continue;
-
-            Window* window = live->get();
+            Window* window = target.window;
             invokeAppCallback([&]() { callback(*window); });
         }
     }

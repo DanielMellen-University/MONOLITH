@@ -1,5 +1,11 @@
 # Changelog
 
+## 2026-10: Reuse Window Manager traversal snapshots
+
+- Reuse nesting-safe window identity snapshots across update and render passes instead of allocating a new vector on each pass.
+- Index live window identities by pointer and monotonic ID, replacing repeated full-window liveness scans with expected constant-time checks while retaining close-during-callback safety.
+- Add lifecycle and render regressions for nested traversals, self-close, and steady-state snapshot capacity.
+
 ## 2026-10: Reuse Filesystem Browser filter label storage
 
 - Build the active filter label in a retained buffer instead of creating prefix and suffix substring temporaries every frame.
