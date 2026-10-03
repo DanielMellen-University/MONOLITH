@@ -1,5 +1,11 @@
 # Changelog
 
+## 2026-10: Stream Drawing opens
+
+- Decode `.modr` files incrementally from bounded filesystem chunks, validating exact payload size before committing the canvas.
+- Adopt decoded RGBA pixels directly instead of buffering the encoded file and allocating a blank canvas that is immediately discarded.
+- Cover split headers/pixels, malformed-size rollback, and existing-canvas preservation.
+
 ## 2026-10: Reuse Drawing save baselines
 
 - Copy the saved comparison image into its existing allocation when capacity is sufficient, eliminating a temporary full-canvas RGBA allocation on same-size saves and resets.
