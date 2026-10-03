@@ -1793,13 +1793,14 @@ void FilesystemApp::drawList(SDL_Renderer* r, const SDL_Rect& contentRect, int l
             if (isRenamingThis) {
                 const std::size_t cursorPos = std::min(
                     m_renameCursorPos, displayText.size());
-                const std::string beforeCursor = displayText.substr(0, cursorPos);
                 if (!m_renameCursorMeasureValid
-                    || m_renameCursorMeasurePrefix != beforeCursor) {
+                    || m_renameCursorMeasurePrefix.size() != cursorPos
+                    || displayText.compare(0, cursorPos,
+                                           m_renameCursorMeasurePrefix) != 0) {
+                    m_renameCursorMeasurePrefix.assign(displayText.data(), cursorPos);
                     int prefixHeight = 0;
-                    if (TTF_SizeUTF8(m_font, beforeCursor.c_str(),
+                    if (TTF_SizeUTF8(m_font, m_renameCursorMeasurePrefix.c_str(),
                                      &m_renameCursorMeasureWidth, &prefixHeight) == 0) {
-                        m_renameCursorMeasurePrefix = beforeCursor;
                         m_renameCursorMeasureValid = true;
                     } else {
                         m_renameCursorMeasureValid = false;
