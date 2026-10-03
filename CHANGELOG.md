@@ -1,5 +1,10 @@
 # Changelog
 
+## 2026-10: Store text cache keys once
+
+- Keep LRU entries as non-owning views into the cache's immutable map keys, avoiding a second owned text string per cached texture.
+- Preserve view validity through unordered-map rehashes and remove list views before erasing their backing keys.
+
 ## 2026-10: Remove allocations from text cache hits
 
 - Use transparent font/text/color lookup views so repeated renderer text-cache hits avoid rebuilding an owned composite key.
