@@ -1,5 +1,10 @@
 # Changelog
 
+## 2026-10: Surface automatic Desktop Settings save failures
+
+- Carry atomic-save failures from wallpaper moves and deletions into a shell status that Settings can display later.
+- Clear the warning after any successful settings write and cover move, delete, and recovery paths in headless tests.
+
 ## 2026-10: Report Desktop Settings save failures
 
 - Keep preference changes live while reporting rejected updates or failed atomic saves in the Settings footer.

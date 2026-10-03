@@ -151,6 +151,7 @@ public:
     monolith::app::SettingChangeResult setClock24Hour(bool enabled);
     int getUiScalePercent() const;
     monolith::app::SettingChangeResult setUiScalePercent(int percent);
+    bool desktopSettingsSaveFailed() const { return m_desktopSettingsSaveFailed; }
 
     // Session: restore open windows from a host-side file; save current layout on exit.
     // Format is line-based (see saveSession). Returns true after a valid

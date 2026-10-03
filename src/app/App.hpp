@@ -134,6 +134,10 @@ struct IWindowController {
         return SettingChangeResult::Rejected;
     }
 
+    // Whether the most recent desktop-settings save failed. Settings can show
+    // failures caused by shell-managed path updates, not only its own controls.
+    virtual bool desktopSettingsSaveFailed() const { return false; }
+
     // Future extensions:
     // virtual void minimize() = 0;
     // virtual void maximize() = 0;

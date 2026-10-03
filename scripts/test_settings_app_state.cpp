@@ -25,6 +25,7 @@ struct TestController final : monolith::app::IWindowController {
     uint8_t backgroundB = 30;
     bool clock24Hour = false;
     int uiScalePercent = 100;
+    bool saveFailed = false;
     monolith::app::SettingChangeResult changeResult =
         monolith::app::SettingChangeResult::Applied;
 
@@ -40,7 +41,12 @@ struct TestController final : monolith::app::IWindowController {
         if (changeResult != monolith::app::SettingChangeResult::Rejected) {
             wallpaperPath = path;
         }
+        recordResult();
         return changeResult;
+    }
+
+    bool desktopSettingsSaveFailed() const override {
+        return saveFailed;
     }
 
     std::string getWallpaperFit() const override {
@@ -52,6 +58,7 @@ struct TestController final : monolith::app::IWindowController {
         if (changeResult != monolith::app::SettingChangeResult::Rejected) {
             wallpaperFit = fit;
         }
+        recordResult();
         return changeResult;
     }
 
@@ -62,6 +69,7 @@ struct TestController final : monolith::app::IWindowController {
             backgroundG = g;
             backgroundB = b;
         }
+        recordResult();
         return changeResult;
     }
 
@@ -69,6 +77,7 @@ struct TestController final : monolith::app::IWindowController {
         if (changeResult != monolith::app::SettingChangeResult::Rejected) {
             clock24Hour = enabled;
         }
+        recordResult();
         return changeResult;
     }
 
@@ -80,12 +89,21 @@ struct TestController final : monolith::app::IWindowController {
         if (changeResult != monolith::app::SettingChangeResult::Rejected) {
             uiScalePercent = percent;
         }
+        recordResult();
         return changeResult;
     }
 
     void getLogicalDesktopSize(int& width, int& height) const override {
         width = logicalWidth;
         height = logicalHeight;
+    }
+
+    void recordResult() {
+        if (changeResult == monolith::app::SettingChangeResult::PersistenceFailed) {
+            saveFailed = true;
+        } else if (changeResult == monolith::app::SettingChangeResult::Applied) {
+            saveFailed = false;
+        }
     }
 };
 
@@ -355,6 +373,18 @@ int main() {
     SDL_Renderer* renderer = surface ? SDL_CreateSoftwareRenderer(surface) : nullptr;
     check(renderer != nullptr, "settings state creates a software renderer");
     if (renderer) {
+        settings.m_statusMessage.clear();
+        controller.saveFailed = true;
+        const size_t beforeFailureFooter = settings.m_textTextureCache.size();
+        settings.renderFooter(renderer, {0, 0, 200, 240});
+        const size_t afterFailureFooter = settings.m_textTextureCache.size();
+        check(afterFailureFooter == beforeFailureFooter + 1,
+              "Settings footer renders a shell-managed persistence failure");
+        controller.saveFailed = false;
+        settings.renderFooter(renderer, {0, 0, 200, 240});
+        check(settings.m_statusMessage.empty(),
+              "Settings clears a stale save warning after shell persistence recovers");
+
         const SDL_Rect expectedClip{5, 6, 140, 120};
         SDL_RenderSetClipRect(renderer, &expectedClip);
         settings.render(renderer, {0, 0, 200, 240});

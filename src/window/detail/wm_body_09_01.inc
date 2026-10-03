@@ -15,9 +15,7 @@
         m_desktopSettings.setWallpaperPath(nextWallpaperPath);
         destroyWallpaperTexture();
         m_wallpaperLoadedPath.clear();
-        if (!m_desktopSettingsHostPath.empty()) {
-            m_desktopSettings.saveToHostPath(m_desktopSettingsHostPath);
-        }
+        persistDesktopSettings();
     }
 
     std::vector<std::string> remappedClipboardPaths;
@@ -98,4 +96,3 @@
             });
         }
     }
-
