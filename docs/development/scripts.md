@@ -202,7 +202,7 @@ Headless test of shared UTF-8 codepoint editing and completion-prefix helpers us
 g++ -std=c++23 scripts/test_utf8.cpp -o build/test_utf8 && ./build/test_utf8
 ```
 
-Headless Text Editor state test for bounded streamed file loading, CRLF across chunk boundaries, oversized open/save rejection, Save As collisions, creation-notification binding order, failed-write recovery, Unicode-safe path completion, font-scaled status geometry, complete-row mouse hit testing, and resize scroll bounds:
+Headless Text Editor state test for bounded streamed file loading and saving, CRLF across read-chunk boundaries, line separators across save chunks, oversized open/save rejection, Save As collisions, creation-notification binding order, failed-write recovery, Unicode-safe path completion, font-scaled status geometry, complete-row mouse hit testing, and resize scroll bounds:
 
 ```bash
 g++ -std=c++23 scripts/test_text_editor_state.cpp src/app/TextEditorApp.cpp src/fs/Filesystem.cpp $(pkg-config --cflags --libs sdl2 SDL2_ttf) -o build/test_text_editor_state && ./build/test_text_editor_state
