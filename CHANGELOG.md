@@ -1,5 +1,10 @@
 # Changelog
 
+## 2026-10: Report session-save failures
+
+- Show a warning before SDL shutdown when the atomic session snapshot cannot be saved, and log the target path to stderr.
+- Extend the main lifecycle check to keep failure feedback before renderer/window teardown.
+
 ## 2026-10: Bound Desktop Settings record loading
 
 - Stop reading settings after 64 records in addition to the existing 16 KiB per-record limit, bounding work on malformed host-side preference files.
