@@ -251,7 +251,7 @@ g++ -std=c++23 -Ibuild/generated -Ibuild/generated/settings scripts/test_window_
 
 ## `.modr` Format Roundtrip
 
-Compiles and runs a headless test against the production Drawing raster codec, including byte-identical streaming output and bounded writes for a maximum-size canvas:
+Compiles and runs a headless test against the production Drawing raster codec, including split-chunk streaming decode, byte-identical streaming output, and bounded writes for a maximum-size canvas:
 
 ```bash
 g++ -std=c++23 scripts/test_modr_format.cpp src/app/DrawingRaster.cpp -o build/test_modr_format && ./build/test_modr_format

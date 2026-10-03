@@ -6,8 +6,8 @@
 #include <cstring>
 #include <cstdlib>
 #include <limits>
-#include <sstream>
 #include <ostream>
+#include <sstream>
 
 namespace monolith::drawing {
 
@@ -154,9 +154,8 @@ bool traceBresenhamLine(int x0, int y0, int x1, int y1, PaintPoint&& paintPoint)
     return changed;
 }
 
-uint32_t readU32LE(const std::string& data, size_t offset) {
-    if (offset + 4 > data.size()) return 0;
-    const auto* bytes = reinterpret_cast<const unsigned char*>(data.data() + offset);
+uint32_t readU32LE(const char* data) {
+    const auto* bytes = reinterpret_cast<const unsigned char*>(data);
     return static_cast<uint32_t>(bytes[0])
          | (static_cast<uint32_t>(bytes[1]) << 8)
          | (static_cast<uint32_t>(bytes[2]) << 16)
@@ -358,35 +357,125 @@ bool writeModr(std::ostream& output, int width, int height,
                     });
 }
 
-bool decodeModr(const std::string& blob, int& width, int& height, std::vector<uint8_t>& rgba) {
-    if (blob.size() < kModrHeaderBytes || std::memcmp(blob.data(), kModrMagic, 4) != 0) return false;
-    const uint32_t rawWidth = readU32LE(blob, 4);
-    const uint32_t rawHeight = readU32LE(blob, 8);
+ModrStreamDecoder::ModrStreamDecoder(std::uint64_t fileBytes)
+    : m_fileBytes(fileBytes),
+      m_failed(fileBytes < kModrHeaderBytes
+               || fileBytes > kMaxModrEncodedBytes) {}
+
+bool ModrStreamDecoder::parseHeader() {
+    if (std::memcmp(m_header.data(), kModrMagic, sizeof(kModrMagic)) != 0) return false;
+
+    const uint32_t rawWidth = readU32LE(m_header.data() + 4);
+    const uint32_t rawHeight = readU32LE(m_header.data() + 8);
     if (rawWidth == 0 || rawHeight == 0
         || rawWidth > static_cast<uint32_t>(kMaxModrDimension)
         || rawHeight > static_cast<uint32_t>(kMaxModrDimension)) {
         return false;
     }
-    const int w = static_cast<int>(rawWidth);
-    const int h = static_cast<int>(rawHeight);
-    const size_t pixelCount = static_cast<size_t>(w) * static_cast<size_t>(h);
-    const size_t expected = pixelCount * kModrRgbBytesPerPixel;
-    if (blob.size() != kModrHeaderBytes + expected) return false;
 
-    rgba.assign(pixelCount * 4, 255);
-    size_t offset = kModrHeaderBytes;
-    for (int y = 0; y < h; ++y) {
-        for (int x = 0; x < w; ++x) {
-            const size_t idx = (static_cast<size_t>(y) * static_cast<size_t>(w) + static_cast<size_t>(x)) * 4;
-            rgba[idx + 0] = static_cast<uint8_t>(blob[offset++]);
-            rgba[idx + 1] = static_cast<uint8_t>(blob[offset++]);
-            rgba[idx + 2] = static_cast<uint8_t>(blob[offset++]);
-            rgba[idx + 3] = 255;
+    const std::size_t pixelCount = static_cast<std::size_t>(rawWidth)
+        * static_cast<std::size_t>(rawHeight);
+    m_expectedPayloadBytes = pixelCount * kModrRgbBytesPerPixel;
+    if (m_fileBytes != kModrHeaderBytes + m_expectedPayloadBytes) return false;
+
+    m_width = static_cast<int>(rawWidth);
+    m_height = static_cast<int>(rawHeight);
+    m_rgba.assign(pixelCount * 4, 255);
+    m_headerParsed = true;
+    return true;
+}
+
+bool ModrStreamDecoder::appendPayload(std::string_view bytes) {
+    const std::size_t consumedBytes =
+        m_writtenPixels * kModrRgbBytesPerPixel + m_partialPixelBytes;
+    if (consumedBytes > m_expectedPayloadBytes
+        || bytes.size() > m_expectedPayloadBytes - consumedBytes) {
+        return false;
+    }
+
+    std::size_t offset = 0;
+    const auto storePixel = [this](const uint8_t* rgb) {
+        const std::size_t destination = m_writtenPixels * 4;
+        std::copy(rgb, rgb + kModrRgbBytesPerPixel, m_rgba.begin() + destination);
+        ++m_writtenPixels;
+    };
+
+    if (m_partialPixelBytes > 0) {
+        const std::size_t count = std::min(
+            kModrRgbBytesPerPixel - m_partialPixelBytes, bytes.size());
+        for (std::size_t index = 0; index < count; ++index) {
+            m_partialPixel[m_partialPixelBytes + index] = static_cast<uint8_t>(
+                static_cast<unsigned char>(bytes[index]));
+        }
+        m_partialPixelBytes += count;
+        offset += count;
+        if (m_partialPixelBytes < kModrRgbBytesPerPixel) return true;
+        storePixel(m_partialPixel.data());
+        m_partialPixelBytes = 0;
+    }
+
+    while (bytes.size() - offset >= kModrRgbBytesPerPixel) {
+        const std::size_t destination = m_writtenPixels * 4;
+        for (std::size_t channel = 0; channel < kModrRgbBytesPerPixel; ++channel) {
+            m_rgba[destination + channel] = static_cast<uint8_t>(
+                static_cast<unsigned char>(bytes[offset + channel]));
+        }
+        ++m_writtenPixels;
+        offset += kModrRgbBytesPerPixel;
+    }
+
+    m_partialPixelBytes = bytes.size() - offset;
+    for (std::size_t index = 0; index < m_partialPixelBytes; ++index) {
+        m_partialPixel[index] = static_cast<uint8_t>(
+            static_cast<unsigned char>(bytes[offset + index]));
+    }
+    return true;
+}
+
+bool ModrStreamDecoder::consume(std::string_view chunk) {
+    if (m_failed || m_finished) return false;
+
+    std::size_t offset = 0;
+    if (!m_headerParsed) {
+        const std::size_t count = std::min(m_header.size() - m_headerBytes, chunk.size());
+        if (count > 0) {
+            std::memcpy(m_header.data() + m_headerBytes, chunk.data(), count);
+            m_headerBytes += count;
+            offset = count;
+        }
+        if (m_headerBytes < m_header.size()) return true;
+        if (!parseHeader()) {
+            m_failed = true;
+            return false;
         }
     }
-    width = w;
-    height = h;
+
+    if (!appendPayload(chunk.substr(offset))) {
+        m_failed = true;
+        return false;
+    }
     return true;
+}
+
+bool ModrStreamDecoder::finish(int& width, int& height,
+                               std::vector<uint8_t>& rgba) {
+    if (m_failed || m_finished || !m_headerParsed || m_partialPixelBytes != 0
+        || m_writtenPixels * kModrRgbBytesPerPixel != m_expectedPayloadBytes) {
+        m_failed = true;
+        return false;
+    }
+
+    width = m_width;
+    height = m_height;
+    rgba = std::move(m_rgba);
+    m_finished = true;
+    return true;
+}
+
+bool decodeModr(const std::string& blob, int& width, int& height, std::vector<uint8_t>& rgba) {
+    ModrStreamDecoder decoder(blob.size());
+    return decoder.consume(std::string_view(blob.data(), blob.size()))
+        && decoder.finish(width, height, rgba);
 }
 
 bool parseRgb(const std::string& text, uint8_t& r, uint8_t& g, uint8_t& b) {

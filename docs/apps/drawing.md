@@ -517,6 +517,8 @@ Opening a missing file, a non-`.modr` path, or corrupt data leaves the current s
 
 Opening a valid file replaces the current canvas dimensions and pixels. The file's pixels are loaded as opaque RGB data, and the undo/redo stacks are cleared. The active tool, brush size, and color selection remain editor state and are not read from the file.
 
+Drawing reads `.modr` data in bounded filesystem chunks and decodes RGB directly into the new RGBA canvas. It does not first buffer the full encoded file or allocate a blank canvas that would immediately be replaced; the current sketch remains intact until the complete payload validates.
+
 ## Undo And Redo
 
 Drawing stores a capped history of canvas edits.

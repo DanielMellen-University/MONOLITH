@@ -49,6 +49,7 @@ The human funds token budget and lives in the desktop. You:
 | 2026-10-03 | editor-save-allocation | Validate serialized size once and reserve one Text Editor save buffer, preserving exact newline output while eliminating the `ostringstream::str()` copy; hosted workflow #223 passed |
 | 2026-10-03 | drawing-save-stream | Stream `.modr` RGB output through the atomic filesystem producer in bounded 16 KiB chunks; preserve the old file on failure; hosted workflow #228 passed |
 | 2026-10-03 | drawing-baseline-reuse | Refresh Drawing's saved baseline in place when capacity permits, avoiding a temporary full RGBA allocation for same-size captures; hosted workflow #232 passed |
+| 2026-10-03 | drawing-modr-stream-open | Decode `.modr` input incrementally from filesystem chunks and adopt the validated RGBA buffer directly, preserving the old canvas on rejection; hosted workflow #236 passed |
 | 2026-10-02 | settings-line-bound | Share the 16 KiB persisted-line reader with Desktop Settings and reject wallpaper paths that cannot round-trip |
 | 2026-10-02 | game-record-bound | Bound Snake and Minesweeper save-file reads by row and byte limits; reject malformed or impossible records |
 | 2026-10-02 | terminal-output-pan | Pan clipped Terminal output rows with UTF-8-safe viewport-sized segments and preserve vertical history scrolling |
@@ -251,6 +252,7 @@ Older recent-work rows: [`SESSION_LOG.md`](SESSION_LOG.md).
 | 7.86 | Reduce Text Editor save allocations | done | Compute validated serialized size once, reserve one contiguous buffer, preserve blank/trailing-line output, and verify an exact 16 MiB save; hosted workflow #223 passed |
 | 7.87 | Stream Drawing saves | done | Encode `.modr` RGB directly into the atomic filesystem producer with a fixed 16 KiB scratch buffer, avoiding a second ~48 MiB encoded allocation at maximum dimensions; test byte equivalence, failure rollback, and bounded maximum-canvas writes; hosted workflow #228 passed |
 | 7.88 | Reuse Drawing saved-baseline capacity | done | Capture current pixels into the saved baseline's existing allocation whenever capacity allows; allocate a replacement only when the canvas grows beyond it; verify same-size saves keep the storage stable and contents exact; hosted workflow #232 passed |
+| 7.89 | Stream Drawing opens | done | Decode `.modr` files incrementally from bounded filesystem chunks, validate the exact payload before adoption, and move the decoded RGBA buffer directly into the canvas; test arbitrary chunk boundaries, truncated payloads, and output preservation; hosted workflow #236 passed |
 | fs-browser-filter-cache | Reuse Filesystem Browser filter snapshots | done | Reuse one directory listing for filter edits; refresh it on F5 and Monolith filesystem notifications, including while filtering |
 | terminal-input-editing | Terminal command-line selection | done | Support UTF-8-safe keyboard/mouse selection and Ctrl+A/C/X/V; normalize all clipboard lines and tabs into the single-line prompt |
 | terminal-touch-mtime | Complete Terminal touch semantics | done | Update existing regular-file last-write time without truncation; reject outside-root symlink targets |

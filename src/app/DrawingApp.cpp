@@ -1000,36 +1000,32 @@ bool DrawingApp::loadFromPath(const std::string& virtualPath) {
         return false;
     }
 
-    std::string blob;
-    blob.reserve(static_cast<std::size_t>(fileBytes));
-    bool tooLarge = false;
+    monolith::drawing::ModrStreamDecoder decoder(fileBytes);
+    bool decoderRejected = false;
     const bool readOk = m_fs->readFileChunks(path, [&](std::string_view chunk) {
-        if (chunk.size() > monolith::drawing::kMaxModrEncodedBytes - blob.size()) {
-            tooLarge = true;
+        if (!decoder.consume(chunk)) {
+            decoderRejected = true;
             return false;
         }
-        blob.append(chunk.data(), chunk.size());
         return true;
     });
     if (!readOk) {
         setStatus("Open failed: could not read file.");
         return false;
     }
-    if (tooLarge) {
-        setStatus("Open failed: .modr file exceeds the size limit.");
-        return false;
-    }
 
     int width = 0;
     int height = 0;
     std::vector<uint8_t> rgba;
-    if (!monolith::drawing::decodeModr(blob, width, height, rgba)) {
+    if (decoderRejected || !decoder.finish(width, height, rgba)) {
         setStatus("Open failed: not a valid .modr drawing file.");
         return false;
     }
 
-    resizeCanvas(width, height, false);
+    m_canvasWidth = width;
+    m_canvasHeight = height;
     m_pixels = std::move(rgba);
+    markTextureDirty();
 
     m_filePath = path;
     captureSavedSnapshot();
@@ -1037,7 +1033,6 @@ bool DrawingApp::loadFromPath(const std::string& virtualPath) {
     clearDirtyTiles();
     m_undoStack.clear();
     m_redoStack.clear();
-    markTextureDirty();
 
     size_t nameStart = path.find_last_of('/');
     const std::string baseName = (nameStart != std::string::npos) ? path.substr(nameStart + 1) : path;
