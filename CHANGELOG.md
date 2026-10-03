@@ -1,5 +1,10 @@
 # Changelog
 
+## 2026-10: Avoid Filesystem Browser rename-prefix copies
+
+- Compare the active rename caret prefix directly against its cached value instead of allocating a temporary prefix string each frame.
+- Rebuild and measure the owned prefix only when its contents or the font changes.
+
 ## 2026-10: Reuse Terminal prompt render buffers
 
 - Cache the abbreviated working-directory prompt until the current directory changes.
