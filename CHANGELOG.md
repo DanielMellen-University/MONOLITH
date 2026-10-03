@@ -1,5 +1,10 @@
 # Changelog
 
+## 2026-10: Preserve line-break session paths
+
+- Escape newline characters in quoted session paths so filenames cannot split a saved session record.
+- Preserve legacy unquoted paths and existing quote/backslash escaping; cover the full WindowManager save-and-restore roundtrip.
+
 ## 2026-10: Stream Terminal history saves
 
 - Persist command history through the filesystem's atomic producer with a fixed 16 KiB scratch buffer, avoiding a second history-sized string on eligible submissions.

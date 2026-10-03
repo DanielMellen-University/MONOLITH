@@ -374,6 +374,38 @@ int main() {
     }
 
     {
+        const std::string newlineVirtualPath = "/docs/line\nbreak\\n.txt";
+        check(fs.writeFile(newlineVirtualPath, "newline path content"),
+              "write file whose path contains a line break");
+
+        const auto newlineSessionPath = hostRoot / "newline-path-session.txt";
+        monolith::window::WindowManager newlineSessionWriter;
+        newlineSessionWriter.setAppResources(font, &fs);
+        newlineSessionWriter.openPath(newlineVirtualPath);
+        check(newlineSessionWriter.m_windows.size() == 1
+                  && newlineSessionWriter.m_windows.front()->editedFilePath
+                      == newlineVirtualPath,
+              "open a file with a line break in its virtual path");
+        check(newlineSessionWriter.saveSession(newlineSessionPath.string()),
+              "save a session containing a line-break path");
+
+        std::ifstream newlineSessionFile(newlineSessionPath);
+        const std::string newlineSessionText(
+            std::istreambuf_iterator<char>(newlineSessionFile), {});
+        check(std::count(newlineSessionText.begin(), newlineSessionText.end(), '\n') == 3
+                  && newlineSessionText.find("line\\nbreak") != std::string::npos,
+              "line-break paths stay on one bounded session record");
+
+        monolith::window::WindowManager newlineSessionReader;
+        newlineSessionReader.setAppResources(font, &fs);
+        check(newlineSessionReader.loadSession(newlineSessionPath.string())
+                  && newlineSessionReader.m_windows.size() == 1
+                  && newlineSessionReader.m_windows.front()->editedFilePath
+                      == newlineVirtualPath,
+              "session restore reopens the exact line-break path");
+    }
+
+    {
         check(fs.writeFile("/drawings/broken.modr", "not a drawing"),
               "write corrupt session drawing");
         const auto staleSessionPath = hostRoot / "stale-session.txt";

@@ -52,6 +52,7 @@ The human funds token budget and lives in the desktop. You:
 | 2026-10-03 | drawing-modr-stream-open | Decode `.modr` input incrementally from filesystem chunks and adopt the validated RGBA buffer directly, preserving the old canvas on rejection; hosted workflow #236 passed |
 | 2026-10-03 | editor-save-stream | Stream validated Text Editor serialization through the atomic filesystem producer in bounded 16 KiB chunks; hosted workflow #240 passed |
 | 2026-10-03 | terminal-history-save-stream | Share a fixed-buffer stream writer for Text Editor and Terminal; persist eligible command history without a duplicate 2 MiB string and retain failure/retry behavior; hosted workflow #244 passed |
+| 2026-10-03 | session-path-line-breaks | Escape newlines in quoted session paths so unusual filenames round-trip without splitting bounded line records; hosted workflow #248 passed |
 | 2026-10-02 | settings-line-bound | Share the 16 KiB persisted-line reader with Desktop Settings and reject wallpaper paths that cannot round-trip |
 | 2026-10-02 | game-record-bound | Bound Snake and Minesweeper save-file reads by row and byte limits; reject malformed or impossible records |
 | 2026-10-02 | terminal-output-pan | Pan clipped Terminal output rows with UTF-8-safe viewport-sized segments and preserve vertical history scrolling |
@@ -257,6 +258,7 @@ Older recent-work rows: [`SESSION_LOG.md`](SESSION_LOG.md).
 | 7.89 | Stream Drawing opens | done | Decode `.modr` files incrementally from bounded filesystem chunks, validate the exact payload before adoption, and move the decoded RGBA buffer directly into the canvas; test arbitrary chunk boundaries, truncated payloads, and output preservation; hosted workflow #236 passed |
 | 7.90 | Stream Text Editor saves | done | Validate byte and line limits before writing; serialize LF-separated lines through the filesystem's atomic producer using a fixed 16 KiB buffer; verify exact maximum-size content and separators across chunk boundaries; hosted workflow #240 passed |
 | 7.91 | Stream Terminal history saves | done | Reuse a shared fixed-buffer writer for editor and Terminal persistence; stream the exact 2 MiB history limit, verify chunk-write failure propagation, and preserve existing retry/atomic behavior; hosted workflow #244 passed |
+| 7.92 | Preserve line-break session paths | done | Escape LF inside quoted session paths, preserve existing quote/backslash and legacy-token decoding, and round-trip an opened newline-bearing filename through WindowManager save/restore; hosted workflow #248 passed |
 | fs-browser-filter-cache | Reuse Filesystem Browser filter snapshots | done | Reuse one directory listing for filter edits; refresh it on F5 and Monolith filesystem notifications, including while filtering |
 | terminal-input-editing | Terminal command-line selection | done | Support UTF-8-safe keyboard/mouse selection and Ctrl+A/C/X/V; normalize all clipboard lines and tabs into the single-line prompt |
 | terminal-touch-mtime | Complete Terminal touch semantics | done | Update existing regular-file last-write time without truncation; reject outside-root symlink targets |

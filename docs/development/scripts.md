@@ -184,7 +184,7 @@ Headless Settings app test for wallpaper directory/image filename completion, sh
 g++ -std=c++23 -Ibuild/generated/settings scripts/test_settings_app_state.cpp src/app/SettingsApp.cpp src/fs/Filesystem.cpp $(pkg-config --cflags --libs sdl2 SDL2_ttf) -o build/test_settings_app_state && ./build/test_settings_app_state
 ```
 
-Headless test of quoted session paths, legacy unquoted paths, and bounded session-record reads:
+Headless test of quoted session paths, escaped line breaks, legacy unquoted paths, and bounded session-record reads:
 
 ```bash
 g++ -std=c++23 scripts/test_session_format.cpp -o build/test_session_format && ./build/test_session_format

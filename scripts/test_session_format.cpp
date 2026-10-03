@@ -30,6 +30,16 @@ int main() {
     check(readPath(roundTrip, decoded) && decoded == original,
           "quoted path round-trips");
 
+    const std::string multilinePath = "/home/monolith/line\nbreak\\n.txt";
+    std::ostringstream multilineEncoded;
+    writePath(multilineEncoded, multilinePath);
+    check(multilineEncoded.str().find('\n') == std::string::npos
+              && multilineEncoded.str().find("\\n") != std::string::npos,
+          "quoted path escapes line breaks without splitting the record");
+    std::istringstream multilineInput(multilineEncoded.str());
+    check(readPath(multilineInput, decoded) && decoded == multilinePath,
+          "escaped line breaks and literal escape-like path text round-trip");
+
     std::istringstream legacy("/home/monolith/notes.txt");
     check(readPath(legacy, decoded) && decoded == "/home/monolith/notes.txt",
           "legacy unquoted path remains readable");
