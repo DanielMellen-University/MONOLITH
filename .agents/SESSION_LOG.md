@@ -1,5 +1,7 @@
 # Session log
 
+| 2026-10-03 | perf | Query-only Filesystem Browser refreshes now remap selection and anchor rows by source index in one ordered pass rather than rebuilding filename identity sets; regressions cover retained and filtered-out delete targets, with hosted workflow #179 passed. |
+
 | 2026-10-03 | perf | Filesystem Browser now keeps one raw directory snapshot and represents filter results as source indices instead of copying each matching entry name; regressions cover selection across query changes and F5/notification refreshes, with hosted headless workflow #174 passed. |
 
 | 2026-10-03 | perf | Directory listings now classify ordinary entries from one no-follow status lookup, resolving only in-root symlinks to classify directories; in-root dangling links remain visible, with hosted headless workflow #170 passed. |

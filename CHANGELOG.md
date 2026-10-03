@@ -1,5 +1,10 @@
 # Changelog
 
+## 2026-10: Remap filter selection by snapshot index
+
+- Reuse the unchanged directory snapshot to preserve selection across query edits without allocating filename identity sets.
+- Keep delete confirmation when its selected entry remains visible; cancel it when filtering removes the target.
+
 ## 2026-10: Filter browser rows by snapshot index
 
 - Keep one directory-entry snapshot while filtering and store visible matches as indices, avoiding copies of matching filenames on each edit.
