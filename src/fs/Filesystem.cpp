@@ -653,16 +653,23 @@ std::vector<std::string> Filesystem::list(const std::string& virtualPath) const 
 
         for (const auto& entry : stdfs::directory_iterator(hostPath)) {
             std::error_code statusEc;
-            const bool isSymlink = entry.is_symlink(statusEc);
+            const auto linkStatus = entry.symlink_status(statusEc);
             if (statusEc) continue;
+            const bool isSymlink = stdfs::is_symlink(linkStatus);
             if (isSymlink && !isWithinHostRoot(entry.path().string())) continue;
 
-            const bool isDirectory = entry.is_directory(statusEc);
-            if (statusEc) {
-                if (!isSymlink || statusEc != std::errc::no_such_file_or_directory) {
-                    continue;
+            bool isDirectory = stdfs::is_directory(linkStatus);
+            if (isSymlink) {
+                const auto targetStatus = entry.status(statusEc);
+                if (statusEc) {
+                    if (statusEc != std::errc::no_such_file_or_directory) {
+                        continue;
+                    }
+                    statusEc.clear();
+                    isDirectory = false;
+                } else {
+                    isDirectory = stdfs::is_directory(targetStatus);
                 }
-                statusEc.clear();
             }
             if (isDirectory && !isSymlink
                 && !isWithinHostRoot(entry.path().string())) {
@@ -686,16 +693,23 @@ std::vector<Filesystem::DirEntry> Filesystem::listEntries(const std::string& vir
 
         for (const auto& entry : stdfs::directory_iterator(hostPath)) {
             std::error_code statusEc;
-            const bool isSymlink = entry.is_symlink(statusEc);
+            const auto linkStatus = entry.symlink_status(statusEc);
             if (statusEc) continue;
+            const bool isSymlink = stdfs::is_symlink(linkStatus);
             if (isSymlink && !isWithinHostRoot(entry.path().string())) continue;
 
-            const bool isDirectory = entry.is_directory(statusEc);
-            if (statusEc) {
-                if (!isSymlink || statusEc != std::errc::no_such_file_or_directory) {
-                    continue;
+            bool isDirectory = stdfs::is_directory(linkStatus);
+            if (isSymlink) {
+                const auto targetStatus = entry.status(statusEc);
+                if (statusEc) {
+                    if (statusEc != std::errc::no_such_file_or_directory) {
+                        continue;
+                    }
+                    statusEc.clear();
+                    isDirectory = false;
+                } else {
+                    isDirectory = stdfs::is_directory(targetStatus);
                 }
-                statusEc.clear();
             }
             if (isDirectory && !isSymlink
                 && !isWithinHostRoot(entry.path().string())) {

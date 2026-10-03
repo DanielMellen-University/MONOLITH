@@ -1,5 +1,10 @@
 # Changelog
 
+## 2026-10: Classify listed files without following them
+
+- Use one no-follow status result for ordinary directory entries; only resolve in-root symlink targets when classifying them as directories.
+- Keep dangling in-root links visible, hide external symlinks, and test both name-only and typed listings.
+
 ## 2026-10: Reduce directory listing path checks
 
 - Avoid canonicalizing every regular file during `list()` and `listEntries()`; continue validating symlinks and directories before exposing them.

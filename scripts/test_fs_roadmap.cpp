@@ -268,6 +268,25 @@ int main() {
                   && internalEntry->isDirectory,
               "directory listings retain in-root directory symlinks");
 
+        const stdfs::path danglingListLink = hostRoot / "dangling-list-link";
+        stdfs::create_symlink(hostRoot / "missing-list-target", danglingListLink, ec);
+        check(!ec, "create in-root dangling listing symlink");
+        if (!ec) {
+            const auto danglingNames = fs.list("/");
+            const auto danglingEntries = fs.listEntries("/");
+            const auto danglingEntry = std::find_if(
+                danglingEntries.begin(), danglingEntries.end(), [](const auto& entry) {
+                    return entry.name == "dangling-list-link";
+                });
+            check(std::find(danglingNames.begin(), danglingNames.end(), "dangling-list-link")
+                      != danglingNames.end()
+                      && danglingEntry != danglingEntries.end()
+                      && !danglingEntry->isDirectory,
+                  "directory listings retain in-root dangling symlinks as files");
+            check(fs.remove("/dangling-list-link"),
+                  "remove in-root dangling listing symlink");
+        }
+
         const stdfs::path internalFileLink = hostRoot / "internal-file-link";
         stdfs::create_symlink(hostRoot / "symlink-target/keep.txt", internalFileLink, ec);
         check(!ec, "create in-root file symlink");
