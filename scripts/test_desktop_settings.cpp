@@ -232,6 +232,21 @@ int main() {
               && partial.wallpaperPath().empty() && !partial.clock24Hour(),
           "oversized settings record is not applied and later records are ignored");
 
+    {
+        std::ofstream manyRecords(path, std::ios::trunc);
+        for (std::size_t i = 0; i < monolith::settings::kMaxSettingsRecords; ++i) {
+            manyRecords << "# ignored setting\n";
+        }
+        manyRecords << "desktop_background=90,80,70\n";
+    }
+    DesktopSettings boundedRecords;
+    boundedRecords.setDesktopBackground({3, 4, 5});
+    check(!boundedRecords.loadFromHostPath(path.string()),
+          "settings loader stops at the configured record budget");
+    const auto boundedBackground = boundedRecords.desktopBackground();
+    check(boundedBackground.r == 3 && boundedBackground.g == 4 && boundedBackground.b == 5,
+          "settings rows after the record budget cannot change current preferences");
+
     DesktopSettings setterGuard;
     setterGuard.setWallpaperPath("/existing.bmp");
     setterGuard.setWallpaperPath(maxWallpaperPath + "p");

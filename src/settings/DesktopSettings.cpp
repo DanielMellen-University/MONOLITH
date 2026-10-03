@@ -87,13 +87,15 @@ bool DesktopSettings::loadFromHostPath(const std::string& hostPath) {
     int nextUiScalePercent = 100;
     bool loadedAny = false;
     std::string line;
-    while (true) {
+    std::size_t recordsRead = 0;
+    while (recordsRead < kMaxSettingsRecords) {
         const auto lineResult = monolith::detail::readBoundedLine(in, line);
         if (lineResult == monolith::detail::BoundedLineResult::End
             || lineResult == monolith::detail::BoundedLineResult::Error
             || lineResult == monolith::detail::BoundedLineResult::TooLong) {
             break;
         }
+        ++recordsRead;
         if (!line.empty() && line.back() == '\r') line.pop_back();
 
         const std::string bgKey = "desktop_background=";
