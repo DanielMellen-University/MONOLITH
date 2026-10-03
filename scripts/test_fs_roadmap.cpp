@@ -660,6 +660,11 @@ int main() {
               && mixedCaseMatches[0].name == "ALPHA.txt"
               && mixedCaseMatches[1].name == "notes.TXT",
           "filterEntries matches mixed-case queries without changing entry order");
+    const auto mixedCaseIndices = Filesystem::filterEntryIndices(mixedCaseEntries, "tXt");
+    check(mixedCaseIndices == std::vector<std::size_t>{0, 1},
+          "filterEntryIndices matches without copying entries and preserves source order");
+    check(Filesystem::filterEntryIndices(mixedCaseEntries, "").empty(),
+          "filterEntryIndices uses an empty result for the unfiltered identity view");
 
     stdfs::remove_all(hostRoot, ec);
     stdfs::remove_all(outsideRoot, ec);

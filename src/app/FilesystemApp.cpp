@@ -195,7 +195,8 @@ void FilesystemApp::refreshEntries(const std::string& movedFrom,
     bool remapSelection = false;
     if (!movedFrom.empty() && !movedTo.empty()) {
         const std::string fromName = entryBaseName(movedFrom);
-        for (const auto& entry : m_entries) {
+        for (std::size_t index = 0; index < visibleEntryCount(); ++index) {
+            const auto& entry = visibleEntryAt(index);
             if (entry.name == fromName) {
                 movedFromIdentity = {entry.name, entry.isDirectory};
                 movedToIdentity = {entryBaseName(movedTo), entry.isDirectory};
@@ -212,64 +213,47 @@ void FilesystemApp::refreshEntries(const std::string& movedFrom,
     };
     std::set<SelectionIdentity> selectedIdentities;
     for (const int index : selectedIndicesSorted()) {
-        if (index >= 0 && index < static_cast<int>(m_entries.size())) {
-            const auto& entry = m_entries[static_cast<size_t>(index)];
+        if (index >= 0 && index < static_cast<int>(visibleEntryCount())) {
+            const auto& entry = visibleEntryAt(static_cast<std::size_t>(index));
             selectedIdentities.emplace(remapIdentity({entry.name, entry.isDirectory}));
         }
     }
 
     bool hadPrimarySelection = m_selectedIndex >= 0
-        && m_selectedIndex < static_cast<int>(m_entries.size());
+        && m_selectedIndex < static_cast<int>(visibleEntryCount());
     SelectionIdentity primaryIdentity;
     if (hadPrimarySelection) {
-        const auto& entry = m_entries[static_cast<size_t>(m_selectedIndex)];
+        const auto& entry = visibleEntryAt(static_cast<std::size_t>(m_selectedIndex));
         primaryIdentity = remapIdentity({entry.name, entry.isDirectory});
     }
 
     const bool hadAnchor = m_anchorIndex >= 0
-        && m_anchorIndex < static_cast<int>(m_entries.size());
+        && m_anchorIndex < static_cast<int>(visibleEntryCount());
     SelectionIdentity anchorIdentity;
     if (hadAnchor) {
-        const auto& entry = m_entries[static_cast<size_t>(m_anchorIndex)];
+        const auto& entry = visibleEntryAt(static_cast<std::size_t>(m_anchorIndex));
         anchorIdentity = remapIdentity({entry.name, entry.isDirectory});
     }
 
-    m_entries.clear();
     if (!m_fs) {
-        m_filterSourceEntries.clear();
-        m_filterSourceValid = false;
+        m_entries.clear();
+        m_visibleEntryIndices.clear();
+        m_visibleUsesIndices = false;
         clearMultiSelection();
         m_selectedIndex = -1;
         return;
     }
 
-    const bool filterSourceNeeded = m_filtering || !m_filterQuery.empty();
-    if (reloadDirectory || (filterSourceNeeded && !m_filterSourceValid)) {
-        auto raw = m_fs->listEntries(m_currentPath);
-        if (filterSourceNeeded) {
-            m_filterSourceEntries = std::move(raw);
-            m_filterSourceValid = true;
-            m_entries = monolith::fs::Filesystem::filterEntries(
-                m_filterSourceEntries, m_filterQuery);
-        } else {
-            m_filterSourceEntries.clear();
-            m_filterSourceValid = false;
-            m_entries = std::move(raw);
-        }
-    } else if (filterSourceNeeded) {
-        m_entries = monolith::fs::Filesystem::filterEntries(
-            m_filterSourceEntries, m_filterQuery);
-    } else {
-        m_filterSourceEntries.clear();
-        m_filterSourceValid = false;
+    if (reloadDirectory) {
         m_entries = m_fs->listEntries(m_currentPath);
     }
+    rebuildVisibleEntryIndices();
 
     clearMultiSelection();
     int restoredPrimary = -1;
     int restoredAnchor = -1;
-    for (size_t i = 0; i < m_entries.size(); ++i) {
-        const auto& entry = m_entries[i];
+    for (std::size_t i = 0; i < visibleEntryCount(); ++i) {
+        const auto& entry = visibleEntryAt(i);
         const SelectionIdentity identity{entry.name, entry.isDirectory};
         if (hadAnchor && identity == anchorIdentity) {
             restoredAnchor = static_cast<int>(i);
@@ -301,16 +285,16 @@ void FilesystemApp::refreshEntries(const std::string& movedFrom,
 
     std::set<SelectionIdentity> restoredIdentities;
     for (const int index : selectedIndicesSorted()) {
-        if (index >= 0 && index < static_cast<int>(m_entries.size())) {
-            const auto& entry = m_entries[static_cast<size_t>(index)];
+        if (index >= 0 && index < static_cast<int>(visibleEntryCount())) {
+            const auto& entry = visibleEntryAt(static_cast<std::size_t>(index));
             restoredIdentities.emplace(entry.name, entry.isDirectory);
         }
     }
     bool restoredPrimarySelection = m_selectedIndex >= 0
-        && m_selectedIndex < static_cast<int>(m_entries.size());
+        && m_selectedIndex < static_cast<int>(visibleEntryCount());
     SelectionIdentity restoredPrimaryIdentity;
     if (restoredPrimarySelection) {
-        const auto& entry = m_entries[static_cast<size_t>(m_selectedIndex)];
+        const auto& entry = visibleEntryAt(static_cast<std::size_t>(m_selectedIndex));
         restoredPrimaryIdentity = {entry.name, entry.isDirectory};
     }
     if (m_confirmingDelete
@@ -357,9 +341,9 @@ void FilesystemApp::openFileEntry(const std::string& name, const char* forceApp)
 }
 
 void FilesystemApp::activateEntry(size_t index) {
-    if (index >= m_entries.size()) return;
+    if (index >= visibleEntryCount()) return;
 
-    const auto& entry = m_entries[index];
+    const auto& entry = visibleEntryAt(index);
 
     if (entry.isDirectory) {
         std::string newPath = fullPathFor(entry.name);
@@ -457,7 +441,7 @@ std::vector<int> FilesystemApp::selectedIndicesSorted() const {
 }
 
 int FilesystemApp::primarySelectedIndex() const {
-    if (m_selectedIndex >= 0 && m_selectedIndex < static_cast<int>(m_entries.size())) {
+    if (m_selectedIndex >= 0 && m_selectedIndex < static_cast<int>(visibleEntryCount())) {
         return m_selectedIndex;
     }
     auto sorted = selectedIndicesSorted();
@@ -465,7 +449,7 @@ int FilesystemApp::primarySelectedIndex() const {
 }
 
 void FilesystemApp::toggleSelection(int index) {
-    if (index < 0 || index >= static_cast<int>(m_entries.size())) return;
+    if (index < 0 || index >= static_cast<int>(visibleEntryCount())) return;
     if (m_confirmingDelete) {
         cancelPendingDelete();
     }
@@ -485,12 +469,12 @@ void FilesystemApp::toggleSelection(int index) {
 }
 
 void FilesystemApp::selectRange(int fromIndex, int toIndex) {
-    if (m_entries.empty()) return;
+    if (visibleEntryCount() == 0) return;
     if (m_confirmingDelete) {
         cancelPendingDelete();
     }
-    fromIndex = std::clamp(fromIndex, 0, static_cast<int>(m_entries.size()) - 1);
-    toIndex = std::clamp(toIndex, 0, static_cast<int>(m_entries.size()) - 1);
+    fromIndex = std::clamp(fromIndex, 0, static_cast<int>(visibleEntryCount()) - 1);
+    toIndex = std::clamp(toIndex, 0, static_cast<int>(visibleEntryCount()) - 1);
     if (fromIndex > toIndex) std::swap(fromIndex, toIndex);
     m_selectedSet.clear();
     for (int i = fromIndex; i <= toIndex; ++i) {
@@ -508,8 +492,8 @@ void FilesystemApp::showPropertiesForSelection() {
     if (indices.size() > 1) {
         int files = 0, dirs = 0;
         for (int i : indices) {
-            if (i < 0 || i >= static_cast<int>(m_entries.size())) continue;
-            if (m_entries[static_cast<size_t>(i)].isDirectory) ++dirs;
+            if (i < 0 || i >= static_cast<int>(visibleEntryCount())) continue;
+            if (visibleEntryAt(static_cast<std::size_t>(i)).isDirectory) ++dirs;
             else ++files;
         }
         std::ostringstream oss;
@@ -520,7 +504,7 @@ void FilesystemApp::showPropertiesForSelection() {
     }
 
     const int idx = indices.front();
-    const auto& e = m_entries[static_cast<size_t>(idx)];
+    const auto& e = visibleEntryAt(static_cast<std::size_t>(idx));
     const std::string path = fullPathFor(e.name);
     std::ostringstream oss;
     oss << e.name << "  |  " << path << "  |  ";
@@ -585,8 +569,8 @@ void FilesystemApp::copySelectedToClipboard(bool cut) {
     std::vector<std::string> paths;
     paths.reserve(indices.size());
     for (int idx : indices) {
-        if (idx < 0 || idx >= static_cast<int>(m_entries.size())) continue;
-        paths.push_back(fullPathFor(m_entries[static_cast<size_t>(idx)].name));
+        if (idx < 0 || idx >= static_cast<int>(visibleEntryCount())) continue;
+        paths.push_back(fullPathFor(visibleEntryAt(static_cast<std::size_t>(idx)).name));
     }
     if (paths.empty()) {
         setStatus(cut ? "Cut failed: no item selected" : "Copy failed: no item selected");
@@ -721,7 +705,7 @@ void FilesystemApp::requestDeleteSelected() {
     m_confirmingDelete = true;
     m_pendingDeleteIndex = primarySelectedIndex();
     if (indices.size() == 1) {
-        const auto& e = m_entries[static_cast<size_t>(indices.front())];
+        const auto& e = visibleEntryAt(static_cast<std::size_t>(indices.front()));
         setStatus(std::string("Delete \"") + e.name + (e.isDirectory ? "\" (folder tree)" : "\"")
                   + "? Delete/Enter confirm, Esc cancel");
     } else {
@@ -743,8 +727,8 @@ void FilesystemApp::performDeleteSelected() {
     // Delete from the end so earlier indices stay valid while iterating.
     for (auto it = indices.rbegin(); it != indices.rend(); ++it) {
         const int idx = *it;
-        if (idx < 0 || idx >= static_cast<int>(m_entries.size())) continue;
-        const std::string name = m_entries[static_cast<size_t>(idx)].name;
+        if (idx < 0 || idx >= static_cast<int>(visibleEntryCount())) continue;
+        const std::string name = visibleEntryAt(static_cast<std::size_t>(idx)).name;
         const std::string target = fullPathFor(name);
         if (m_fs->normalize(target) == "/") {
             ++failCount;
@@ -762,8 +746,8 @@ void FilesystemApp::performDeleteSelected() {
 
     cancelPendingDelete();
     refreshEntries();
-    if (!m_entries.empty()) {
-        setSelection(std::min(indices.front(), static_cast<int>(m_entries.size()) - 1));
+    if (visibleEntryCount() != 0) {
+        setSelection(std::min(indices.front(), static_cast<int>(visibleEntryCount()) - 1));
     } else {
         m_selectedIndex = -1;
     }
@@ -778,7 +762,7 @@ void FilesystemApp::performDeleteSelected() {
 
 void FilesystemApp::startRenameSelected() {
     const int idx = primarySelectedIndex();
-    if (!m_fs || idx < 0 || idx >= static_cast<int>(m_entries.size())) {
+    if (!m_fs || idx < 0 || idx >= static_cast<int>(visibleEntryCount())) {
         setStatus(m_fs ? "Rename failed: no item selected" : "Rename failed: filesystem not available");
         return;
     }
@@ -790,13 +774,14 @@ void FilesystemApp::startRenameSelected() {
     m_selectedIndex = idx;
     m_renaming = true;
     m_renameIndex = idx;
-    m_renameBuffer = m_entries[static_cast<size_t>(idx)].name;
+    m_renameBuffer = visibleEntryAt(static_cast<std::size_t>(idx)).name;
     m_renameCursorPos = m_renameBuffer.size();
     setStatus("Renaming: " + m_renameBuffer);
 }
 
 void FilesystemApp::finishRename(bool commit) {
-    if (!m_renaming || m_renameIndex < 0 || m_renameIndex >= static_cast<int>(m_entries.size())) {
+    if (!m_renaming || m_renameIndex < 0
+        || m_renameIndex >= static_cast<int>(visibleEntryCount())) {
         m_renaming = false;
         m_renameIndex = -1;
         m_renameBuffer.clear();
@@ -804,7 +789,7 @@ void FilesystemApp::finishRename(bool commit) {
         return;
     }
 
-    const auto& entry = m_entries[m_renameIndex];
+    const auto& entry = visibleEntryAt(static_cast<std::size_t>(m_renameIndex));
     const std::string oldName = entry.name;
     const bool wasDirectory = entry.isDirectory;
     const std::string newName = m_renameBuffer;
@@ -851,10 +836,6 @@ void FilesystemApp::finishRename(bool commit) {
 }
 
 void FilesystemApp::beginFilter() {
-    if (!m_filterSourceValid) {
-        m_filterSourceEntries = m_entries;
-        m_filterSourceValid = true;
-    }
     m_filtering = true;
     if (m_renaming) {
         finishRename(false);
@@ -888,20 +869,44 @@ void FilesystemApp::updateFilterStatus() {
     if (m_filterQuery.empty()) {
         setStatus("Filter: (all items)");
     } else {
-        setStatus("Filter: " + m_filterQuery + "  (" + std::to_string(m_entries.size()) + " match"
-                  + (m_entries.size() == 1 ? ")" : "es)"));
+        setStatus("Filter: " + m_filterQuery + "  (" + std::to_string(visibleEntryCount()) + " match"
+                  + (visibleEntryCount() == 1 ? ")" : "es)"));
+    }
+}
+
+std::size_t FilesystemApp::visibleEntryCount() const {
+    return m_visibleUsesIndices ? m_visibleEntryIndices.size() : m_entries.size();
+}
+
+const monolith::fs::Filesystem::DirEntry& FilesystemApp::visibleEntryAt(
+    std::size_t index) const {
+    const std::size_t sourceIndex = m_visibleUsesIndices
+        ? m_visibleEntryIndices[index]
+        : index;
+    return m_entries[sourceIndex];
+}
+
+void FilesystemApp::rebuildVisibleEntryIndices() {
+    if (m_filterQuery.empty()) {
+        m_visibleEntryIndices.clear();
+        m_visibleUsesIndices = false;
+    } else {
+        m_visibleEntryIndices = monolith::fs::Filesystem::filterEntryIndices(m_entries, m_filterQuery);
+        m_visibleUsesIndices = true;
     }
 }
 
 void FilesystemApp::setSelection(int index, bool additive) {
-    if (m_entries.empty()) {
+    if (visibleEntryCount() == 0) {
         m_selectedIndex = -1;
         clearMultiSelection();
         if (m_confirmingDelete) cancelPendingDelete();
         return;
     }
     if (index < 0) index = 0;
-    if (index >= static_cast<int>(m_entries.size())) index = static_cast<int>(m_entries.size()) - 1;
+    if (index >= static_cast<int>(visibleEntryCount())) {
+        index = static_cast<int>(visibleEntryCount()) - 1;
+    }
     if (m_confirmingDelete) {
         cancelPendingDelete();
     }
@@ -917,8 +922,9 @@ void FilesystemApp::setSelection(int index, bool additive) {
 }
 
 bool FilesystemApp::selectEntryNamed(const std::string& name, bool isDirectory) {
-    for (size_t i = 0; i < m_entries.size(); ++i) {
-        if (m_entries[i].name == name && m_entries[i].isDirectory == isDirectory) {
+    for (std::size_t i = 0; i < visibleEntryCount(); ++i) {
+        const auto& entry = visibleEntryAt(i);
+        if (entry.name == name && entry.isDirectory == isDirectory) {
             setSelection(static_cast<int>(i), false);
             ensureSelectionVisible();
             return true;
@@ -928,7 +934,7 @@ bool FilesystemApp::selectEntryNamed(const std::string& name, bool isDirectory) 
 }
 
 void FilesystemApp::clampSelection() {
-    if (m_entries.empty()) {
+    if (visibleEntryCount() == 0) {
         m_selectedIndex = -1;
         clearMultiSelection();
         m_scrollOffset = 0;
@@ -936,11 +942,11 @@ void FilesystemApp::clampSelection() {
     }
     // Drop out-of-range multi-select indices.
     for (auto it = m_selectedSet.begin(); it != m_selectedSet.end(); ) {
-        if (*it < 0 || *it >= static_cast<int>(m_entries.size())) it = m_selectedSet.erase(it);
+        if (*it < 0 || *it >= static_cast<int>(visibleEntryCount())) it = m_selectedSet.erase(it);
         else ++it;
     }
-    if (m_selectedIndex >= static_cast<int>(m_entries.size())) {
-        m_selectedIndex = static_cast<int>(m_entries.size()) - 1;
+    if (m_selectedIndex >= static_cast<int>(visibleEntryCount())) {
+        m_selectedIndex = static_cast<int>(visibleEntryCount()) - 1;
     }
     if (m_selectedIndex < -1) {
         m_selectedIndex = -1;
@@ -950,7 +956,7 @@ void FilesystemApp::clampSelection() {
     }
 
     const int visible = std::max(1, getVisibleRowCount({0, 0, m_clientWidth, m_clientHeight}));
-    const int maxScroll = std::max(0, static_cast<int>(m_entries.size()) - visible);
+    const int maxScroll = std::max(0, static_cast<int>(visibleEntryCount()) - visible);
     m_scrollOffset = std::clamp(m_scrollOffset, 0, maxScroll);
     ensureSelectionVisible();
 }
@@ -1023,7 +1029,7 @@ void FilesystemApp::handleMouseButton(const SDL_MouseButtonEvent& e) {
             }
             int clickedRow = m_scrollOffset + (relY / rowHeight);
 
-            if (clickedRow >= 0 && clickedRow < static_cast<int>(m_entries.size())) {
+            if (clickedRow >= 0 && clickedRow < static_cast<int>(visibleEntryCount())) {
                 // Preserve a multi-selection when the context menu is opened on
                 // one of its rows. Right-clicking an unselected row starts a new
                 // single selection, matching ordinary click behavior.
@@ -1093,7 +1099,7 @@ void FilesystemApp::handleMouseButton(const SDL_MouseButtonEvent& e) {
     if ((relY % rowHeight) >= rowHeight - 1) return;
 
     int clickedRow = m_scrollOffset + (relY / rowHeight);
-    if (clickedRow >= 0 && clickedRow < static_cast<int>(m_entries.size())) {
+    if (clickedRow >= 0 && clickedRow < static_cast<int>(visibleEntryCount())) {
         const bool ctrl = (SDL_GetModState() & KMOD_CTRL) != 0;
         const bool shift = (SDL_GetModState() & KMOD_SHIFT) != 0;
         if (shift && m_anchorIndex >= 0) {
@@ -1121,7 +1127,7 @@ void FilesystemApp::handleMouseWheel(const SDL_MouseWheelEvent& e) {
     }
 
     int visible = getVisibleRowCount({0, 0, m_clientWidth, m_clientHeight});
-    int maxScroll = std::max(0, static_cast<int>(m_entries.size()) - visible);
+    int maxScroll = std::max(0, static_cast<int>(visibleEntryCount()) - visible);
 
     m_scrollOffset -= e.y * 3; // a few rows per wheel tick
     if (m_scrollOffset < 0) m_scrollOffset = 0;
@@ -1177,10 +1183,6 @@ void FilesystemApp::handleKeyDown(const SDL_Keysym& keysym) {
         }
         if (keysym.sym == SDLK_RETURN || keysym.sym == SDLK_KP_ENTER) {
             m_filtering = false;
-            if (m_filterQuery.empty()) {
-                m_filterSourceEntries.clear();
-                m_filterSourceValid = false;
-            }
             updateFilterStatus();
             return;
         }
@@ -1251,7 +1253,7 @@ void FilesystemApp::handleKeyDown(const SDL_Keysym& keysym) {
             break;
 
         case SDLK_DOWN:
-            if (m_selectedIndex + 1 < static_cast<int>(m_entries.size())) {
+            if (m_selectedIndex + 1 < static_cast<int>(visibleEntryCount())) {
                 if (keysym.mod & KMOD_SHIFT) {
                     if (m_anchorIndex < 0) m_anchorIndex = m_selectedIndex;
                     selectRange(m_anchorIndex, m_selectedIndex + 1);
@@ -1259,7 +1261,7 @@ void FilesystemApp::handleKeyDown(const SDL_Keysym& keysym) {
                     setSelection(m_selectedIndex + 1, false);
                 }
                 ensureSelectionVisible();
-            } else if (m_selectedIndex < 0 && !m_entries.empty()) {
+            } else if (m_selectedIndex < 0 && visibleEntryCount() != 0) {
                 setSelection(0, false);
                 ensureSelectionVisible();
             }
@@ -1298,9 +1300,9 @@ void FilesystemApp::handleKeyDown(const SDL_Keysym& keysym) {
 
         case SDLK_a:
             if (keysym.mod & KMOD_CTRL) {
-                if (!m_entries.empty()) {
-                    selectRange(0, static_cast<int>(m_entries.size()) - 1);
-                    setStatus("Selected " + std::to_string(m_entries.size()) + " items");
+                if (visibleEntryCount() != 0) {
+                    selectRange(0, static_cast<int>(visibleEntryCount()) - 1);
+                    setStatus("Selected " + std::to_string(visibleEntryCount()) + " items");
                 }
             }
             break;
@@ -1612,7 +1614,7 @@ void FilesystemApp::drawList(SDL_Renderer* r, const SDL_Rect& contentRect, int l
     SDL_SetRenderDrawColor(r, 22, 22, 26, 255);
     SDL_RenderFillRect(r, &listArea);
 
-    if (m_entries.empty()) {
+    if (visibleEntryCount() == 0) {
         SDL_Color dim = {140, 145, 150, 255};
         const char* emptyMsg = m_filterQuery.empty() ? "(empty directory)" : "(no matching items)";
         const auto texture = m_textTextureCache.get(r, m_font, emptyMsg, dim);
@@ -1640,9 +1642,9 @@ void FilesystemApp::drawList(SDL_Renderer* r, const SDL_Rect& contentRect, int l
 
     for (int i = 0; i < visible; ++i) {
         int entryIdx = m_scrollOffset + i;
-        if (entryIdx >= static_cast<int>(m_entries.size())) break;
+        if (entryIdx >= static_cast<int>(visibleEntryCount())) break;
 
-        const auto& entry = m_entries[entryIdx];
+        const auto& entry = visibleEntryAt(static_cast<std::size_t>(entryIdx));
         bool isSelected = isIndexSelected(entryIdx);
         bool isPrimary = (entryIdx == m_selectedIndex);
         bool isRenamingThis = m_renaming && (entryIdx == m_renameIndex);
@@ -1830,8 +1832,8 @@ void FilesystemApp::showContextMenu(int x, int y, int targetIndex) {
             m_contextMenuItems.push_back("Paste");
         }
         m_contextMenuItems.push_back("Refresh");
-    } else if (targetIndex >= 0 && targetIndex < static_cast<int>(m_entries.size())) {
-        const auto& entry = m_entries[targetIndex];
+    } else if (targetIndex >= 0 && targetIndex < static_cast<int>(visibleEntryCount())) {
+        const auto& entry = visibleEntryAt(static_cast<std::size_t>(targetIndex));
         m_contextMenuItems.push_back("Open");
         if (!entry.isDirectory) {
             m_contextMenuItems.push_back("Open with Text Editor");
@@ -1916,14 +1918,14 @@ void FilesystemApp::executeContextMenuAction(int menuIndex) {
             activateEntry(static_cast<size_t>(target));
         }
     } else if (action == "Open with Text Editor") {
-        if (target >= 0 && target < static_cast<int>(m_entries.size())
-            && !m_entries[static_cast<size_t>(target)].isDirectory) {
-            openFileEntry(m_entries[static_cast<size_t>(target)].name, "editor");
+        if (target >= 0 && target < static_cast<int>(visibleEntryCount())
+            && !visibleEntryAt(static_cast<std::size_t>(target)).isDirectory) {
+            openFileEntry(visibleEntryAt(static_cast<std::size_t>(target)).name, "editor");
         }
     } else if (action == "Open with Drawing") {
-        if (target >= 0 && target < static_cast<int>(m_entries.size())
-            && !m_entries[static_cast<size_t>(target)].isDirectory) {
-            openFileEntry(m_entries[static_cast<size_t>(target)].name, "drawing");
+        if (target >= 0 && target < static_cast<int>(visibleEntryCount())
+            && !visibleEntryAt(static_cast<std::size_t>(target)).isDirectory) {
+            openFileEntry(visibleEntryAt(static_cast<std::size_t>(target)).name, "drawing");
         }
     } else if (action == "Properties") {
         if (target >= 0) {
@@ -1969,7 +1971,7 @@ void FilesystemApp::executeContextMenuAction(int menuIndex) {
             m_showContextMenu = true;
             auto indices = selectedIndicesSorted();
             if (indices.size() == 1) {
-                const std::string& name = m_entries[static_cast<size_t>(target)].name;
+                const std::string& name = visibleEntryAt(static_cast<std::size_t>(target)).name;
                 setStatus("Delete \"" + name + "\"? Confirm in menu or Enter");
             } else {
                 setStatus("Delete " + std::to_string(indices.size())
@@ -2065,14 +2067,14 @@ void FilesystemApp::drawStatusBar(SDL_Renderer* r, const SDL_Rect& contentRect) 
 
     std::string status;
 
-    if (m_entries.empty()) {
+    if (visibleEntryCount() == 0) {
         status = "0 items";
     } else {
-        status = std::to_string(m_entries.size()) + " items";
+        status = std::to_string(visibleEntryCount()) + " items";
     }
 
-    if (m_selectedIndex >= 0 && m_selectedIndex < static_cast<int>(m_entries.size())) {
-        const auto& sel = m_entries[m_selectedIndex];
+    if (m_selectedIndex >= 0 && m_selectedIndex < static_cast<int>(visibleEntryCount())) {
+        const auto& sel = visibleEntryAt(static_cast<std::size_t>(m_selectedIndex));
         status += "   |   Selected: " + sel.name;
         if (sel.isDirectory) status += " (dir)";
     }

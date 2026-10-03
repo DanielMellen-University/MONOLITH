@@ -450,13 +450,28 @@ std::vector<Filesystem::DirEntry> Filesystem::filterEntries(const std::vector<Di
     if (query.empty()) return entries;
     const std::string lowercaseQuery = lowercaseAscii(query);
     std::vector<DirEntry> out;
-    out.reserve(entries.size());
+    out.reserve(std::min(entries.size(), std::size_t{64}));
     for (const auto& entry : entries) {
         if (containsCaseInsensitive(entry.name, lowercaseQuery)) {
             out.push_back(entry);
         }
     }
     return out;
+}
+
+std::vector<std::size_t> Filesystem::filterEntryIndices(
+    const std::vector<DirEntry>& entries, const std::string& query) {
+    std::vector<std::size_t> matches;
+    if (query.empty()) return matches;
+
+    const std::string lowercaseQuery = lowercaseAscii(query);
+    matches.reserve(std::min(entries.size(), std::size_t{64}));
+    for (std::size_t index = 0; index < entries.size(); ++index) {
+        if (containsCaseInsensitive(entries[index].name, lowercaseQuery)) {
+            matches.push_back(index);
+        }
+    }
+    return matches;
 }
 
 bool Filesystem::writeFileWithProducer(
