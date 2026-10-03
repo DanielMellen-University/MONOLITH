@@ -652,7 +652,7 @@ void TerminalApp::render(SDL_Renderer* renderer, const SDL_Rect& contentRect) {
         int cursorPrefixWidth = cursorPrefixTexture ? cursorPrefixTexture.width : 0;
         if (!cursorPrefixTexture) {
             int cursorPrefixHeight = 0;
-            TTF_SizeUTF8(m_font, cursorPrefix.c_str(),
+            TTF_SizeUTF8(m_font, m_renderCursorPrefix.c_str(),
                          &cursorPrefixWidth, &cursorPrefixHeight);
         }
         const int inputViewportWidth = std::max(1, inputBar.w - padding * 2);
@@ -706,11 +706,11 @@ void TerminalApp::render(SDL_Renderer* renderer, const SDL_Rect& contentRect) {
         int prefixWidth = cursorPrefixTexture ? cursorPrefixTexture.width : 0;
         if (!fullTexture) {
             int fullHeight = 0;
-            TTF_SizeUTF8(m_font, fullText.c_str(), &fullWidth, &fullHeight);
+            TTF_SizeUTF8(m_font, m_renderInputText.c_str(), &fullWidth, &fullHeight);
         }
         if (!cursorPrefixTexture) {
             int prefixHeight = 0;
-            TTF_SizeUTF8(m_font, cursorPrefix.c_str(), &prefixWidth, &prefixHeight);
+            TTF_SizeUTF8(m_font, m_renderCursorPrefix.c_str(), &prefixWidth, &prefixHeight);
         }
         constexpr int cursorWidth = 2;
         const int inputViewportWidth = std::max(1, inputBar.w - padding * 2);
@@ -745,12 +745,12 @@ void TerminalApp::render(SDL_Renderer* renderer, const SDL_Rect& contentRect) {
             int selectionEndWidth = selectionEndTexture ? selectionEndTexture.width : 0;
             if (!selectionStartTexture) {
                 int ignoredHeight = 0;
-                TTF_SizeUTF8(m_font, selectionStartText.c_str(),
+                TTF_SizeUTF8(m_font, m_renderSelectionStartText.c_str(),
                              &selectionStartWidth, &ignoredHeight);
             }
             if (!selectionEndTexture) {
                 int ignoredHeight = 0;
-                TTF_SizeUTF8(m_font, selectionEndText.c_str(),
+                TTF_SizeUTF8(m_font, m_renderSelectionEndText.c_str(),
                              &selectionEndWidth, &ignoredHeight);
             }
             if (selectionEndWidth > selectionStartWidth) {
