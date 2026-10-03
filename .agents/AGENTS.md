@@ -41,7 +41,7 @@ The human funds token budget and lives in the desktop. You:
 | 2026-10-03 | session-restore-bounds | Stop restore after 1,024 records or once 128 windows are live; preserve valid-session handling; hosted workflow #191 passed |
 | 2026-10-03 | session-save-cap | Persist only the topmost 128 restorable windows in stacking order so every saved row survives bounded restore; hosted workflow #195 passed |
 | 2026-10-03 | settings-record-cap | Stop Desktop Settings loading after 64 records as well as bounding each line; preserve prior preferences when later rows exceed the budget; hosted workflow #199 passed |
-| 2026-10-03 | session-save-feedback | Report failed atomic session saves before SDL teardown; preserve the existing snapshot |
+| 2026-10-03 | session-save-feedback | Report failed atomic session saves before SDL teardown; preserve the existing snapshot; hosted workflow #203 passed |
 | 2026-10-02 | settings-line-bound | Share the 16 KiB persisted-line reader with Desktop Settings and reject wallpaper paths that cannot round-trip |
 | 2026-10-02 | game-record-bound | Bound Snake and Minesweeper save-file reads by row and byte limits; reject malformed or impossible records |
 | 2026-10-02 | terminal-output-pan | Pan clipped Terminal output rows with UTF-8-safe viewport-sized segments and preserve vertical history scrolling |
@@ -236,7 +236,7 @@ Older recent-work rows: [`SESSION_LOG.md`](SESSION_LOG.md).
 | 7.78 | Bound session restore work | done | Stop after 1,024 session records or once 128 windows are live; preserve valid-session handling and cover both limits; hosted workflow #191 passed |
 | 7.79 | Keep session saves restorable | done | Save the topmost 128 restorable windows in stacking order, matching the restore cap and preserving the entries most recently raised; hosted workflow #195 passed |
 | 7.80 | Bound Desktop Settings record loading | done | Stop settings parsing after 64 rows while keeping the shared 16 KiB line cap and current values unchanged when no valid earlier records load; hosted workflow #199 passed |
-| 7.81 | Report session-save failures | in progress | Show a warning while SDL is still live and log the session path when atomic save fails; verify main lifecycle ordering |
+| 7.81 | Report session-save failures | done | Show a warning while SDL is still live and log the session path when atomic save fails; verify main lifecycle ordering; hosted workflow #203 passed |
 | fs-browser-filter-cache | Reuse Filesystem Browser filter snapshots | done | Reuse one directory listing for filter edits; refresh it on F5 and Monolith filesystem notifications, including while filtering |
 | terminal-input-editing | Terminal command-line selection | done | Support UTF-8-safe keyboard/mouse selection and Ctrl+A/C/X/V; normalize all clipboard lines and tabs into the single-line prompt |
 | terminal-touch-mtime | Complete Terminal touch semantics | done | Update existing regular-file last-write time without truncation; reject outside-root symlink targets |
