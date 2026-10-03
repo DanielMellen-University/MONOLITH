@@ -71,6 +71,7 @@ private:
     struct CanvasHistoryEntry {
         int width = 0;
         int height = 0;
+        std::size_t pixelBytes = 0;
         std::vector<CanvasTileSnapshot> tiles;
     };
 
@@ -83,6 +84,7 @@ private:
     void markTextureRegionDirty(int x, int y, int width, int height);
     void syncTexture(SDL_Renderer* renderer);
     void pushUndoHistoryEntry(CanvasHistoryEntry entry);
+    void clearHistory();
     void beginSparseHistory();
     void recordSparseHistoryChange();
     void finishSparseHistory();
@@ -157,6 +159,8 @@ private:
     std::vector<std::size_t> m_dirtyTrackedTileIndices;
     std::vector<CanvasHistoryEntry> m_undoStack;
     std::vector<CanvasHistoryEntry> m_redoStack;
+    std::size_t m_undoHistoryBytes = 0;
+    std::size_t m_redoHistoryBytes = 0;
     int m_canvasWidth = 0;
     int m_canvasHeight = 0;
     SDL_Texture* m_canvasTexture = nullptr;
