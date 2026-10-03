@@ -902,6 +902,13 @@ bool DrawingApp::saveToPath(const std::string& virtualPath) {
         setStatus("Save failed: canvas exceeds the .modr dimension limit.");
         return false;
     }
+    const std::size_t expectedPixelBytes = static_cast<std::size_t>(m_canvasWidth)
+        * static_cast<std::size_t>(m_canvasHeight) * 4;
+    if (m_pixels.size() != expectedPixelBytes) {
+        clearDiscardArm();
+        setStatus("Save failed: could not encode canvas.");
+        return false;
+    }
 
     std::string path = m_fs->normalize(virtualPath);
     if (!hasCaseInsensitiveSuffix(path, ".modr")) {
