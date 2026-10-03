@@ -142,15 +142,15 @@ public:
     // Desktop appearance settings (persisted on the host, applied immediately).
     void loadDesktopSettings(const std::string& hostPath);
     monolith::settings::RGB getDesktopBackground() const;
-    void setDesktopBackground(uint8_t r, uint8_t g, uint8_t b);
+    monolith::app::SettingChangeResult setDesktopBackground(uint8_t r, uint8_t g, uint8_t b);
     std::string getWallpaperPath() const;
-    void setWallpaperPath(const std::string& virtualPath);
+    monolith::app::SettingChangeResult setWallpaperPath(const std::string& virtualPath);
     std::string getWallpaperFit() const;
-    void setWallpaperFit(const std::string& fit);
+    monolith::app::SettingChangeResult setWallpaperFit(const std::string& fit);
     bool getClock24Hour() const;
-    void setClock24Hour(bool enabled);
+    monolith::app::SettingChangeResult setClock24Hour(bool enabled);
     int getUiScalePercent() const;
-    void setUiScalePercent(int percent);
+    monolith::app::SettingChangeResult setUiScalePercent(int percent);
 
     // Session: restore open windows from a host-side file; save current layout on exit.
     // Format is line-based (see saveSession). Returns true after a valid

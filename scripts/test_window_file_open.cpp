@@ -89,7 +89,10 @@ int main() {
         check(fs.writeFile("/Wallpapers/old.bmp", "placeholder"),
               "write wallpaper move source");
         wm.setWallpaperPath("/Wallpapers/old.bmp");
-        wm.setWallpaperPath(std::string(monolith::detail::kMaxPersistedLineBytes + 1, 'x'));
+        check(wm.setWallpaperPath(
+                  std::string(monolith::detail::kMaxPersistedLineBytes + 1, 'x'))
+                  == monolith::app::SettingChangeResult::Rejected,
+              "WindowManager reports an unpersistable wallpaper path as rejected");
         check(wm.getWallpaperPath() == "/Wallpapers/old.bmp",
               "WindowManager rejects a wallpaper path that cannot be persisted");
         check(fs.rename("/Wallpapers/old.bmp", "/archive/moved.bmp"),
@@ -105,6 +108,32 @@ int main() {
         check(fs.removeRecursive("/archive/moved.bmp"), "remove configured wallpaper");
         wm.notifyVirtualPathRemoved("/archive/moved.bmp");
         check(wm.getWallpaperPath().empty(), "deleted wallpaper path is cleared");
+
+        const auto settingsParent = hostRoot / "settings-parent";
+        const auto unavailableSettingsPath = settingsParent / "desktop_settings.txt";
+        wm.loadDesktopSettings(unavailableSettingsPath.string());
+        check(wm.setDesktopBackground(18, 24, 42)
+                  == monolith::app::SettingChangeResult::PersistenceFailed
+                  && wm.getDesktopBackground().r == 18,
+              "settings save failure is reported while the live background still changes");
+        check(wm.setWallpaperPath("/Wallpapers/old.bmp")
+                  == monolith::app::SettingChangeResult::PersistenceFailed
+                  && wm.getWallpaperPath() == "/Wallpapers/old.bmp",
+              "failed wallpaper persistence retains the live path for the session");
+        check(wm.setUiScalePercent(110) == monolith::app::SettingChangeResult::Rejected,
+              "WindowManager reports unsupported UI scales as rejected");
+        std::filesystem::create_directories(settingsParent, ec);
+        check(!ec, "create settings parent after the simulated save failure");
+        check(wm.setWallpaperPath("/Wallpapers/old.bmp")
+                  == monolith::app::SettingChangeResult::Applied,
+              "reselecting the live wallpaper retries a failed settings save");
+        std::ifstream recoveredSettings(unavailableSettingsPath);
+        const std::string recoveredSettingsText(
+            std::istreambuf_iterator<char>(recoveredSettings), {});
+        check(recoveredSettingsText.find("desktop_background=18,24,42") != std::string::npos
+                  && recoveredSettingsText.find("wallpaper_path=/Wallpapers/old.bmp")
+                      != std::string::npos,
+              "successful retry persists all current live settings");
 
         check(fs.writeFile("/docs/queued.txt", "queued"),
               "write clipboard move source");

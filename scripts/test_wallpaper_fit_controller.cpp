@@ -10,7 +10,11 @@ struct FitController final : monolith::app::IWindowController {
     void close() override {}
     void setTitle(const std::string&) override {}
     std::string getWallpaperFit() const override { return wallpaperFit; }
-    void setWallpaperFit(const std::string& fit) override { wallpaperFit = fit; }
+    monolith::app::SettingChangeResult setWallpaperFit(
+        const std::string& fit) override {
+        wallpaperFit = fit;
+        return monolith::app::SettingChangeResult::Applied;
+    }
 };
 
 } // namespace
