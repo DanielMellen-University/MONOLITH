@@ -29,30 +29,34 @@
         b = 30;
     }
 
-    void setDesktopBackgroundColor(uint8_t r, uint8_t g, uint8_t b) override {
+    monolith::app::SettingChangeResult setDesktopBackgroundColor(
+        uint8_t r, uint8_t g, uint8_t b) override {
         if (wm) {
-            wm->setDesktopBackground(r, g, b);
+            return wm->setDesktopBackground(r, g, b);
         }
+        return monolith::app::SettingChangeResult::Rejected;
     }
 
     bool getClock24Hour() const override {
         return wm ? wm->getClock24Hour() : false;
     }
 
-    void setClock24Hour(bool enabled) override {
+    monolith::app::SettingChangeResult setClock24Hour(bool enabled) override {
         if (wm) {
-            wm->setClock24Hour(enabled);
+            return wm->setClock24Hour(enabled);
         }
+        return monolith::app::SettingChangeResult::Rejected;
     }
 
     int getUiScalePercent() const override {
         return wm ? wm->getUiScalePercent() : 100;
     }
 
-    void setUiScalePercent(int percent) override {
+    monolith::app::SettingChangeResult setUiScalePercent(int percent) override {
         if (wm) {
-            wm->setUiScalePercent(percent);
+            return wm->setUiScalePercent(percent);
         }
+        return monolith::app::SettingChangeResult::Rejected;
     }
 
     void getLogicalDesktopSize(int& width, int& height) const override {
@@ -84,20 +88,23 @@
         return wm ? wm->getWallpaperPath() : std::string{};
     }
 
-    void setWallpaperPath(const std::string& virtualPath) override {
+    monolith::app::SettingChangeResult setWallpaperPath(
+        const std::string& virtualPath) override {
         if (wm) {
-            wm->setWallpaperPath(virtualPath);
+            return wm->setWallpaperPath(virtualPath);
         }
+        return monolith::app::SettingChangeResult::Rejected;
     }
 
     std::string getWallpaperFit() const override {
         return wm ? wm->getWallpaperFit() : std::string{"cover"};
     }
 
-    void setWallpaperFit(const std::string& fit) override {
+    monolith::app::SettingChangeResult setWallpaperFit(const std::string& fit) override {
         if (wm) {
-            wm->setWallpaperFit(fit);
+            return wm->setWallpaperFit(fit);
         }
+        return monolith::app::SettingChangeResult::Rejected;
     }
 };
 

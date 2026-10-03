@@ -1,5 +1,10 @@
 # Changelog
 
+## 2026-10: Report Desktop Settings save failures
+
+- Keep preference changes live while reporting rejected updates or failed atomic saves in the Settings footer.
+- Retry persistence when a user reselects an already-active value, and cover failure, retry, and recovery in headless tests.
+
 ## 2026-10: Report session-save failures
 
 - Show a warning before SDL shutdown when the atomic session snapshot cannot be saved, and log the target path to stderr.

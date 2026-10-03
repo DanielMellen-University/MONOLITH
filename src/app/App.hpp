@@ -11,6 +11,12 @@ class WindowManager;
 
 namespace monolith::app {
 
+enum class SettingChangeResult {
+    Applied,
+    Rejected,
+    PersistenceFailed
+};
+
 /**
  * Interface that apps can use to request operations on the window that contains them.
  * This is the primary (and safe) way for an app to affect its host window.
@@ -87,19 +93,26 @@ struct IWindowController {
         b = 30;
     }
 
-    virtual void setDesktopBackgroundColor(uint8_t r, uint8_t g, uint8_t b) {
+    virtual SettingChangeResult setDesktopBackgroundColor(uint8_t r, uint8_t g, uint8_t b) {
         (void)r;
         (void)g;
         (void)b;
+        return SettingChangeResult::Rejected;
     }
 
     // Taskbar clock format (owned by the shell; default is 12-hour).
     virtual bool getClock24Hour() const { return false; }
-    virtual void setClock24Hour(bool enabled) { (void)enabled; }
+    virtual SettingChangeResult setClock24Hour(bool enabled) {
+        (void)enabled;
+        return SettingChangeResult::Rejected;
+    }
 
     // Shared interface text scale, stored as a percentage.
     virtual int getUiScalePercent() const { return 100; }
-    virtual void setUiScalePercent(int percent) { (void)percent; }
+    virtual SettingChangeResult setUiScalePercent(int percent) {
+        (void)percent;
+        return SettingChangeResult::Rejected;
+    }
 
     // Current logical desktop dimensions, excluding host-window scaling.
     virtual void getLogicalDesktopSize(int& width, int& height) const {
@@ -109,11 +122,17 @@ struct IWindowController {
 
     // Desktop wallpaper image (virtual FS path; empty = solid color only).
     virtual std::string getWallpaperPath() const { return {}; }
-    virtual void setWallpaperPath(const std::string& virtualPath) { (void)virtualPath; }
+    virtual SettingChangeResult setWallpaperPath(const std::string& virtualPath) {
+        (void)virtualPath;
+        return SettingChangeResult::Rejected;
+    }
 
     // Wallpaper display fit: cover (default), contain, or center.
     virtual std::string getWallpaperFit() const { return "cover"; }
-    virtual void setWallpaperFit(const std::string& fit) { (void)fit; }
+    virtual SettingChangeResult setWallpaperFit(const std::string& fit) {
+        (void)fit;
+        return SettingChangeResult::Rejected;
+    }
 
     // Future extensions:
     // virtual void minimize() = 0;

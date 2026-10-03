@@ -19,19 +19,29 @@ monolith::settings::RGB WindowManager::getDesktopBackground() const {
     return m_desktopSettings.desktopBackground();
 }
 
-void WindowManager::setDesktopBackground(uint8_t r, uint8_t g, uint8_t b) {
+bool WindowManager::persistDesktopSettings() const {
+    return m_desktopSettingsHostPath.empty()
+        || m_desktopSettings.saveToHostPath(m_desktopSettingsHostPath);
+}
+
+monolith::app::SettingChangeResult WindowManager::setDesktopBackground(
+    uint8_t r, uint8_t g, uint8_t b) {
     m_desktopSettings.setDesktopBackground({r, g, b});
-    if (!m_desktopSettingsHostPath.empty()) {
-        m_desktopSettings.saveToHostPath(m_desktopSettingsHostPath);
-    }
+    return persistDesktopSettings()
+        ? monolith::app::SettingChangeResult::Applied
+        : monolith::app::SettingChangeResult::PersistenceFailed;
 }
 
 std::string WindowManager::getWallpaperPath() const {
     return m_desktopSettings.wallpaperPath();
 }
 
-void WindowManager::setWallpaperPath(const std::string& virtualPath) {
-    if (!monolith::settings::DesktopSettings::isValidWallpaperPath(virtualPath)) return;
+monolith::app::SettingChangeResult WindowManager::setWallpaperPath(
+    const std::string& virtualPath) {
+    using Result = monolith::app::SettingChangeResult;
+    if (!monolith::settings::DesktopSettings::isValidWallpaperPath(virtualPath)) {
+        return Result::Rejected;
+    }
     std::string normalized;
     if (!virtualPath.empty() && m_fs) {
         normalized = m_fs->normalize(virtualPath);
@@ -41,31 +51,28 @@ void WindowManager::setWallpaperPath(const std::string& virtualPath) {
     if (normalized == "/") {
         normalized.clear();
     }
-    if (!monolith::settings::DesktopSettings::isValidWallpaperPath(normalized)) return;
-    if (m_desktopSettings.wallpaperPath() == normalized) {
-        return;
+    if (!monolith::settings::DesktopSettings::isValidWallpaperPath(normalized)) {
+        return Result::Rejected;
     }
-    m_desktopSettings.setWallpaperPath(normalized);
-    destroyWallpaperTexture();
-    m_wallpaperLoadedPath.clear();
-    if (!m_desktopSettingsHostPath.empty()) {
-        m_desktopSettings.saveToHostPath(m_desktopSettingsHostPath);
+    if (m_desktopSettings.wallpaperPath() != normalized) {
+        m_desktopSettings.setWallpaperPath(normalized);
+        destroyWallpaperTexture();
+        m_wallpaperLoadedPath.clear();
     }
+    return persistDesktopSettings() ? Result::Applied : Result::PersistenceFailed;
 }
 
 std::string WindowManager::getWallpaperFit() const {
     return m_desktopSettings.wallpaperFit();
 }
 
-void WindowManager::setWallpaperFit(const std::string& fit) {
+monolith::app::SettingChangeResult WindowManager::setWallpaperFit(const std::string& fit) {
+    using Result = monolith::app::SettingChangeResult;
     const std::string next = monolith::settings::DesktopSettings::canonicalizeWallpaperFit(fit);
-    if (m_desktopSettings.wallpaperFit() == next) {
-        return;
+    if (m_desktopSettings.wallpaperFit() != next) {
+        m_desktopSettings.setWallpaperFit(next);
     }
-    m_desktopSettings.setWallpaperFit(next);
-    if (!m_desktopSettingsHostPath.empty()) {
-        m_desktopSettings.saveToHostPath(m_desktopSettingsHostPath);
-    }
+    return persistDesktopSettings() ? Result::Applied : Result::PersistenceFailed;
 }
 
 void WindowManager::destroyWallpaperTexture() {
@@ -168,37 +175,38 @@ bool WindowManager::getClock24Hour() const {
     return m_desktopSettings.clock24Hour();
 }
 
-void WindowManager::setClock24Hour(bool enabled) {
-    if (m_desktopSettings.clock24Hour() == enabled) {
-        return;
+monolith::app::SettingChangeResult WindowManager::setClock24Hour(bool enabled) {
+    if (m_desktopSettings.clock24Hour() != enabled) {
+        m_desktopSettings.setClock24Hour(enabled);
+        // Force the taskbar clock texture to rebuild on the next render.
+        if (m_clockTexture) {
+            SDL_DestroyTexture(m_clockTexture);
+            m_clockTexture = nullptr;
+        }
+        m_clockText.clear();
+        invalidateShellHitTargets();
     }
-    m_desktopSettings.setClock24Hour(enabled);
-    // Force the taskbar clock texture to rebuild on the next render.
-    if (m_clockTexture) {
-        SDL_DestroyTexture(m_clockTexture);
-        m_clockTexture = nullptr;
-    }
-    m_clockText.clear();
-    invalidateShellHitTargets();
-    if (!m_desktopSettingsHostPath.empty()) {
-        m_desktopSettings.saveToHostPath(m_desktopSettingsHostPath);
-    }
+    return persistDesktopSettings()
+        ? monolith::app::SettingChangeResult::Applied
+        : monolith::app::SettingChangeResult::PersistenceFailed;
 }
 
 int WindowManager::getUiScalePercent() const {
     return m_desktopSettings.uiScalePercent();
 }
 
-void WindowManager::setUiScalePercent(int percent) {
-    if (!monolith::settings::DesktopSettings::isSupportedUiScalePercent(percent)) return;
-    if (m_desktopSettings.uiScalePercent() == percent) return;
-
-    m_desktopSettings.setUiScalePercent(percent);
-    applyUiScaleFont();
-    forEachLiveApp([](monolith::app::App& app) {
-        app.onUiScaleChanged();
-    });
-    if (!m_desktopSettingsHostPath.empty()) {
-        m_desktopSettings.saveToHostPath(m_desktopSettingsHostPath);
+monolith::app::SettingChangeResult WindowManager::setUiScalePercent(int percent) {
+    using Result = monolith::app::SettingChangeResult;
+    if (!monolith::settings::DesktopSettings::isSupportedUiScalePercent(percent)) {
+        return Result::Rejected;
     }
+
+    if (m_desktopSettings.uiScalePercent() != percent) {
+        m_desktopSettings.setUiScalePercent(percent);
+        applyUiScaleFont();
+        forEachLiveApp([](monolith::app::App& app) {
+            app.onUiScaleChanged();
+        });
+    }
+    return persistDesktopSettings() ? Result::Applied : Result::PersistenceFailed;
 }

@@ -54,6 +54,7 @@ private:
     int renderAppearanceSection(SDL_Renderer* renderer, const SDL_Rect& contentRect, int clientY);
     int renderInfoLines(SDL_Renderer* renderer, const SDL_Rect& contentRect, int clientY);
     void renderFooter(SDL_Renderer* renderer, const SDL_Rect& contentRect);
+    void recordSettingResult(SettingChangeResult result);
     void applyBackgroundPreset(const BackgroundPreset& preset);
     int activePresetIndex() const;
     void applyClock24Hour(bool enabled);
@@ -114,6 +115,7 @@ private:
     SDL_Rect m_wallpaperSetRect{0, 0, 0, 0};
     SDL_Rect m_wallpaperClearRect{0, 0, 0, 0};
     std::string m_wallpaperEditBuffer;
+    std::string m_statusMessage;
     std::size_t m_wallpaperCursorPos = 0;
     int m_wallpaperScrollPx = 0;
     bool m_wallpaperFieldFocused = false;

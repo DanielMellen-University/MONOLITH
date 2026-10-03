@@ -17,6 +17,7 @@ namespace {
 
 struct TestController final : monolith::app::IWindowController {
     std::string wallpaperPath;
+    std::string wallpaperFit = "cover";
     int logicalWidth = 1280;
     int logicalHeight = 720;
     uint8_t backgroundR = 25;
@@ -24,6 +25,8 @@ struct TestController final : monolith::app::IWindowController {
     uint8_t backgroundB = 30;
     bool clock24Hour = false;
     int uiScalePercent = 100;
+    monolith::app::SettingChangeResult changeResult =
+        monolith::app::SettingChangeResult::Applied;
 
     void close() override {}
     void setTitle(const std::string&) override {}
@@ -32,26 +35,52 @@ struct TestController final : monolith::app::IWindowController {
         return wallpaperPath;
     }
 
-    void setWallpaperPath(const std::string& path) override {
-        wallpaperPath = path;
+    monolith::app::SettingChangeResult setWallpaperPath(
+        const std::string& path) override {
+        if (changeResult != monolith::app::SettingChangeResult::Rejected) {
+            wallpaperPath = path;
+        }
+        return changeResult;
     }
 
-    void setDesktopBackgroundColor(uint8_t r, uint8_t g, uint8_t b) override {
-        backgroundR = r;
-        backgroundG = g;
-        backgroundB = b;
+    std::string getWallpaperFit() const override {
+        return wallpaperFit;
     }
 
-    void setClock24Hour(bool enabled) override {
-        clock24Hour = enabled;
+    monolith::app::SettingChangeResult setWallpaperFit(
+        const std::string& fit) override {
+        if (changeResult != monolith::app::SettingChangeResult::Rejected) {
+            wallpaperFit = fit;
+        }
+        return changeResult;
+    }
+
+    monolith::app::SettingChangeResult setDesktopBackgroundColor(
+        uint8_t r, uint8_t g, uint8_t b) override {
+        if (changeResult != monolith::app::SettingChangeResult::Rejected) {
+            backgroundR = r;
+            backgroundG = g;
+            backgroundB = b;
+        }
+        return changeResult;
+    }
+
+    monolith::app::SettingChangeResult setClock24Hour(bool enabled) override {
+        if (changeResult != monolith::app::SettingChangeResult::Rejected) {
+            clock24Hour = enabled;
+        }
+        return changeResult;
     }
 
     int getUiScalePercent() const override {
         return uiScalePercent;
     }
 
-    void setUiScalePercent(int percent) override {
-        uiScalePercent = percent;
+    monolith::app::SettingChangeResult setUiScalePercent(int percent) override {
+        if (changeResult != monolith::app::SettingChangeResult::Rejected) {
+            uiScalePercent = percent;
+        }
+        return changeResult;
     }
 
     void getLogicalDesktopSize(int& width, int& height) const override {
@@ -268,6 +297,25 @@ int main() {
     clickRect(preRenderScale);
     check(controller.uiScalePercent == 115,
           "Settings accepts a queued scaled UI-size click before render");
+
+    controller.changeResult = monolith::app::SettingChangeResult::PersistenceFailed;
+    settings.applyClock24Hour(false);
+    check(!controller.clock24Hour
+              && settings.m_statusMessage == "Change is live, but could not be saved.",
+          "Settings reports a live clock change that failed to persist");
+    controller.changeResult = monolith::app::SettingChangeResult::Applied;
+    settings.applyWallpaperFit("contain");
+    check(settings.m_statusMessage.empty(),
+          "a later successful settings write clears the save warning");
+    controller.changeResult = monolith::app::SettingChangeResult::Rejected;
+    settings.m_wallpaperEditBuffer = "/invalid/path.bmp";
+    settings.m_wallpaperCursorPos = settings.m_wallpaperEditBuffer.size();
+    settings.applyWallpaperPath();
+    check(controller.wallpaperPath == "/Wallpapers/alpha.bmp"
+              && settings.m_statusMessage
+                  == "Setting was rejected; current value is unchanged.",
+          "Settings reports a rejected wallpaper path without changing the active path");
+    controller.changeResult = monolith::app::SettingChangeResult::Applied;
     settings.m_scrollOffset = 20;
     settings.invalidateHitTargets();
     settings.ensureHitTargets();
