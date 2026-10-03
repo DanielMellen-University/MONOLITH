@@ -248,34 +248,9 @@ bool Filesystem::removeRecursive(const std::string& virtualPath) {
         return false;
     }
 
-    // Use the raw host directory entries here instead of listEntries(). The
-    // public listing intentionally hides symlinks that resolve outside the
-    // host root, but recursive deletion still needs to unlink those entries
-    // so their containing directory can be removed safely.
-    std::vector<stdfs::path> children;
-    std::error_code iteratorEc;
-    for (stdfs::directory_iterator it(hostPath, iteratorEc), end;
-         it != end;
-         it.increment(iteratorEc)) {
-        if (iteratorEc) return false;
-        children.push_back(it->path());
-    }
-    if (iteratorEc) return false;
-
-    for (const auto& childHostPath : children) {
-        if (isSymlinkPath(childHostPath)) {
-            std::error_code removeEc;
-            if (!stdfs::remove(childHostPath, removeEc) || removeEc) {
-                return false;
-            }
-            continue;
-        }
-
-        if (!removeRecursive(join(path, childHostPath.filename().string()))) {
-            return false;
-        }
-    }
-    return remove(path);
+    std::error_code removeEc;
+    const std::uintmax_t removed = stdfs::remove_all(hostPath, removeEc);
+    return !removeEc && removed != 0;
 }
 
 bool Filesystem::copyRecursive(const std::string& srcVirtualPath, const std::string& dstVirtualPath) {
