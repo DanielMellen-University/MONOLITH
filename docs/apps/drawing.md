@@ -430,6 +430,8 @@ Save creates missing parent directories for the entered virtual path before writ
 
 The RGB payload is written in bounded 16 KiB chunks through the filesystem's atomic writer. Even at the 4096 x 4096 format limit, saving does not allocate a second full encoded-file buffer; a failed stream leaves the previous file unchanged.
 
+After a successful save, Drawing copies the current pixels into its saved comparison image, reusing the existing allocation when it has enough capacity. Same-size saves avoid allocating a temporary full-canvas RGBA snapshot.
+
 Drawing has no separate **Save As** command. To make a copy, copy the `.modr` file in Filesystem Browser or with Terminal, then open the copy and continue editing it. Saving an already-open sketch always writes its current bound path.
 
 ## External File Changes

@@ -154,6 +154,19 @@ int main() {
 
     drawing.onResize(300, 300);
     check(!drawing.m_dirty, "initial blank resize stays clean");
+    TestDrawing snapshotReuse(font, &fs);
+    snapshotReuse.onResize(300, 300);
+    auto* originalSnapshotBuffer = snapshotReuse.m_savedSnapshot.pixels.data();
+    const std::size_t originalSnapshotCapacity =
+        snapshotReuse.m_savedSnapshot.pixels.capacity();
+    snapshotReuse.m_pixels[0] = 17;
+    snapshotReuse.captureSavedSnapshot();
+    check(snapshotReuse.m_savedSnapshot.pixels.data() == originalSnapshotBuffer
+              && snapshotReuse.m_savedSnapshot.pixels.capacity() == originalSnapshotCapacity
+              && snapshotReuse.m_savedSnapshot.pixels == snapshotReuse.m_pixels
+              && snapshotReuse.m_savedSnapshot.width == snapshotReuse.m_canvasWidth
+              && snapshotReuse.m_savedSnapshot.height == snapshotReuse.m_canvasHeight,
+          "same-size saved-baseline capture reuses its pixel allocation");
     const size_t clearUndoCount = drawing.m_undoStack.size();
     drawing.clearCanvas();
     check(!drawing.m_dirty

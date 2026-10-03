@@ -77,6 +77,7 @@ private:
     // === Canvas ===
     static constexpr int kHistoryTileSize = 32;
     void resizeCanvas(int width, int height, bool preserveContent);
+    void captureSavedSnapshot();
     void clearCanvas(bool recordUndo = true);
     void markTextureDirty();
     void markTextureRegionDirty(int x, int y, int width, int height);

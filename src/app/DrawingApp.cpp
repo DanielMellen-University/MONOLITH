@@ -88,6 +88,18 @@ void DrawingApp::resizeCanvas(int width, int height, bool preserveContent) {
     markTextureDirty();
 }
 
+void DrawingApp::captureSavedSnapshot() {
+    if (m_savedSnapshot.pixels.capacity() >= m_pixels.size()) {
+        m_savedSnapshot.pixels.resize(m_pixels.size());
+        std::copy(m_pixels.begin(), m_pixels.end(), m_savedSnapshot.pixels.begin());
+    } else {
+        std::vector<uint8_t> replacement(m_pixels);
+        m_savedSnapshot.pixels.swap(replacement);
+    }
+    m_savedSnapshot.width = m_canvasWidth;
+    m_savedSnapshot.height = m_canvasHeight;
+}
+
 void DrawingApp::clearCanvas(bool recordUndo) {
     if (recordUndo) beginSparseHistory();
     beginDirtyTileTracking();
@@ -936,7 +948,7 @@ bool DrawingApp::saveToPath(const std::string& virtualPath) {
     }
 
     m_filePath = path;
-    m_savedSnapshot = {m_canvasWidth, m_canvasHeight, m_pixels};
+    captureSavedSnapshot();
     m_dirty = false;
     clearDirtyTiles();
     clearDiscardArm();
@@ -1020,7 +1032,7 @@ bool DrawingApp::loadFromPath(const std::string& virtualPath) {
     m_pixels = std::move(rgba);
 
     m_filePath = path;
-    m_savedSnapshot = {m_canvasWidth, m_canvasHeight, m_pixels};
+    captureSavedSnapshot();
     m_dirty = false;
     clearDirtyTiles();
     m_undoStack.clear();
@@ -1161,7 +1173,7 @@ void DrawingApp::startNewSketch() {
     }
     clearCanvas(false);
     m_filePath.clear();
-    m_savedSnapshot = {m_canvasWidth, m_canvasHeight, m_pixels};
+    captureSavedSnapshot();
     m_undoStack.clear();
     m_redoStack.clear();
     m_dirty = false; // blank new sketch is clean
@@ -1711,7 +1723,7 @@ void DrawingApp::onResize(int clientWidth, int clientHeight) {
             m_dirty = true;
             clearDiscardArm();
         } else if (!m_dirty) {
-            m_savedSnapshot = {m_canvasWidth, m_canvasHeight, m_pixels};
+            captureSavedSnapshot();
         }
         rebuildDirtyTiles();
     }
@@ -1722,7 +1734,7 @@ void DrawingApp::onResize(int clientWidth, int clientHeight) {
         if (!loadFromPath(path)) {
             // A failed initial open becomes an untitled blank sketch. Keep that
             // fallback canvas clean so its first undo returns to a clean state.
-            m_savedSnapshot = {m_canvasWidth, m_canvasHeight, m_pixels};
+            captureSavedSnapshot();
             m_dirty = false;
             clearDirtyTiles();
         }
