@@ -12,7 +12,7 @@ ctest --test-dir build --output-on-failure
 
 After configuring and building with CMake, this registered CTest test runs the complete headless suite. It builds generated source fragments, compiles the existing tests, and executes SDL tests with dummy video and audio drivers by default. Set `BUILD_DIR`, `CXX`, `CXXFLAGS`, `SDL_VIDEODRIVER`, or `SDL_AUDIODRIVER` to override those defaults. `CXXFLAGS` are passed to each test compiler invocation, including the shared Window Manager test objects. The runner can also be invoked directly with `./scripts/run_headless_tests.sh`; individual commands below remain useful when iterating on one subsystem.
 
-The six Window Manager integration tests link against one set of shared app/runtime objects, so the same implementation is not recompiled for each test binary.
+The six Window Manager integration tests link against one set of shared app/runtime objects, so the same implementation is not recompiled for each test binary. Lifecycle and coordinate coverage also exercises nested callback snapshots, close-during-render, identity-index consistency, and snapshot-buffer reuse after warm-up.
 
 Both cloud jobs configure and build the complete `monolith` executable before running the registered test through CTest. The sanitizer job additionally instruments the application and every headless test with AddressSanitizer and UndefinedBehaviorSanitizer.
 
