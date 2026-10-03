@@ -1,6 +1,6 @@
 # Session log
 
-| 2026-10-03 | perf | WindowManager now reuses per-depth window identity snapshots across update and render passes and validates entries through a live pointer/ID index instead of repeated linear scans. Lifecycle and render tests cover nested callbacks, self-close, map consistency, and stable snapshot capacity after warm-up. |
+| 2026-10-03 | perf | WindowManager now reuses per-depth window identity snapshots across update and render passes and validates entries through a live pointer/ID index instead of repeated linear scans. Lifecycle and render tests cover nested callbacks, self-close, map consistency, and stable snapshot capacity after warm-up; normal and sanitized hosted workflow #283 passed. |
 
 | 2026-10-03 | perf | Filesystem Browser now assembles the active filter label in retained storage, avoiding separate prefix/suffix substring and concatenation temporaries per render. The cursor width is measured from the same buffer only when its prefix or font changes; the state test checks the label remains correct and retains its storage across suffix-only edits. Normal and sanitized workflow #279 passed. |
 
