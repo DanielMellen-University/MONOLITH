@@ -1,11 +1,15 @@
 #pragma once
 
+#include <cstddef>
 #include <iomanip>
 #include <istream>
 #include <ostream>
 #include <string>
 
 namespace monolith::window::session {
+
+inline constexpr std::size_t kMaxSessionRecords = 1024;
+inline constexpr std::size_t kMaxRestoredWindows = 128;
 
 // Quote paths in new session files while keeping the legacy '-' sentinel.
 inline void writePath(std::ostream& out, const std::string& path) {

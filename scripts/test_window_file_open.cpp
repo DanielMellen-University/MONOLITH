@@ -3,6 +3,7 @@
 #include "../src/app/DrawingRaster.hpp"
 #include "../src/detail/BoundedLineReader.hpp"
 #include "../src/fs/Filesystem.hpp"
+#include "../src/window/SessionFormat.hpp"
 #define private public
 #include "../src/app/DrawingApp.hpp"
 #include "../src/app/TextEditorApp.hpp"
@@ -349,6 +350,40 @@ int main() {
         check(oversizedSessionWm.loadSession(oversizedSessionPath.string())
                   && oversizedSessionWm.m_windows.empty(),
               "overlong session record stops restore before later entries are launched");
+
+        const auto manyWindowsSessionPath = hostRoot / "many-windows-session.txt";
+        {
+            std::ofstream manyWindowsSession(manyWindowsSessionPath);
+            manyWindowsSession << "session_v1\n";
+            for (std::size_t i = 0;
+                 i < monolith::window::session::kMaxRestoredWindows + 8;
+                 ++i) {
+                manyWindowsSession << "snake 10 10 240 160 0 0 -\n";
+            }
+        }
+        monolith::window::WindowManager boundedWindowSessionWm;
+        boundedWindowSessionWm.setAppResources(font, &fs);
+        check(boundedWindowSessionWm.loadSession(manyWindowsSessionPath.string())
+                  && boundedWindowSessionWm.m_windows.size()
+                      == monolith::window::session::kMaxRestoredWindows,
+              "session restore stops at the configured window limit");
+
+        const auto manyRecordsSessionPath = hostRoot / "many-records-session.txt";
+        {
+            std::ofstream manyRecordsSession(manyRecordsSessionPath);
+            manyRecordsSession << "session_v1\n";
+            for (std::size_t i = 0;
+                 i < monolith::window::session::kMaxSessionRecords;
+                 ++i) {
+                manyRecordsSession << "# ignored record\n";
+            }
+            manyRecordsSession << "snake 10 10 240 160 0 0 -\n";
+        }
+        monolith::window::WindowManager boundedRecordSessionWm;
+        boundedRecordSessionWm.setAppResources(font, &fs);
+        check(boundedRecordSessionWm.loadSession(manyRecordsSessionPath.string())
+                  && boundedRecordSessionWm.m_windows.empty(),
+              "session restore stops after the configured record budget");
     }
 
     {

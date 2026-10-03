@@ -1,5 +1,7 @@
 # Session log
 
+| 2026-10-03 | fix | Session restore now examines at most 1,024 records and stops processing entries once 128 windows are live. Integration coverage verifies both limits and valid-session behavior; hosted workflow #191 passed. |
+
 | 2026-10-03 | fix | BMP wallpaper headers are now dimension-checked from the same open file handle passed to SDL, applying the existing 16,777,216-pixel cap before decoding. Valid BMP pixels and oversized-header rejection pass the focused test and hosted workflow #187. |
 
 | 2026-10-03 | perf/fix | Recursive copies now reuse resolved source/destination paths and no-follow entry classification, reducing repeated path/status work; physical same-tree aliases through in-root destination symlinks are rejected. Preserved bounded atomic file copies and file-symlink destinations; focused filesystem suite and hosted workflow #183 passed. |
