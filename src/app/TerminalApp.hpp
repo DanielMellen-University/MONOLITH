@@ -153,8 +153,9 @@ private:
     // Persistent history
     static constexpr const char* HISTORY_FILE = "/home/monolith/.terminal_history";
     void loadCommandHistory();
-    void saveCommandHistory();
+    bool saveCommandHistory();
     void trimCommandHistory();
+    bool m_commandHistorySaveFailed = false;
 
     // Scrollback offset 0 shows the newest retained output.
 };
