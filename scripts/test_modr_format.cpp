@@ -3,10 +3,12 @@
 #include <algorithm>
 #include <cstdint>
 #include <iostream>
+#include <iterator>
 #include <ostream>
 #include <sstream>
 #include <streambuf>
 #include <string>
+#include <string_view>
 #include <vector>
 
 #include "../src/app/DrawingRaster.hpp"
@@ -79,6 +81,55 @@ int main() {
     check(monolith::drawing::writeModr(streamed, 2, 2, original)
               && streamed.str() == encoded,
           "streaming encoder preserves exact production format bytes");
+
+    monolith::drawing::ModrStreamDecoder chunkDecoder(encoded.size());
+    constexpr std::size_t chunkSizes[] = {1, 2, 5, 3, 1, 4};
+    std::size_t chunkOffset = 0;
+    std::size_t chunkIndex = 0;
+    bool chunksAccepted = true;
+    while (chunkOffset < encoded.size()) {
+        const std::size_t chunkSize = std::min(
+            chunkSizes[chunkIndex % std::size(chunkSizes)],
+            encoded.size() - chunkOffset);
+        chunksAccepted = chunkDecoder.consume(std::string_view(
+            encoded.data() + chunkOffset, chunkSize));
+        if (!chunksAccepted) break;
+        chunkOffset += chunkSize;
+        ++chunkIndex;
+    }
+    int streamedWidth = 0;
+    int streamedHeight = 0;
+    std::vector<uint8_t> streamedPixels;
+    check(chunksAccepted
+              && chunkDecoder.finish(streamedWidth, streamedHeight, streamedPixels)
+              && streamedWidth == 2 && streamedHeight == 2
+              && streamedPixels == std::vector<uint8_t>({
+                  10, 20, 30, 255,   40, 50, 60, 255,
+                  70, 80, 90, 255,   100, 110, 120, 255}),
+          "streaming decoder handles header and RGB triplets split across chunks");
+
+    monolith::drawing::ModrStreamDecoder truncatedDecoder(encoded.size() - 1);
+    int preservedWidth = 71;
+    int preservedHeight = 82;
+    std::vector<uint8_t> preservedPixels = {9, 8, 7};
+    const bool truncatedAccepted = truncatedDecoder.consume(
+        std::string_view(encoded.data(), encoded.size() - 1));
+    check(!truncatedAccepted
+              && !truncatedDecoder.finish(
+                  preservedWidth, preservedHeight, preservedPixels)
+              && preservedWidth == 71 && preservedHeight == 82
+              && preservedPixels == std::vector<uint8_t>({9, 8, 7}),
+          "streaming decoder rejects mismatched total size without replacing outputs");
+
+    monolith::drawing::ModrStreamDecoder incompleteDecoder(encoded.size());
+    const bool partialAccepted = incompleteDecoder.consume(std::string_view(
+        encoded.data(), encoded.size() - 1));
+    check(partialAccepted
+              && !incompleteDecoder.finish(
+                  preservedWidth, preservedHeight, preservedPixels)
+              && preservedWidth == 71 && preservedHeight == 82
+              && preservedPixels == std::vector<uint8_t>({9, 8, 7}),
+          "streaming decoder rejects incomplete final payload without replacing outputs");
 
     int width = 0;
     int height = 0;
