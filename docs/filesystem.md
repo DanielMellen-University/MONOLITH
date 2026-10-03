@@ -61,7 +61,7 @@ The `monolith::fs::Filesystem` class provides:
 - `isValidEntryName` (rejects empty, `.`, `..`, and names containing `/`)
 - Path helpers: `normalize`, `join`, `baseName`, `isSameOrDescendant`, `toHostPath`, `hostRoot`
 
-`toHostPath()` returns an empty string when an existing symlink in the virtual path resolves outside the configured host root. Directory listings avoid canonicalizing each regular file, and resolve symlink and directory entries for containment before exposing them. In-root dangling symlinks remain visible as entries. `exists()` treats an in-root dangling symlink as an existing directory entry, so it can be removed or protected as a rename destination.
+`toHostPath()` returns an empty string when an existing symlink in the virtual path resolves outside the configured host root. Directory listings classify ordinary entries from their no-follow status and avoid canonicalizing each regular file; symlink targets and directories are checked for containment before they are exposed. In-root dangling symlinks remain visible as entries. `exists()` treats an in-root dangling symlink as an existing directory entry, so it can be removed or protected as a rename destination.
 
 Implementation: `src/fs/Filesystem.hpp`, `src/fs/Filesystem.cpp`.
 
