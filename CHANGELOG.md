@@ -1,5 +1,11 @@
 # Changelog
 
+## 2026-10: Remove taskbar layout vectors
+
+- Walk taskbar windows in focus-first order directly, calculating widths from cached title metrics instead of allocating temporary order and width vectors on each layout pass.
+- Keep rendered buttons and hit targets on the same traversal and preserve the existing narrow-layout, scrolling, and font-scale behavior.
+- Add a compile-time non-owning-layout check and a focused-first ordering regression.
+
 ## 2026-10: Reuse Window Manager traversal snapshots
 
 - Reuse nesting-safe window identity snapshots across update and render passes instead of allocating a new vector on each pass.
