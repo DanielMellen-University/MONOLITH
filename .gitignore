@@ -1,5 +1,6 @@
 # Build directories
 build/
+build-sanitized/
 cmake-build-*/
 
 # Compiled object files and executables
