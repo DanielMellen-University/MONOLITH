@@ -1,5 +1,7 @@
 # Session log
 
+| 2026-10-03 | test/fix | GitHub Actions now builds the app and runs the complete headless suite under AddressSanitizer and UndefinedBehaviorSanitizer in addition to the normal job. Sanitizer coverage exposed a stale `CaptureApp*` read after the test closed that window; the Ctrl+Escape assertion now observes the still-live focused app. The runner forwards `CXXFLAGS` to all tests/shared runtime objects and keeps source locations in sanitizer traces; both hosted jobs passed in workflow #257. |
+
 | 2026-10-03 | perf | Drawing history entries now retain their validated preimage-pixel byte count, while undo/redo stacks maintain totals during insertion, eviction, undo, redo, invalidation, and reset. This removes the prior scan across retained tile vectors on every committed edit. Regression checks compare entry and stack totals against stored pixels; hosted workflow #252 passed. |
 
 | 2026-10-03 | fix | Session path records now escape embedded newlines as `\\n`, preventing valid filenames from splitting line-based snapshots. The decoder preserves prior quoted quote/backslash behavior and legacy unquoted tokens; format and WindowManager roundtrip tests cover actual newlines plus literal escape-like text. Full headless suite, production build, and hosted workflow #248 passed. |

@@ -36,3 +36,32 @@ jobs:
 
       - name: Run headless verification suite
         run: ctest --test-dir build --output-on-failure
+
+  sanitize:
+    runs-on: ubuntu-24.04
+    timeout-minutes: 30
+
+    steps:
+      - uses: actions/checkout@v5
+
+      - name: Install build dependencies
+        run: |
+          sudo apt-get update
+          sudo apt-get install --yes --no-install-recommends \
+            cmake g++ pkg-config python3 libsdl2-dev libsdl2-ttf-dev
+
+      - name: Configure sanitized application
+        run: >-
+          cmake -S . -B build-sanitized -DCMAKE_BUILD_TYPE=Debug
+          -DCMAKE_CXX_FLAGS="-fsanitize=address,undefined -fno-omit-frame-pointer"
+          -DCMAKE_EXE_LINKER_FLAGS="-fsanitize=address,undefined"
+
+      - name: Build sanitized application
+        run: cmake --build build-sanitized --parallel 2
+
+      - name: Run sanitized headless verification suite
+        env:
+          ASAN_OPTIONS: detect_leaks=1:halt_on_error=1
+          UBSAN_OPTIONS: halt_on_error=1:print_stacktrace=1
+          CXXFLAGS: -g -fsanitize=address,undefined -fno-omit-frame-pointer
+        run: ctest --test-dir build-sanitized --output-on-failure

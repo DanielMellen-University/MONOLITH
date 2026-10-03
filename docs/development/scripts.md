@@ -1,6 +1,6 @@
 # Development Scripts
 
-Headless verification scripts for Monolith. These run without a full interactive desktop session and are useful for local sanity checks. GitHub Actions runs the application build and complete headless suite for pushes to `main` or `beta`, pull requests targeting either branch, and manual dispatches. The job uses `ubuntu-24.04`, `actions/checkout@v5`, and SDL's dummy video and audio drivers; it does not need a physical display.
+Headless verification scripts for Monolith. These run without a full interactive desktop session and are useful for local sanity checks. GitHub Actions builds the application and runs the complete headless suite normally and under AddressSanitizer/UndefinedBehaviorSanitizer for pushes to `main` or `beta`, pull requests targeting either branch, and manual dispatches. The jobs use `ubuntu-24.04`, `actions/checkout@v5`, and SDL's dummy video and audio drivers; they do not need a physical display.
 
 ## Complete Headless Suite
 
@@ -10,11 +10,26 @@ Run every static integration check and documented state test with one command:
 ctest --test-dir build --output-on-failure
 ```
 
-After configuring and building with CMake, this registered CTest test runs the complete headless suite. It builds generated source fragments, compiles the existing tests, and executes SDL tests with dummy video and audio drivers by default. Set `BUILD_DIR`, `CXX`, `SDL_VIDEODRIVER`, or `SDL_AUDIODRIVER` to override those defaults. The runner can also be invoked directly with `./scripts/run_headless_tests.sh`; individual commands below remain useful when iterating on one subsystem.
+After configuring and building with CMake, this registered CTest test runs the complete headless suite. It builds generated source fragments, compiles the existing tests, and executes SDL tests with dummy video and audio drivers by default. Set `BUILD_DIR`, `CXX`, `CXXFLAGS`, `SDL_VIDEODRIVER`, or `SDL_AUDIODRIVER` to override those defaults. `CXXFLAGS` are passed to each test compiler invocation, including the shared Window Manager test objects. The runner can also be invoked directly with `./scripts/run_headless_tests.sh`; individual commands below remain useful when iterating on one subsystem.
 
 The six Window Manager integration tests link against one set of shared app/runtime objects, so the same implementation is not recompiled for each test binary.
 
-The cloud job configures and builds the complete `monolith` executable before running the registered test through CTest. A green workflow therefore covers both application compilation and the headless state, renderer, lifecycle, and integration checks.
+Both cloud jobs configure and build the complete `monolith` executable before running the registered test through CTest. The sanitizer job additionally instruments the application and every headless test with AddressSanitizer and UndefinedBehaviorSanitizer.
+
+## Sanitized Suite
+
+Run the same suite with address and undefined-behavior checks locally:
+
+```bash
+cmake -S . -B build-sanitized -DCMAKE_BUILD_TYPE=Debug \
+  -DCMAKE_CXX_FLAGS="-fsanitize=address,undefined -fno-omit-frame-pointer" \
+  -DCMAKE_EXE_LINKER_FLAGS="-fsanitize=address,undefined"
+cmake --build build-sanitized --parallel 2
+CXXFLAGS="-g -fsanitize=address,undefined -fno-omit-frame-pointer" \
+  ASAN_OPTIONS=detect_leaks=1:halt_on_error=1 \
+  UBSAN_OPTIONS=halt_on_error=1:print_stacktrace=1 \
+  ctest --test-dir build-sanitized --output-on-failure
+```
 
 CMake tracks every decompressed main and Settings fragment as an output and watches the compressed-fragment globs for additions or removals. An incremental build therefore regenerates missing secondary includes and reconfigures when the fragment set changes.
 

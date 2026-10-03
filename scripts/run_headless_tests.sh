@@ -5,6 +5,7 @@ set -euo pipefail
 ROOT="$(cd -- "$(dirname -- "${BASH_SOURCE[0]}")/.." && pwd)"
 BUILD_DIR="${BUILD_DIR:-$ROOT/build}"
 CXX="${CXX:-c++}"
+read -r -a EXTRA_CXX_FLAGS <<< "${CXXFLAGS:-}"
 
 cd "$ROOT"
 mkdir -p "$BUILD_DIR"
@@ -18,7 +19,7 @@ compile_plain() {
     local name="$1"
     shift
     echo "[build] $name"
-    "$CXX" -std=c++23 "$@" -o "$BUILD_DIR/$name"
+    "$CXX" -std=c++23 "${EXTRA_CXX_FLAGS[@]}" "$@" -o "$BUILD_DIR/$name"
 }
 
 compile_sdl() {
@@ -42,7 +43,7 @@ compile_window_manager_runtime() {
         local object_name="${source##*/}"
         local object="$object_dir/${object_name%.cpp}.o"
         echo "[build] shared window manager runtime: $object_name"
-        "$CXX" -std=c++23 \
+        "$CXX" -std=c++23 "${EXTRA_CXX_FLAGS[@]}" \
             -I"$ROOT/src" \
             -I"$BUILD_DIR/generated" \
             -I"$BUILD_DIR/generated/settings" \

@@ -54,6 +54,7 @@ The human funds token budget and lives in the desktop. You:
 | 2026-10-03 | terminal-history-save-stream | Share a fixed-buffer stream writer for Text Editor and Terminal; persist eligible command history without a duplicate 2 MiB string and retain failure/retry behavior; hosted workflow #244 passed |
 | 2026-10-03 | session-path-line-breaks | Escape newlines in quoted session paths so unusual filenames round-trip without splitting bounded line records; hosted workflow #248 passed |
 | 2026-10-03 | drawing-history-byte-accounting | Cache validated preimage-pixel bytes per history entry and undo/redo stack; insertions and evictions no longer rescan retained tiles, with hosted workflow #252 passed |
+| 2026-10-03 | sanitized-headless-ci | Build and run the complete headless suite under AddressSanitizer/UBSan in GitHub Actions; fix the stale app pointer exposed in mouse-capture coverage; hosted workflow #257 passed |
 | 2026-10-02 | settings-line-bound | Share the 16 KiB persisted-line reader with Desktop Settings and reject wallpaper paths that cannot round-trip |
 | 2026-10-02 | game-record-bound | Bound Snake and Minesweeper save-file reads by row and byte limits; reject malformed or impossible records |
 | 2026-10-02 | terminal-output-pan | Pan clipped Terminal output rows with UTF-8-safe viewport-sized segments and preserve vertical history scrolling |
@@ -261,6 +262,7 @@ Older recent-work rows: [`SESSION_LOG.md`](SESSION_LOG.md).
 | 7.91 | Stream Terminal history saves | done | Reuse a shared fixed-buffer writer for editor and Terminal persistence; stream the exact 2 MiB history limit, verify chunk-write failure propagation, and preserve existing retry/atomic behavior; hosted workflow #244 passed |
 | 7.92 | Preserve line-break session paths | done | Escape LF inside quoted session paths, preserve existing quote/backslash and legacy-token decoding, and round-trip an opened newline-bearing filename through WindowManager save/restore; hosted workflow #248 passed |
 | 7.93 | Cache Drawing history byte totals | done | Store validated preimage-pixel bytes on each entry and maintain undo/redo totals through insertion, eviction, state moves, redo invalidation, overflow, and resets; hosted workflow #252 passed |
+| 7.94 | Sanitize hosted headless tests | done | Add ASan/UBSan build and full-suite jobs, pass compiler flags to all test binaries and shared runtime objects, and fix a close-window test's stale app pointer; hosted workflow #257 passed |
 | fs-browser-filter-cache | Reuse Filesystem Browser filter snapshots | done | Reuse one directory listing for filter edits; refresh it on F5 and Monolith filesystem notifications, including while filtering |
 | terminal-input-editing | Terminal command-line selection | done | Support UTF-8-safe keyboard/mouse selection and Ctrl+A/C/X/V; normalize all clipboard lines and tabs into the single-line prompt |
 | terminal-touch-mtime | Complete Terminal touch semantics | done | Update existing regular-file last-write time without truncation; reject outside-root symlink targets |
