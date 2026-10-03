@@ -66,10 +66,9 @@
     int currentX = logicalToScreenX(taskbarLayout.buttonsStartX)
         - static_cast<int>(m_taskbarScrollOffset * m_contentScale);
 
-    for (size_t i = 0; i < taskbarLayout.buttonOrder.size(); ++i) {
-        if (buttonClipRect.w <= 0) break;
-        Window* win = taskbarLayout.buttonOrder[i];
-        int bw = taskbarLayout.buttonWidths[i];
+    forEachTaskbarWindow([&](Window* win) {
+        if (buttonClipRect.w <= 0) return;
+        const int bw = taskbarButtonWidth(*win);
 
         SDL_Rect btnRect = {
             currentX,
@@ -142,7 +141,7 @@
         }
 
         currentX += static_cast<int>((bw + 6) * m_contentScale);
-    }
+    });
     if (buttonClipRect.w > 0) {
         restoreRendererClip(renderer, callerClip);
     }

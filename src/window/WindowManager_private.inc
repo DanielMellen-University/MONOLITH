@@ -124,10 +124,19 @@ private:
         SDL_Rect leftArrowRect{0, 0, 0, 0};
         SDL_Rect rightArrowRect{0, 0, 0, 0};
         bool needsScroll = false;
-        std::vector<Window*> buttonOrder;
-        std::vector<int> buttonWidths;
     };
 
+    template <typename Callback>
+    void forEachTaskbarWindow(Callback&& callback) {
+        if (isLiveWindow(m_focusedWindow)) callback(m_focusedWindow);
+        for (const auto& window : m_windows) {
+            if (window && window.get() != m_focusedWindow) {
+                callback(window.get());
+            }
+        }
+    }
+
+    int taskbarButtonWidth(Window& window);
     TaskbarLayout computeTaskbarLayout();
     void ensureTaskbarHitTargets();
 
