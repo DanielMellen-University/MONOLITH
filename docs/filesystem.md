@@ -79,7 +79,7 @@ Implementation: `src/fs/Filesystem.hpp`, `src/fs/Filesystem.cpp`.
 | `rename(old, new)` | Renames or moves one entry without overwriting. Existing regular entries and dangling symlinks both block the destination. Symlink sources move as entries without moving their targets. Rejects the virtual root and destinations that are the source or inside its subtree. |
 | `renameEntry(dir, old, new)` | Renames one entry in `dir`. Rejects names that fail `isValidEntryName` (including `/`). |
 | `filterEntries(entries, query)` | Case-insensitive substring filter on entry names. Empty query returns all. |
-| `isSameOrDescendant(a, p)` | True when `p` is `a` or a path under `a` (after normalize). |
+| `isSameOrDescendant(a, p)` | True when `p` is `a` or a path under `a` (after normalize); compares the component boundary without building an `a + "/"` prefix string. |
 
 Terminal (`cp -r` / `rm -r`) and the Filesystem Browser (delete, cut/paste) both call these shared methods — apps should not reimplement recursive walk logic.
 
