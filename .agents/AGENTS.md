@@ -45,6 +45,7 @@ The human funds token budget and lives in the desktop. You:
 | 2026-10-02 | minesweeper-uniform-placement | Sample mines uniformly without replacement from first-click-eligible cells; remove retry-cap fallback bias |
 | 2026-10-02 | filesystem-path-normalize | Normalize virtual paths in one scan without stringstream or copied component strings; preserve path rules under generated tests |
 | 2026-10-02 | filesystem-path-join | Compose directory and child paths directly through the shared component scanner, preserving join semantics without concatenated temporaries |
+| 2026-10-03 | filesystem-descendant-boundary | Compare normalized path boundaries directly, avoiding a temporary ancestor-prefix string in recursive operations |
 | 2026-10-02 | prompt-retry | Failed Text Editor and Drawing path, line-number, RGB, or file operations retain the active prompt, input, caret, and horizontal position for correction and retry |
 | 2026-10-02 | same-file-reload | Text Editor and Drawing can reload their current file after an external overwrite; dirty documents retain the existing repeated-discard guard, with headless coverage |
 | 2026-10-02 | filesystem-filter | Directory sort/filter now avoids lowercase copies per comparison, normalizes the query once per listing pass, and preserves mixed-case matching/order; headless filesystem tests passed |
@@ -211,6 +212,7 @@ Older recent-work rows: [`SESSION_LOG.md`](SESSION_LOG.md).
 | 7.66 | Sample Minesweeper mines uniformly | done | Select without replacement from cells outside the first-click exclusion zone, removing repeated-coordinate retries and the deterministic fallback; cover safe opens and exact mine counts across difficulties |
 | 7.67 | Normalize virtual paths in one pass | done | Resolve path segments directly into the result without a stringstream or per-component copies; differential-test behavior across generated inputs and long separator runs |
 | 7.68 | Normalize joined paths directly | done | Reuse the component scanner for `join()` so directory/child combinations are normalized in one output buffer; preserve existing semantics with generated differential coverage |
+| 7.69 | Check filesystem path boundaries directly | done | Test equality, root, sibling-prefix, and generated cases while removing the allocated `ancestor + "/"` prefix from descendant checks |
 | fs-browser-filter-cache | Reuse Filesystem Browser filter snapshots | done | Reuse one directory listing for filter edits; refresh it on F5 and Monolith filesystem notifications, including while filtering |
 | terminal-input-editing | Terminal command-line selection | done | Support UTF-8-safe keyboard/mouse selection and Ctrl+A/C/X/V; normalize all clipboard lines and tabs into the single-line prompt |
 | terminal-touch-mtime | Complete Terminal touch semantics | done | Update existing regular-file last-write time without truncation; reject outside-root symlink targets |

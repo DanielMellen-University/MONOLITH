@@ -1,5 +1,10 @@
 # Changelog
 
+## 2026-10: Avoid temporary strings in filesystem descendant checks
+
+- Compare normalized path components and the boundary separator directly, removing one prefix allocation from recursive copy and move checks.
+- Differential-test root, exact-match, near-prefix, and generated path combinations.
+
 ## 2026-10: Normalize joined paths without temporary concatenation
 
 - Share the direct component scanner between `normalize()` and `join()`, avoiding an intermediate joined string; remove the leading virtual slash in place during host mapping.

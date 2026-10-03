@@ -1,5 +1,7 @@
 # Session log
 
+| 2026-10-03 | perf | Removed the temporary `ancestor + "/"` string from recursive path-boundary checks; generated differential cases cover exact paths, root, and sibling prefixes. |
+
 | 2026-10-03 | perf | Reused Filesystem's component scanner in `join()` to avoid combined-path temporaries and removed the extra substring allocation in host mapping; generated differential tests cover existing join semantics. |
 
 | 2026-10-02 | perf | Replaced Filesystem path normalization's stringstream and component-string vector with a direct scan into the canonical path; differential coverage compares generated inputs against the old rules. |
