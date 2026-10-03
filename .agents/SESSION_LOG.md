@@ -1,5 +1,7 @@
 # Session log
 
+| 2026-10-03 | perf | Drawing now refreshes its saved comparison baseline in place when the current allocation has enough capacity, avoiding a transient full-canvas RGBA allocation on same-size saves, reloads, and clean resets. A Drawing state regression verifies stable storage and exact pixel contents; full headless suite, production build, and hosted workflow #232 passed. |
+
 | 2026-10-03 | perf | Drawing now streams `.modr` RGB payloads through the atomic filesystem producer in bounded 16 KiB writes, eliminating the extra ~48 MiB encoded-file buffer at maximum canvas size. Existing files survive producer failure; format bytes match the string encoder. Maximum-canvas, atomic rollback, Drawing state, AddressSanitizer, full headless suite, production build, and hosted workflow #228 passed. |
 
 | 2026-10-03 | perf | Text Editor save validates line/byte limits while computing exact serialized size, reserves one output buffer, and avoids the extra `ostringstream::str()` copy. Added exact 16 MiB save and blank/trailing-newline coverage; full headless suite, executable build, and hosted workflow #223 passed. |
