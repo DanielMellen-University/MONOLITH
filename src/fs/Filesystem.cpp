@@ -651,7 +651,17 @@ std::vector<std::string> Filesystem::list(const std::string& virtualPath) const 
         if (!stdfs::is_directory(hostPath)) return entries;
 
         for (const auto& entry : stdfs::directory_iterator(hostPath)) {
-            if (!isWithinHostRoot(entry.path().string())) continue;
+            std::error_code statusEc;
+            const bool isSymlink = entry.is_symlink(statusEc);
+            if (statusEc) continue;
+            if (isSymlink && !isWithinHostRoot(entry.path().string())) continue;
+
+            const bool isDirectory = entry.is_directory(statusEc);
+            if (statusEc) continue;
+            if (isDirectory && !isSymlink
+                && !isWithinHostRoot(entry.path().string())) {
+                continue;
+            }
             entries.push_back(entry.path().filename().string());
         }
     } catch (...) {
@@ -669,10 +679,21 @@ std::vector<Filesystem::DirEntry> Filesystem::listEntries(const std::string& vir
         if (!stdfs::is_directory(hostPath)) return {};
 
         for (const auto& entry : stdfs::directory_iterator(hostPath)) {
-            if (!isWithinHostRoot(entry.path().string())) continue;
+            std::error_code statusEc;
+            const bool isSymlink = entry.is_symlink(statusEc);
+            if (statusEc) continue;
+            if (isSymlink && !isWithinHostRoot(entry.path().string())) continue;
+
+            const bool isDirectory = entry.is_directory(statusEc);
+            if (statusEc) continue;
+            if (isDirectory && !isSymlink
+                && !isWithinHostRoot(entry.path().string())) {
+                continue;
+            }
+
             DirEntry de;
             de.name = entry.path().filename().string();
-            de.isDirectory = entry.is_directory();
+            de.isDirectory = isDirectory;
             if (de.isDirectory) {
                 dirs.push_back(std::move(de));
             } else {
