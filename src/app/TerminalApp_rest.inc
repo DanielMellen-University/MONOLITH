@@ -504,15 +504,22 @@ std::string TerminalApp::resolvePath(const std::string& path) const {
     return m_fs->normalize(target);
 }
 
-std::string TerminalApp::getInputPrompt() const {
-    // Show abbreviated cwd + prompt symbol
-    std::string displayCwd = m_cwd;
-    if (displayCwd == "/home/monolith") {
-        displayCwd = "~";
-    } else if (displayCwd.rfind("/home/monolith/", 0) == 0) {
-        displayCwd = "~" + displayCwd.substr(14);  // after /home/monolith
+const std::string& TerminalApp::getInputPrompt() const {
+    if (!m_inputPromptCacheValid || m_promptCacheCwd != m_cwd) {
+        m_promptCacheCwd = m_cwd;
+        m_cachedInputPrompt.clear();
+        if (m_cwd == "/home/monolith") {
+            m_cachedInputPrompt = "~";
+        } else if (m_cwd.rfind("/home/monolith/", 0) == 0) {
+            m_cachedInputPrompt = "~";
+            m_cachedInputPrompt.append(m_cwd, 14, std::string::npos);
+        } else {
+            m_cachedInputPrompt = m_cwd;
+        }
+        m_cachedInputPrompt += "> ";
+        m_inputPromptCacheValid = true;
     }
-    return displayCwd + "> ";
+    return m_cachedInputPrompt;
 }
 
 std::string TerminalApp::joinPath(const std::string& base, const std::string& name) const {
@@ -622,22 +629,26 @@ void TerminalApp::render(SDL_Renderer* renderer, const SDL_Rect& contentRect) {
     SDL_RenderSetClipRect(renderer, &inputClip);
     if (m_searchMode) {
         m_searchCursorPos = std::min(m_searchCursorPos, m_searchBuffer.size());
-        // Reverse-i-search UI
-        const std::string beforeCursor = m_searchBuffer.substr(0, m_searchCursorPos);
-        const std::string afterCursor = m_searchBuffer.substr(m_searchCursorPos);
-        std::string searchPrompt = "(reverse-i-search)`" + beforeCursor + afterCursor + "': ";
-        std::string matchText;
+        const std::string* matchText = nullptr;
 
         if (m_searchMatchIndex >= 0 && m_searchMatchIndex < static_cast<int>(m_commandHistory.size())) {
-            matchText = m_commandHistory[m_searchMatchIndex];
-        } else if (!m_searchBuffer.empty()) {
-            matchText = "(no match)";
+            matchText = &m_commandHistory[m_searchMatchIndex];
         }
 
-        std::string full = searchPrompt + matchText;
-        const std::string cursorPrefix = "(reverse-i-search)`" + beforeCursor;
+        constexpr char kSearchPrefix[] = "(reverse-i-search)`";
+        m_renderInputText.assign(kSearchPrefix);
+        m_renderInputText.append(m_searchBuffer);
+        m_renderInputText.append("': ");
+        if (matchText) {
+            m_renderInputText.append(*matchText);
+        } else if (!m_searchBuffer.empty()) {
+            m_renderInputText.append("(no match)");
+        }
+        m_renderCursorPrefix.assign(kSearchPrefix);
+        m_renderCursorPrefix.append(m_searchBuffer.data(), m_searchCursorPos);
+
         const auto cursorPrefixTexture = m_textTextureCache.get(
-            renderer, m_font, cursorPrefix.c_str(), textColor);
+            renderer, m_font, m_renderCursorPrefix.c_str(), textColor);
         int cursorPrefixWidth = cursorPrefixTexture ? cursorPrefixTexture.width : 0;
         if (!cursorPrefixTexture) {
             int cursorPrefixHeight = 0;
@@ -648,7 +659,7 @@ void TerminalApp::render(SDL_Renderer* renderer, const SDL_Rect& contentRect) {
         const int cursorWidth = 8;
 
         const auto texture = m_textTextureCache.get(
-            renderer, m_font, full.c_str(), textColor);
+            renderer, m_font, m_renderInputText.c_str(), textColor);
         if (texture) {
             if (cursorPrefixWidth + cursorWidth
                 > m_searchHorizontalScrollPx + inputViewportWidth) {
@@ -677,18 +688,20 @@ void TerminalApp::render(SDL_Renderer* renderer, const SDL_Rect& contentRect) {
         SDL_RenderFillRect(renderer, &cur);
     } else {
         // Normal prompt, editable text, and an optional selected range.
-        std::string prompt = getInputPrompt();
+        const std::string& prompt = getInputPrompt();
         m_inputCursorPos = static_cast<int>(utf8ClampToCodepointBoundary(
             m_inputBuffer,
             static_cast<std::size_t>(std::clamp(
                 m_inputCursorPos, 0, static_cast<int>(m_inputBuffer.size())))));
-        const std::string fullText = prompt + m_inputBuffer;
-        const std::string cursorPrefix = prompt
-            + m_inputBuffer.substr(0, static_cast<std::size_t>(m_inputCursorPos));
+        m_renderInputText.assign(prompt);
+        m_renderInputText.append(m_inputBuffer);
+        m_renderCursorPrefix.assign(prompt);
+        m_renderCursorPrefix.append(
+            m_inputBuffer.data(), static_cast<std::size_t>(m_inputCursorPos));
         const auto fullTexture = m_textTextureCache.get(
-            renderer, m_font, fullText.c_str(), textColor);
+            renderer, m_font, m_renderInputText.c_str(), textColor);
         const auto cursorPrefixTexture = m_textTextureCache.get(
-            renderer, m_font, cursorPrefix.c_str(), textColor);
+            renderer, m_font, m_renderCursorPrefix.c_str(), textColor);
         int fullWidth = fullTexture ? fullTexture.width : 0;
         int prefixWidth = cursorPrefixTexture ? cursorPrefixTexture.width : 0;
         if (!fullTexture) {
@@ -720,12 +733,14 @@ void TerminalApp::render(SDL_Renderer* renderer, const SDL_Rect& contentRect) {
 
         if (hasInputSelection()) {
             const auto [start, end] = inputSelectionRange();
-            const std::string selectionStartText = prompt + m_inputBuffer.substr(0, start);
-            const std::string selectionEndText = prompt + m_inputBuffer.substr(0, end);
+            m_renderSelectionStartText.assign(prompt);
+            m_renderSelectionStartText.append(m_inputBuffer.data(), start);
+            m_renderSelectionEndText.assign(prompt);
+            m_renderSelectionEndText.append(m_inputBuffer.data(), end);
             const auto selectionStartTexture = m_textTextureCache.get(
-                renderer, m_font, selectionStartText.c_str(), textColor);
+                renderer, m_font, m_renderSelectionStartText.c_str(), textColor);
             const auto selectionEndTexture = m_textTextureCache.get(
-                renderer, m_font, selectionEndText.c_str(), textColor);
+                renderer, m_font, m_renderSelectionEndText.c_str(), textColor);
             int selectionStartWidth = selectionStartTexture ? selectionStartTexture.width : 0;
             int selectionEndWidth = selectionEndTexture ? selectionEndTexture.width : 0;
             if (!selectionStartTexture) {

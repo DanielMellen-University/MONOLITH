@@ -76,7 +76,7 @@ private:
     SDL_Rect getHistoryRect(const SDL_Rect& contentRect) const;
     int getInputLineY(const SDL_Rect& contentRect, const SDL_Rect& inputBar) const;
 
-    std::string getInputPrompt() const;  // includes cwd for better UX
+    const std::string& getInputPrompt() const;  // includes cwd for better UX
 
     // Filesystem helpers
     std::string resolvePath(const std::string& path) const;
@@ -93,6 +93,9 @@ private:
     monolith::fs::Filesystem* m_fs = nullptr;
     mutable monolith::detail::TextTextureCache m_textTextureCache;
     std::string m_cwd = "/home/monolith";
+    mutable std::string m_promptCacheCwd;
+    mutable std::string m_cachedInputPrompt;
+    mutable bool m_inputPromptCacheValid = false;
 
     struct HistoryViewportMeasure {
         int pixelWidth = -1;
@@ -121,6 +124,11 @@ private:
     size_t m_historyBytes = 0;
     std::string m_inputBuffer;
     std::string m_prompt = "> ";
+    std::string m_renderInputText;
+    std::string m_renderCursorPrefix;
+    std::string m_renderSelectionStartText;
+    std::string m_renderSelectionEndText;
+    mutable std::string m_inputMeasureScratch;
 
     // Command history navigation
     int m_historyIndex = -1;           // -1 means not navigating history

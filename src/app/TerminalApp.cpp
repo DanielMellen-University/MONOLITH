@@ -266,7 +266,7 @@ void TerminalApp::pasteInputClipboard() {
 int TerminalApp::inputCursorAtX(int x, const SDL_Rect& contentRect) const {
     if (!m_font) return 0;
     constexpr int padding = 8;
-    const std::string prompt = getInputPrompt();
+    const std::string& prompt = getInputPrompt();
     const int textOriginX = contentRect.x + padding - m_inputHorizontalScrollPx;
     const int targetX = x - textOriginX;
     int promptWidth = 0;
@@ -283,10 +283,11 @@ int TerminalApp::inputCursorAtX(int x, const SDL_Rect& contentRect) const {
     }
 
     auto measure = [&](std::size_t byteOffset) {
-        const std::string prefix = prompt + m_inputBuffer.substr(0, byteOffset);
+        m_inputMeasureScratch.assign(prompt);
+        m_inputMeasureScratch.append(m_inputBuffer.data(), byteOffset);
         int width = 0;
         int height = 0;
-        if (TTF_SizeUTF8(m_font, prefix.c_str(), &width, &height) != 0) return 0;
+        if (TTF_SizeUTF8(m_font, m_inputMeasureScratch.c_str(), &width, &height) != 0) return 0;
         return width;
     };
 

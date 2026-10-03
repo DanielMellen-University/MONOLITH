@@ -629,7 +629,20 @@ int main() {
     terminal.m_inputBuffer = "abcdef";
     terminal.m_inputCursorPos = 0;
     terminal.m_inputHorizontalScrollPx = 0;
-    const std::string prompt = terminal.getInputPrompt();
+    const std::string& prompt = terminal.getInputPrompt();
+    const std::string originalPrompt = prompt;
+    const char* promptStorage = prompt.data();
+    const bool reusedPrompt = &terminal.getInputPrompt() == &prompt
+        && terminal.getInputPrompt().data() == promptStorage
+        && prompt == originalPrompt;
+    const std::string originalCwd = terminal.m_cwd;
+    terminal.m_cwd = "/home/monolith/prompt-test";
+    const std::string changedPrompt = terminal.getInputPrompt();
+    terminal.m_cwd = originalCwd;
+    const std::string restoredPrompt = terminal.getInputPrompt();
+    check(reusedPrompt && changedPrompt == "~/prompt-test> "
+              && restoredPrompt == originalPrompt,
+          "Terminal reuses its prompt until the working directory changes");
     int afterTwoWidth = 0;
     int afterFiveWidth = 0;
     int ignoredHeight = 0;
@@ -648,6 +661,15 @@ int main() {
     mouse.motion.y = inputBar.y + inputBar.h / 2;
     terminal.handleEvent(mouse);
     const auto mouseSelection = terminal.inputSelectionRange();
+    const SDL_Rect inputContent{0, 0, 360, 200};
+    const int measuredMouseCursor = terminal.inputCursorAtX(
+        8 + afterFiveWidth, inputContent);
+    const char* inputMeasureStorage = terminal.m_inputMeasureScratch.data();
+    const int repeatedMouseCursor = terminal.inputCursorAtX(
+        8 + afterFiveWidth, inputContent);
+    check(measuredMouseCursor == repeatedMouseCursor
+              && terminal.m_inputMeasureScratch.data() == inputMeasureStorage,
+          "Terminal reuses input-prefix storage during mouse hit testing");
     mouse = {};
     mouse.type = SDL_MOUSEBUTTONUP;
     mouse.button.button = SDL_BUTTON_LEFT;
@@ -708,6 +730,11 @@ int main() {
         const SDL_Rect expectedClip{5, 6, 140, 120};
         SDL_RenderSetClipRect(renderer, &expectedClip);
         terminal.render(renderer, {0, 0, 200, 200});
+        const char* inputRenderStorage = terminal.m_renderInputText.data();
+        const char* cursorRenderStorage = terminal.m_renderCursorPrefix.data();
+        const char* selectionStartStorage = terminal.m_renderSelectionStartText.data();
+        const char* selectionEndStorage = terminal.m_renderSelectionEndText.data();
+        const bool selectionWasRendered = terminal.hasInputSelection();
         const auto firstMeasuredRow = std::find_if(
             terminal.m_historyViewportMeasures.begin(),
             terminal.m_historyViewportMeasures.end(),
@@ -748,13 +775,20 @@ int main() {
             renderer, font, "output", terminalTextColor);
         const auto repeatedInputTexture = terminal.m_textTextureCache.get(
             renderer, font, inputBeforeCursor.c_str(), terminalTextColor);
+        const bool reusedInputRenderBuffers =
+            terminal.m_renderInputText.data() == inputRenderStorage
+            && terminal.m_renderCursorPrefix.data() == cursorRenderStorage
+            && (!selectionWasRendered
+                || (terminal.m_renderSelectionStartText.data() == selectionStartStorage
+                    && terminal.m_renderSelectionEndText.data() == selectionEndStorage));
         check(firstOutputTexture && firstInputTexture
                   && repeatedOutputTexture.handle == firstOutputTexture.handle
                   && repeatedInputTexture.handle == firstInputTexture.handle
                   && terminal.m_textTextureCache.size() == cachedTextureCount
                   && firstHistoryMeasure.valid
                   && firstHistoryMeasure.pixelWidth == 184
-                  && reusedHistoryMeasure,
+                  && reusedHistoryMeasure
+                  && reusedInputRenderBuffers,
               "Terminal reuses input, scrollback textures, and visible-row measurements between frames");
         terminal.m_searchMode = true;
         terminal.m_searchBuffer = "second";
@@ -765,6 +799,8 @@ int main() {
         const std::string reverseSearchCursorPrefix = "(reverse-i-search)`sec";
         const size_t beforeReverseSearch = terminal.m_textTextureCache.size();
         terminal.render(renderer, {0, 0, 200, 200});
+        const char* reverseSearchTextStorage = terminal.m_renderInputText.data();
+        const char* reverseSearchCursorStorage = terminal.m_renderCursorPrefix.data();
         const auto reverseSearchTexture = terminal.m_textTextureCache.get(
             renderer, font, reverseSearchText.c_str(), terminalTextColor);
         const size_t afterReverseSearchRender = terminal.m_textTextureCache.size();
@@ -777,6 +813,9 @@ int main() {
             &expectedReverseSearchCursorWidth, &expectedReverseSearchCursorHeight) == 0;
         const size_t afterReverseSearchCursorLookup = terminal.m_textTextureCache.size();
         terminal.render(renderer, {0, 0, 200, 200});
+        const bool reusedReverseSearchBuffers =
+            terminal.m_renderInputText.data() == reverseSearchTextStorage
+            && terminal.m_renderCursorPrefix.data() == reverseSearchCursorStorage;
         const auto repeatedReverseSearchCursorTexture = terminal.m_textTextureCache.get(
             renderer, font, reverseSearchCursorPrefix.c_str(), terminalTextColor);
         check(reverseSearchTexture
@@ -788,7 +827,8 @@ int main() {
                   && measuredReverseSearchCursor
                   && repeatedReverseSearchCursorTexture.width == expectedReverseSearchCursorWidth
                   && expectedReverseSearchCursorHeight > 0
-                  && terminal.m_textTextureCache.size() == afterReverseSearchCursorLookup,
+                  && terminal.m_textTextureCache.size() == afterReverseSearchCursorLookup
+                  && reusedReverseSearchBuffers,
               "Terminal reuses reverse-search text and cursor-prefix metrics between frames");
         terminal.m_searchMode = false;
         const size_t beforeClear = terminal.m_textTextureCache.size();
