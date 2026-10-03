@@ -1,5 +1,7 @@
 # Session log
 
+| 2026-10-03 | perf | TextTextureCache now stores each owned font/text/color key only in the map; LRU nodes hold views into those stable keys, avoiding duplicate strings on misses. Cache stress coverage checks the oldest retained texture across map rehashes and count eviction; normal and sanitized hosted workflow #266 passed. |
+
 | 2026-10-03 | perf | Shared text texture cache hits now hash and compare transparent font/text/color views instead of constructing an owned composite key on every draw; cache misses retain an owned text key. Coverage verifies font identity and caller-string ownership; normal and sanitized hosted workflow #262 passed. |
 
 | 2026-10-03 | test/fix | GitHub Actions now builds the app and runs the complete headless suite under AddressSanitizer and UndefinedBehaviorSanitizer in addition to the normal job. Sanitizer coverage exposed a stale `CaptureApp*` read after the test closed that window; the Ctrl+Escape assertion now observes the still-live focused app. The runner forwards `CXXFLAGS` to all tests/shared runtime objects and keeps source locations in sanitizer traces; both hosted jobs passed in workflow #257. |

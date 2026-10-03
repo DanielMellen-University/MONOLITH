@@ -77,13 +77,20 @@ int main() {
     check(originalText && changedText && originalText.handle != changedText.handle,
           "cache misses own text instead of retaining a caller's key view");
 
+    cache.clear();
+    SDL_Texture* oldestRetained = nullptr;
     SDL_Texture* newest = nullptr;
     for (int i = 0; i < 300; ++i) {
         const std::string label = "status-" + std::to_string(i);
         newest = cache.get(firstRenderer, font, label.c_str(), white).handle;
+        if (i == 44) oldestRetained = newest;
     }
     check(newest && cache.size() == monolith::detail::TextTextureCache::kMaxEntries,
           "text texture cache evicts old entries at its count limit");
+    const auto oldestAgain = cache.get(firstRenderer, font, "status-44", white);
+    check(oldestRetained && oldestAgain.handle == oldestRetained
+              && cache.size() == monolith::detail::TextTextureCache::kMaxEntries,
+          "oldest retained LRU key survives rehash and count eviction");
     check(cache.estimatedBytes() <= monolith::detail::TextTextureCache::kMaxEstimatedBytes,
           "small text entries stay within the estimated byte budget");
     const auto newestAgain = cache.get(firstRenderer, font, "status-299", white);

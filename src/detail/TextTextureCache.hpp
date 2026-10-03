@@ -62,26 +62,26 @@ public:
         if (!texture) return {};
 
         CacheKey key{font, std::string(text), color};
-        m_lru.push_front(key);
         auto inserted = m_entries.emplace(std::move(key), Entry{
-            texture, width, height, estimatedBytes, m_lru.begin()});
+            texture, width, height, estimatedBytes, {}});
         if (!inserted.second) {
-            m_lru.pop_front();
             SDL_DestroyTexture(texture);
             return {};
         }
+        m_lru.push_front(KeyView{font, inserted.first->first.text, color});
+        inserted.first->second.lruPosition = m_lru.begin();
         m_estimatedBytes += estimatedBytes;
         trim();
         return {texture, width, height};
     }
 
     void clear() const {
+        m_lru.clear();
         for (auto& [key, entry] : m_entries) {
             (void)key;
             SDL_DestroyTexture(entry.handle);
         }
         m_entries.clear();
-        m_lru.clear();
         m_estimatedBytes = 0;
         m_renderer = nullptr;
     }
@@ -145,7 +145,7 @@ private:
         int width = 0;
         int height = 0;
         std::uint64_t estimatedBytes = 0;
-        std::list<CacheKey>::iterator lruPosition;
+        std::list<KeyView>::iterator lruPosition;
     };
 
     static std::uint64_t estimateBytes(int width, int height) {
@@ -166,15 +166,16 @@ private:
             if (entry != m_entries.end()) {
                 m_estimatedBytes -= entry->second.estimatedBytes;
                 SDL_DestroyTexture(entry->second.handle);
-                m_entries.erase(entry);
             }
             m_lru.erase(oldest);
+            if (entry != m_entries.end()) m_entries.erase(entry);
         }
     }
 
     mutable SDL_Renderer* m_renderer = nullptr;
     mutable std::unordered_map<CacheKey, Entry, KeyHash, KeyEqual> m_entries;
-    mutable std::list<CacheKey> m_lru;
+    // Views point into immutable map keys; rehash preserves references to elements.
+    mutable std::list<KeyView> m_lru;
     mutable std::uint64_t m_estimatedBytes = 0;
 };
 
