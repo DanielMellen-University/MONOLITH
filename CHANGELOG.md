@@ -1,5 +1,10 @@
 # Changelog
 
+## 2026-10: Reuse Drawing save baselines
+
+- Copy the saved comparison image into its existing allocation when capacity is sufficient, eliminating a temporary full-canvas RGBA allocation on same-size saves and resets.
+- Cover stable buffer reuse and exact baseline contents in the Drawing state test.
+
 ## 2026-10: Stream Drawing saves
 
 - Write `.modr` RGB payloads in bounded chunks through the filesystem's atomic producer, avoiding a second full encoded-file allocation for large canvases.
