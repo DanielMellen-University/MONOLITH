@@ -1,5 +1,7 @@
 # Session log
 
+| 2026-10-03 | fix | Session save now matches the restore window cap: when more than 128 restorable windows exist, it persists the topmost 128 in existing stacking order. Focused WindowManager integration coverage and hosted workflow #195 passed. |
+
 | 2026-10-03 | fix | Session restore now examines at most 1,024 records and stops processing entries once 128 windows are live. Integration coverage verifies both limits and valid-session behavior; hosted workflow #191 passed. |
 
 | 2026-10-03 | fix | BMP wallpaper headers are now dimension-checked from the same open file handle passed to SDL, applying the existing 16,777,216-pixel cap before decoding. Valid BMP pixels and oversized-header rejection pass the focused test and hosted workflow #187. |

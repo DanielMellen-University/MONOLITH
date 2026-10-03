@@ -384,6 +384,40 @@ int main() {
         check(boundedRecordSessionWm.loadSession(manyRecordsSessionPath.string())
                   && boundedRecordSessionWm.m_windows.empty(),
               "session restore stops after the configured record budget");
+
+        monolith::window::WindowManager oversizedSavedSessionWm;
+        for (std::size_t i = 0;
+             i < monolith::window::session::kMaxRestoredWindows + 8;
+             ++i) {
+            oversizedSavedSessionWm.createWindow(
+                "Snake", 20 + static_cast<int>(i), 20, 240, 160,
+                std::unique_ptr<monolith::app::App>{}, "Snake", 1);
+        }
+        const auto boundedSavedSessionPath = hostRoot / "bounded-saved-session.txt";
+        check(oversizedSavedSessionWm.saveSession(boundedSavedSessionPath.string()),
+              "save an oversized live-window session");
+        {
+            std::ifstream boundedSavedSession(boundedSavedSessionPath);
+            std::string header;
+            std::string comment;
+            std::string firstRecord;
+            std::string record;
+            std::size_t savedRecords = 0;
+            std::getline(boundedSavedSession, header);
+            std::getline(boundedSavedSession, comment);
+            while (std::getline(boundedSavedSession, record)) {
+                if (savedRecords == 0) firstRecord = record;
+                ++savedRecords;
+            }
+            std::istringstream firstRecordFields(firstRecord);
+            std::string firstKind;
+            int firstX = 0;
+            firstRecordFields >> firstKind >> firstX;
+            check(header == "session_v1"
+                      && savedRecords == monolith::window::session::kMaxRestoredWindows
+                      && firstKind == "snake" && firstX == 28,
+                  "session save keeps the topmost restorable windows in z-order");
+        }
     }
 
     {

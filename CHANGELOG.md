@@ -1,5 +1,10 @@
 # Changelog
 
+## 2026-10: Keep saved sessions within the restore limit
+
+- When more than 128 restorable windows are open, save the topmost 128 entries in their existing stacking order so every persisted entry is within the restore limit.
+- Cover the cap and z-order preservation in the WindowManager integration test.
+
 ## 2026-10: Bound session restore work
 
 - Stop session parsing after 1,024 records or once 128 windows are live, preventing oversized layouts from launching an unbounded number of apps.

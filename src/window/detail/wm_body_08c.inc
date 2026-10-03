@@ -6,9 +6,27 @@ bool WindowManager::saveSession(const std::string& hostPath) const {
             out << "session_v1\n";
             out << "# kind x y w h minimized maximized quoted-path\n";
 
-            for (const auto& winPtr : m_windows) {
-                if (!winPtr) continue;
-                const Window& w = *winPtr;
+            std::vector<const Window*> windowsToSave;
+            windowsToSave.reserve(monolith::window::session::kMaxRestoredWindows);
+            for (auto it = m_windows.rbegin();
+                 it != m_windows.rend()
+                     && windowsToSave.size()
+                         < monolith::window::session::kMaxRestoredWindows;
+                 ++it) {
+                if (!*it) continue;
+                const Window& window = **it;
+                const AppRegistryEntry* reg =
+                    findAppByBaseTitle(window.appBaseTitle);
+                if (window.editedFilePath.empty()
+                    && window.drawingFilePath.empty()
+                    && (!reg || !reg->sessionKey)) {
+                    continue;
+                }
+                windowsToSave.push_back(it->get());
+            }
+
+            for (auto it = windowsToSave.rbegin(); it != windowsToSave.rend(); ++it) {
+                const Window& w = **it;
 
                 std::string kind;
                 std::string path = "-";
