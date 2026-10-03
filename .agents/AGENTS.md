@@ -58,6 +58,7 @@ The human funds token budget and lives in the desktop. You:
 | 2026-10-03 | text-cache-hit-lookup | Replace per-hit owned cache-key serialization with transparent font/text/color lookup views; create owned text keys only on misses; hosted workflow #262 passed |
 | 2026-10-03 | text-cache-single-storage | Store LRU nodes as views into immutable map keys, avoiding duplicate text storage while preserving eviction through map rehashes; hosted workflow #266 passed |
 | 2026-10-03 | terminal-render-buffers | Cache the cwd prompt and reuse Terminal input, cursor, selection, reverse-search, and hit-test strings across steady-state frames; hosted workflow #271 passed |
+| 2026-10-03 | browser-rename-prefix | Compare the rename caret prefix directly against the current name and only rebuild the owned measured prefix when it changes; hosted workflow #275 passed |
 | 2026-10-02 | settings-line-bound | Share the 16 KiB persisted-line reader with Desktop Settings and reject wallpaper paths that cannot round-trip |
 | 2026-10-02 | game-record-bound | Bound Snake and Minesweeper save-file reads by row and byte limits; reject malformed or impossible records |
 | 2026-10-02 | terminal-output-pan | Pan clipped Terminal output rows with UTF-8-safe viewport-sized segments and preserve vertical history scrolling |
@@ -269,6 +270,7 @@ Older recent-work rows: [`SESSION_LOG.md`](SESSION_LOG.md).
 | 7.95 | Remove text-cache hit allocations | done | Look up renderer text textures with transparent font/text/color views so hits avoid constructing an owned composite key; preserve owned miss keys and LRU behavior; normal and sanitized hosted workflow #262 passed |
 | 7.96 | Store text cache keys once | done | Keep LRU nodes as non-owning views into immutable map keys, eliminating duplicated text strings; verify a retained LRU entry survives rehash and count eviction; normal and sanitized hosted workflow #266 passed |
 | 7.97 | Reuse Terminal render buffers | done | Cache the cwd prompt until its path changes; reuse normal/reverse-search/selection text and mouse hit-test prefix storage; normal and sanitized hosted workflow #271 passed |
+| 7.98 | Avoid rename-prefix copies | done | Compare the inline rename cursor prefix in place and update its owned measurement string only when it changes; preserve cached width invalidation and verify suffix-only edits reuse the prefix; normal and sanitized hosted workflow #275 passed |
 | fs-browser-filter-cache | Reuse Filesystem Browser filter snapshots | done | Reuse one directory listing for filter edits; refresh it on F5 and Monolith filesystem notifications, including while filtering |
 | terminal-input-editing | Terminal command-line selection | done | Support UTF-8-safe keyboard/mouse selection and Ctrl+A/C/X/V; normalize all clipboard lines and tabs into the single-line prompt |
 | terminal-touch-mtime | Complete Terminal touch semantics | done | Update existing regular-file last-write time without truncation; reject outside-root symlink targets |
