@@ -1,16 +1,67 @@
 #include "DrawingRaster.hpp"
 
 #include <algorithm>
+#include <array>
 #include <cctype>
 #include <cstring>
 #include <cstdlib>
 #include <limits>
 #include <sstream>
+#include <ostream>
 
 namespace monolith::drawing {
 
 namespace {
 constexpr char kModrMagic[4] = {'M', 'O', 'D', 'R'};
+constexpr std::size_t kModrWriteChunkBytes = 16 * 1024;
+
+std::array<char, kModrHeaderBytes> makeModrHeader(int width, int height) {
+    std::array<char, kModrHeaderBytes> header{};
+    std::copy(std::begin(kModrMagic), std::end(kModrMagic), header.begin());
+    const auto writeU32LE = [&header](std::size_t offset, uint32_t value) {
+        for (std::size_t byte = 0; byte < 4; ++byte) {
+            header[offset + byte] = static_cast<char>((value >> (byte * 8)) & 0xFF);
+        }
+    };
+    writeU32LE(4, static_cast<uint32_t>(width));
+    writeU32LE(8, static_cast<uint32_t>(height));
+    return header;
+}
+
+bool hasValidModrCanvas(int width, int height, const std::vector<uint8_t>& rgba) {
+    if (width <= 0 || height <= 0
+        || width > kMaxModrDimension || height > kMaxModrDimension) {
+        return false;
+    }
+    const std::size_t pixelCount = static_cast<std::size_t>(width)
+        * static_cast<std::size_t>(height);
+    return rgba.size() == pixelCount * 4;
+}
+
+template <typename WriteChunk>
+bool emitModr(int width, int height, const std::vector<uint8_t>& rgba,
+              WriteChunk&& writeChunk) {
+    if (!hasValidModrCanvas(width, height, rgba)) return false;
+
+    const auto header = makeModrHeader(width, height);
+    if (!writeChunk(header.data(), header.size())) return false;
+
+    std::array<char, kModrWriteChunkBytes> chunk{};
+    std::size_t buffered = 0;
+    const std::size_t pixelCount = static_cast<std::size_t>(width)
+        * static_cast<std::size_t>(height);
+    for (std::size_t pixel = 0; pixel < pixelCount; ++pixel) {
+        if (chunk.size() - buffered < kModrRgbBytesPerPixel) {
+            if (!writeChunk(chunk.data(), buffered)) return false;
+            buffered = 0;
+        }
+        const std::size_t source = pixel * 4;
+        chunk[buffered++] = static_cast<char>(rgba[source]);
+        chunk[buffered++] = static_cast<char>(rgba[source + 1]);
+        chunk[buffered++] = static_cast<char>(rgba[source + 2]);
+    }
+    return buffered == 0 || writeChunk(chunk.data(), buffered);
+}
 
 bool hasValidCanvasBuffer(const std::vector<uint8_t>& rgba, int width, int height) {
     if (width <= 0 || height <= 0) return false;
@@ -101,13 +152,6 @@ bool traceBresenhamLine(int x0, int y0, int x1, int y1, PaintPoint&& paintPoint)
         }
     }
     return changed;
-}
-
-void writeU32LE(std::string& out, uint32_t value) {
-    out.push_back(static_cast<char>(value & 0xFF));
-    out.push_back(static_cast<char>((value >> 8) & 0xFF));
-    out.push_back(static_cast<char>((value >> 16) & 0xFF));
-    out.push_back(static_cast<char>((value >> 24) & 0xFF));
 }
 
 uint32_t readU32LE(const std::string& data, size_t offset) {
@@ -292,28 +336,26 @@ std::size_t fillRegion(std::vector<uint8_t>& rgba, int width, int height,
 }
 
 std::string encodeModr(int width, int height, const std::vector<uint8_t>& rgba) {
-    if (width <= 0 || height <= 0
-        || width > kMaxModrDimension || height > kMaxModrDimension) {
-        return {};
-    }
-    const size_t pixelCount = static_cast<size_t>(width) * static_cast<size_t>(height);
-    const size_t expected = pixelCount * 4;
-    if (rgba.size() != expected) return {};
+    if (!hasValidModrCanvas(width, height, rgba)) return {};
 
     std::string blob;
+    const std::size_t pixelCount = static_cast<std::size_t>(width)
+        * static_cast<std::size_t>(height);
     blob.reserve(kModrHeaderBytes + pixelCount * kModrRgbBytesPerPixel);
-    blob.append(kModrMagic, 4);
-    writeU32LE(blob, static_cast<uint32_t>(width));
-    writeU32LE(blob, static_cast<uint32_t>(height));
-    for (int y = 0; y < height; ++y) {
-        for (int x = 0; x < width; ++x) {
-            const size_t idx = (static_cast<size_t>(y) * static_cast<size_t>(width) + static_cast<size_t>(x)) * 4;
-            blob.push_back(static_cast<char>(rgba[idx + 0]));
-            blob.push_back(static_cast<char>(rgba[idx + 1]));
-            blob.push_back(static_cast<char>(rgba[idx + 2]));
-        }
-    }
+    emitModr(width, height, rgba, [&blob](const char* data, std::size_t size) {
+        blob.append(data, size);
+        return true;
+    });
     return blob;
+}
+
+bool writeModr(std::ostream& output, int width, int height,
+               const std::vector<uint8_t>& rgba) {
+    return emitModr(width, height, rgba,
+                    [&output](const char* data, std::size_t size) {
+                        output.write(data, static_cast<std::streamsize>(size));
+                        return static_cast<bool>(output);
+                    });
 }
 
 bool decodeModr(const std::string& blob, int& width, int& height, std::vector<uint8_t>& rgba) {

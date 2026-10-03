@@ -2,6 +2,7 @@
 
 #include <cstddef>
 #include <cstdint>
+#include <iosfwd>
 #include <string>
 #include <vector>
 
@@ -60,6 +61,10 @@ std::size_t fillRegion(std::vector<uint8_t>& rgba, int width, int height,
 
 /** Encode live RGBA canvas as .modr; reject unsupported dimensions or buffer sizes. */
 std::string encodeModr(int width, int height, const std::vector<uint8_t>& rgba);
+
+/** Stream live RGBA canvas as .modr using a bounded temporary buffer. */
+bool writeModr(std::ostream& output, int width, int height,
+               const std::vector<uint8_t>& rgba);
 
 /** Decode .modr into an RGBA buffer (A=255). Returns false on corrupt data. */
 bool decodeModr(const std::string& blob, int& width, int& height, std::vector<uint8_t>& rgba);

@@ -908,14 +908,6 @@ bool DrawingApp::saveToPath(const std::string& virtualPath) {
         path += ".modr";
     }
 
-    const std::string blob = monolith::drawing::encodeModr(
-        m_canvasWidth, m_canvasHeight, m_pixels);
-    if (blob.empty()) {
-        clearDiscardArm();
-        setStatus("Save failed: could not encode canvas.");
-        return false;
-    }
-
     const bool wasExisting = m_fs->exists(path);
 
     std::string parent = path;
@@ -927,7 +919,10 @@ bool DrawingApp::saveToPath(const std::string& virtualPath) {
         }
     }
 
-    if (!m_fs->writeFile(path, blob)) {
+    if (!m_fs->writeFileWithProducer(path, [this](std::ostream& output) {
+            return monolith::drawing::writeModr(
+                output, m_canvasWidth, m_canvasHeight, m_pixels);
+        })) {
         clearDiscardArm();
         setStatus("Save failed: could not write file.");
         return false;
