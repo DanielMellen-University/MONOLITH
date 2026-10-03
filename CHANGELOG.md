@@ -1,5 +1,10 @@
 # Changelog
 
+## 2026-10: Run headless checks with sanitizers
+
+- Add a hosted AddressSanitizer/UndefinedBehaviorSanitizer job that builds the application and runs the full headless suite.
+- Allow sanitizer/compiler options to reach every test binary and shared Window Manager test object through `CXXFLAGS`.
+
 ## 2026-10: Cache Drawing history byte totals
 
 - Maintain per-entry and per-stack preimage-pixel byte totals so new edits and budget eviction do not rescan retained tile history.
