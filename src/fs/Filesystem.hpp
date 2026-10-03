@@ -1,5 +1,6 @@
 #pragma once
 
+#include <cstddef>
 #include <cstdint>
 #include <functional>
 #include <iosfwd>
@@ -160,6 +161,9 @@ public:
      */
     static std::vector<DirEntry> filterEntries(const std::vector<DirEntry>& entries,
                                                const std::string& query);
+    /** Matching source indices without copying entry names. */
+    static std::vector<std::size_t> filterEntryIndices(
+        const std::vector<DirEntry>& entries, const std::string& query);
 
     /** Lists entries with type info (directories first, then case-insensitive alpha-sorted files). */
     std::vector<DirEntry> listEntries(const std::string& virtualPath) const;

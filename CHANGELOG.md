@@ -1,5 +1,10 @@
 # Changelog
 
+## 2026-10: Filter browser rows by snapshot index
+
+- Keep one directory-entry snapshot while filtering and store visible matches as indices, avoiding copies of matching filenames on each edit.
+- Preserve visible selection, filter refresh, and query-clear behavior across the index view.
+
 ## 2026-10: Classify listed files without following them
 
 - Use one no-follow status result for ordinary directory entries; only resolve in-root symlink targets when classifying them as directories.

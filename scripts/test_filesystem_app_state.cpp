@@ -97,7 +97,7 @@ int main() {
 
     TestFilesystemApp browser(font, &fs);
     browser.onResize(400, 240);
-    check(browser.m_entries.size() == 15, "browser loads the complete directory listing");
+    check(browser.visibleEntryCount() == 15, "browser loads the complete directory listing");
 
     const std::filesystem::path danglingPath = hostRoot / "home/monolith/dangling";
     std::filesystem::create_symlink(hostRoot / "missing-browser-target", danglingPath, ec);
@@ -119,14 +119,15 @@ int main() {
     browser.onVirtualPathMoved("/home/monolith/a.txt", "/home/monolith/renamed-a.txt");
     bool renamedEntryVisible = false;
     bool oldEntryVisible = false;
-    for (const auto& entry : browser.m_entries) {
+    for (size_t i = 0; i < browser.visibleEntryCount(); ++i) {
+        const auto& entry = browser.visibleEntryAt(i);
         renamedEntryVisible |= entry.name == "renamed-a.txt" && !entry.isDirectory;
         oldEntryVisible |= entry.name == "a.txt" && !entry.isDirectory;
     }
     check(renamedEntryVisible && !oldEntryVisible,
           "external child rename refreshes the current browser listing");
     check(browser.m_selectedIndex >= 0
-              && browser.m_entries[static_cast<size_t>(browser.m_selectedIndex)].name
+              && browser.visibleEntryAt(static_cast<size_t>(browser.m_selectedIndex)).name
                   == "renamed-a.txt",
           "external child rename preserves the primary selection");
     check(fs.rename("/home/monolith/renamed-a.txt", "/home/monolith/a.txt"),
@@ -229,51 +230,64 @@ int main() {
           "restore the deleted browser test entry");
     browser.refreshEntries();
 
-    browser.setSelection(static_cast<int>(browser.m_entries.size()) - 1);
+    browser.setSelection(static_cast<int>(browser.visibleEntryCount()) - 1);
     browser.m_scrollOffset = 8;
     key(browser, SDLK_f, KMOD_CTRL);
+    check(browser.m_entries.size() == 15 && browser.visibleEntryCount() == 15,
+          "starting an empty filter keeps the existing listing snapshot");
     text(browser, "a");
-    check(browser.m_entries.size() == 1 && browser.m_entries.front().name == "a.txt",
-          "filter leaves only the matching entry");
+    check(browser.m_entries.size() == 15 && browser.visibleEntryCount() == 1
+              && browser.visibleEntryAt(0).name == "a.txt",
+          "filter uses a visible index over the unchanged directory snapshot");
     check(browser.m_selectedIndex == -1 && browser.m_selectedSet.empty(),
           "filter clears a selection that is no longer present");
     check(browser.m_scrollOffset == 0, "filter clamps scrolling to the reduced result set");
+    browser.setSelection(0);
+    key(browser, SDLK_BACKSPACE);
+    check(browser.m_entries.size() == 15 && browser.visibleEntryCount() == 15
+              && browser.m_visibleEntryIndices.empty()
+              && browser.m_selectedIndex >= 0
+              && browser.visibleEntryAt(static_cast<size_t>(browser.m_selectedIndex)).name == "a.txt",
+          "clearing the query restores the selected identity without a full identity map");
+    text(browser, "a");
+    check(browser.visibleEntryCount() == 1 && browser.visibleEntryAt(0).name == "a.txt",
+          "filter can be narrowed again after returning to the unfiltered view");
 
     key(browser, SDLK_ESCAPE);
-    check(browser.m_entries.size() == 15, "escape restores the full listing");
+    check(browser.visibleEntryCount() == 15, "escape restores the full listing");
     check(browser.selectEntryNamed("b.txt", false), "select an entry before narrowing again");
     key(browser, SDLK_f, KMOD_CTRL);
     text(browser, "b");
-    check(browser.m_selectedIndex == 0 && browser.m_entries.front().name == "b.txt",
+    check(browser.m_selectedIndex == 0 && browser.visibleEntryAt(0).name == "b.txt",
           "filter restores the selected entry by name");
     key(browser, SDLK_ESCAPE);
-    check(browser.m_entries.size() == 15, "clear the filter before delete selection coverage");
+    check(browser.visibleEntryCount() == 15, "clear the filter before delete selection coverage");
 
     key(browser, SDLK_f, KMOD_CTRL);
     text(browser, "snapshot");
-    check(browser.m_entries.empty(), "filter snapshot starts with no matching new entry");
+    check(browser.visibleEntryCount() == 0, "filter snapshot starts with no matching new entry");
     check(fs.writeFile("/home/monolith/snapshot-new.txt", "new"),
           "create an unnotified entry during filter editing");
     text(browser, "-new");
-    check(browser.m_entries.empty(),
+    check(browser.visibleEntryCount() == 0,
           "filter edits reuse the folder snapshot until an explicit refresh");
     key(browser, SDLK_F5);
-    check(browser.m_entries.size() == 1
-              && browser.m_entries.front().name == "snapshot-new.txt",
+    check(browser.visibleEntryCount() == 1
+              && browser.visibleEntryAt(0).name == "snapshot-new.txt",
           "F5 refreshes the folder snapshot while the filter has focus");
     check(fs.remove("/home/monolith/snapshot-new.txt"),
           "remove the refreshed filter fixture");
     browser.onVirtualPathRemoved("/home/monolith/snapshot-new.txt");
-    check(browser.m_entries.empty(),
+    check(browser.visibleEntryCount() == 0,
           "filesystem notifications refresh the active filter snapshot");
     key(browser, SDLK_ESCAPE);
-    check(browser.m_entries.size() == 15,
+    check(browser.visibleEntryCount() == 15,
           "clearing the refreshed filter restores the current folder listing");
 
     check(browser.selectEntryNamed("a.txt", false), "select first item for multi-selection refresh");
     int cIndex = -1;
-    for (size_t i = 0; i < browser.m_entries.size(); ++i) {
-        if (browser.m_entries[i].name == "c.txt") {
+    for (size_t i = 0; i < browser.visibleEntryCount(); ++i) {
+        if (browser.visibleEntryAt(i).name == "c.txt") {
             cIndex = static_cast<int>(i);
             break;
         }
@@ -288,7 +302,7 @@ int main() {
     text(browser, "txt");
     check(browser.selectedIndicesSorted().size() == 2
               && browser.m_selectedIndex >= 0
-              && browser.m_entries[static_cast<size_t>(browser.m_selectedIndex)].name == "c.txt",
+              && browser.visibleEntryAt(static_cast<size_t>(browser.m_selectedIndex)).name == "c.txt",
           "filter refresh preserves the visible multi-selection and primary item");
     key(browser, SDLK_ESCAPE);
     check(browser.selectedIndicesSorted().size() == 2,
@@ -299,11 +313,11 @@ int main() {
     browser.selectRange(browser.m_anchorIndex, cIndex);
     browser.refreshEntries();
     check(browser.m_anchorIndex >= 0
-              && browser.m_entries[static_cast<size_t>(browser.m_anchorIndex)].name == "a.txt",
+              && browser.visibleEntryAt(static_cast<size_t>(browser.m_anchorIndex)).name == "a.txt",
           "refresh preserves the Shift-selection anchor by entry identity");
     int noteIndex = -1;
-    for (size_t i = 0; i < browser.m_entries.size(); ++i) {
-        if (browser.m_entries[i].name == "note_0.txt") {
+    for (size_t i = 0; i < browser.visibleEntryCount(); ++i) {
+        if (browser.visibleEntryAt(i).name == "note_0.txt") {
             noteIndex = static_cast<int>(i);
             break;
         }
@@ -311,8 +325,8 @@ int main() {
     check(noteIndex >= 0, "find a later item for anchor extension");
     if (noteIndex >= 0) {
         int aIndex = -1;
-        for (size_t i = 0; i < browser.m_entries.size(); ++i) {
-            if (browser.m_entries[i].name == "a.txt") {
+        for (size_t i = 0; i < browser.visibleEntryCount(); ++i) {
+            if (browser.visibleEntryAt(i).name == "a.txt") {
                 aIndex = static_cast<int>(i);
                 break;
             }
@@ -403,7 +417,7 @@ int main() {
     statusClick.y = browser.m_clientHeight - browser.getStatusBarHeight();
     browser.handleMouseButton(statusClick);
     check(browser.m_selectedIndex >= 0
-              && browser.m_entries[static_cast<size_t>(browser.m_selectedIndex)].name == "a.txt",
+              && browser.visibleEntryAt(static_cast<size_t>(browser.m_selectedIndex)).name == "a.txt",
           "status-bar clicks do not select a list row");
     check(browser.selectEntryNamed("a.txt", false),
           "select an entry before external refresh rename coverage");
@@ -424,7 +438,7 @@ int main() {
     browser.onResize(200, 40);
     check(browser.getVisibleRowCount({0, 0, 200, 40}) == 0,
           "tiny browser clients report no visible rows below their chrome");
-    check(browser.m_scrollOffset == static_cast<int>(browser.m_entries.size()) - 1,
+    check(browser.m_scrollOffset == static_cast<int>(browser.visibleEntryCount()) - 1,
           "browser resize clamps scrollback without a selected row");
     const int partialClientHeight = browser.getListTop()
         + browser.getStatusBarHeight() + 6 + browser.getRowHeight() - 1;
@@ -439,7 +453,7 @@ int main() {
     partialRowClick.x = 10;
     partialRowClick.y = browser.getListTop();
     browser.handleMouseButton(partialRowClick);
-    check(browser.m_entries[static_cast<size_t>(browser.m_selectedIndex)].name == "b.txt",
+    check(browser.visibleEntryAt(static_cast<size_t>(browser.m_selectedIndex)).name == "b.txt",
           "browser ignores clicks in a row fragment that is not rendered");
 
     browser.onResize(400, 240);
@@ -451,15 +465,15 @@ int main() {
     listGapClick.x = 10;
     listGapClick.y = browser.getListTop();
     browser.handleMouseButton(listGapClick);
-    check(browser.m_entries[static_cast<size_t>(browser.m_selectedIndex)].name == "a.txt",
+    check(browser.visibleEntryAt(static_cast<size_t>(browser.m_selectedIndex)).name == "a.txt",
           "browser ignores the padding above the first rendered row");
     listGapClick.y = browser.getListRowTop() + browser.getRowHeight() - 1;
     browser.handleMouseButton(listGapClick);
-    check(browser.m_entries[static_cast<size_t>(browser.m_selectedIndex)].name == "a.txt",
+    check(browser.visibleEntryAt(static_cast<size_t>(browser.m_selectedIndex)).name == "a.txt",
           "browser ignores the one-pixel gap between rendered rows");
     listGapClick.y = browser.getListRowTop() + browser.getRowHeight();
     browser.handleMouseButton(listGapClick);
-    check(browser.m_entries[static_cast<size_t>(browser.m_selectedIndex)].name == "b.txt",
+    check(browser.visibleEntryAt(static_cast<size_t>(browser.m_selectedIndex)).name == "b.txt",
           "browser maps the next rendered row to the next entry");
 
     browser.onResize(400, 240);
@@ -470,7 +484,7 @@ int main() {
     const int scaledVisibleRows = std::max(
         1,
         browser.getVisibleRowCount({0, 0, browser.m_clientWidth, browser.m_clientHeight}));
-    check(browser.m_scrollOffset == static_cast<int>(browser.m_entries.size()) - scaledVisibleRows,
+    check(browser.m_scrollOffset == static_cast<int>(browser.visibleEntryCount()) - scaledVisibleRows,
           "browser text scaling clamps scrollback to the new listing area");
     browser.ensureHitTargets();
     check(browser.m_btnFilter.w > 0 && browser.m_filterHitRect.w > 0,
@@ -667,8 +681,8 @@ int main() {
     browser.requestDeleteSelected();
     check(browser.m_confirmingDelete, "delete confirmation arms for the selected item");
     int bIndex = -1;
-    for (size_t i = 0; i < browser.m_entries.size(); ++i) {
-        if (browser.m_entries[i].name == "b.txt") {
+    for (size_t i = 0; i < browser.visibleEntryCount(); ++i) {
+        if (browser.visibleEntryAt(i).name == "b.txt") {
             bIndex = static_cast<int>(i);
             break;
         }
@@ -694,8 +708,8 @@ int main() {
     browser.setCurrentPath("/home/monolith");
     check(browser.selectEntryNamed("move_a.txt", false), "select first cut source");
     int moveBIndex = -1;
-    for (size_t i = 0; i < browser.m_entries.size(); ++i) {
-        if (browser.m_entries[i].name == "move_b.txt") {
+    for (size_t i = 0; i < browser.visibleEntryCount(); ++i) {
+        if (browser.visibleEntryAt(i).name == "move_b.txt") {
             moveBIndex = static_cast<int>(i);
             break;
         }
@@ -728,8 +742,8 @@ int main() {
           "move browser current folder");
     browser.onVirtualPathMoved("/home/monolith/dest/sub", "/home/monolith/moved-sub");
     check(browser.m_currentPath == "/home/monolith/moved-sub"
-              && browser.m_entries.size() == 1
-              && browser.m_entries.front().name == "inside.txt",
+              && browser.visibleEntryCount() == 1
+              && browser.visibleEntryAt(0).name == "inside.txt",
           "browser view follows a moved parent directory");
 
     check(fs.createDirectory("/home/monolith/moved-sub/to-delete"),

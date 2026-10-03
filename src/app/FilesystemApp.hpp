@@ -5,6 +5,7 @@
 #include "../detail/TextTextureCache.hpp"
 #include <SDL2/SDL.h>
 #include <SDL2/SDL_ttf.h>
+#include <cstddef>
 #include <set>
 #include <string>
 #include <vector>
@@ -61,6 +62,9 @@ private:
     void clearFilter();
     void applyFilterQuery();
     void updateFilterStatus();
+    std::size_t visibleEntryCount() const;
+    const monolith::fs::Filesystem::DirEntry& visibleEntryAt(std::size_t index) const;
+    void rebuildVisibleEntryIndices();
     void showPropertiesForSelection();
 
     std::string entryBaseName(const std::string& virtualPath) const;
@@ -113,8 +117,8 @@ private:
 
     std::string m_currentPath = "/home/monolith";
     std::vector<monolith::fs::Filesystem::DirEntry> m_entries;
-    std::vector<monolith::fs::Filesystem::DirEntry> m_filterSourceEntries;
-    bool m_filterSourceValid = false;
+    std::vector<std::size_t> m_visibleEntryIndices;
+    bool m_visibleUsesIndices = false;
 
     int m_selectedIndex = -1;   // primary selection (keyboard focus / rename target)
     std::set<int> m_selectedSet; // multi-select indices
@@ -152,7 +156,7 @@ private:
     bool m_showContextMenu = false;
     SDL_Point m_contextMenuPos{0, 0};
     SDL_Rect m_contextMenuRect{0, 0, 0, 0};
-    int m_contextMenuTarget = -1;          // index in m_entries, or -1 for background
+    int m_contextMenuTarget = -1;          // visible row index, or -1 for background
     std::vector<std::string> m_contextMenuItems;
     int m_contextMenuHoverIndex = -1;
 

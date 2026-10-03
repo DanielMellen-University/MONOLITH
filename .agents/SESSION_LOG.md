@@ -1,5 +1,7 @@
 # Session log
 
+| 2026-10-03 | perf | Filesystem Browser now keeps one raw directory snapshot and represents filter results as source indices instead of copying each matching entry name; regressions cover selection across query changes and F5/notification refreshes, with hosted headless workflow #174 passed. |
+
 | 2026-10-03 | perf | Directory listings now classify ordinary entries from one no-follow status lookup, resolving only in-root symlinks to classify directories; in-root dangling links remain visible, with hosted headless workflow #170 passed. |
 
 | 2026-10-03 | perf | Limited listing containment canonicalization to symlinks and directories, preserving dangling in-root links as visible entries; added wide-list and symlink regressions; hosted headless workflow #166 passed. |
