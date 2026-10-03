@@ -6,6 +6,7 @@
 #include <algorithm>
 #include <filesystem>
 #include <iostream>
+#include <limits>
 #include <string>
 #include <unistd.h>
 #include <utility>
@@ -75,6 +76,22 @@ int main() {
         } else {
             std::cout << "ok: " << message << '\n';
         }
+    };
+    auto historyAccountingMatches = [](const TestDrawing& drawing) {
+        auto stackBytes = [](const auto& stack) {
+            size_t bytes = 0;
+            for (const auto& state : stack) {
+                size_t stateBytes = 0;
+                for (const auto& tile : state.tiles) stateBytes += tile.pixels.size();
+                if (state.pixelBytes != stateBytes) return std::numeric_limits<size_t>::max();
+                bytes += stateBytes;
+            }
+            return bytes;
+        };
+        return drawing.m_undoHistoryBytes == stackBytes(drawing.m_undoStack)
+            && drawing.m_redoHistoryBytes == stackBytes(drawing.m_redoStack)
+            && drawing.m_undoHistoryBytes + drawing.m_redoHistoryBytes
+                <= 64 * 1024 * 1024;
     };
 
     const std::filesystem::path hostRoot = std::filesystem::temp_directory_path()
@@ -242,12 +259,14 @@ int main() {
     }
     check(redoDrawing.m_dirty && redoDrawing.m_undoStack.size() == 1
               && !redoDrawing.m_undoStack.front().tiles.empty()
-              && strokeHistoryBytes < redoBaseline.size(),
+              && strokeHistoryBytes < redoBaseline.size()
+              && historyAccountingMatches(redoDrawing),
           "a changed Drawing stroke records sparse tile history instead of a full canvas");
     redoDrawing.undoCanvas();
     check(!redoDrawing.m_dirty && redoDrawing.m_undoStack.empty()
               && redoDrawing.m_redoStack.size() == 1
-              && redoDrawing.m_pixels == redoBaseline,
+              && redoDrawing.m_pixels == redoBaseline
+              && historyAccountingMatches(redoDrawing),
           "undoing a Drawing stroke restores the exact canvas and exposes redo");
     redoDrawing.m_tool = monolith::app::DrawingApp::Tool::Eraser;
     changedStrokeDown.button.x = 20;
@@ -257,12 +276,25 @@ int main() {
     changedStrokeUp.type = SDL_MOUSEBUTTONUP;
     redoDrawing.handleEvent(changedStrokeUp);
     check(!redoDrawing.m_dirty && redoDrawing.m_undoStack.empty()
-              && redoDrawing.m_redoStack.size() == 1,
+              && redoDrawing.m_redoStack.size() == 1
+              && historyAccountingMatches(redoDrawing),
           "a no-op Drawing stroke preserves redo history");
     redoDrawing.redoCanvas();
     check(redoDrawing.m_dirty && redoDrawing.m_redoStack.empty()
-              && redoDrawing.m_pixels == pixelsAfterStroke,
+              && redoDrawing.m_pixels == pixelsAfterStroke
+              && historyAccountingMatches(redoDrawing),
           "preserved Drawing redo history restores the exact stroke pixels");
+    redoDrawing.undoCanvas();
+    redoDrawing.m_tool = monolith::app::DrawingApp::Tool::Pen;
+    changedStrokeDown.button.x = 30;
+    changedStrokeDown.button.y = redoDrawing.m_canvasTop + 30;
+    redoDrawing.handleEvent(changedStrokeDown);
+    changedStrokeUp = changedStrokeDown;
+    changedStrokeUp.type = SDL_MOUSEBUTTONUP;
+    redoDrawing.handleEvent(changedStrokeUp);
+    check(redoDrawing.m_redoStack.empty() && redoDrawing.m_redoHistoryBytes == 0
+              && historyAccountingMatches(redoDrawing),
+          "a new Drawing edit clears redo history and its cached byte total");
 
     TestDrawing savedHistory(font, &fs);
     savedHistory.onResize(300, 300);
@@ -420,8 +452,7 @@ int main() {
         std::copy(largeCanvasStroke.m_savedSnapshot.pixels.begin(),
                   largeCanvasStroke.m_savedSnapshot.pixels.end(),
                   largeCanvasStroke.m_pixels.begin());
-        largeCanvasStroke.m_undoStack.clear();
-        largeCanvasStroke.m_redoStack.clear();
+        largeCanvasStroke.clearHistory();
         largeCanvasStroke.refreshDirtyState();
         constexpr int sparseClearX = 1000;
         constexpr int sparseClearY = 1000;
@@ -446,7 +477,8 @@ int main() {
               "large sparse Clear fixture contains separated marks above the history budget");
         check(largeCanvasStroke.m_undoStack.size() == 1
                   && largeCanvasStroke.m_undoStack.back().tiles.size() == 2
-                  && sparseClearHistoryBytes == 32 * 32 * 4 + 32 * 4,
+                  && sparseClearHistoryBytes == 32 * 32 * 4 + 32 * 4
+                  && historyAccountingMatches(largeCanvasStroke),
               "large sparse Clear stores only changed tiles");
         check(largeCanvasStroke.m_sparseHistoryCapturedTileIndices.empty()
                   && std::none_of(largeCanvasStroke.m_sparseHistoryCapturedTiles.begin(),
@@ -480,15 +512,16 @@ int main() {
             largeCanvasStroke.m_pixels[i + 2] = 3;
             largeCanvasStroke.m_pixels[i + 3] = 255;
         }
-        largeCanvasStroke.m_undoStack.clear();
-        largeCanvasStroke.m_redoStack.clear();
+        largeCanvasStroke.clearHistory();
         largeCanvasStroke.refreshDirtyState();
         largeCanvasStroke.clearCanvas();
         check(largeCanvasStroke.m_undoStack.empty()
                   && largeCanvasStroke.m_redoStack.empty()
                   && largeCanvasStroke.m_pixels == largeCanvasStroke.m_savedSnapshot.pixels
                   && !largeCanvasStroke.m_dirty
-                  && largeCanvasStroke.m_sparseHistoryBytes == 0,
+                  && largeCanvasStroke.m_sparseHistoryBytes == 0
+                  && largeCanvasStroke.m_undoHistoryBytes == 0
+                  && largeCanvasStroke.m_redoHistoryBytes == 0,
               "dense Clear beyond the history budget releases captures and clears the canvas");
     }
 
@@ -501,6 +534,8 @@ int main() {
     for (int i = 0; i < 20; ++i) stateLimitedHistory.undoCanvas();
     check(stateLimitedHistory.m_undoStack.size() + stateLimitedHistory.m_redoStack.size() == 32,
           "Drawing keeps undo and redo within 32 combined history states");
+    check(historyAccountingMatches(stateLimitedHistory),
+          "Drawing history byte totals follow states through undo and redo");
 
     constexpr int historyWidth = 3072;
     constexpr int historyHeight = 2048;
@@ -544,7 +579,8 @@ int main() {
               && byteLimitedHistory.m_undoStack[0].tiles.front().pixels[0] == 2
               && byteLimitedHistory.m_undoStack[1].tiles.front().pixels[0] == 3
               && retainedHistoryBytes == historyStateBytes * 2
-              && retainedHistoryBytes <= 64 * 1024 * 1024,
+              && retainedHistoryBytes <= 64 * 1024 * 1024
+              && historyAccountingMatches(byteLimitedHistory),
           "Drawing evicts oldest sparse states at the 64 MiB budget");
 
     TestDrawing capturedLine(font, &fs);
