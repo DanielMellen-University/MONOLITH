@@ -99,6 +99,23 @@ void appendNormalizedPathComponents(std::string& result, std::string_view path) 
     }
 }
 
+bool pathHasPrefix(const stdfs::path& prefix, const stdfs::path& path) {
+    auto prefixPart = prefix.begin();
+    auto pathPart = path.begin();
+    for (; prefixPart != prefix.end(); ++prefixPart, ++pathPart) {
+        if (pathPart == path.end() || *prefixPart != *pathPart) return false;
+    }
+    return true;
+}
+
+bool resolveWithinRoot(const stdfs::path& root,
+                       const stdfs::path& requested,
+                       stdfs::path& resolved) {
+    std::error_code ec;
+    resolved = stdfs::weakly_canonical(requested, ec);
+    return !ec && pathHasPrefix(root, resolved);
+}
+
 } // namespace
 
 Filesystem::Filesystem(const std::string& hostRootPath)
@@ -130,19 +147,8 @@ bool Filesystem::isWithinHostRoot(const std::string& hostPath) const {
         std::error_code ec;
         const stdfs::path root = stdfs::weakly_canonical(stdfs::path(m_hostRoot), ec);
         if (ec) return false;
-
-        ec.clear();
-        const stdfs::path resolved = stdfs::weakly_canonical(stdfs::path(hostPath), ec);
-        if (ec) return false;
-
-        auto rootPart = root.begin();
-        auto resolvedPart = resolved.begin();
-        for (; rootPart != root.end(); ++rootPart, ++resolvedPart) {
-            if (resolvedPart == resolved.end() || *rootPart != *resolvedPart) {
-                return false;
-            }
-        }
-        return true;
+        stdfs::path resolved;
+        return resolveWithinRoot(root, stdfs::path(hostPath), resolved);
     } catch (...) {
         return false;
     }
@@ -261,70 +267,158 @@ bool Filesystem::copyRecursive(const std::string& srcVirtualPath, const std::str
     if (src.empty() || dst.empty()) return false;
     if (isSameOrDescendant(src, dst)) return false;
 
-    const std::string sourceHostPathString = toHostPath(src);
-    if (sourceHostPathString.empty()
-        || isSymlinkPath(stdfs::path(sourceHostPathString))) {
+    std::error_code ec;
+    const stdfs::path canonicalRoot = stdfs::weakly_canonical(m_hostRoot, ec);
+    if (ec) return false;
+
+    auto resolveVirtualPath = [&](const std::string& virtualPath, HostPath& resolved) {
+        std::string relativePath = virtualPath;
+        if (!relativePath.empty() && relativePath.front() == '/') {
+            relativePath.erase(0, 1);
+        }
+
+        const stdfs::path rawPath = stdfs::path(m_hostRoot) / relativePath;
+        stdfs::path resolvedPath;
+        if (!resolveWithinRoot(canonicalRoot, rawPath, resolvedPath)) return false;
+        resolved = {rawPath.string(), resolvedPath.string()};
+        return true;
+    };
+
+    HostPath source;
+    HostPath destination;
+    if (!resolveVirtualPath(src, source) || !resolveVirtualPath(dst, destination)) {
         return false;
     }
 
-    if (isFile(src)) {
-        std::uint64_t expectedBytes = 0;
-        if (!fileSize(src, expectedBytes)) return false;
-        return writeFileWithProducer(dst, [&](std::ostream& out) {
-            std::uint64_t copiedBytes = 0;
-            bool sourceValid = true;
-            const bool readSucceeded = readFileChunks(src, [&](std::string_view chunk) {
-                if (copiedBytes > expectedBytes
-                    || chunk.size() > expectedBytes - copiedBytes) {
-                    sourceValid = false;
-                    return false;
+    std::error_code sourceStatusError;
+    const auto sourceStatus = stdfs::symlink_status(source.raw, sourceStatusError);
+    if (sourceStatusError || stdfs::is_symlink(sourceStatus)) return false;
+    const bool sourceIsDirectory = stdfs::is_directory(sourceStatus);
+    if (!sourceIsDirectory && !stdfs::is_regular_file(sourceStatus)) return false;
+
+    const bool destinationExisted = hostEntryExists(destination.raw);
+    return copyRecursiveResolved(
+        src, dst, source, destination, canonicalRoot.string(),
+        sourceIsDirectory, destinationExisted);
+}
+
+bool Filesystem::copyRecursiveResolved(const std::string& srcVirtualPath,
+                                       const std::string& dstVirtualPath,
+                                       const HostPath& source,
+                                       const HostPath& destination,
+                                       const std::string& canonicalRootString,
+                                       bool sourceIsDirectory,
+                                       bool destinationExisted) {
+    const stdfs::path sourceResolved(source.resolved);
+    const stdfs::path destinationResolved(destination.resolved);
+
+    if (pathHasPrefix(sourceResolved, destinationResolved)) return false;
+
+    if (!sourceIsDirectory) {
+        std::error_code sizeError;
+        const std::uintmax_t expectedBytes = stdfs::file_size(sourceResolved, sizeError);
+        if (sizeError) return false;
+
+        return writeFileWithProducerAtHostPath(destination.resolved, [&](std::ostream& out) {
+            std::ifstream input(sourceResolved, std::ios::binary);
+            if (!input) return false;
+
+            std::array<char, 16 * 1024> chunk{};
+            std::uintmax_t copiedBytes = 0;
+            while (true) {
+                input.read(chunk.data(), static_cast<std::streamsize>(chunk.size()));
+                const std::streamsize count = input.gcount();
+                if (count > 0) {
+                    const auto bytes = static_cast<std::uintmax_t>(count);
+                    if (copiedBytes > expectedBytes || bytes > expectedBytes - copiedBytes) {
+                        return false;
+                    }
+                    out.write(chunk.data(), count);
+                    if (!out) return false;
+                    copiedBytes += bytes;
                 }
-                out.write(chunk.data(), static_cast<std::streamsize>(chunk.size()));
-                if (!out) {
-                    sourceValid = false;
-                    return false;
-                }
-                copiedBytes += static_cast<std::uint64_t>(chunk.size());
-                return true;
-            });
-            return readSucceeded && sourceValid && copiedBytes == expectedBytes;
+                if (input.eof()) return copiedBytes == expectedBytes;
+                if (!input) return false;
+            }
         });
     }
-    if (!isDirectory(src)) {
-        return false;
-    }
 
-    const bool destinationExisted = exists(dst);
-    if (!createDirectory(dst) && !isDirectory(dst)) {
-        return false;
-    }
-
+    const stdfs::path canonicalRoot(canonicalRootString);
     auto failCopy = [&]() {
-        if (!destinationExisted) removeRecursive(dst);
+        if (!destinationExisted) removeRecursive(dstVirtualPath);
         return false;
     };
 
+    std::error_code createError;
+    stdfs::create_directories(destinationResolved, createError);
+    if (createError) return failCopy();
+    std::error_code directoryError;
+    if (!stdfs::is_directory(destinationResolved, directoryError) || directoryError) {
+        return failCopy();
+    }
+
     std::error_code iteratorEc;
     const stdfs::directory_iterator end;
-    for (stdfs::directory_iterator it(sourceHostPathString, iteratorEc);
+    for (stdfs::directory_iterator it(sourceResolved, iteratorEc);
          it != end;
          it.increment(iteratorEc)) {
         if (iteratorEc) return failCopy();
 
         const stdfs::path entryPath = it->path();
         std::error_code statusEc;
-        const auto entryStatus = stdfs::symlink_status(entryPath, statusEc);
+        const auto entryStatus = it->symlink_status(statusEc);
         if (statusEc) return failCopy();
 
-        // Outside-root links are hidden from virtual listings and stay omitted
-        // from copies; in-root links reach copyRecursive and are rejected.
-        if (stdfs::is_symlink(entryStatus)
-            && !isWithinHostRoot(entryPath.string())) {
-            continue;
+        const std::string childName = entryPath.filename().string();
+        const std::string childSourceVirtual = join(srcVirtualPath, childName);
+        const std::string childDestinationVirtual = join(dstVirtualPath, childName);
+        if (stdfs::is_symlink(entryStatus)) {
+            stdfs::path resolvedLink;
+            // Outside-root links stay omitted; links into the virtual tree are
+            // rejected rather than copied through to another location.
+            if (!resolveWithinRoot(canonicalRoot, entryPath, resolvedLink)) continue;
+            return failCopy();
         }
 
-        const std::string childName = entryPath.filename().string();
-        if (!copyRecursive(join(src, childName), join(dst, childName))) {
+        const bool childIsDirectory = stdfs::is_directory(entryStatus);
+        if (!childIsDirectory && !stdfs::is_regular_file(entryStatus)) {
+            return failCopy();
+        }
+
+        HostPath childSource{
+            {},
+            (sourceResolved / childName).string()};
+        HostPath childDestination;
+        const stdfs::path rawDestinationChild =
+            stdfs::path(destination.raw) / childName;
+        childDestination.raw = rawDestinationChild.string();
+
+        std::error_code destinationStatusError;
+        const auto destinationStatus =
+            stdfs::symlink_status(rawDestinationChild, destinationStatusError);
+        if (destinationStatusError
+            && destinationStatusError != std::errc::no_such_file_or_directory) {
+            return failCopy();
+        }
+        const bool childDestinationExisted = !destinationStatusError
+            && destinationStatus.type() != stdfs::file_type::not_found;
+
+        stdfs::path resolvedDestinationChild;
+        if (childDestinationExisted && stdfs::is_symlink(destinationStatus)) {
+            if (!resolveWithinRoot(
+                    canonicalRoot, rawDestinationChild, resolvedDestinationChild)) {
+                return failCopy();
+            }
+        } else {
+            resolvedDestinationChild = destinationResolved / childName;
+            if (!pathHasPrefix(canonicalRoot, resolvedDestinationChild)) return failCopy();
+        }
+        childDestination.resolved = resolvedDestinationChild.string();
+
+        if (!copyRecursiveResolved(
+                childSourceVirtual, childDestinationVirtual,
+                childSource, childDestination, canonicalRootString,
+                childIsDirectory, childDestinationExisted)) {
             return failCopy();
         }
     }
@@ -482,7 +576,19 @@ bool Filesystem::writeFileWithProducer(
     try {
         const std::string hostPathString = toHostPath(virtualPath);
         if (hostPathString.empty()) return false;
+        return writeFileWithProducerAtHostPath(hostPathString, produceContent);
+    } catch (const std::exception& e) {
+        std::cerr << "writeFileWithProducer failed: " << e.what() << std::endl;
+        return false;
+    }
+}
 
+bool Filesystem::writeFileWithProducerAtHostPath(
+    const std::string& hostPathString,
+    const std::function<bool(std::ostream&)>& produceContent) {
+    if (!produceContent || hostPathString.empty()) return false;
+
+    try {
         stdfs::path hostPath(hostPathString);
 
         // Keep writes to an existing file atomic. Resolve a file symlink first

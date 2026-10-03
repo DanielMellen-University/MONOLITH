@@ -191,9 +191,24 @@ public:
     std::string toHostPath(const std::string& virtualPath) const;
 
 private:
+    struct HostPath {
+        std::string raw;
+        std::string resolved;
+    };
+
     bool isWithinHostRoot(const std::string& hostPath) const;
+    bool copyRecursiveResolved(const std::string& srcVirtualPath,
+                               const std::string& dstVirtualPath,
+                               const HostPath& source,
+                               const HostPath& destination,
+                               const std::string& canonicalRoot,
+                               bool sourceIsDirectory,
+                               bool destinationExisted);
     bool writeFileWithProducer(
         const std::string& virtualPath,
+        const std::function<bool(std::ostream&)>& produceContent);
+    bool writeFileWithProducerAtHostPath(
+        const std::string& hostPath,
         const std::function<bool(std::ostream&)>& produceContent);
 
     std::string m_hostRoot;
