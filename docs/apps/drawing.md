@@ -428,6 +428,8 @@ Drawing always writes a `.modr` document. If you save without typing `.modr`, Dr
 
 Save creates missing parent directories for the entered virtual path before writing the document. For example, saving to `/home/monolith/drawings/concepts/rough.modr` creates `concepts/` when it does not already exist. This applies only to Save; an Open path must already name an existing valid `.modr` file.
 
+The RGB payload is written in bounded 16 KiB chunks through the filesystem's atomic writer. Even at the 4096 x 4096 format limit, saving does not allocate a second full encoded-file buffer; a failed stream leaves the previous file unchanged.
+
 Drawing has no separate **Save As** command. To make a copy, copy the `.modr` file in Filesystem Browser or with Terminal, then open the copy and continue editing it. Saving an already-open sketch always writes its current bound path.
 
 ## External File Changes
@@ -537,6 +539,8 @@ Undo and redo share a combined limit of 32 history states and 64 MiB of stored p
 - Pixel payload: RGB bytes, top-to-bottom and left-to-right
 
 Width and height must be between 1 and 4096 pixels. The encoder and decoder enforce the same limits. The decoder requires the file to contain exactly the header plus `width * height * 3` payload bytes, and the encoder requires an exact `width * height * 4` RGBA buffer. A live canvas can exceed the file-format limit on an unusually large client area; Save reports that limit before creating a target directory or writing a file. Resize the canvas to supported dimensions before saving.
+
+The streaming encoder uses a fixed 16 KiB scratch buffer, so the file payload is not first assembled as another canvas-sized string before the atomic write.
 
 Internally, the live canvas stores pixels as `R,G,B,A`. The saved file stores only RGB because the canvas is fully opaque.
 

@@ -52,7 +52,7 @@ The `monolith::fs::Filesystem` class provides:
 
 - `exists`, `isFile`, `isDirectory`
 - `createDirectory`, `remove`, `removeRecursive`, `rename`, `renameEntry`
-- `readFile`, `readFileChunks`, `readFileTailChunks`, `writeFile`, `updateModifiedTime` (last-write time only), `fileSize` (`readFile(path, out)` reports read success separately from empty content)
+- `readFile`, `readFileChunks`, `readFileTailChunks`, `writeFile`, `writeFileWithProducer`, `updateModifiedTime` (last-write time only), `fileSize` (`readFile(path, out)` reports read success separately from empty content)
 - `copyRecursive` (file or directory tree; blocks copy into self/descendant)
 - `copyItemsInto` (multi-source paste into a directory, via `copyRecursive`)
 - `moveItemsInto` (multi-source cut/paste into a directory, via non-overwriting rename)
@@ -66,6 +66,8 @@ The `monolith::fs::Filesystem` class provides:
 Implementation: `src/fs/Filesystem.hpp`, `src/fs/Filesystem.cpp`.
 
 `readFile()` materializes the entire file. Consumers that can process data incrementally can use `readFileChunks()`, which passes at most 16 KiB at a time as a temporary `string_view`; the Text Editor uses it to stream line parsing and rejects documents above 16 MiB or 65,536 lines. `readFileTailChunks()` seeks to the last requested number of bytes before streaming, and reports whether it skipped a prefix; the first chunk may start inside a logical record. Views are valid only during their callback. Returning `false` from the callback stops reading early and counts as success; path, open, read, or callback failures return `false` from either method. `copyRecursive()` streams regular files in 16 KiB chunks into atomic replacement without buffering each complete file. It resolves the root source and destination once, classifies each source entry once, and derives ordinary child paths from validated parents instead of repeating virtual-path and containment checks through the public API. Directory copies still walk entries directly, avoiding the sorting and temporary entry vectors used for graphical listings. Destination symlinks are resolved and checked, and copies are rejected if their physical destination is the source itself or a descendant, including aliases introduced by in-root symlinks. `removeRecursive()` delegates directory-tree removal to `std::filesystem::remove_all`, avoiding a temporary vector of every direct child while retaining non-following symlink removal.
+
+`writeFileWithProducer()` streams generated content into an atomic temporary sibling without requiring one complete output string. The producer returns `false` on generation or stream failure to discard the temporary file and preserve the previous destination; `writeFile()` uses this same path for fixed strings. Drawing uses it with a bounded 16 KiB `.modr` encoder.
 
 ### Recursive operations
 
