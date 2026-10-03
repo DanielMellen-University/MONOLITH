@@ -1,5 +1,7 @@
 # Session log
 
+| 2026-10-03 | perf | Drawing history entries now retain their validated preimage-pixel byte count, while undo/redo stacks maintain totals during insertion, eviction, undo, redo, invalidation, and reset. This removes the prior scan across retained tile vectors on every committed edit. Regression checks compare entry and stack totals against stored pixels; hosted workflow #252 passed. |
+
 | 2026-10-03 | fix | Session path records now escape embedded newlines as `\\n`, preventing valid filenames from splitting line-based snapshots. The decoder preserves prior quoted quote/backslash behavior and legacy unquoted tokens; format and WindowManager roundtrip tests cover actual newlines plus literal escape-like text. Full headless suite, production build, and hosted workflow #248 passed. |
 
 | 2026-10-03 | perf | Terminal now persists its capped command history through the atomic producer using a shared fixed 16 KiB `BufferedStreamWriter`, eliminating the duplicate history string on eligible submissions. Text Editor uses the same helper. Tests cover short-write propagation, exact 2 MiB history output with non-aligned line boundaries, and existing failure/retry behavior; full headless suite, production build, and hosted workflow #244 passed. |
