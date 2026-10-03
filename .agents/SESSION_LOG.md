@@ -1,5 +1,7 @@
 # Session log
 
+| 2026-10-03 | fix | Settings now reports rejected values and failed atomic saves in its footer without reverting live changes; reselecting the current choice retries persistence. The full headless suite and hosted workflow #207 passed. |
+
 | 2026-10-03 | fix | A failed atomic session save now logs its target and shows a warning before SDL teardown; the previous snapshot remains unchanged. Lifecycle verification and hosted workflow #203 passed. |
 
 | 2026-10-03 | fix | Desktop Settings now stops after 64 records as well as the shared 16 KiB line cap; a late preference beyond the budget cannot replace current values. The focused test and hosted workflow #199 passed. |
