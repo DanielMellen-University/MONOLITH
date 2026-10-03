@@ -10,6 +10,11 @@
 #include <iostream>
 #include <memory>
 #include <string>
+#include <type_traits>
+#include <vector>
+
+static_assert(std::is_trivially_copyable_v<monolith::window::WindowManager::TaskbarLayout>,
+              "taskbar layout should not own per-frame heap buffers");
 
 namespace {
 
@@ -626,6 +631,27 @@ int main() {
         SDL_SetRenderDrawColor(renderer, 0, 0, 0, 255);
         SDL_RenderClear(renderer);
         wm.render(renderer);
+        std::vector<monolith::window::Window*> taskbarOrder;
+        wm.forEachTaskbarWindow([&](monolith::window::Window* window) {
+            taskbarOrder.push_back(window);
+        });
+        bool taskbarOrderMatches = taskbarOrder.size() == wm.m_windows.size();
+        std::size_t taskbarOrderIndex = 0;
+        if (wm.m_focusedWindow) {
+            taskbarOrderMatches = taskbarOrderMatches
+                && !taskbarOrder.empty()
+                && taskbarOrder.front() == wm.m_focusedWindow;
+            taskbarOrderIndex = 1;
+        }
+        for (const auto& window : wm.m_windows) {
+            if (!window || window.get() == wm.m_focusedWindow) continue;
+            taskbarOrderMatches = taskbarOrderMatches
+                && taskbarOrderIndex < taskbarOrder.size()
+                && taskbarOrder[taskbarOrderIndex] == window.get();
+            ++taskbarOrderIndex;
+        }
+        check(taskbarOrderMatches,
+              "taskbar traversal preserves focused-first order without temporary vectors");
         int measuredUnicodeTitleWidth = 0;
         int measuredUnicodeTitleHeight = 0;
         const bool measuredUnicodeTitle = font

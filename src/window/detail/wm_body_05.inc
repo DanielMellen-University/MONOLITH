@@ -137,6 +137,29 @@ void WindowManager::clearStartMenuSuspension() {
     m_startMenuSuspendedWindowId = -1;
 }
 
+int WindowManager::taskbarButtonWidth(Window& window) {
+    int buttonWidth = 85;
+    if (m_font) {
+        if (window.cachedTaskbarTitleWidth < 0) {
+            int textW = 0;
+            int textH = 0;
+            if (TTF_SizeUTF8(m_font, window.title.c_str(), &textW, &textH) == 0) {
+                window.cachedTaskbarTitleWidth = textW;
+            }
+        }
+        if (window.cachedTaskbarTitleWidth >= 0) {
+            const float scale = std::max(0.01f, m_contentScale);
+            buttonWidth = std::max(
+                buttonWidth,
+                static_cast<int>(std::ceil(window.cachedTaskbarTitleWidth / scale)) + 10);
+        }
+    } else {
+        buttonWidth = std::max(
+            buttonWidth, static_cast<int>(window.title.length() * 6.5f));
+    }
+    return buttonWidth;
+}
+
 WindowManager::TaskbarLayout WindowManager::computeTaskbarLayout() {
     TaskbarLayout layout;
     const SDL_Rect taskbarLogicalRect = getTaskbarRect();
@@ -173,40 +196,10 @@ WindowManager::TaskbarLayout WindowManager::computeTaskbarLayout() {
     m_taskbarButtonAreaWidth = std::max(
         0, availableAfterStart - adaptiveClockReserve);
 
-    if (m_focusedWindow) {
-        layout.buttonOrder.push_back(m_focusedWindow);
-    }
-    for (auto& window : m_windows) {
-        if (window.get() != m_focusedWindow) {
-            layout.buttonOrder.push_back(window.get());
-        }
-    }
-
     int totalButtonsWidth = 0;
-    layout.buttonWidths.reserve(layout.buttonOrder.size());
-    for (Window* window : layout.buttonOrder) {
-        int buttonWidth = 85;
-        if (m_font) {
-            if (window->cachedTaskbarTitleWidth < 0) {
-                int textW = 0;
-                int textH = 0;
-                if (TTF_SizeUTF8(m_font, window->title.c_str(), &textW, &textH) == 0) {
-                    window->cachedTaskbarTitleWidth = textW;
-                }
-            }
-            if (window->cachedTaskbarTitleWidth >= 0) {
-                const float scale = std::max(0.01f, m_contentScale);
-                buttonWidth = std::max(
-                    buttonWidth,
-                    static_cast<int>(std::ceil(window->cachedTaskbarTitleWidth / scale)) + 10);
-            }
-        } else {
-            buttonWidth = std::max(
-                buttonWidth, static_cast<int>(window->title.length() * 6.5f));
-        }
-        layout.buttonWidths.push_back(buttonWidth);
-        totalButtonsWidth += buttonWidth + 6;
-    }
+    forEachTaskbarWindow([&](Window* window) {
+        totalButtonsWidth += taskbarButtonWidth(*window) + 6;
+    });
 
     const int arrowWidth = 16;
     const int arrowGap = 4;
@@ -265,8 +258,8 @@ void WindowManager::ensureTaskbarHitTargets() {
     m_taskbarEntries.clear();
     int currentX = logicalToScreenX(layout.buttonsStartX)
         - static_cast<int>(m_taskbarScrollOffset * m_contentScale);
-    for (size_t i = 0; i < layout.buttonOrder.size(); ++i) {
-        const int buttonWidth = layout.buttonWidths[i];
+    forEachTaskbarWindow([&](Window* window) {
+        const int buttonWidth = taskbarButtonWidth(*window);
         const SDL_Rect buttonRect = {
             currentX,
             layout.buttonY,
@@ -282,11 +275,11 @@ void WindowManager::ensureTaskbarHitTargets() {
             hitRect.x = std::max(hitRect.x, layout.areaLeftScreen);
             hitRect.w = std::max(0, hitRight - hitRect.x);
             if (hitRect.w > 0) {
-                m_taskbarEntries.push_back({hitRect, layout.buttonOrder[i]});
+                m_taskbarEntries.push_back({hitRect, window});
             }
         }
         currentX += static_cast<int>((buttonWidth + 6) * m_contentScale);
-    }
+    });
     m_taskbarHitTargetsValid = true;
 }
 
