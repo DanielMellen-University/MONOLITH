@@ -1,5 +1,10 @@
 # Changelog
 
+## 2026-10: Reduce recursive delete staging
+
+- Delegate directory-tree deletion to `std::filesystem::remove_all`, removing the application-side vector of every child path while retaining the virtual-root guard and symlink safety.
+- Exercise wide nested deletion with an outside-root symlink and verify its target survives.
+
 ## 2026-10: Walk recursive copies without listing snapshots
 
 - Copy directory entries directly instead of building and sorting UI listing vectors, while preserving external-symlink filtering, in-root symlink rejection, and rollback of new partial destinations.
