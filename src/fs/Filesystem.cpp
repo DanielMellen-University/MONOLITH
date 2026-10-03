@@ -11,6 +11,7 @@
 #include <iostream>
 #include <stdexcept>
 #include <string_view>
+#include <system_error>
 
 namespace stdfs = std::filesystem;
 
@@ -657,7 +658,12 @@ std::vector<std::string> Filesystem::list(const std::string& virtualPath) const 
             if (isSymlink && !isWithinHostRoot(entry.path().string())) continue;
 
             const bool isDirectory = entry.is_directory(statusEc);
-            if (statusEc) continue;
+            if (statusEc) {
+                if (!isSymlink || statusEc != std::errc::no_such_file_or_directory) {
+                    continue;
+                }
+                statusEc.clear();
+            }
             if (isDirectory && !isSymlink
                 && !isWithinHostRoot(entry.path().string())) {
                 continue;
@@ -685,7 +691,12 @@ std::vector<Filesystem::DirEntry> Filesystem::listEntries(const std::string& vir
             if (isSymlink && !isWithinHostRoot(entry.path().string())) continue;
 
             const bool isDirectory = entry.is_directory(statusEc);
-            if (statusEc) continue;
+            if (statusEc) {
+                if (!isSymlink || statusEc != std::errc::no_such_file_or_directory) {
+                    continue;
+                }
+                statusEc.clear();
+            }
             if (isDirectory && !isSymlink
                 && !isWithinHostRoot(entry.path().string())) {
                 continue;
