@@ -567,6 +567,7 @@ int main() {
         const bool firstFilterMeasureMatches = browser.m_filterCursorMeasureValid
             && browser.m_filterCursorMeasurePrefix == "cac"
             && browser.m_filterCursorMeasureWidth == expectedFilterCursorWidth;
+        const char* filterLabelStorage = browser.m_filterRenderLabel.data();
         browser.m_filterQuery = "cactus";
         browser.m_filterCursorPos = 3;
         browser.applyFilterQuery();
@@ -575,8 +576,10 @@ int main() {
                   && firstFilterMeasureMatches
                   && browser.m_filterCursorMeasureValid
                   && browser.m_filterCursorMeasurePrefix == "cac"
+                  && browser.m_filterRenderLabel == "cac_tus"
+                  && browser.m_filterRenderLabel.data() == filterLabelStorage
                   && browser.m_filterCursorMeasureWidth == expectedFilterCursorWidth,
-              "browser reuses filter caret width when only text after the caret changes");
+              "browser reuses filter label storage and caret width when suffix changes");
 
         browser.m_filterCursorPos = 4;
         int movedFilterCursorWidth = 0;

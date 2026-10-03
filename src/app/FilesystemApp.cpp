@@ -1566,19 +1566,21 @@ void FilesystemApp::drawPathBar(SDL_Renderer* r, const SDL_Rect& contentRect, in
         SDL_SetRenderDrawColor(r, 70, 75, 85, 255);
         SDL_RenderDrawRect(r, &filterDraw);
 
-        std::string filterLabel;
+        m_filterRenderLabel.clear();
         int filterCursorPx = 0;
         if (m_filtering) {
             m_filterCursorPos = std::min(m_filterCursorPos, m_filterQuery.size());
-            const std::string beforeCursor = m_filterQuery.substr(0, m_filterCursorPos);
-            filterLabel = beforeCursor + "_" + m_filterQuery.substr(m_filterCursorPos);
+            m_filterRenderLabel.append(m_filterQuery.data(), m_filterCursorPos);
+            m_filterRenderLabel.push_back('_');
             if (!m_filterCursorMeasureValid
-                || m_filterCursorMeasurePrefix != beforeCursor) {
-                const std::string cursorLabel = beforeCursor + "_";
+                || m_filterCursorMeasurePrefix.size() != m_filterCursorPos
+                || m_filterQuery.compare(0, m_filterCursorPos,
+                                         m_filterCursorMeasurePrefix) != 0) {
+                m_filterCursorMeasurePrefix.assign(
+                    m_filterQuery.data(), m_filterCursorPos);
                 int cursorHeight = 0;
-                if (TTF_SizeUTF8(m_font, cursorLabel.c_str(),
+                if (TTF_SizeUTF8(m_font, m_filterRenderLabel.c_str(),
                                  &m_filterCursorMeasureWidth, &cursorHeight) == 0) {
-                    m_filterCursorMeasurePrefix = beforeCursor;
                     m_filterCursorMeasureValid = true;
                 } else {
                     m_filterCursorMeasureValid = false;
@@ -1587,15 +1589,18 @@ void FilesystemApp::drawPathBar(SDL_Renderer* r, const SDL_Rect& contentRect, in
             if (m_filterCursorMeasureValid) {
                 filterCursorPx = m_filterCursorMeasureWidth;
             }
+            m_filterRenderLabel.append(
+                m_filterQuery.data() + m_filterCursorPos,
+                m_filterQuery.size() - m_filterCursorPos);
         } else {
-            filterLabel = m_filterQuery.empty() ? "Filter..." : m_filterQuery;
+            m_filterRenderLabel = m_filterQuery.empty() ? "Filter..." : m_filterQuery;
             m_filterScrollPx = 0;
         }
         SDL_Color filterCol = m_filterQuery.empty() && !m_filtering
             ? SDL_Color{120, 125, 130, 255}
             : SDL_Color{210, 215, 220, 255};
         const auto filterTexture = m_textTextureCache.get(
-            r, m_font, filterLabel.c_str(), filterCol);
+            r, m_font, m_filterRenderLabel.c_str(), filterCol);
         if (filterTexture) {
             const int visibleWidth = std::max(0, filterDraw.w - 12);
             if (m_filtering) {
