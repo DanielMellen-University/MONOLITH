@@ -1,5 +1,10 @@
 # Changelog
 
+## 2026-10: Reduce directory listing path checks
+
+- Avoid canonicalizing every regular file during `list()` and `listEntries()`; continue validating symlinks and directories before exposing them.
+- Cover wide regular-file listings, outside-root link hiding, in-root directory-link visibility, and dangling-link retention.
+
 ## 2026-10: Reduce recursive delete staging
 
 - Delegate directory-tree deletion to `std::filesystem::remove_all`, removing the application-side vector of every child path while retaining the virtual-root guard and symlink safety.

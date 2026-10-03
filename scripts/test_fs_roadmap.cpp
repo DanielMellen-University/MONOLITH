@@ -256,6 +256,18 @@ int main() {
     stdfs::create_directory_symlink(hostRoot / "symlink-target", internalLink, ec);
     check(!ec, "create in-root symlink");
     if (!ec) {
+        const auto internalNames = fs.list("/");
+        const auto internalEntries = fs.listEntries("/");
+        const auto internalEntry = std::find_if(
+            internalEntries.begin(), internalEntries.end(), [](const auto& entry) {
+                return entry.name == "internal-link";
+            });
+        check(std::find(internalNames.begin(), internalNames.end(), "internal-link")
+                  != internalNames.end()
+                  && internalEntry != internalEntries.end()
+                  && internalEntry->isDirectory,
+              "directory listings retain in-root directory symlinks");
+
         const stdfs::path internalFileLink = hostRoot / "internal-file-link";
         stdfs::create_symlink(hostRoot / "symlink-target/keep.txt", internalFileLink, ec);
         check(!ec, "create in-root file symlink");
@@ -335,6 +347,13 @@ int main() {
     stdfs::create_symlink(outsideRoot / "secret.txt", bulkOutsideLink, ec);
     check(!ec, "create outside symlink in recursive-copy source");
     if (!ec && bulkFilesCreated) {
+        const auto bulkNames = fs.list("/bulk-src");
+        check(bulkNames.size() == 49
+                  && std::find(bulkNames.begin(), bulkNames.end(), "item-0.txt")
+                      != bulkNames.end()
+                  && std::find(bulkNames.begin(), bulkNames.end(), "outside-link")
+                      == bulkNames.end(),
+              "wide regular-file listing skips only the external symlink");
         check(fs.copyRecursive("/bulk-src", "/bulk-dst"),
               "recursive copy walks a large directory tree");
         check(fs.listEntries("/bulk-dst").size() == 49
