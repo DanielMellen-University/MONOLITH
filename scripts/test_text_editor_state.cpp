@@ -554,22 +554,22 @@ int main() {
                 longLineEditor.m_textTextureCache.m_entries.begin(),
                 longLineEditor.m_textTextureCache.m_entries.end(),
                 [&longLine](const auto& entry) {
-                    return entry.first.size() >= sizeof(TTF_Font*) + 9
-                        && entry.first.compare(sizeof(TTF_Font*), 9, longLine, 0, 9) == 0;
+                    return entry.first.text.size() >= 9
+                        && entry.first.text.compare(0, 9, longLine, 0, 9) == 0;
                 });
             check(firstViewportText != longLineEditor.m_textTextureCache.m_entries.end()
-                      && firstViewportText->first.size()
-                          < sizeof(TTF_Font*) + longLine.size() / 20 + 5
+                      && firstViewportText->first.text.size()
+                          < longLine.size() / 20 + 5
                       && firstViewportText->second.width
                           < longLineViewportWidth + 2 * TTF_FontHeight(scaleFont),
                   "Text Editor caches only viewport-sized textures for very long lines");
             check(retainedTextSlice,
                   "Text Editor reuses UTF-8 viewport measurements across unchanged frames");
 
-            const std::string firstViewportKey = firstViewportText
+            const auto firstViewportKey = firstViewportText
                 != longLineEditor.m_textTextureCache.m_entries.end()
                 ? firstViewportText->first
-                : std::string{};
+                : monolith::detail::TextTextureCache::CacheKey{};
             SDL_Texture* firstViewportTexture = firstViewportText
                 != longLineEditor.m_textTextureCache.m_entries.end()
                 ? firstViewportText->second.handle
@@ -585,7 +585,7 @@ int main() {
             const size_t scrolledTextureCount = longLineEditor.m_textTextureCache.size();
             auto retainedViewportText = longLineEditor.m_textTextureCache.m_entries.find(
                 firstViewportKey);
-            check(!firstViewportKey.empty() && retainedViewportText
+            check(!firstViewportKey.text.empty() && retainedViewportText
                       != longLineEditor.m_textTextureCache.m_entries.end()
                       && retainedViewportText->second.handle == firstViewportTexture
                       && scrolledTextureCount

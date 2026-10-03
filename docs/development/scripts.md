@@ -137,7 +137,7 @@ Headless check of the shared SDL tick conversion used by the real-time games:
 g++ -std=c++23 scripts/test_tick_math.cpp -o build/test_tick_math && ./build/test_tick_math
 ```
 
-Headless renderer-backed check for game text texture reuse, color-key separation, LRU limits, and renderer switching:
+Headless renderer-backed check for game text texture reuse, font/color key separation, owned cache keys, LRU limits, and renderer switching:
 
 ```bash
 g++ -std=c++23 scripts/test_text_texture_cache.cpp $(pkg-config --cflags --libs sdl2 SDL2_ttf) -o build/test_text_texture_cache

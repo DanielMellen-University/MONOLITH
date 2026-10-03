@@ -1,5 +1,10 @@
 # Changelog
 
+## 2026-10: Remove allocations from text cache hits
+
+- Use transparent font/text/color lookup views so repeated renderer text-cache hits avoid rebuilding an owned composite key.
+- Extend cache tests to cover font identity and ownership of inserted text keys while preserving LRU and byte limits.
+
 ## 2026-10: Run headless checks with sanitizers
 
 - Add a hosted AddressSanitizer/UndefinedBehaviorSanitizer job that builds the application and runs the full headless suite.
