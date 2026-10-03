@@ -38,6 +38,7 @@ The human funds token budget and lives in the desktop. You:
 | 2026-10-02 | wallpaper-decode | Load PNG/JPEG directly from file after checking dimensions; reject inputs above 16,777,216 pixels before decoded allocations while preserving BMP loading |
 | 2026-10-02 | drawing-input-bound | Check `.modr` file size before reading, stream within the format's encoded-size cap, and preserve canvas/prompt state on rejection |
 | 2026-10-02 | session-line-bound | Read persisted session records with a 16 KiB line cap and stop restore at the first overlong record |
+| 2026-10-03 | session-restore-bounds | Stop restore after 1,024 records or once 128 windows are live; preserve valid-session handling; hosted workflow #191 passed |
 | 2026-10-02 | settings-line-bound | Share the 16 KiB persisted-line reader with Desktop Settings and reject wallpaper paths that cannot round-trip |
 | 2026-10-02 | game-record-bound | Bound Snake and Minesweeper save-file reads by row and byte limits; reject malformed or impossible records |
 | 2026-10-02 | terminal-output-pan | Pan clipped Terminal output rows with UTF-8-safe viewport-sized segments and preserve vertical history scrolling |
@@ -229,6 +230,7 @@ Older recent-work rows: [`SESSION_LOG.md`](SESSION_LOG.md).
 | 7.75 | Remap filter selection by source index | done | Preserve visible selection across query edits by merging source indices rather than allocating filename identity sets; hosted workflow #179 passed |
 | 7.76 | Resolve recursive copy paths once | done | Reuse validated host paths and no-follow entry status during streaming tree copies; reject same/descendant destinations reached through in-root symlinks; hosted workflow #183 passed |
 | 7.77 | Bound BMP wallpaper decoding | done | Inspect BMP dimensions from the SDL decoder's open file before pixel decoding; keep BMP parsing in SDL and reject images above the existing 16,777,216-pixel limit; hosted workflow #187 passed |
+| 7.78 | Bound session restore work | done | Stop after 1,024 session records or once 128 windows are live; preserve valid-session handling and cover both limits; hosted workflow #191 passed |
 | fs-browser-filter-cache | Reuse Filesystem Browser filter snapshots | done | Reuse one directory listing for filter edits; refresh it on F5 and Monolith filesystem notifications, including while filtering |
 | terminal-input-editing | Terminal command-line selection | done | Support UTF-8-safe keyboard/mouse selection and Ctrl+A/C/X/V; normalize all clipboard lines and tabs into the single-line prompt |
 | terminal-touch-mtime | Complete Terminal touch semantics | done | Update existing regular-file last-write time without truncation; reject outside-root symlink targets |

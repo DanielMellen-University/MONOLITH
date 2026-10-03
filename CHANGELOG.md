@@ -1,5 +1,10 @@
 # Changelog
 
+## 2026-10: Bound session restore work
+
+- Stop session parsing after 1,024 records or once 128 windows are live, preventing oversized layouts from launching an unbounded number of apps.
+- Keep valid-session fallback behavior and cover both limits in the WindowManager integration test.
+
 ## 2026-10: Bound BMP wallpaper decoding
 
 - Inspect BMP dimensions from the same open file SDL later decodes, rejecting images above 16,777,216 pixels before pixel allocation.
