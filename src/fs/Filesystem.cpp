@@ -570,7 +570,7 @@ std::vector<std::size_t> Filesystem::filterEntryIndices(
 
 bool Filesystem::writeFileWithProducer(
     const std::string& virtualPath,
-    const std::function<bool(std::ostream&)>& produceContent) {
+    const FileContentProducer& produceContent) {
     if (!produceContent) return false;
 
     try {
@@ -585,7 +585,7 @@ bool Filesystem::writeFileWithProducer(
 
 bool Filesystem::writeFileWithProducerAtHostPath(
     const std::string& hostPathString,
-    const std::function<bool(std::ostream&)>& produceContent) {
+    const FileContentProducer& produceContent) {
     if (!produceContent || hostPathString.empty()) return false;
 
     try {

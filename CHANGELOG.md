@@ -1,5 +1,10 @@
 # Changelog
 
+## 2026-10: Stream Drawing saves
+
+- Write `.modr` RGB payloads in bounded chunks through the filesystem's atomic producer, avoiding a second full encoded-file allocation for large canvases.
+- Preserve existing files when encoding or stream output fails, with byte-equivalence and maximum-canvas coverage.
+
 ## 2026-10: Reduce Text Editor save allocations
 
 - Validate serialized size once, reserve a single output string, and avoid the `ostringstream::str()` copy for large documents.

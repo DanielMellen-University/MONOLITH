@@ -502,6 +502,21 @@ int main() {
                   == atomicPermissions)
               && !stdfs::exists(hostRoot / "src/atomic.txt.tmp"),
           "overwrite file atomically while retaining permission bits");
+    check(!fs.writeFileWithProducer("/src/atomic.txt", [](std::ostream& out) {
+              out.write("partial", 7);
+              return false;
+          })
+              && fs.readFile("/src/atomic.txt") == "after"
+              && !stdfs::exists(hostRoot / "src/atomic.txt.tmp"),
+          "failed content producer preserves the old file and removes its temporary sibling");
+    const std::string streamedBinary("new\0bytes", 9);
+    check(fs.writeFileWithProducer("/src/streamed.bin", [&streamedBinary](std::ostream& out) {
+              out.write(streamedBinary.data(),
+                        static_cast<std::streamsize>(streamedBinary.size()));
+              return static_cast<bool>(out);
+          })
+              && fs.readFile("/src/streamed.bin") == streamedBinary,
+          "content producer atomically writes binary stream output");
     const stdfs::path outsideTempTarget = outsideRoot / "atomic-temp-target.txt";
     {
         std::ofstream outsideTempFile(outsideTempTarget);

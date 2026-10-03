@@ -21,6 +21,7 @@ namespace monolith::fs {
 class Filesystem {
 public:
     using FileChunkConsumer = std::function<bool(std::string_view)>;
+    using FileContentProducer = std::function<bool(std::ostream&)>;
 
     /**
      * Constructs a filesystem rooted at the given host directory.
@@ -77,6 +78,14 @@ public:
 
     /** Writes (or overwrites) a file with the given content. */
     bool writeFile(const std::string& virtualPath, const std::string& content);
+
+    /**
+     * Writes content incrementally through the same safe atomic replacement path
+     * as writeFile(). Returning false from the producer aborts and preserves the
+     * previous file; the producer must check each stream write it performs.
+     */
+    bool writeFileWithProducer(const std::string& virtualPath,
+                               const FileContentProducer& produceContent);
 
     /** Updates the last-write time of an existing regular file without changing its content. */
     bool updateModifiedTime(const std::string& virtualPath);
@@ -204,12 +213,9 @@ private:
                                const std::string& canonicalRoot,
                                bool sourceIsDirectory,
                                bool destinationExisted);
-    bool writeFileWithProducer(
-        const std::string& virtualPath,
-        const std::function<bool(std::ostream&)>& produceContent);
     bool writeFileWithProducerAtHostPath(
         const std::string& hostPath,
-        const std::function<bool(std::ostream&)>& produceContent);
+        const FileContentProducer& produceContent);
 
     std::string m_hostRoot;
 };

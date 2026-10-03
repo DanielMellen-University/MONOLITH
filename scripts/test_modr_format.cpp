@@ -1,7 +1,11 @@
 // Headless regression test for the production .modr codec.
 
+#include <algorithm>
 #include <cstdint>
 #include <iostream>
+#include <ostream>
+#include <sstream>
+#include <streambuf>
 #include <string>
 #include <vector>
 
@@ -10,6 +14,20 @@
 namespace {
 
 constexpr char kModrMagic[4] = {'M', 'O', 'D', 'R'};
+
+class CountingStreamBuffer final : public std::streambuf {
+public:
+    std::size_t bytesWritten = 0;
+    std::size_t largestWrite = 0;
+
+protected:
+    std::streamsize xsputn(const char*, std::streamsize count) override {
+        const auto size = static_cast<std::size_t>(count);
+        bytesWritten += size;
+        largestWrite = std::max(largestWrite, size);
+        return count;
+    }
+};
 
 void writeU32LE(std::string& out, uint32_t value) {
     out.push_back(static_cast<char>(value & 0xFF));
@@ -57,6 +75,10 @@ int main() {
               && readU32LE(encoded, 4) == 2
               && readU32LE(encoded, 8) == 2,
           "production encoder writes magic and little-endian dimensions");
+    std::ostringstream streamed;
+    check(monolith::drawing::writeModr(streamed, 2, 2, original)
+              && streamed.str() == encoded,
+          "streaming encoder preserves exact production format bytes");
 
     int width = 0;
     int height = 0;
@@ -110,6 +132,10 @@ int main() {
           "encoder rejects a short RGBA buffer");
     check(monolith::drawing::encodeModr(1, 1, {1, 2, 3, 255, 4}).empty(),
           "encoder rejects an oversized RGBA buffer");
+    std::ostringstream invalidStream;
+    check(!monolith::drawing::writeModr(invalidStream, 1, 1, {1, 2, 3})
+              && invalidStream.str().empty(),
+          "streaming encoder rejects invalid buffers before writing");
 
     std::vector<uint8_t> maximumRow(
         static_cast<size_t>(monolith::drawing::kMaxModrDimension) * 4, 127);
@@ -123,6 +149,21 @@ int main() {
               && width == monolith::drawing::kMaxModrDimension && height == 1
               && decoded.size() == maximumRow.size(),
           "encoder and decoder agree on the supported dimension boundary");
+
+    const std::size_t maximumPixels =
+        static_cast<std::size_t>(monolith::drawing::kMaxModrDimension)
+        * static_cast<std::size_t>(monolith::drawing::kMaxModrDimension);
+    const std::vector<uint8_t> maximumCanvas(maximumPixels * 4, 127);
+    CountingStreamBuffer boundedOutput;
+    std::ostream maximumStream(&boundedOutput);
+    check(monolith::drawing::writeModr(
+              maximumStream,
+              monolith::drawing::kMaxModrDimension,
+              monolith::drawing::kMaxModrDimension,
+              maximumCanvas)
+              && boundedOutput.bytesWritten == monolith::drawing::kMaxModrEncodedBytes
+              && boundedOutput.largestWrite <= 16 * 1024,
+          "maximum-size canvas streams with bounded writes and no encoded-size buffer");
 
     if (failures == 0) {
         std::cout << "ALL MODR TESTS PASSED\n";
