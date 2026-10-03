@@ -1,5 +1,7 @@
 # Session log
 
+| 2026-10-03 | perf | Filesystem Browser now assembles the active filter label in retained storage, avoiding separate prefix/suffix substring and concatenation temporaries per render. The cursor width is measured from the same buffer only when its prefix or font changes; the state test checks the label remains correct and retains its storage across suffix-only edits. Normal and sanitized workflow #279 passed. |
+
 | 2026-10-03 | perf | Filesystem Browser no longer allocates a temporary rename-prefix string on every render. It compares the current name prefix directly with its cached measured text, updating and rerasterizing only when the caret prefix changes. Rename-width and suffix-only-edit coverage passed in normal and sanitized hosted workflow #275. |
 
 | 2026-10-03 | perf | Terminal now caches its abbreviated cwd prompt and reuses input, caret, selection, and reverse-search strings across frames; mouse hit-testing reuses its prefix buffer through binary-search measurements. State tests verify unchanged storage and prompt invalidation. Full hosted workflow #271 passed; the focused state test also passed locally under ASan/UBSan. |
