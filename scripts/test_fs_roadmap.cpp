@@ -5,16 +5,41 @@
 
 #include <algorithm>
 #include <chrono>
+#include <cstddef>
 #include <cstdint>
 #include <filesystem>
 #include <fstream>
 #include <iostream>
+#include <sstream>
 #include <string>
 #include <unistd.h>
 #include <vector>
 
 namespace stdfs = std::filesystem;
 using monolith::fs::Filesystem;
+
+static std::string referenceNormalize(const std::string& path) {
+    if (path.empty()) return "/";
+
+    std::vector<std::string> parts;
+    std::istringstream input(path);
+    std::string part;
+    while (std::getline(input, part, '/')) {
+        if (part.empty() || part == ".") continue;
+        if (part == "..") {
+            if (!parts.empty()) parts.pop_back();
+        } else {
+            parts.push_back(part);
+        }
+    }
+
+    std::string result = "/";
+    for (std::size_t i = 0; i < parts.size(); ++i) {
+        if (i > 0) result += "/";
+        result += parts[i];
+    }
+    return result;
+}
 
 int main() {
     int failures = 0;
@@ -43,6 +68,31 @@ int main() {
     check(fs.isDirectory("/"), "virtual root remains after a rejected remove");
     check(!fs.updateModifiedTime("/") && !fs.updateModifiedTime("/missing.txt"),
           "modified-time updates reject directories and missing paths");
+
+    check(fs.normalize("") == "/" && fs.normalize("////") == "/"
+              && fs.normalize("../../alpha/../beta/") == "/beta",
+          "path normalization preserves empty, repeated-slash, and root-clamping behavior");
+    const std::vector<std::string> pathComponents = {
+        "", ".", "..", "alpha", "two words", "\xC3\xA9" "clair"};
+    const std::vector<std::string> pathPrefixes = {"", "/", "///"};
+    bool matchesReference = true;
+    for (const auto& prefix : pathPrefixes) {
+        for (const auto& first : pathComponents) {
+            for (const auto& second : pathComponents) {
+                for (const auto& third : pathComponents) {
+                    const std::string path = prefix + first + "/" + second
+                        + "/" + third + "/";
+                    if (fs.normalize(path) != referenceNormalize(path)) {
+                        matchesReference = false;
+                    }
+                }
+            }
+        }
+    }
+    check(matchesReference,
+          "single-pass path normalization matches the previous rules across component combinations");
+    check(fs.normalize(std::string(65536, '/')) == "/",
+          "normalization handles long redundant separator runs");
 
     const stdfs::path outsideRoot = stdfs::temp_directory_path()
         / ("monolith-fs-outside-" + std::to_string(getpid()));

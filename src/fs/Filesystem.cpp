@@ -5,10 +5,10 @@
 #include <algorithm>
 #include <array>
 #include <cctype>
+#include <cstddef>
 #include <filesystem>
 #include <fstream>
 #include <iostream>
-#include <sstream>
 #include <stdexcept>
 
 namespace stdfs = std::filesystem;
@@ -133,25 +133,34 @@ std::string Filesystem::toHostPath(const std::string& virtualPath) const {
 std::string Filesystem::normalize(const std::string& path) const {
     if (path.empty()) return "/";
 
-    // Simple normalization (can be improved later)
-    std::vector<std::string> parts;
-    std::istringstream iss(path);
-    std::string part;
+    std::string result = "/";
+    result.reserve(std::min(path.size(), std::size_t{255}) + 1);
 
-    while (std::getline(iss, part, '/')) {
-        if (part.empty() || part == ".") continue;
-        if (part == "..") {
-            if (!parts.empty()) parts.pop_back();
+    for (std::size_t cursor = 0; cursor < path.size();) {
+        while (cursor < path.size() && path[cursor] == '/') ++cursor;
+        const std::size_t componentStart = cursor;
+        while (cursor < path.size() && path[cursor] != '/') ++cursor;
+        const std::size_t componentLength = cursor - componentStart;
+
+        if (componentLength == 0
+            || (componentLength == 1 && path[componentStart] == '.')) {
             continue;
         }
-        parts.push_back(part);
+
+        if (componentLength == 2
+            && path[componentStart] == '.'
+            && path[componentStart + 1] == '.') {
+            if (result.size() > 1) {
+                const std::size_t lastSeparator = result.find_last_of('/');
+                result.resize(lastSeparator == 0 ? 1 : lastSeparator);
+            }
+            continue;
+        }
+
+        if (result.size() > 1) result.push_back('/');
+        result.append(path, componentStart, componentLength);
     }
 
-    std::string result = "/";
-    for (size_t i = 0; i < parts.size(); ++i) {
-        if (i > 0) result += "/";
-        result += parts[i];
-    }
     return result;
 }
 
