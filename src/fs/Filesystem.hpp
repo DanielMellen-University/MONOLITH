@@ -115,7 +115,7 @@ public:
      * Copies a file or directory tree to a new path.
      * Destination parent directories are created as needed.
      * A newly created destination is removed again if a child copy fails.
-     * Returns false if the destination is the same as (or inside) the source tree.
+     * Returns false if the resolved destination aliases the source or is inside its tree.
      */
     bool copyRecursive(const std::string& srcVirtualPath, const std::string& dstVirtualPath);
 
@@ -191,9 +191,24 @@ public:
     std::string toHostPath(const std::string& virtualPath) const;
 
 private:
+    struct HostPath {
+        std::string raw;
+        std::string resolved;
+    };
+
     bool isWithinHostRoot(const std::string& hostPath) const;
+    bool copyRecursiveResolved(const std::string& srcVirtualPath,
+                               const std::string& dstVirtualPath,
+                               const HostPath& source,
+                               const HostPath& destination,
+                               const std::string& canonicalRoot,
+                               bool sourceIsDirectory,
+                               bool destinationExisted);
     bool writeFileWithProducer(
         const std::string& virtualPath,
+        const std::function<bool(std::ostream&)>& produceContent);
+    bool writeFileWithProducerAtHostPath(
+        const std::string& hostPath,
         const std::function<bool(std::ostream&)>& produceContent);
 
     std::string m_hostRoot;

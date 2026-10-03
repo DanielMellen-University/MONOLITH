@@ -335,6 +335,66 @@ int main() {
         }
     }
 
+    check(fs.createDirectory("/copy-alias-source/nested"),
+          "create source tree for physical copy-alias checks");
+    check(fs.writeFile("/copy-alias-source/nested/keep.txt", "original"),
+          "write source file for physical copy-alias checks");
+    const stdfs::path rootCopyAlias = hostRoot / "copy-root-alias";
+    stdfs::create_directory_symlink(
+        hostRoot / "copy-alias-source/nested", rootCopyAlias, ec);
+    check(!ec, "create destination alias into source tree");
+    if (!ec) {
+        check(!fs.copyRecursive("/copy-alias-source", "/copy-root-alias"),
+              "recursive copy rejects a destination alias into its source");
+        check(fs.readFile("/copy-alias-source/nested/keep.txt") == "original"
+                  && !fs.exists("/copy-alias-source/nested/nested"),
+              "root destination alias leaves source tree unchanged");
+        check(fs.remove("/copy-root-alias"), "remove root destination alias");
+    }
+
+    check(fs.createDirectory("/copy-nested-alias-destination"),
+          "create existing tree for nested destination alias check");
+    const stdfs::path nestedCopyAlias =
+        hostRoot / "copy-nested-alias-destination/nested";
+    stdfs::create_directory_symlink(
+        hostRoot / "copy-alias-source/nested", nestedCopyAlias, ec);
+    check(!ec, "create nested destination alias into source tree");
+    if (!ec) {
+        check(!fs.copyRecursive(
+                  "/copy-alias-source", "/copy-nested-alias-destination"),
+              "recursive copy rejects a nested destination alias into its source");
+        check(fs.readFile("/copy-alias-source/nested/keep.txt") == "original"
+                  && !fs.exists("/copy-alias-source/nested/nested"),
+              "nested destination alias leaves source tree unchanged");
+        check(fs.remove("/copy-nested-alias-destination/nested"),
+              "remove nested destination alias");
+    }
+
+    check(fs.writeFile("/copy-link-source.txt", "through destination link"),
+          "write file for destination-link copy checks");
+    check(fs.writeFile("/copy-link-target.txt", "old target"),
+          "write target for destination-link copy check");
+    const stdfs::path copyFileLink = hostRoot / "copy-file-link";
+    stdfs::create_symlink(hostRoot / "copy-link-target.txt", copyFileLink, ec);
+    check(!ec, "create in-root file destination symlink");
+    if (!ec) {
+        check(fs.copyRecursive("/copy-link-source.txt", "/copy-file-link")
+                  && stdfs::is_symlink(stdfs::symlink_status(copyFileLink))
+                  && fs.readFile("/copy-link-target.txt") == "through destination link",
+              "file copy follows an in-root destination symlink without replacing it");
+        check(fs.remove("/copy-file-link"), "remove copied file destination symlink");
+    }
+
+    const stdfs::path selfCopyLink = hostRoot / "copy-self-link";
+    stdfs::create_symlink(hostRoot / "copy-link-source.txt", selfCopyLink, ec);
+    check(!ec, "create source-file destination alias");
+    if (!ec) {
+        check(!fs.copyRecursive("/copy-link-source.txt", "/copy-self-link")
+                  && fs.readFile("/copy-link-source.txt") == "through destination link",
+              "file copy rejects a destination alias to the source file");
+        check(fs.remove("/copy-self-link"), "remove source-file destination alias");
+    }
+
     check(fs.createDirectory("/partial-src"), "create partial-copy source");
     check(fs.writeFile("/partial-src/a-good.txt", "keep"),
           "write partial-copy regular child");

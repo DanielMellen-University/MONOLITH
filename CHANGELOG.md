@@ -1,5 +1,10 @@
 # Changelog
 
+## 2026-10: Resolve recursive copy paths once
+
+- Stream each regular file from its resolved source into the atomic destination writer, avoiding repeated virtual-path resolution and status checks for every copy step.
+- Reject destinations that physically alias the source or land inside it through an in-root symlink; preserve safe file-symlink destinations and external-link omission.
+
 ## 2026-10: Remap filter selection by snapshot index
 
 - Reuse the unchanged directory snapshot to preserve selection across query edits without allocating filename identity sets.
