@@ -1,5 +1,10 @@
 # Changelog
 
+## 2026-10: Reduce Text Editor save allocations
+
+- Validate serialized size once, reserve a single output string, and avoid the `ostringstream::str()` copy for large documents.
+- Cover exact 16 MiB saves plus blank-line and trailing-newline preservation.
+
 ## 2026-10: Report Terminal history save failures
 
 - Keep commands running while reporting failed history writes, and retry persistence on later history-eligible commands.
