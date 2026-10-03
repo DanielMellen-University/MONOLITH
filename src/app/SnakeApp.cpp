@@ -19,6 +19,7 @@ constexpr SDL_Color kDimText{140, 140, 150, 255};
 constexpr SDL_Color kOverlayText{245, 245, 250, 255};
 constexpr SDL_Color kGold{230, 190, 70, 255};
 constexpr SDL_Color kBestText{180, 200, 140, 255};
+constexpr SDL_Color kSaveWarning{240, 160, 90, 255};
 } // namespace
 
 using monolith::detail::RendererClipState;
@@ -64,11 +65,12 @@ void SnakeApp::loadHighScore() {
     }
 }
 
-void SnakeApp::saveHighScore() const {
-    monolith::detail::writeTextAtomically(
+bool SnakeApp::saveHighScore() {
+    m_highScoreSaveFailed = !monolith::detail::writeTextAtomically(
         highScoreHostPath(),
         [this](std::ostream& out) { out << m_highScore << '\n'; },
         true);
+    return !m_highScoreSaveFailed;
 }
 
 void SnakeApp::maybeUpdateHighScore() {
@@ -85,6 +87,9 @@ SnakeApp::SnakeApp(TTF_Font* font) : m_font(font) {
 }
 
 void SnakeApp::resetGame() {
+    if (m_highScoreSaveFailed) {
+        saveHighScore();
+    }
     m_body.clear();
     const int cx = kGridW / 2;
     const int cy = kGridH / 2;
@@ -234,7 +239,9 @@ void SnakeApp::onFocusLost() {
 }
 
 void SnakeApp::onFocusGained() {
-    // Stay paused until the user explicitly resumes.
+    if (m_highScoreSaveFailed) {
+        saveHighScore();
+    }
 }
 
 void SnakeApp::onResize(int clientWidth, int clientHeight) {
@@ -406,7 +413,9 @@ void SnakeApp::render(SDL_Renderer* renderer, const SDL_Rect& contentRect) {
     const std::string scoreText = "Score: " + std::to_string(m_score);
     const std::string bestText = "Best: " + std::to_string(m_highScore);
     const std::string lenText = "Len: " + std::to_string(static_cast<int>(m_body.size()));
-    const char* controlsHint = "WASD  P pause  R restart";
+    const char* controlsHint = m_highScoreSaveFailed
+        ? "BEST SAVE FAILED"
+        : "WASD  P pause  R restart";
 
     const int padL = 10;
     const int padR = 10;
@@ -423,7 +432,8 @@ void SnakeApp::render(SDL_Renderer* renderer, const SDL_Rect& contentRect) {
     const int hintW = measureTextWidth(controlsHint);
     const int hintX = contentRect.x + contentRect.w - padR - hintW;
     if (hintW > 0 && hintX >= x + gap) {
-        drawText(renderer, controlsHint, hintX, textY, kDimText, &hudClip);
+        drawText(renderer, controlsHint, hintX, textY,
+                 m_highScoreSaveFailed ? kSaveWarning : kDimText, &hudClip);
     }
 
     // Board background
@@ -567,13 +577,18 @@ void SnakeApp::render(SDL_Renderer* renderer, const SDL_Rect& contentRect) {
     } else if (m_state == State::GameOver) {
         const std::string finalScore =
             "Score " + std::to_string(m_score) + "  ·  Best " + std::to_string(m_highScore);
-        if (m_newHighScore) {
+        if (m_highScoreSaveFailed) {
+            drawOverlayStack("GAME OVER", finalScore, "BEST NOT SAVED", kSaveWarning);
+        } else if (m_newHighScore) {
             drawOverlayStack("GAME OVER", finalScore, "NEW BEST!", kGold);
         } else {
             drawOverlayStack("GAME OVER", finalScore, "R or click to restart", kDimText);
         }
     } else if (m_state == State::Won) {
-        if (m_newHighScore) {
+        if (m_highScoreSaveFailed) {
+            drawOverlayStack("YOU WIN!", "Board filled  ·  R or click to restart",
+                             "BEST NOT SAVED", kSaveWarning);
+        } else if (m_newHighScore) {
             drawOverlayStack("YOU WIN!", "Board filled  ·  R or click to restart",
                              "NEW BEST!", kGold);
         } else {
