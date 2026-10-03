@@ -1069,6 +1069,13 @@ int main() {
               "render snapshot survives a front app closing during render");
         check(survivorPtr->renderRect.w > 0,
               "render continues with the surviving window after callback removal");
+        check(renderWm.m_liveWindowIds.size() == renderWm.m_windows.size(),
+              "render-time close keeps the window identity index synchronized");
+        const std::size_t renderSnapshotCapacity =
+            renderWm.m_windowTargetBuffers.front().capacity();
+        renderWm.render(renderer);
+        check(renderWm.m_windowTargetBuffers.front().capacity() == renderSnapshotCapacity,
+              "steady-state rendering reuses its window snapshot buffer");
 
         monolith::window::WindowManager blendWm;
         blendWm.setLogicalDesktopSize(900, 600);

@@ -190,17 +190,8 @@ void WindowManager::render(SDL_Renderer* renderer) {
     // Draw from back to front so the focused window (last in vector) is drawn
     // last and appears on top. Rendering is app code too, so keep a stable
     // identity snapshot and skip windows closed by an earlier render callback.
-    struct RenderTarget {
-        Window* window;
-        int id;
-    };
-    std::vector<RenderTarget> renderTargets;
-    renderTargets.reserve(m_windows.size());
-    for (const auto& window : m_windows) {
-        if (window) renderTargets.push_back({window.get(), window->id});
-    }
-
-    for (const RenderTarget& target : renderTargets) {
+    const WindowTargetSnapshot renderTargets(*this);
+    for (const WindowTarget& target : renderTargets.targets()) {
         if (!isLiveWindow(target.window, target.id)) continue;
         Window& win = *target.window;
 

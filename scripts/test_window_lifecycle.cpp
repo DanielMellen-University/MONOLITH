@@ -47,6 +47,25 @@ public:
     int updates = 0;
 };
 
+class NestedLayoutUpdateApp final : public monolith::app::App {
+public:
+    explicit NestedLayoutUpdateApp(monolith::window::WindowManager* wm)
+        : wm(wm) {}
+
+    void render(SDL_Renderer*, const SDL_Rect&) override {}
+
+    void update() override {
+        ++updates;
+        if (!reenter || !wm) return;
+        reenter = false;
+        wm->setLogicalDesktopSize(900, 650);
+    }
+
+    monolith::window::WindowManager* wm = nullptr;
+    bool reenter = true;
+    int updates = 0;
+};
+
 class NotificationClosingApp final : public monolith::app::App {
 public:
     void render(SDL_Renderer*, const SDL_Rect&) override {}
@@ -292,14 +311,48 @@ int main() {
         wm.createWindow("Survivor", 40, 80, 260, 180, std::move(survivor));
 
         auto closing = std::make_unique<ClosingApp>();
-        wm.createWindow("Closing", 400, 80, 260, 180, std::move(closing));
+        auto* closingWindow = wm.createWindow(
+            "Closing", 400, 80, 260, 180, std::move(closing));
+        const int closingWindowId = closingWindow->id;
 
         wm.update();
 
         check(survivorPtr->updates == 1,
               "the update snapshot also handles the focused app closing itself");
+        check(!wm.isLiveWindow(closingWindow, closingWindowId)
+                  && wm.m_liveWindowIds.size() == wm.m_windows.size(),
+              "the identity index drops a self-closed window without dereferencing it");
         check(wm.getWindowAt(460, 160) == nullptr,
               "the focused app is gone after its controller close");
+    }
+
+    {
+        monolith::window::WindowManager wm;
+        auto nested = std::make_unique<NestedLayoutUpdateApp>(&wm);
+        NestedLayoutUpdateApp* nestedPtr = nested.get();
+        wm.createWindow("Nested", 40, 80, 260, 180, std::move(nested));
+        auto probe = std::make_unique<UpdateProbe>();
+        UpdateProbe* probePtr = probe.get();
+        wm.createWindow("Probe", 400, 80, 260, 180, std::move(probe));
+
+        wm.update();
+        check(nestedPtr->updates == 1 && probePtr->updates == 1,
+              "nested layout callbacks preserve the outer update snapshot");
+        check(wm.m_windowTargetBuffers.size() == 2
+                  && wm.m_windowTargetDepth == 0,
+              "reentrant window traversal uses a separate snapshot buffer");
+
+        std::vector<std::size_t> capacities;
+        for (const auto& buffer : wm.m_windowTargetBuffers) {
+            capacities.push_back(buffer.capacity());
+        }
+        wm.update();
+        bool capacityStable = capacities.size() == wm.m_windowTargetBuffers.size();
+        for (std::size_t i = 0; capacityStable && i < capacities.size(); ++i) {
+            capacityStable = capacities[i] == wm.m_windowTargetBuffers[i].capacity();
+        }
+        check(capacityStable,
+              "steady-state update reuses each nested snapshot buffer capacity");
     }
 
     {

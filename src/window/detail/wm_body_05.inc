@@ -117,22 +117,13 @@ Window* WindowManager::getWindowAt(int mouseX, int mouseY) {
 
 bool WindowManager::isLiveWindow(const Window* window) const {
     if (!window) return false;
-    return std::find_if(
-        m_windows.begin(),
-        m_windows.end(),
-        [window](const auto& candidate) {
-            return candidate.get() == window;
-        }) != m_windows.end();
+    return m_liveWindowIds.find(window) != m_liveWindowIds.end();
 }
 
 bool WindowManager::isLiveWindow(const Window* window, int expectedId) const {
     if (!window) return false;
-    return std::find_if(
-        m_windows.begin(),
-        m_windows.end(),
-        [window, expectedId](const auto& candidate) {
-            return candidate.get() == window && candidate->id == expectedId;
-        }) != m_windows.end();
+    const auto live = m_liveWindowIds.find(window);
+    return live != m_liveWindowIds.end() && live->second == expectedId;
 }
 
 bool WindowManager::isStartMenuSuspended(const Window* window) const {
