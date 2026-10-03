@@ -838,16 +838,13 @@ int main() {
         bool cachedTexturesFitViewport = true;
         bool foundLongLinePrefix = false;
         for (const auto& [key, cachedTexture] : terminal.m_textTextureCache.m_entries) {
-            const size_t textOffset = sizeof(TTF_Font*);
-            if (key.size() < textOffset + 5) continue;
-            const size_t textBytes = key.size() - textOffset - 5;
-            std::string cachedText = key.substr(textOffset, textBytes);
+            const std::string& cachedText = key.text;
             if (cachedText.size() < 2
                 || cachedText.compare(0, 2, longUnicodeLine, 0, 2) != 0) {
                 continue;
             }
             foundLongLinePrefix = true;
-            largestCachedTextBytes = std::max(largestCachedTextBytes, textBytes);
+            largestCachedTextBytes = std::max(largestCachedTextBytes, cachedText.size());
             for (size_t pos = 0; pos < cachedText.size();) {
                 const size_t charBytes = monolith::app::utf8CodepointByteLen(cachedText, pos);
                 if (charBytes == 0 || pos + charBytes > cachedText.size()) {
