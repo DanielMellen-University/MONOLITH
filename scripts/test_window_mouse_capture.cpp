@@ -306,9 +306,9 @@ int main() {
     ctrlEscape.type = SDL_KEYDOWN;
     ctrlEscape.key.keysym.sym = SDLK_ESCAPE;
     ctrlEscape.key.keysym.mod = KMOD_CTRL;
-    const int firstKeyDownsBeforeCtrlEscape = firstPtr->keyDowns;
+    const int secondKeyDownsBeforeCtrlEscape = secondPtr->keyDowns;
     wm.handleEvent(ctrlEscape);
-    check(firstPtr->keyDowns == firstKeyDownsBeforeCtrlEscape,
+    check(secondPtr->keyDowns == secondKeyDownsBeforeCtrlEscape,
           "shell-owned Ctrl+Escape keydown does not reach the focused client");
     SDL_Event escapeRelease{};
     escapeRelease.type = SDL_KEYUP;

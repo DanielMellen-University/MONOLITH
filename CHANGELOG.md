@@ -4,6 +4,7 @@
 
 - Add a hosted AddressSanitizer/UndefinedBehaviorSanitizer job that builds the application and runs the full headless suite.
 - Allow sanitizer/compiler options to reach every test binary and shared Window Manager test object through `CXXFLAGS`.
+- Fix a stale app pointer in the mouse-capture test that sanitizer instrumentation exposed after window close.
 
 ## 2026-10: Cache Drawing history byte totals
 
