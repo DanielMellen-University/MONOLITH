@@ -227,28 +227,30 @@ void DrawingApp::pushUndoHistoryEntry(CanvasHistoryEntry entry) {
     }
 
     m_redoStack.clear();
+    m_redoHistoryBytes = 0;
     if (entryBytes > kMaxHistoryBytes) {
-        m_undoStack.clear();
+        clearHistory();
         return;
     }
 
-    auto stateBytes = [](const CanvasHistoryEntry& state) {
-        size_t bytes = 0;
-        for (const auto& tile : state.tiles) bytes += tile.pixels.size();
-        return bytes;
-    };
-    size_t historyBytes = 0;
-    for (const auto& state : m_undoStack) {
-        historyBytes += stateBytes(state);
-    }
+    entry.pixelBytes = entryBytes;
     const size_t availableBytes = kMaxHistoryBytes - entryBytes;
     while (!m_undoStack.empty()
-           && (m_undoStack.size() >= kMaxHistoryStates || historyBytes > availableBytes)) {
-        historyBytes -= stateBytes(m_undoStack.front());
+           && (m_undoStack.size() >= kMaxHistoryStates
+               || m_undoHistoryBytes > availableBytes)) {
+        m_undoHistoryBytes -= m_undoStack.front().pixelBytes;
         m_undoStack.erase(m_undoStack.begin());
     }
 
+    m_undoHistoryBytes += entryBytes;
     m_undoStack.push_back(std::move(entry));
+}
+
+void DrawingApp::clearHistory() {
+    m_undoStack.clear();
+    m_redoStack.clear();
+    m_undoHistoryBytes = 0;
+    m_redoHistoryBytes = 0;
 }
 
 void DrawingApp::beginSparseHistory() {
@@ -347,8 +349,7 @@ void DrawingApp::captureSparseHistoryTile(int x, int y) {
         m_sparseHistoryChanged = true;
         m_sparseHistoryEntry.tiles.clear();
         std::vector<CanvasTileSnapshot>().swap(m_sparseHistoryEntry.tiles);
-        m_undoStack.clear();
-        m_redoStack.clear();
+        clearHistory();
         return;
     }
     tile.pixels.resize(tileBytes);
@@ -631,6 +632,8 @@ void DrawingApp::undoCanvas() {
 
     CanvasHistoryEntry entry = std::move(m_undoStack.back());
     m_undoStack.pop_back();
+    m_undoHistoryBytes -= entry.pixelBytes;
+    m_redoHistoryBytes += entry.pixelBytes;
     toggleSparseHistoryTiles(entry);
     m_redoStack.push_back(std::move(entry));
     for (const auto& tile : m_redoStack.back().tiles) refreshDirtyTile(tile);
@@ -648,6 +651,8 @@ void DrawingApp::redoCanvas() {
 
     CanvasHistoryEntry entry = std::move(m_redoStack.back());
     m_redoStack.pop_back();
+    m_redoHistoryBytes -= entry.pixelBytes;
+    m_undoHistoryBytes += entry.pixelBytes;
     toggleSparseHistoryTiles(entry);
     m_undoStack.push_back(std::move(entry));
     for (const auto& tile : m_undoStack.back().tiles) refreshDirtyTile(tile);
@@ -1031,8 +1036,7 @@ bool DrawingApp::loadFromPath(const std::string& virtualPath) {
     captureSavedSnapshot();
     m_dirty = false;
     clearDirtyTiles();
-    m_undoStack.clear();
-    m_redoStack.clear();
+    clearHistory();
 
     size_t nameStart = path.find_last_of('/');
     const std::string baseName = (nameStart != std::string::npos) ? path.substr(nameStart + 1) : path;
@@ -1169,8 +1173,7 @@ void DrawingApp::startNewSketch() {
     clearCanvas(false);
     m_filePath.clear();
     captureSavedSnapshot();
-    m_undoStack.clear();
-    m_redoStack.clear();
+    clearHistory();
     m_dirty = false; // blank new sketch is clean
     clearDirtyTiles();
     clearDiscardArm();
@@ -1712,8 +1715,7 @@ void DrawingApp::onResize(int clientWidth, int clientHeight) {
     const bool canvasSizeChanged = canvasW != m_canvasWidth || canvasH != m_canvasHeight;
     resizeCanvas(canvasW, canvasH, true);
     if (canvasSizeChanged && m_pendingInitialPath.empty()) {
-        m_undoStack.clear();
-        m_redoStack.clear();
+        clearHistory();
         if (!m_filePath.empty()) {
             m_dirty = true;
             clearDiscardArm();
