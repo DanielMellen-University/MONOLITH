@@ -628,6 +628,7 @@ int main() {
         const bool firstRenameMeasureMatches = browser.m_renameCursorMeasureValid
             && browser.m_renameCursorMeasurePrefix == "alp"
             && browser.m_renameCursorMeasureWidth == expectedRenameCursorWidth;
+        const char* renamePrefixStorage = browser.m_renameCursorMeasurePrefix.data();
         browser.m_renameBuffer = "alpine.txt";
         browser.render(renderer, {0, 0, browser.m_clientWidth, browser.m_clientHeight});
         check(selectedRenameEntry && browser.m_renaming && measuredRenameCursor
@@ -635,8 +636,9 @@ int main() {
                   && firstRenameMeasureMatches
                   && browser.m_renameCursorMeasureValid
                   && browser.m_renameCursorMeasurePrefix == "alp"
+                  && browser.m_renameCursorMeasurePrefix.data() == renamePrefixStorage
                   && browser.m_renameCursorMeasureWidth == expectedRenameCursorWidth,
-              "browser reuses rename caret width when text after the caret changes");
+              "browser retains rename caret prefix and width when text after the caret changes");
 
         browser.m_renameCursorPos = 4;
         int movedRenameCursorWidth = 0;
