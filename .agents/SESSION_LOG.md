@@ -1,5 +1,7 @@
 # Session log
 
+| 2026-10-03 | fix | Settings now reads the shell's last settings-save result, including failed atomic writes after wallpaper moves or deletions; successful recovery clears the warning. Full headless suite, executable build, and hosted workflow #211 passed. |
+
 | 2026-10-03 | fix | Settings now reports rejected values and failed atomic saves in its footer without reverting live changes; reselecting the current choice retries persistence. The full headless suite and hosted workflow #207 passed. |
 
 | 2026-10-03 | fix | A failed atomic session save now logs its target and shows a warning before SDL teardown; the previous snapshot remains unchanged. Lifecycle verification and hosted workflow #203 passed. |
