@@ -246,8 +246,8 @@ void TerminalApp::loadCommandHistory() {
     if (historyNeedsSave) saveCommandHistory();
 }
 
-void TerminalApp::saveCommandHistory() {
-    if (!m_fs) return;
+bool TerminalApp::saveCommandHistory() {
+    if (!m_fs) return true;
 
     trimCommandHistory();
     size_t contentBytes = 0;
@@ -260,7 +260,8 @@ void TerminalApp::saveCommandHistory() {
         content += cmd;
         content.push_back('\n');
     }
-    m_fs->writeFile(HISTORY_FILE, content);
+    m_commandHistorySaveFailed = !m_fs->writeFile(HISTORY_FILE, content);
+    return !m_commandHistorySaveFailed;
 }
 
 void TerminalApp::trimCommandHistory() {

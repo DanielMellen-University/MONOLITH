@@ -50,6 +50,9 @@ TerminalApp::TerminalApp(TTF_Font* font, monolith::fs::Filesystem* fs)
     addOutput("Monolith Terminal");
     addOutput("Type 'help' for a list of commands.");
     addOutput("");
+    if (m_commandHistorySaveFailed) {
+        addOutput("Warning: Terminal command history could not be saved.");
+    }
 }
 
 void TerminalApp::onVirtualPathMoved(const std::string& oldPath,
@@ -137,14 +140,23 @@ void TerminalApp::submitInput() {
     addOutput(getInputPrompt() + command);
 
     if (!command.empty()) {
+        const bool historyWasUnsaved = m_commandHistorySaveFailed;
+        bool historySaveAttempted = false;
+        bool historySaved = true;
         if (command.size() <= kMaxCommandHistoryEntryBytes) {
             m_commandHistory.push_back(command);
             trimCommandHistory();
-            saveCommandHistory();
+            historySaveAttempted = true;
+            historySaved = saveCommandHistory();
         } else {
             addOutput("Command not saved to history: exceeds 64 KiB.");
         }
         executeCommand(command);
+        if (historySaveAttempted && !historySaved) {
+            addOutput("Warning: Terminal command history could not be saved.");
+        } else if (historySaveAttempted && historyWasUnsaved) {
+            addOutput("Terminal command history save recovered.");
+        }
     } else {
         addOutput(""); // blank line for empty input
     }

@@ -919,6 +919,74 @@ int main() {
     check(terminal.m_cwd == "/home/monolith",
           "terminal cwd returns to a valid parent after deletion");
 
+    const std::filesystem::path hostHistoryPath =
+        hostRoot / "home/monolith/.terminal_history";
+    std::filesystem::remove(hostHistoryPath, ec);
+    ec.clear();
+    check(std::filesystem::create_directory(hostHistoryPath, ec) && !ec,
+          "block Terminal command-history persistence");
+    TestTerminal persistenceTerminal(font, &fs);
+    persistenceTerminal.m_inputBuffer = "echo still runs";
+    persistenceTerminal.m_inputCursorPos =
+        static_cast<int>(persistenceTerminal.m_inputBuffer.size());
+    persistenceTerminal.submitInput();
+    check(persistenceTerminal.m_commandHistorySaveFailed
+              && persistenceTerminal.m_commandHistory
+                  == std::vector<std::string>{"echo still runs"}
+              && std::find(persistenceTerminal.m_history.begin(),
+                           persistenceTerminal.m_history.end(),
+                           "still runs") != persistenceTerminal.m_history.end()
+              && persistenceTerminal.m_history.back()
+                  == "Warning: Terminal command history could not be saved.",
+          "Terminal reports history-save failure after executing the command");
+
+    ec.clear();
+    std::filesystem::remove_all(hostHistoryPath, ec);
+    persistenceTerminal.m_inputBuffer = "echo recovered command";
+    persistenceTerminal.m_inputCursorPos =
+        static_cast<int>(persistenceTerminal.m_inputBuffer.size());
+    persistenceTerminal.submitInput();
+    std::string persistedHistory;
+    check(!ec && !persistenceTerminal.m_commandHistorySaveFailed
+              && persistenceTerminal.m_history.back()
+                  == "Terminal command history save recovered."
+              && fs.readFile(monolith::app::TerminalApp::HISTORY_FILE, persistedHistory)
+              && persistedHistory.find("echo recovered command\n")
+                  != std::string::npos,
+          "Terminal retries history persistence and reports successful recovery");
+    TestTerminal reloadedPersistenceTerminal(font, &fs);
+    check(std::find(reloadedPersistenceTerminal.m_commandHistory.begin(),
+                    reloadedPersistenceTerminal.m_commandHistory.end(),
+                    "echo recovered command")
+              != reloadedPersistenceTerminal.m_commandHistory.end(),
+          "Terminal reloads commands persisted after a failed write");
+
+    const std::string oversizedStartupHistory(
+        monolith::app::TerminalApp::kMaxCommandHistoryBytes + 1, 'x');
+    check(fs.writeFile(monolith::app::TerminalApp::HISTORY_FILE,
+                       oversizedStartupHistory),
+          "write oversized Terminal history for migration failure");
+    std::filesystem::permissions(
+        hostHistoryPath,
+        std::filesystem::perms::owner_read
+            | std::filesystem::perms::group_read
+            | std::filesystem::perms::others_read,
+        std::filesystem::perm_options::replace, ec);
+    check(!ec, "make oversized Terminal history unwritable");
+    TestTerminal failedMigrationTerminal(font, &fs);
+    std::string preservedStartupHistory;
+    check(failedMigrationTerminal.m_commandHistorySaveFailed
+              && failedMigrationTerminal.m_history.back()
+                  == "Warning: Terminal command history could not be saved."
+              && fs.readFile(monolith::app::TerminalApp::HISTORY_FILE,
+                             preservedStartupHistory)
+              && preservedStartupHistory == oversizedStartupHistory,
+          "Terminal reports a failed startup migration and preserves the old history");
+    std::filesystem::permissions(
+        hostHistoryPath, std::filesystem::perms::owner_write,
+        std::filesystem::perm_options::add, ec);
+    check(!ec, "restore Terminal history write permission after migration test");
+
     std::filesystem::remove_all(hostRoot, ec);
     if (failures == 0) {
         std::cout << "ALL TERMINAL FILESYSTEM TESTS PASSED\n";

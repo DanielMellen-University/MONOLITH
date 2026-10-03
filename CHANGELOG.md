@@ -1,5 +1,10 @@
 # Changelog
 
+## 2026-10: Report Terminal history save failures
+
+- Keep commands running while reporting failed history writes, and retry persistence on later history-eligible commands.
+- Confirm recovery and restart loading after an induced write failure in the Terminal headless test.
+
 ## 2026-10: Report game-record save failures
 
 - Keep new Snake scores and Minesweeper best times active for the session while clearly warning when atomic persistence fails.

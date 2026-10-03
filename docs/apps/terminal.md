@@ -120,6 +120,8 @@ Command history persists across sessions in:
 
 History is saved after each submitted command. Command history retains at most 500 entries and 2 MiB total, with a 64 KiB limit per command; older entries drop first. A command longer than 64 KiB still runs, but Terminal reports that it was omitted from history. Startup seeks to a bounded tail of the history file and parses it in chunks, preserving the newest entries that fit those limits; oversized legacy files are rewritten in the bounded format. On-screen scrollback retains at most 2,000 rows and 8 MiB; an individual row is capped at 64 KiB and marked `[truncated]`. Excess oldest rows are dropped together when new output arrives, keeping large bursts from repeatedly shifting the front of the vector.
 
+If writing command history fails, the command still runs and Terminal reports that the history was not saved. Each later command that fits the history-entry limit retries persistence; the first successful retry reports that history saving recovered.
+
 History loading accepts both Unix and Windows line endings, so recalled commands do not carry a hidden carriage return into command parsing.
 
 Output scrolling is bounded to the history rows that fit above the input strip. Page Up, Page Down, and the mouse wheel cannot scroll beyond the oldest fully visible output, and resizing or changing the interface text scale clamps the saved scroll position to the new history area. Use Shift+Page Up/Down to pan long rows horizontally; the pan snaps to complete UTF-8 codepoints and applies to the rows currently visible. New output returns to the left edge. If the client is too short to expose a history row, the Terminal leaves the history area empty instead of painting through the input strip.
