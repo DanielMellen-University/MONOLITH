@@ -135,12 +135,15 @@ inline void scheduleAtomicTempSweepRetry(const std::filesystem::path& parent) {
     slot.writesSinceSweep = atomicTempSweepInterval;
 }
 
+inline bool hasAtomicTempTokenName(const std::filesystem::path& directory);
+
 inline bool hasAtomicTempOwnerMarker(const std::filesystem::path& directory) {
     const auto markerPath = directory / atomicTempOwnerName;
     struct stat pathStatus {};
     if (::lstat(markerPath.c_str(), &pathStatus) != 0) return false;
 
     if (S_ISLNK(pathStatus.st_mode)) {
+        if (!hasAtomicTempTokenName(directory)) return false;
         std::array<char, sizeof(atomicTempOwnerMarker)> target{};
         ssize_t targetSize;
         do {

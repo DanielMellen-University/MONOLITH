@@ -226,9 +226,18 @@ int main() {
         && writeFixture(userMarkedPath / "ready", "")
         && writeFixture(userMarkedPath / monolith::detail::atomicTempOwnerName,
                         "not Monolith's marker")
-        && writeFixture(userMarkedPath / "notes.txt", "keep this too");
+                        && writeFixture(userMarkedPath / "notes.txt", "keep this too");
+    const fs::path symlinkMarkedLookalikePath = parent
+        / (std::string(monolith::detail::atomicTempPrefix) + "symlink-lookalike");
+    ec.clear();
+    const bool symlinkMarkedLookalikeReady =
+        fs::create_directory(symlinkMarkedLookalikePath, ec) && !ec
+        && monolith::detail::createAtomicTempOwnerMarker(symlinkMarkedLookalikePath)
+        && writeFixture(symlinkMarkedLookalikePath / "lease", "")
+        && writeFixture(symlinkMarkedLookalikePath / "ready", "")
+        && writeFixture(symlinkMarkedLookalikePath / "content", "user snapshot");
     const bool staleWrite = staleFixturesReady && currentStaleFixturesReady
-        && userIncompleteReady && userMarkedReady
+        && userIncompleteReady && userMarkedReady && symlinkMarkedLookalikeReady
         && monolith::detail::writeTextAtomically(
             target, [](std::ostream& out) { out << "recovered"; });
     check(staleWrite && !fs::exists(stalePath) && !fs::exists(currentStalePath)
@@ -238,6 +247,9 @@ int main() {
               && fs::exists(userIncompletePath / "notes.txt")
               && fs::exists(userMarkedPath / "notes.txt"),
           "lookalike directories without a valid ownership marker survive cleanup");
+    check(symlinkMarkedLookalikeReady
+              && fs::exists(symlinkMarkedLookalikePath / "content"),
+          "a symlink owner marker without a random workspace token cannot authorize cleanup");
 
     const fs::path retryParent = parent / "retry-after-sweep-failure";
     const bool retryWasDue = monolith::detail::shouldSweepAtomicTempParent(retryParent);

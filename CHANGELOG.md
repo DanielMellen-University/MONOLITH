@@ -1,5 +1,10 @@
 # Changelog
 
+## 2026-10: Require random names for symlink owner markers
+
+- Accept a symlink owner token only when its workspace name matches the strict 128-bit random format, preventing marked non-token lookalikes from being reclaimed.
+- Preserve compatibility with validated regular-file markers from earlier v4 writers.
+
 ## 2026-10: Retry interrupted atomic-save sweeps promptly
 
 - If a destination-parent lock or directory enumeration fails during cleanup, schedule another sweep on the next write instead of waiting for the normal 32-write interval.
