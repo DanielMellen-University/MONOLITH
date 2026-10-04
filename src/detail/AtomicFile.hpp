@@ -274,7 +274,7 @@ inline bool removeAtomicTempWorkspace(
     const std::filesystem::directory_iterator end;
     while (!iteratorError && entry != end) {
         const auto entryPath = entry->path();
-        const std::string name = entryPath.filename().string();
+        const std::string_view name = pathBasenameView(entryPath);
         if (name == atomicTempOwnerName) {
             if (!hasAtomicTempOwnerMarker(directory)) return false;
             ownerPath = entryPath;

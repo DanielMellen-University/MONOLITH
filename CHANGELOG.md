@@ -1,5 +1,10 @@
 # Changelog
 
+## 2026-10: Borrow atomic workspace entry names
+
+- Inspect each cleanup marker through a borrowed basename from its existing entry path, eliminating another temporary filename string on every atomic save.
+- Preserve cleanup of recognized markers and retention of unexpected user entries.
+
 ## 2026-10: Borrow atomic workspace basenames
 
 - Read workspace names from the existing path storage during owner-token checks and cleanup, avoiding repeated allocated filename copies.

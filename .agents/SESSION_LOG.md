@@ -1,5 +1,7 @@
 # Session log
 
+| 2026-10-04 | perf | Atomic workspace cleanup now reads owner, lease, ready, and content names as views into each entry path, removing a child-basename string copy from every save. The atomic-save suite still covers marker validation and preservation of unexpected data. |
+
 | 2026-10-04 | perf | Atomic workspace validation and cleanup now inspect borrowed basenames from each path's native storage, avoiding repeated `filename().string()` allocations; tests cover relative, trailing-separator, and root paths. |
 
 | 2026-10-04 | perf | Text Editor Find/Replace and path prompts now assemble display and caret text in retained buffers, avoiding per-frame substring and concatenation temporaries; unchanged Find/Open prompt tests verify text and capacity stability. |
