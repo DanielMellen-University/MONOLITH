@@ -660,11 +660,26 @@ int main() {
                   == atomicPermissions)
               && !hasAtomicTempWorkspace(hostRoot / "src"),
           "atomic overwrite preserves a neighboring .tmp file and destination permissions");
+    const auto specialAtomicPermissions = atomicPermissions
+        | stdfs::perms::owner_exec | stdfs::perms::set_uid;
+    ec.clear();
+    stdfs::permissions(hostRoot / "src/atomic.txt", specialAtomicPermissions,
+                       stdfs::perm_options::replace, ec);
+    const bool specialPermissionsSet = !ec
+        && stdfs::status(hostRoot / "src/atomic.txt").permissions()
+            == specialAtomicPermissions;
+    check(specialPermissionsSet, "set special atomic file permission fixture");
+    const bool specialModeWrite = specialPermissionsSet
+        && fs.writeFile("/src/atomic.txt", "after special mode");
+    check(specialModeWrite
+              && stdfs::status(hostRoot / "src/atomic.txt").permissions()
+                  == specialAtomicPermissions,
+          "atomic overwrite restores special permission bits after streaming");
     check(!fs.writeFileWithProducer("/src/atomic.txt", [](std::ostream& out) {
               out.write("partial", 7);
               return false;
           })
-              && fs.readFile("/src/atomic.txt") == "after"
+              && fs.readFile("/src/atomic.txt") == "after special mode"
               && fs.readFile("/src/atomic.txt.tmp") == "important neighboring data"
               && !hasAtomicTempWorkspace(hostRoot / "src"),
           "failed producer preserves both destination data and neighboring .tmp file");

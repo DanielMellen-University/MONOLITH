@@ -34,6 +34,7 @@ The human funds token budget and lives in the desktop. You:
 
 | When | Kind | Note |
 |------|------|------|
+| 2026-10-04 | atomic-save-mode-retention | Reapply existing permission bits after the staged stream closes so content writes do not clear special mode bits |
 | 2026-10-04 | atomic-save-owner-marker | Require a validated ownership marker before reclaiming incomplete v4 workspaces; preserve user-created lookalike directories and retain ready-marked v3/v2 recovery |
 | 2026-10-03 | terminal-operand-validation | Reject excess operands before running fixed-arity built-ins or mutating filesystem commands; workflow #343 passed normal and sanitized jobs |
 | 2026-10-03 | atomic-save-setup-recovery | Coordinate v3 workspace initialization and sweeps with a brief exclusive parent-directory lock; reclaim incomplete v3 directories, preserve incomplete v2/legacy workspaces, and retain marked v2 recovery; workflow #340 passed normal and sanitized jobs |

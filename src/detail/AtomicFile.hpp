@@ -387,14 +387,6 @@ bool writeAtomically(const std::filesystem::path& targetPath,
     std::ofstream out(tempPath, openMode | std::ios_base::trunc);
     if (!out) return false;
 
-    if (preservePermissions) {
-        std::error_code permissionError;
-        std::filesystem::permissions(
-            tempPath, existingPermissions, std::filesystem::perm_options::replace,
-            permissionError);
-        if (permissionError) return false;
-    }
-
     try {
         std::forward<Writer>(writer)(out);
     } catch (...) {
@@ -404,6 +396,14 @@ bool writeAtomically(const std::filesystem::path& targetPath,
     if (!out) return false;
     out.close();
     if (!out) return false;
+
+    if (preservePermissions) {
+        std::error_code permissionError;
+        std::filesystem::permissions(
+            tempPath, existingPermissions, std::filesystem::perm_options::replace,
+            permissionError);
+        if (permissionError) return false;
+    }
 
     std::error_code renameError;
     std::filesystem::rename(tempPath, targetPath, renameError);

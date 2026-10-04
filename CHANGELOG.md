@@ -1,5 +1,10 @@
 # Changelog
 
+## 2026-10: Preserve special modes during atomic saves
+
+- Restore an existing file's permission bits after the staged stream is fully written and closed, so writes cannot clear setuid mode.
+- Cover special-mode retention through the shared virtual filesystem writer.
+
 ## 2026-10: Protect user directories during atomic-save cleanup
 
 - Stamp new v4 atomic-save workspaces with an ownership marker and reclaim incomplete workspaces only when that marker is valid.

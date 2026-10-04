@@ -1,5 +1,7 @@
 # Session log
 
+| 2026-10-04 | fix | Atomic saves now restore existing mode bits after writing and closing the staged file, preserving setuid that POSIX may clear during writes. The focused regression failed before the change and passes afterward, including failed-producer preservation; the complete headless suite, production build, and targeted ASan/UBSan filesystem suite pass. |
+
 | 2026-10-04 | fix | Atomic-save workspaces now use a v4 ownership marker, so incomplete cleanup requires proof the directory was created by Monolith instead of deleting any directory that shares the internal prefix. Ready-marked v3/v2 recovery remains supported; the tiny partial-marker crash window can leave an unmarked orphan. Added lookalike-directory regressions and updated filesystem/architecture docs. |
 
 | 2026-10-03 | fix | Terminal now rejects extra operands for fixed-arity built-ins instead of silently acting on only the first paths; `cp` and `rm` keep their documented flags but reject excess path operands. Regression tests verify rejected touch, mkdir, cp, mv, and rm commands leave entries unchanged. Full regular and ASan/UBSan headless suites passed locally with LeakSanitizer disabled due sandbox limitations; workflow #343 passed normal and full ASan/UBSan jobs. |
