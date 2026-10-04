@@ -653,7 +653,9 @@ g++ -std=c++23 scripts/test_modr_format.cpp src/app/DrawingRaster.cpp -o build/t
 These checks cover shell wiring, the production `.modr` encoder/decoder, and
 stateful editor paths without requiring an interactive desktop session. The
 optional smoke script exercises the built application through the headless
-display path:
+display path using a unique temporary HOME, verifies the application's actual
+filesystem root, and checks a uniquely named MODR fixture round-trip without
+clearing shared paths:
 
 ```bash
 ./scripts/headless_drawing_smoke.sh

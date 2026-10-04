@@ -16,6 +16,8 @@ The six Window Manager integration tests link against one set of shared app/runt
 
 Both cloud jobs configure and build the complete `monolith` executable before running the registered test through CTest. The sanitizer job additionally instruments the application and every headless test with AddressSanitizer and UndefinedBehaviorSanitizer.
 
+Headless tests that need host files use `scripts/TestTempDir.hpp` and its `ScopedTempDirectory`. It creates a fresh directory with `mkdtemp` and removes only that directory at scope exit. Do not use fixed temporary paths or clear PID-derived names before use; stale paths can survive a crash and PIDs are reused.
+
 ## Sanitized Suite
 
 Run the same suite with address and undefined-behavior checks locally:
@@ -285,6 +287,12 @@ g++ -std=c++23 scripts/test_modr_format.cpp src/app/DrawingRaster.cpp -o build/t
 ```
 
 See script source for requirements and what it exercises.
+
+The smoke script creates a unique temporary HOME (optionally under
+`MONOLITH_TEST_HOME_PARENT`), verifies Monolith's actual `$HOME/.monolith/fs`
+root and drawings directory, then writes and reads a uniquely named `.modr`
+fixture there. It removes only its own temporary data; it never clears a shared
+test path.
 
 ## Adding New Scripts
 
