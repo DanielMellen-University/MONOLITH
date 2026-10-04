@@ -400,6 +400,17 @@ inline bool tryReclaimIncompleteAtomicTempDirectory(
     return removeAtomicTempWorkspace(directory, false);
 }
 
+inline bool tryScavengeAtomicTempWorkspace(
+    const std::filesystem::path& directory) {
+    const AtomicTempParentLock parentLock(directory.parent_path());
+    if (!parentLock.locked()) {
+        scheduleAtomicTempSweepRetry(directory.parent_path());
+        return false;
+    }
+    if (tryReclaimIncompleteAtomicTempDirectory(directory)) return true;
+    return tryReclaimAtomicTempDirectory(directory);
+}
+
 inline bool scavengeAtomicTempDirectoriesLocked(
     const std::filesystem::path& parent,
     const AtomicTempParentLock& parentLock) {

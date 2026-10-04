@@ -103,8 +103,60 @@ int main() {
     const stdfs::path hostRoot = hostTemp.path();
     std::error_code ec;
 
+    const stdfs::path maintenanceDeep = hostRoot / "maintenance-unvisited" / "deep";
+    std::string maintenanceWorkspaceName;
+    const bool maintenanceWorkspaceNameReady =
+        monolith::detail::createAtomicTempTokenName(maintenanceWorkspaceName);
+    const stdfs::path maintenanceStaleWorkspace = maintenanceDeep / maintenanceWorkspaceName;
+    ec.clear();
+    const bool maintenanceFixturesReady = maintenanceWorkspaceNameReady
+        && stdfs::create_directories(maintenanceDeep, ec) && !ec
+        && stdfs::create_directory(maintenanceStaleWorkspace, ec) && !ec
+        && monolith::detail::createAtomicTempOwnerMarker(maintenanceStaleWorkspace);
+
+    const stdfs::path maintenanceLookalike = maintenanceDeep
+        / ".monolith-tmp-v4-lookalike";
+    ec.clear();
+    const bool maintenanceLookalikeReady =
+        stdfs::create_directory(maintenanceLookalike, ec) && !ec
+        && monolith::detail::createAtomicTempOwnerMarker(maintenanceLookalike)
+        && writeFixture(maintenanceLookalike / "user-data", "keep");
+
+    monolith::test::ScopedTempDirectory maintenanceOutsideTemp(
+        "monolith-fs-maintenance-outside");
+    const stdfs::path outsideWorkspace = maintenanceOutsideTemp.path()
+        / ".monolith-tmp-v3-outside";
+    ec.clear();
+    const bool outsideFixturesReady = maintenanceOutsideTemp
+        && stdfs::create_directory(outsideWorkspace, ec) && !ec
+        && writeFixture(outsideWorkspace / "lease", "")
+        && writeFixture(outsideWorkspace / "ready", "")
+        && writeFixture(outsideWorkspace / "content", "outside");
+    ec.clear();
+    if (outsideFixturesReady) {
+        stdfs::create_directory_symlink(maintenanceOutsideTemp.path(),
+                                         hostRoot / "outside-link", ec);
+    }
+    const bool outsideLinkReady = outsideFixturesReady && !ec;
+
     Filesystem fs(hostRoot.string());
     check(fs.initialize(), "filesystem initialize");
+    const bool maintenancePendingAfterFirstEntry = fs.maintenanceStep(1);
+    const bool firstMaintenanceStepWasBounded = maintenancePendingAfterFirstEntry
+        && stdfs::exists(maintenanceStaleWorkspace);
+    std::size_t maintenanceSteps = 1;
+    bool maintenancePending = maintenancePendingAfterFirstEntry;
+    while (maintenancePending && maintenanceSteps < 1000) {
+        maintenancePending = fs.maintenanceStep(1);
+        ++maintenanceSteps;
+    }
+    check(maintenanceFixturesReady && firstMaintenanceStepWasBounded
+              && !maintenancePending && maintenanceSteps < 1000
+              && !stdfs::exists(maintenanceStaleWorkspace),
+          "bounded maintenance reclaims an abandoned workspace in an untouched nested directory");
+    check(maintenanceLookalikeReady && stdfs::exists(maintenanceLookalike / "user-data")
+              && outsideLinkReady && stdfs::exists(outsideWorkspace),
+          "maintenance preserves unknown workspace data and does not follow directory symlinks");
     check(!fs.remove("/"), "non-recursive remove rejects the virtual root");
     check(fs.isDirectory("/"), "virtual root remains after a rejected remove");
     check(!fs.updateModifiedTime("/") && !fs.updateModifiedTime("/missing.txt"),

@@ -171,6 +171,8 @@ void WindowManager::update() {
             invokeAppCallback([&]() { w->app->update(); });
         }
     });
+
+    if (m_fs) m_fs->maintenanceStep();
 }
 
 void WindowManager::render(SDL_Renderer* renderer) {

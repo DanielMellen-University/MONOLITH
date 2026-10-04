@@ -1,5 +1,10 @@
 # Changelog
 
+## 2026-10: Reclaim abandoned saves across the filesystem
+
+- Continue a 32-entry-per-frame startup traversal so stale atomic-save workspaces in untouched nested directories are eventually reclaimed without a blocking startup scan.
+- Keep workspace cleanup behind the existing ownership, expected-entry, parent-lock, and lease checks; do not follow directory symlinks.
+
 ## 2026-10: Reclaim abandoned saves while browsing
 
 - Run the bounded atomic-save cleanup when directories are listed as well as when files are written, reclaiming crash leftovers when a user revisits a directory without saving.

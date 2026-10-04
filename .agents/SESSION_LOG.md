@@ -1,5 +1,7 @@
 # Session log
 
+| 2026-10-04 | fix | Atomic-save recovery now continues across the host filesystem after launch in 32-entry Window Manager maintenance steps, so a crash workspace in an untouched nested directory no longer waits for the user to revisit that path. Candidate removal still uses parent locking and strict workspace validation; symlink targets and unknown workspace contents are preserved. Added bounded-progress, nested-recovery, and symlink regressions. |
+
 | 2026-10-04 | fix | Directory listings now share the bounded atomic-save sweep tracker with writes. Revisited directories reclaim abandoned workspaces without requiring another save; `list()` and `listEntries()` are both covered. |
 
 | 2026-10-04 | fix | Atomic-save scavenging now locks older read-only or write-only lease files using whichever owner access mode remains available. Regressions cover both stale access modes and confirm an active read-only lease lock prevents reclamation. |

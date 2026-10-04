@@ -198,6 +198,12 @@ bool resolveWithinRoot(const stdfs::path& root,
 
 } // namespace
 
+struct Filesystem::CleanupTraversal {
+    stdfs::recursive_directory_iterator current;
+    stdfs::recursive_directory_iterator end;
+    bool finished = true;
+};
+
 Filesystem::Filesystem(const std::string& hostRootPath)
     : m_hostRoot(hostRootPath)
 {
@@ -211,11 +217,63 @@ bool Filesystem::initialize() {
                 return false;
             }
         }
-        return stdfs::is_directory(root);
+        if (!stdfs::is_directory(root)) return false;
+
+        m_cleanupTraversal.reset();
+        try {
+            auto traversal = std::make_shared<CleanupTraversal>();
+            std::error_code iteratorError;
+            traversal->current = stdfs::recursive_directory_iterator(
+                root, stdfs::directory_options::skip_permission_denied, iteratorError);
+            traversal->finished = iteratorError || traversal->current == traversal->end;
+            m_cleanupTraversal = std::move(traversal);
+        } catch (...) {
+            // Cleanup is best-effort and must not make a usable filesystem fail to initialize.
+        }
+        return true;
     } catch (const std::exception& e) {
         std::cerr << "Filesystem::initialize failed: " << e.what() << std::endl;
         return false;
     }
+}
+
+bool Filesystem::maintenanceStep(std::size_t entryBudget) noexcept {
+    const auto traversal = m_cleanupTraversal;
+    if (!traversal || traversal->finished) return false;
+
+    try {
+        while (entryBudget > 0 && traversal->current != traversal->end) {
+            const stdfs::path* workspace = nullptr;
+            stdfs::path workspacePath;
+            const auto& entryPath = traversal->current->path();
+            const std::string_view name = monolith::detail::pathBasenameView(entryPath);
+            if (name.starts_with(monolith::detail::atomicTempPrefix)
+                || name.starts_with(monolith::detail::atomicTempPreviousPrefix)
+                || name.starts_with(monolith::detail::atomicTempOlderPrefix)) {
+                workspacePath = entryPath;
+                workspace = &workspacePath;
+                traversal->current.disable_recursion_pending();
+            }
+
+            std::error_code iteratorError;
+            traversal->current.increment(iteratorError);
+            --entryBudget;
+
+            if (workspace) {
+                monolith::detail::tryScavengeAtomicTempWorkspace(*workspace);
+            }
+            if (iteratorError) {
+                traversal->finished = true;
+                return false;
+            }
+        }
+    } catch (...) {
+        traversal->finished = true;
+        return false;
+    }
+
+    traversal->finished = traversal->current == traversal->end;
+    return !traversal->finished;
 }
 
 std::string Filesystem::hostRoot() const {

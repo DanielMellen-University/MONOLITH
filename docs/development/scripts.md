@@ -78,6 +78,8 @@ destroyed before renderer and SDL shutdown:
 ./scripts/verify_main_lifecycle.sh
 ```
 
+Filesystem roadmap coverage also advances startup maintenance one host entry at a time, verifies stale workspaces in untouched nested directories are reclaimed, and confirms unknown workspace contents and directory symlink targets are preserved.
+
 ## Drawing Integration Check
 
 Static grep-based check that Drawing is wired into the window manager and Start menu:

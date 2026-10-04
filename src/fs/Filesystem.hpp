@@ -4,6 +4,7 @@
 #include <cstdint>
 #include <functional>
 #include <iosfwd>
+#include <memory>
 #include <string>
 #include <string_view>
 #include <vector>
@@ -34,6 +35,12 @@ public:
      * Returns false when the configured root cannot be created or is not a directory.
      */
     bool initialize();
+
+    /**
+     * Performs bounded background filesystem maintenance. Returns true while
+     * startup cleanup still has entries to inspect.
+     */
+    bool maintenanceStep(std::size_t entryBudget = 32) noexcept;
 
     /** Returns the host path that corresponds to the virtual root "/". */
     std::string hostRoot() const;
@@ -206,6 +213,8 @@ public:
     std::string toHostPath(const std::string& virtualPath) const;
 
 private:
+    struct CleanupTraversal;
+
     struct HostPath {
         std::string raw;
         std::string resolved;
@@ -222,6 +231,7 @@ private:
         const FileContentProducer& produceContent);
 
     std::string m_hostRoot;
+    std::shared_ptr<CleanupTraversal> m_cleanupTraversal;
 };
 
 } // namespace monolith::fs
