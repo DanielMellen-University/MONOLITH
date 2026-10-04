@@ -391,13 +391,44 @@ int main() {
               "modified-time updates cannot follow a symlink outside the virtual root");
         check(!fs.writeFile("/escape/new.txt", "blocked"),
               "write rejects outside symlink target");
+
+        const stdfs::path movableOutsideLink = hostRoot / "movable-outside-link";
+        const stdfs::path movedOutsideLink = hostRoot / "moved-outside-link";
+        ec.clear();
+        stdfs::create_symlink(outsideRoot / "secret.txt", movableOutsideLink, ec);
+        const bool movableOutsideLinkReady = !ec;
+        const bool outsideLinkMoved = movableOutsideLinkReady
+            && fs.rename("/movable-outside-link", "/moved-outside-link");
+        ec.clear();
+        const auto movedOutsideLinkStatus = stdfs::symlink_status(movedOutsideLink, ec);
+        const auto movedOutsideLinkTarget = stdfs::read_symlink(movedOutsideLink, ec);
+        check(outsideLinkMoved && !stdfs::exists(movableOutsideLink)
+                  && stdfs::is_symlink(movedOutsideLinkStatus) && !ec
+                  && movedOutsideLinkTarget == outsideRoot / "secret.txt"
+                  && stdfs::is_regular_file(outsideRoot / "secret.txt"),
+              "rename moves an outside-target symlink entry without following it");
+
         const bool nestedFileDeleteRejected = !fs.remove("/escape/nested-file-link");
+        const bool nestedFileRenameRejected =
+            !fs.rename("/escape/nested-file-link", "/moved-nested-file-link");
         ec.clear();
         const bool nestedFileLinkPreserved =
             stdfs::is_symlink(stdfs::symlink_status(outsideNestedFileLink, ec)) && !ec;
         check(outsideNestedFileLinkReady && nestedFileDeleteRejected
+                  && nestedFileRenameRejected
                   && nestedFileLinkPreserved,
-              "remove rejects a final symlink reached through an outside parent");
+              "remove and rename reject a final symlink reached through an outside parent");
+
+        check(fs.writeFile("/outside-parent-move-source.txt", "keep source"),
+              "write source for outside-parent rename rejection");
+        const bool nestedDestinationRenameRejected =
+            !fs.rename("/outside-parent-move-source.txt", "/escape/moved-file.txt");
+        check(nestedDestinationRenameRejected
+                  && fs.readFile("/outside-parent-move-source.txt") == "keep source"
+                  && !stdfs::exists(outsideRoot / "moved-file.txt"),
+              "rename rejects a destination reached through an outside parent");
+        check(fs.remove("/outside-parent-move-source.txt"),
+              "remove source after outside-parent rename rejection");
 
         const bool nestedDirectoryDeleteRejected =
             !fs.removeRecursive("/escape/nested-directory-link");
@@ -1047,6 +1078,22 @@ int main() {
     check(fs.readFile("/src/conflict.txt") == "keep source"
               && fs.readFile("/dst/conflict.txt") == "keep destination",
           "conflicting source and destination remain intact");
+    const stdfs::path batchMoveLink = hostRoot / "src/external-link";
+    const stdfs::path batchMovedLink = hostRoot / "dst/external-link";
+    ec.clear();
+    stdfs::create_symlink(outsideRoot / "secret.txt", batchMoveLink, ec);
+    const bool batchMoveLinkReady = !ec;
+    const int movedOutsideLink = batchMoveLinkReady
+        ? fs.moveItemsInto({"/src/external-link"}, "/dst")
+        : 0;
+    ec.clear();
+    const auto batchMovedLinkStatus = stdfs::symlink_status(batchMovedLink, ec);
+    const auto batchMovedLinkTarget = stdfs::read_symlink(batchMovedLink, ec);
+    check(movedOutsideLink == 1 && !stdfs::exists(batchMoveLink)
+              && stdfs::is_symlink(batchMovedLinkStatus) && !ec
+              && batchMovedLinkTarget == outsideRoot / "secret.txt"
+              && stdfs::is_regular_file(outsideRoot / "secret.txt"),
+          "moveItemsInto moves a hidden outside-target symlink entry safely");
 
     // Same-folder / existing dest should not overwrite.
     const int copiedAgain = fs.copyItemsInto({"/src/a.txt"}, "/dst");

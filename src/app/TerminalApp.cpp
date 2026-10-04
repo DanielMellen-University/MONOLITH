@@ -463,24 +463,22 @@ void TerminalApp::executeCommand(const std::string& commandLine) {
             } else {
                 std::string srcPath = resolvePath(src);
                 std::string dstPath = resolvePath(dst);
-                if (!m_fs->exists(srcPath)) {
+                // If dst is an existing directory, place src's basename inside it.
+                if (m_fs->isDirectory(dstPath)) {
+                    std::string base = srcPath;
+                    size_t slash = base.find_last_of('/');
+                    if (slash != std::string::npos) base = base.substr(slash + 1);
+                    if (base.empty()) base = src;  // fallback
+                    dstPath = joinPath(dstPath, base);
+                }
+                if (m_fs->rename(srcPath, dstPath)) {
+                    if (auto* ctrl = getController()) {
+                        ctrl->notifyVirtualPathMoved(srcPath, dstPath);
+                    }
+                } else if (!m_fs->exists(srcPath)) {
                     addOutput("mv: cannot stat '" + src + "': No such file or directory");
                 } else {
-                    // If dst is an existing directory, place src's basename inside it
-                    if (m_fs->isDirectory(dstPath)) {
-                        std::string base = srcPath;
-                        size_t slash = base.find_last_of('/');
-                        if (slash != std::string::npos) base = base.substr(slash + 1);
-                        if (base.empty()) base = src;  // fallback
-                        dstPath = joinPath(dstPath, base);
-                    }
-                    if (m_fs->rename(srcPath, dstPath)) {
-                        if (auto* ctrl = getController()) {
-                            ctrl->notifyVirtualPathMoved(srcPath, dstPath);
-                        }
-                    } else {
-                        addOutput("mv: cannot move '" + src + "' to '" + dst + "'");
-                    }
+                    addOutput("mv: cannot move '" + src + "' to '" + dst + "'");
                 }
             }
         }

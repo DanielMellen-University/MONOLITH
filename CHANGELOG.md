@@ -1,5 +1,10 @@
 # Changelog
 
+## 2026-10: Move hidden symlink entries safely
+
+- Let Filesystem and Terminal move a final symlink whose target is outside the virtual root, without following or changing that target.
+- Validate source and destination parents before rename, preserving rejection of paths through outside-pointing parent symlinks; retain existing destination and missing-source errors.
+
 ## 2026-10: Let Terminal remove hidden symlink entries
 
 - Make `rm` try the filesystem's parent-validated deletion before checking target visibility, so final symlinks to outside targets can be unlinked safely.

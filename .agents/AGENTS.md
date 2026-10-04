@@ -34,6 +34,7 @@ The human funds token budget and lives in the desktop. You:
 
 | When | Kind | Note |
 |------|------|------|
+| 2026-10-04 | filesystem-move-hidden-symlink | Move final outside-target symlinks as entries after validating both parents; keep outside-parent traversal blocked |
 | 2026-10-04 | terminal-remove-hidden-symlink | Let `rm` unlink a hidden final symlink after safe parent validation; reject outside-parent traversal |
 | 2026-10-04 | filesystem-delete-containment | Validate the resolved parent before unlinking the final entry so an outside-pointing parent symlink cannot delete external entries |
 | 2026-10-04 | filesystem-listing-validation | Share symlink visibility checks between both listing APIs and canonicalize the host root once per listing |

@@ -789,21 +789,17 @@ bool Filesystem::rename(const std::string& oldVirtualPath, const std::string& ne
             return false;
         }
 
-        const stdfs::path oldRawHost = stdfs::path(m_hostRoot) / oldPath.substr(1);
-        const stdfs::path newRawHost = stdfs::path(m_hostRoot) / newPath.substr(1);
-        const std::string oldHostPath = toHostPath(oldVirtualPath);
-        const std::string newHostPath = toHostPath(newVirtualPath);
-        if (oldHostPath.empty() || newHostPath.empty()) return false;
-        // Validate through resolved paths for containment, but preserve a
-        // final symlink as an entry instead of moving its target.
-        stdfs::path oldHost = isSymlinkPath(oldRawHost)
-            ? oldRawHost
-            : stdfs::path(oldHostPath);
-        stdfs::path newHost(newHostPath);
+        stdfs::path oldHost;
+        stdfs::path newHost;
+        if (!resolveEntryHostPathWithinRoot(m_hostRoot, oldPath, oldHost)
+            || !resolveEntryHostPathWithinRoot(m_hostRoot, newPath, newHost)
+            || !hostEntryExists(oldHost)) {
+            return false;
+        }
 
         // Prevent overwriting any existing directory entry, including a
         // dangling symlink that std::filesystem::exists would not report.
-        if (hostEntryExists(newRawHost)) {
+        if (hostEntryExists(newHost)) {
             return false;
         }
 
@@ -871,7 +867,6 @@ int Filesystem::moveItemsInto(const std::vector<std::string>& srcVirtualPaths,
     int moved = 0;
     for (const auto& srcRaw : srcVirtualPaths) {
         const std::string src = normalize(srcRaw);
-        if (!exists(src)) continue;
 
         const std::string name = baseName(src);
         if (!isValidEntryName(name)) continue;

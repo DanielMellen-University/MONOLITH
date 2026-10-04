@@ -1,5 +1,7 @@
 # Session log
 
+| 2026-10-04 | fix | Filesystem rename, batch move, and Terminal `mv` now operate on a final outside-target symlink as an entry after validating both parents, while paths through outside-pointing parent symlinks remain rejected. Filesystem and Terminal regressions cover target preservation, containment, and destination/missing-source behavior. |
+
 | 2026-10-04 | fix | Terminal `rm` now attempts Filesystem's parent-contained delete before checking target visibility, allowing safe removal of final symlinks whose targets are hidden outside the virtual root. Headless command coverage verifies file links, directory links with `-r`, and rejection through an outside parent symlink; focused Terminal tests, full headless suite, production build, and ASan/UBSan pass. |
 
 | 2026-10-04 | fix | Resolve and contain the parent of each filesystem deletion target before removing its final entry. Regression tests reproduced and now prevent `remove()` and `removeRecursive()` from unlinking files through an outside-pointing parent symlink; direct final-symlink unlinking remains supported. |

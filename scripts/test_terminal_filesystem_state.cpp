@@ -496,6 +496,13 @@ int main() {
               && terminal.m_history.back() == "mv: extra operand 'ignored.txt'",
           "mv rejects extra operands before moving its source");
 
+    terminal.executeCommand(
+        "mv /home/monolith/missing-move-source.txt /home/monolith/missing-move-dest.txt");
+    check(!fs.exists("/home/monolith/missing-move-dest.txt")
+              && terminal.m_history.back()
+                  == "mv: cannot stat '/home/monolith/missing-move-source.txt': No such file or directory",
+          "mv preserves its missing-source error");
+
     const std::string extraRemovePath = "/home/monolith/extra-remove.txt";
     check(fs.writeFile(extraRemovePath, "keep file"),
           "create extra-operand remove fixture");
@@ -646,6 +653,29 @@ int main() {
     check(outsideFileLinkRemoved && std::filesystem::is_regular_file(outsideTargetFile),
           "rm unlinks a hidden final symlink without deleting its outside target");
 
+    const std::filesystem::path outsideMoveLink =
+        hostRoot / "home/monolith/hidden-outside-move-link";
+    const std::filesystem::path movedOutsideLink =
+        hostRoot / "home/monolith/moved-outside-link";
+    ec.clear();
+    std::filesystem::create_symlink(outsideTargetFile, outsideMoveLink, ec);
+    const bool outsideMoveLinkReady = outsideTargetTemp && !ec;
+    if (outsideMoveLinkReady) {
+        terminal.executeCommand(
+            "mv /home/monolith/hidden-outside-move-link /home/monolith/moved-outside-link");
+    }
+    ec.clear();
+    const bool outsideMoveLinkMoved = outsideMoveLinkReady
+        && std::filesystem::is_symlink(
+            std::filesystem::symlink_status(movedOutsideLink, ec)) && !ec;
+    const auto outsideMoveTarget = outsideMoveLinkMoved
+        ? std::filesystem::read_symlink(movedOutsideLink, ec)
+        : std::filesystem::path{};
+    check(outsideMoveLinkMoved && !std::filesystem::exists(outsideMoveLink)
+              && !ec && outsideMoveTarget == outsideTargetFile
+              && std::filesystem::is_regular_file(outsideTargetFile),
+          "mv moves a hidden final symlink entry without following its outside target");
+
     const std::filesystem::path outsideDirectoryLink =
         hostRoot / "home/monolith/hidden-outside-directory-link";
     ec.clear();
@@ -686,6 +716,23 @@ int main() {
               && terminal.m_history.back()
                   == "rm: cannot remove '/home/monolith/outside-parent-link/nested-file-link': No such file or directory",
           "rm refuses to traverse an outside parent symlink");
+
+    terminal.m_history.clear();
+    terminal.m_historyBytes = 0;
+    if (nestedOutsideFileLinkReady && outsideParentLinkReady) {
+        terminal.executeCommand(
+            "mv /home/monolith/outside-parent-link/nested-file-link "
+            "/home/monolith/moved-nested-outside-link");
+    }
+    ec.clear();
+    const bool nestedOutsideMoveSourcePreserved = nestedOutsideFileLinkReady
+        && std::filesystem::is_symlink(
+            std::filesystem::symlink_status(nestedOutsideFileLink, ec)) && !ec;
+    check(nestedOutsideMoveSourcePreserved && outsideParentLinkReady
+              && !fs.exists("/home/monolith/moved-nested-outside-link")
+              && terminal.m_history.back()
+                  == "mv: cannot stat '/home/monolith/outside-parent-link/nested-file-link': No such file or directory",
+          "mv refuses to traverse an outside parent symlink");
 
     terminal.m_inputBuffer = "ls /";
     terminal.m_inputCursorPos = static_cast<int>(terminal.m_inputBuffer.size());
