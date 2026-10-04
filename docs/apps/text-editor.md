@@ -84,6 +84,8 @@ The editor applies lightweight syntax highlighting:
 
 ### Find Mode (Ctrl+F)
 
+When a single line of text is selected, Ctrl+F starts with that text as the query and selects its current occurrence. Multi-line or control-bearing selections start with an empty query.
+
 | Key | Action |
 |-----|--------|
 | Type | Build search query (matches update live) |
@@ -98,6 +100,8 @@ The editor applies lightweight syntax highlighting:
 The status bar shows match count (e.g. `2/5`). The current match is selected in the buffer. Search stores one location checkpoint per 256 non-overlapping matches, resolving navigation from the nearest checkpoint instead of retaining every hit; highlight geometry is built only for matches intersecting the visible text viewport.
 
 ### Find & Replace (Ctrl+H)
+
+When started from the editor with a single-line selection, Ctrl+H uses that text as the query and selects the matching occurrence. Multi-line or control-bearing selections start with an empty query.
 
 | Key | Action |
 |-----|--------|

@@ -76,6 +76,7 @@ private:
     void clearSelection();
     void prepareMove(bool extendSelection);
     void getOrderedSelection(int& r0, int& c0, int& r1, int& c1) const;
+    std::string selectedSingleLineText(int& row, int& column) const;
     std::string selectedText() const;
     bool selectedSerializedSize(size_t& bytes, size_t& lineBreaks) const;
     bool editFitsFileLimits(size_t insertedBytes, size_t insertedLineBreaks,

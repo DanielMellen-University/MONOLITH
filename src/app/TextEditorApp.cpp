@@ -987,6 +987,29 @@ void TextEditorApp::getOrderedSelection(int& r0, int& c0, int& r1, int& c1) cons
     }
 }
 
+std::string TextEditorApp::selectedSingleLineText(int& row, int& column) const {
+    row = m_cursorRow;
+    column = m_cursorCol;
+    if (!hasSelection()) return {};
+
+    int endRow = 0;
+    int endColumn = 0;
+    getOrderedSelection(row, column, endRow, endColumn);
+    if (row != endRow || row < 0 || row >= static_cast<int>(m_lines.size())) return {};
+
+    const std::string& line = m_lines[static_cast<size_t>(row)];
+    const int start = std::clamp(column, 0, static_cast<int>(line.size()));
+    const int end = std::clamp(endColumn, 0, static_cast<int>(line.size()));
+    if (end <= start) return {};
+
+    const std::string_view selected(line.data() + start, static_cast<size_t>(end - start));
+    for (const unsigned char byte : selected) {
+        if (byte < 32 || byte == 127) return {};
+    }
+    column = start;
+    return std::string(selected);
+}
+
 std::string TextEditorApp::selectedText() const {
     if (!hasSelection()) return {};
     int r0 = 0, c0 = 0, r1 = 0, c1 = 0;
@@ -1700,33 +1723,49 @@ void TextEditorApp::ensureCursorVisible() {
 }
 
 void TextEditorApp::enterFindMode() {
+    int selectedRow = m_cursorRow;
+    int selectedColumn = m_cursorCol;
+    std::string selectedQuery = selectedSingleLineText(selectedRow, selectedColumn);
+
     m_searchMode = SearchMode::Find;
     m_searchField = SearchField::Query;
     invalidateFindHighlightCache();
-    m_findQuery.clear();
+    m_findQuery = std::move(selectedQuery);
     m_replaceText.clear();
     m_findCheckpoints.clear();
     m_findMatchCount = 0;
     m_currentFindMatch = 0;
     m_hasCurrentFindMatch = false;
     m_currentFindPosition = {-1, -1};
-    m_findCursorPos = 0;
+    m_findCursorPos = m_findQuery.size();
     m_replaceCursorPos = 0;
     m_statusHorizontalScrollPx = 0;
+    if (!m_findQuery.empty()) {
+        m_cursorRow = selectedRow;
+        m_cursorCol = selectedColumn;
+    }
     clearSelection();
     m_statusMessage.clear();
+    if (!m_findQuery.empty()) updateFindMatches();
 }
 
 void TextEditorApp::enterReplaceMode() {
     // Keep current find query if already searching.
     if (m_searchMode == SearchMode::None) {
-        m_findQuery.clear();
+        int selectedRow = m_cursorRow;
+        int selectedColumn = m_cursorCol;
+        m_findQuery = selectedSingleLineText(selectedRow, selectedColumn);
         m_findCheckpoints.clear();
         m_findMatchCount = 0;
         m_currentFindMatch = 0;
         m_hasCurrentFindMatch = false;
         m_currentFindPosition = {-1, -1};
         invalidateFindHighlightCache();
+        m_findCursorPos = m_findQuery.size();
+        if (!m_findQuery.empty()) {
+            m_cursorRow = selectedRow;
+            m_cursorCol = selectedColumn;
+        }
     }
     m_searchMode = SearchMode::Replace;
     m_searchField = SearchField::Query;

@@ -1,5 +1,10 @@
 # Changelog
 
+## 2026-10: Search selected Text Editor text
+
+- Start Ctrl+F and Ctrl+H with a single-line selection as the query and keep the corresponding occurrence selected.
+- Keep multi-line or control-bearing selections out of the single-line search field.
+
 ## 2026-10: Unify Text Editor search input
 
 - Route typed and clipboard text through one Find/Replace insertion path so control filtering, caret movement, and query refresh remain consistent.

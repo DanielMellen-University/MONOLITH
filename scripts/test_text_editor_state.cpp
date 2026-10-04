@@ -1055,6 +1055,66 @@ int main() {
               && findPasteEditor.m_findMatchCount == 1,
           "typed Find input shares clipboard filtering and match refresh behavior");
 
+    SDL_Event ctrlFindEvent{};
+    ctrlFindEvent.type = SDL_KEYDOWN;
+    ctrlFindEvent.key.keysym.mod = KMOD_CTRL;
+    ctrlFindEvent.key.keysym.sym = SDLK_f;
+    TestEditor selectedFindEditor(nullptr, &fs, "");
+    selectedFindEditor.m_lines = {"before needle after"};
+    selectedFindEditor.m_cursorRow = 0;
+    selectedFindEditor.m_cursorCol = 13;
+    selectedFindEditor.m_selAnchorRow = 0;
+    selectedFindEditor.m_selAnchorCol = 7;
+    selectedFindEditor.m_hasSelection = true;
+    selectedFindEditor.handleEvent(ctrlFindEvent);
+    check(selectedFindEditor.m_findQuery == "needle"
+              && selectedFindEditor.m_findCursorPos == 6
+              && selectedFindEditor.m_currentFindPosition == std::pair<int, int>{0, 7}
+              && selectedFindEditor.m_hasSelection,
+          "Ctrl+F searches a selected single-line term and keeps its first match selected");
+
+    SDL_Event ctrlReplaceEvent = ctrlFindEvent;
+    ctrlReplaceEvent.key.keysym.sym = SDLK_h;
+    TestEditor selectedReplaceEditor(nullptr, &fs, "");
+    selectedReplaceEditor.m_lines = {"needle needle"};
+    selectedReplaceEditor.m_cursorRow = 0;
+    selectedReplaceEditor.m_cursorCol = 7;
+    selectedReplaceEditor.m_selAnchorRow = 0;
+    selectedReplaceEditor.m_selAnchorCol = 13;
+    selectedReplaceEditor.m_hasSelection = true;
+    selectedReplaceEditor.handleEvent(ctrlReplaceEvent);
+    check(selectedReplaceEditor.m_findQuery == "needle"
+              && selectedReplaceEditor.m_findCursorPos == 6
+              && selectedReplaceEditor.m_currentFindMatch == 1
+              && selectedReplaceEditor.m_currentFindPosition == std::pair<int, int>{0, 7}
+              && selectedReplaceEditor.m_replaceText.empty(),
+          "Ctrl+H pre-fills a reversed single-line selection and selects that occurrence");
+
+    TestEditor multilineFindEditor(nullptr, &fs, "");
+    multilineFindEditor.m_lines = {"before", "after"};
+    multilineFindEditor.m_cursorRow = 1;
+    multilineFindEditor.m_cursorCol = 3;
+    multilineFindEditor.m_selAnchorRow = 0;
+    multilineFindEditor.m_selAnchorCol = 3;
+    multilineFindEditor.m_hasSelection = true;
+    multilineFindEditor.handleEvent(ctrlFindEvent);
+    check(multilineFindEditor.m_findQuery.empty()
+              && multilineFindEditor.m_findMatchCount == 0
+              && !multilineFindEditor.m_hasSelection,
+          "Ctrl+F leaves multi-line selections out of the single-line search field");
+
+    TestEditor controlFindEditor(nullptr, &fs, "");
+    controlFindEditor.m_lines = {"before\t after"};
+    controlFindEditor.m_cursorRow = 0;
+    controlFindEditor.m_cursorCol = 13;
+    controlFindEditor.m_selAnchorRow = 0;
+    controlFindEditor.m_selAnchorCol = 6;
+    controlFindEditor.m_hasSelection = true;
+    controlFindEditor.handleEvent(ctrlFindEvent);
+    check(controlFindEditor.m_findQuery.empty()
+              && controlFindEditor.m_findMatchCount == 0,
+          "Ctrl+F does not seed a control-bearing selection into the inline field");
+
     TestEditor replacementPasteEditor(nullptr, &fs, "");
     replacementPasteEditor.m_lines = {"needle"};
     replacementPasteEditor.m_searchMode = TestEditor::SearchMode::Replace;
