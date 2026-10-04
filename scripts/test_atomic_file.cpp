@@ -125,6 +125,25 @@ int main() {
               && fs::exists(tokenLookalikePath / "notes.txt"),
           "cleanup reclaims empty pre-marker orphans but preserves nonempty token lookalikes");
 
+    const fs::path failedSetupPath = parent
+        / (std::string(monolith::detail::atomicTempPrefix)
+           + "aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa");
+    const fs::path emptySetupPath = parent
+        / (std::string(monolith::detail::atomicTempPrefix)
+           + "bbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbb");
+    ec.clear();
+    const bool setupRollbackFixturesReady = fs::create_directory(failedSetupPath, ec) && !ec
+        && writeFixture(failedSetupPath / "notes.txt", "preserve this entry")
+        && fs::create_directory(emptySetupPath, ec) && !ec;
+    const bool setupRollbackPreservesUnexpectedEntry = setupRollbackFixturesReady
+        && !monolith::detail::removeAtomicTempDirectoryIfEmpty(failedSetupPath)
+        && fs::exists(failedSetupPath / "notes.txt");
+    const bool setupRollbackRemovesEmptyDirectory = setupRollbackFixturesReady
+        && monolith::detail::removeAtomicTempDirectoryIfEmpty(emptySetupPath)
+        && !fs::exists(emptySetupPath);
+    check(setupRollbackPreservesUnexpectedEntry && setupRollbackRemovesEmptyDirectory,
+          "unpublished workspace rollback removes empty directories but preserves unexpected entries");
+
     const fs::path markerParent = parent / "marker-check";
     ec.clear();
     const bool markerParentReady = fs::create_directory(markerParent, ec) && !ec;

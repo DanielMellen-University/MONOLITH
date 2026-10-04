@@ -199,6 +199,11 @@ inline bool createAtomicTempOwnerMarker(const std::filesystem::path& directory) 
                      (directory / atomicTempOwnerName).c_str()) == 0;
 }
 
+inline bool removeAtomicTempDirectoryIfEmpty(
+    const std::filesystem::path& directory) {
+    return ::rmdir(directory.c_str()) == 0;
+}
+
 // A ready marker exists only after the writer owns the lease lock.
 inline bool tryReclaimAtomicTempDirectory(const std::filesystem::path& directory) {
     if (directory.filename().string().starts_with(atomicTempPrefix)
@@ -270,8 +275,7 @@ inline bool tryReclaimIncompleteAtomicTempDirectory(
     if (!hasOwnerMarker) {
         // Before the owner symlink is published, the directory is still empty.
         // rmdir semantics make a concurrent/user-added entry fail closed.
-        statusError.clear();
-        return std::filesystem::remove(directory, statusError) && !statusError;
+        return removeAtomicTempDirectoryIfEmpty(directory);
     }
 
     statusError.clear();
@@ -316,8 +320,7 @@ inline bool createAtomicTempDirectory(const std::filesystem::path& targetPath,
 
     auto prepareNewDirectory = [&](const std::filesystem::path& candidate) {
         if (!createAtomicTempOwnerMarker(candidate)) {
-            std::error_code cleanupError;
-            std::filesystem::remove_all(candidate, cleanupError);
+            removeAtomicTempDirectoryIfEmpty(candidate);
             return false;
         }
 
