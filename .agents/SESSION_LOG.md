@@ -1,5 +1,7 @@
 # Session log
 
+| 2026-10-03 | fix | Terminal command parsing and completion-prefix scanning now unescape only `\\` and `\"` in double quotes, preserving paths such as `folder\notes.txt`. Added regressions for literal/escaped backslashes in arguments and completion paths; hosted workflow #323 passed both normal and ASan/UBSan suites. |
+
 | 2026-10-03 | fix | Atomic saves now reserve a unique hidden sibling workspace rather than truncating a fixed `<target>.tmp`; ordinary neighboring files and symlinks survive successful and failed writes. Filesystem and Desktop Settings regressions passed in hosted workflow #319, including ASan/UBSan. Hard termination may leave a hidden workspace; automatic cleanup is deferred to avoid interfering with another active process. |
 
 | 2026-10-03 | fix | Recursive directory copies now journal overwritten files before replacement, using same-volume hard links with a file-copy fallback; failed traversals restore file and directory timestamps, remove new files/subtrees, preserve symlink entries, and retain failed recovery backups. Cloud workflow #315 passed both normal and ASan/UBSan suites. |
