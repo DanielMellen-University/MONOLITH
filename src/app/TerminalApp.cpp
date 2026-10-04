@@ -330,6 +330,9 @@ void TerminalApp::executeCommand(const std::string& commandLine) {
     const std::vector<std::string>& args = tokens.args;
 
     std::string cmd = args.empty() ? "" : args[0];
+    auto rejectExtraOperand = [&](const std::string& operand) {
+        addOutput(cmd + ": extra operand '" + operand + "'");
+    };
 
     // Rebuild a "rest" for backward compat with untouched commands (echo etc.)
     std::string rest;
@@ -342,6 +345,10 @@ void TerminalApp::executeCommand(const std::string& commandLine) {
         addOutput(rest);
     }
     else if (cmd == "clear") {
+        if (args.size() > 1) {
+            rejectExtraOperand(args[1]);
+            return;
+        }
         m_history.clear();
         m_historyViewportMeasures.clear();
         m_historyBytes = 0;
@@ -349,6 +356,10 @@ void TerminalApp::executeCommand(const std::string& commandLine) {
         m_historyHorizontalScrollPx = 0;
     }
     else if (cmd == "help") {
+        if (args.size() > 1) {
+            rejectExtraOperand(args[1]);
+            return;
+        }
         addOutput("Available commands:");
         addOutput("  echo <text>     - Print text");
         addOutput("  clear           - Clear the screen");
@@ -374,6 +385,10 @@ void TerminalApp::executeCommand(const std::string& commandLine) {
         addOutput("Scroll output: Page Up/Down; Shift+Page Up/Down pans long rows.");
     }
     else if (cmd == "date") {
+        if (args.size() > 1) {
+            rejectExtraOperand(args[1]);
+            return;
+        }
         std::time_t now = std::time(nullptr);
         std::string timeStr = std::ctime(&now);
         // ctime adds a trailing newline
@@ -383,13 +398,25 @@ void TerminalApp::executeCommand(const std::string& commandLine) {
         addOutput(timeStr);
     }
     else if (cmd == "whoami") {
+        if (args.size() > 1) {
+            rejectExtraOperand(args[1]);
+            return;
+        }
         addOutput("monolith");
     }
     else if (cmd == "version" || cmd == "ver") {
+        if (args.size() > 1) {
+            rejectExtraOperand(args[1]);
+            return;
+        }
         addOutput("Monolith Terminal v0.1");
         addOutput("Built on SDL2 + custom window manager");
     }
     else if (cmd == "ls") {
+        if (args.size() > 2) {
+            rejectExtraOperand(args[2]);
+            return;
+        }
         if (m_fs) {
             const std::string operand = args.size() > 1 ? args[1] : "";
             std::string target = operand.empty() ? m_cwd : resolvePath(operand);
@@ -414,9 +441,17 @@ void TerminalApp::executeCommand(const std::string& commandLine) {
         }
     }
     else if (cmd == "pwd") {
+        if (args.size() > 1) {
+            rejectExtraOperand(args[1]);
+            return;
+        }
         addOutput(m_cwd);
     }
     else if (cmd == "mv") {
+        if (args.size() > 3) {
+            rejectExtraOperand(args[3]);
+            return;
+        }
         if (!m_fs) {
             addOutput("Filesystem not available");
         } else {
@@ -464,6 +499,10 @@ void TerminalApp::executeCommand(const std::string& commandLine) {
                 } else {
                     operands.push_back(a);
                 }
+            }
+            if (operands.size() > 2) {
+                rejectExtraOperand(operands[2]);
+                return;
             }
             std::string src = (operands.size() > 0 ? operands[0] : "");
             std::string dst = (operands.size() > 1 ? operands[1] : "");
@@ -517,6 +556,10 @@ void TerminalApp::executeCommand(const std::string& commandLine) {
         }
     }
     else if (cmd == "cd") {
+        if (args.size() > 2) {
+            rejectExtraOperand(args[2]);
+            return;
+        }
         if (!m_fs) {
             addOutput("Filesystem not available");
         } else if (args.size() <= 1 || args[1].empty()) {
@@ -533,6 +576,10 @@ void TerminalApp::executeCommand(const std::string& commandLine) {
         }
     }
     else if (cmd == "cat") {
+        if (args.size() > 2) {
+            rejectExtraOperand(args[2]);
+            return;
+        }
         const std::string operand = args.size() > 1 ? args[1] : "";
         if (m_fs && !operand.empty()) {
             std::string path = resolvePath(operand);
@@ -612,6 +659,10 @@ void TerminalApp::executeCommand(const std::string& commandLine) {
         }
     }
     else if (cmd == "mkdir") {
+        if (args.size() > 2) {
+            rejectExtraOperand(args[2]);
+            return;
+        }
         if (!m_fs) {
             addOutput("Filesystem not available");
         } else if (args.size() <= 1 || args[1].empty()) {
@@ -631,6 +682,10 @@ void TerminalApp::executeCommand(const std::string& commandLine) {
         }
     }
     else if (cmd == "history") {
+        if (args.size() > 1) {
+            rejectExtraOperand(args[1]);
+            return;
+        }
         if (m_commandHistory.empty()) {
             addOutput("No commands in history yet.");
         } else {
@@ -647,15 +702,20 @@ void TerminalApp::executeCommand(const std::string& commandLine) {
         } else {
             // Robust flag parsing from args (no more brittle substr on rest)
             bool recursive = false;
-            std::string target;
+            std::vector<std::string> operands;
             for (size_t i = 1; i < args.size(); ++i) {
                 const std::string& a = args[i];
                 if (a == "-r" || a == "-rf") {
                     recursive = true;
-                } else if (target.empty()) {
-                    target = a;
+                } else {
+                    operands.push_back(a);
                 }
             }
+            if (operands.size() > 1) {
+                rejectExtraOperand(operands[1]);
+                return;
+            }
+            const std::string target = operands.empty() ? "" : operands.front();
             if (target.empty()) {
                 addOutput("rm: missing operand");
             } else {
@@ -683,6 +743,10 @@ void TerminalApp::executeCommand(const std::string& commandLine) {
         }
     }
     else if (cmd == "edit") {
+        if (args.size() > 2) {
+            rejectExtraOperand(args[2]);
+            return;
+        }
         if (!m_fs) {
             addOutput("Filesystem not available");
         } else if (args.size() <= 1 || args[1].empty()) {
@@ -701,6 +765,10 @@ void TerminalApp::executeCommand(const std::string& commandLine) {
         }
     }
     else if (cmd == "open") {
+        if (args.size() > 2) {
+            rejectExtraOperand(args[2]);
+            return;
+        }
         if (!m_fs) {
             addOutput("Filesystem not available");
         } else if (args.size() <= 1 || args[1].empty()) {
@@ -722,6 +790,10 @@ void TerminalApp::executeCommand(const std::string& commandLine) {
         }
     }
     else if (cmd == "touch") {
+        if (args.size() > 2) {
+            rejectExtraOperand(args[2]);
+            return;
+        }
         if (!m_fs) {
             addOutput("Filesystem not available");
         } else if (args.size() <= 1 || args[1].empty()) {
@@ -745,6 +817,10 @@ void TerminalApp::executeCommand(const std::string& commandLine) {
         }
     }
     else if (cmd == "exit" || cmd == "quit") {
+        if (args.size() > 1) {
+            rejectExtraOperand(args[1]);
+            return;
+        }
         if (auto* ctrl = getController()) {
             ctrl->close();
         } else {

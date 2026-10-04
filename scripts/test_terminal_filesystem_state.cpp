@@ -464,6 +464,43 @@ int main() {
               && controller.changedPaths.empty(),
           "touch updates existing file time without changing content or signaling content edits");
 
+    const std::string extraTouchPath = "/home/monolith/extra-touch.txt";
+    terminal.executeCommand("touch " + extraTouchPath + " ignored.txt");
+    check(!fs.exists(extraTouchPath)
+              && terminal.m_history.back() == "touch: extra operand 'ignored.txt'",
+          "touch rejects extra operands before creating a file");
+
+    const std::string extraMkdirPath = "/home/monolith/extra-mkdir";
+    terminal.executeCommand("mkdir " + extraMkdirPath + " ignored");
+    check(!fs.exists(extraMkdirPath)
+              && terminal.m_history.back() == "mkdir: extra operand 'ignored'",
+          "mkdir rejects extra operands before creating a directory");
+
+    const std::string extraCopyPath = "/home/monolith/extra-copy.txt";
+    terminal.executeCommand("cp -r /home/monolith/note.txt " + extraCopyPath
+                            + " ignored.txt");
+    check(!fs.exists(extraCopyPath)
+              && terminal.m_history.back() == "cp: extra operand 'ignored.txt'",
+          "cp rejects extra operands before copying its destination");
+
+    const std::string extraMoveSource = "/home/monolith/extra-move-source.txt";
+    const std::string extraMoveDestination = "/home/monolith/extra-move-destination.txt";
+    check(fs.writeFile(extraMoveSource, "keep source"),
+          "create extra-operand move fixture");
+    terminal.executeCommand("mv " + extraMoveSource + " " + extraMoveDestination
+                            + " ignored.txt");
+    check(fs.exists(extraMoveSource) && !fs.exists(extraMoveDestination)
+              && terminal.m_history.back() == "mv: extra operand 'ignored.txt'",
+          "mv rejects extra operands before moving its source");
+
+    const std::string extraRemovePath = "/home/monolith/extra-remove.txt";
+    check(fs.writeFile(extraRemovePath, "keep file"),
+          "create extra-operand remove fixture");
+    terminal.executeCommand("rm -r " + extraRemovePath + " ignored.txt");
+    check(fs.exists(extraRemovePath)
+              && terminal.m_history.back() == "rm: extra operand 'ignored.txt'",
+          "rm rejects extra operands before removing its target");
+
     terminal.executeCommand("cp /home/monolith/note.txt /home/monolith/copied.txt");
     check(!controller.createdPaths.empty()
               && controller.createdPaths.back() == "/home/monolith/copied.txt",

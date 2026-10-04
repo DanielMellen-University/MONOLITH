@@ -5,6 +5,11 @@
 - Use one `~` / `~/` expansion rule across Terminal, Text Editor, Drawing, and Settings wallpaper paths without changing Filesystem normalization semantics.
 - Preserve the shorthand during path completion while searching `/home/monolith`; cover path opens/saves, wallpaper updates, and move/delete prompt handling.
 
+## 2026-10: Reject extra Terminal operands
+
+- Validate the documented operand counts for built-in commands before running them, so mutating commands cannot silently act on only part of an overlong command line.
+- Preserve the documented `cp` and `rm` flags while rejecting additional path operands; verify rejected `touch`, `mkdir`, `cp`, `mv`, and `rm` commands leave the filesystem unchanged.
+
 ## 2026-10: Reclaim incomplete atomic-save setup workspaces
 
 - Protect v3 workspace setup and cleanup scans with a brief exclusive destination-directory lock, then use the per-workspace lease during the actual save.

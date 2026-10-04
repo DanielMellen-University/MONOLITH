@@ -34,6 +34,7 @@ The human funds token budget and lives in the desktop. You:
 
 | When | Kind | Note |
 |------|------|------|
+| 2026-10-03 | terminal-operand-validation | Reject excess operands before running fixed-arity built-ins or mutating filesystem commands; cloud verification pending |
 | 2026-10-03 | atomic-save-setup-recovery | Coordinate v3 workspace initialization and sweeps with a brief exclusive parent-directory lock; reclaim incomplete v3 directories, preserve incomplete v2/legacy workspaces, and retain marked v2 recovery; workflow #340 passed normal and sanitized jobs |
 | 2026-10-03 | virtual-home-paths | Share leading `~` / `~/` expansion across Terminal, Text Editor, Drawing, and Settings wallpaper entry; preserve shorthand during completion and path notifications; workflow #338 passed normal and sanitized jobs |
 | 2026-10-03 | terminal-home-shorthand | Expand leading `~` and `~/` to the fixed virtual home in Terminal commands; preserve shorthand in home-relative completions; workflow #335 passed normal and sanitized jobs |
