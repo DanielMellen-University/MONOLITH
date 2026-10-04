@@ -249,14 +249,14 @@ int main() {
         descriptorMaintenancePending = descriptorLimitFs.maintenanceStep(32);
     }
     for (const int descriptor : fileDescriptorPressure) ::close(descriptor);
+    const bool fileLimitRestored = fileLimitApplied
+        && ::setrlimit(RLIMIT_NOFILE, &originalFileLimit) == 0;
     if (fileLimitApplied) {
         while (descriptorMaintenancePending && descriptorMaintenanceSteps < 4000) {
             descriptorMaintenancePending = descriptorLimitFs.maintenanceStep(32);
             ++descriptorMaintenanceSteps;
         }
     }
-    const bool fileLimitRestored = fileLimitApplied
-        && ::setrlimit(RLIMIT_NOFILE, &originalFileLimit) == 0;
     check(descriptorLimitFsReady && fileLimitApplied && fileDescriptorLimitReached
               && fileLimitRestored
               && !descriptorMaintenancePending && descriptorMaintenanceSteps < 4000
