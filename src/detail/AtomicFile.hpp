@@ -32,6 +32,7 @@ inline constexpr const char* atomicTempOwnerName = "owner";
 inline constexpr unsigned long long atomicTempSweepInterval = 32;
 inline constexpr std::size_t atomicTempSweepEntryBudget = 32;
 inline constexpr std::size_t atomicTempTrackedParents = 16;
+inline constexpr std::size_t atomicTempTrackedAliases = 3;
 
 struct AtomicTempDirectoryCloser {
     void operator()(DIR* directory) const noexcept {
@@ -41,7 +42,8 @@ struct AtomicTempDirectoryCloser {
 
 struct AtomicTempSweepSlot {
     std::filesystem::path parent;
-    std::filesystem::path alias;
+    std::array<std::filesystem::path, atomicTempTrackedAliases> aliases{};
+    std::size_t nextAlias{0};
     unsigned long long operationsSinceSweep{0};
     std::unique_ptr<DIR, AtomicTempDirectoryCloser> traversal;
 };
@@ -49,6 +51,31 @@ struct AtomicTempSweepSlot {
 inline std::array<AtomicTempSweepSlot, atomicTempTrackedParents> atomicTempSweepSlots{};
 inline std::mutex atomicTempSweepMutex;
 inline std::size_t atomicTempSweepNextSlot{0};
+
+inline bool atomicTempSweepSlotMatches(
+    const AtomicTempSweepSlot& slot,
+    const std::filesystem::path& lexicalKey) {
+    if (slot.parent == lexicalKey) return true;
+    for (const auto& alias : slot.aliases) {
+        if (alias == lexicalKey) return true;
+    }
+    return false;
+}
+
+inline void rememberAtomicTempSweepAlias(
+    AtomicTempSweepSlot& slot,
+    const std::filesystem::path& lexicalKey) {
+    if (slot.parent == lexicalKey) return;
+    for (auto& alias : slot.aliases) {
+        if (alias == lexicalKey) return;
+        if (alias.empty()) {
+            alias = lexicalKey;
+            return;
+        }
+    }
+    slot.aliases[slot.nextAlias] = lexicalKey;
+    slot.nextAlias = (slot.nextAlias + 1) % slot.aliases.size();
+}
 
 class AtomicTempParentLock {
 public:
@@ -97,7 +124,7 @@ inline bool shouldSweepAtomicTempParent(const std::filesystem::path& parent) {
     {
         std::lock_guard lock(atomicTempSweepMutex);
         for (auto& slot : atomicTempSweepSlots) {
-            if (slot.parent == lexicalKey || slot.alias == lexicalKey) {
+            if (atomicTempSweepSlotMatches(slot, lexicalKey)) {
                 if (slot.traversal) return true;
                 return countOperation(slot);
             }
@@ -112,7 +139,7 @@ inline bool shouldSweepAtomicTempParent(const std::filesystem::path& parent) {
     std::lock_guard lock(atomicTempSweepMutex);
     for (auto& slot : atomicTempSweepSlots) {
         if (slot.parent != key) continue;
-        slot.alias = lexicalKey;
+        rememberAtomicTempSweepAlias(slot, lexicalKey);
         if (slot.traversal) return true;
         return countOperation(slot);
     }
@@ -121,7 +148,9 @@ inline bool shouldSweepAtomicTempParent(const std::filesystem::path& parent) {
     atomicTempSweepNextSlot = (atomicTempSweepNextSlot + 1) % atomicTempSweepSlots.size();
     slot.traversal.reset();
     slot.parent = key;
-    slot.alias = key == lexicalKey ? std::filesystem::path{} : lexicalKey;
+    slot.aliases = {};
+    slot.nextAlias = 0;
+    rememberAtomicTempSweepAlias(slot, lexicalKey);
     slot.operationsSinceSweep = 1;
     return true;
 }
@@ -146,7 +175,7 @@ inline void scheduleAtomicTempSweepRetry(const std::filesystem::path& parent) {
 
     std::lock_guard lock(atomicTempSweepMutex);
     for (auto& slot : atomicTempSweepSlots) {
-        if (slot.parent != key && slot.parent != lexicalKey && slot.alias != lexicalKey) {
+        if (slot.parent != key && !atomicTempSweepSlotMatches(slot, lexicalKey)) {
             continue;
         }
         slot.operationsSinceSweep = atomicTempSweepInterval;
@@ -157,7 +186,9 @@ inline void scheduleAtomicTempSweepRetry(const std::filesystem::path& parent) {
     atomicTempSweepNextSlot = (atomicTempSweepNextSlot + 1) % atomicTempSweepSlots.size();
     slot.traversal.reset();
     slot.parent = key;
-    slot.alias = key == lexicalKey ? std::filesystem::path{} : lexicalKey;
+    slot.aliases = {};
+    slot.nextAlias = 0;
+    rememberAtomicTempSweepAlias(slot, lexicalKey);
     slot.operationsSinceSweep = atomicTempSweepInterval;
 }
 
@@ -433,7 +464,7 @@ inline bool scavengeAtomicTempDirectoryStepLocked(
     std::unique_lock lock(atomicTempSweepMutex);
     auto findLexicalSlot = [&]() -> AtomicTempSweepSlot* {
         for (auto& candidate : atomicTempSweepSlots) {
-            if (candidate.parent == lexicalKey || candidate.alias == lexicalKey) {
+            if (atomicTempSweepSlotMatches(candidate, lexicalKey)) {
                 return &candidate;
             }
         }
@@ -454,7 +485,7 @@ inline bool scavengeAtomicTempDirectoryStepLocked(
     if (!slot) {
         for (auto& candidate : atomicTempSweepSlots) {
             if (candidate.parent != key) continue;
-            candidate.alias = lexicalKey;
+            rememberAtomicTempSweepAlias(candidate, lexicalKey);
             slot = &candidate;
             break;
         }
@@ -465,7 +496,9 @@ inline bool scavengeAtomicTempDirectoryStepLocked(
             % atomicTempSweepSlots.size();
         slot->traversal.reset();
         slot->parent = key;
-        slot->alias = key == lexicalKey ? std::filesystem::path{} : lexicalKey;
+        slot->aliases = {};
+        slot->nextAlias = 0;
+        rememberAtomicTempSweepAlias(*slot, lexicalKey);
         slot->operationsSinceSweep = 1;
     }
 

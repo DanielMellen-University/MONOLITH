@@ -1,5 +1,7 @@
 # Session log
 
+| 2026-10-04 | perf | Retain three alternate lexical spellings per tracked atomic-save parent so multiple symlink aliases avoid repeat canonicalization while sharing the same cleanup cadence. Expanded the regression to rotate through three aliases of one physical directory. |
+
 | 2026-10-04 | perf | Reuse tracked lexical paths when advancing atomic-save cleanup cursors, avoiding a canonical path walk on every slice while still resolving new aliases into the shared parent cadence. Extend the mixed-directory regression to alternate between canonical and symlink paths; update filesystem/architecture docs. |
 
 | 2026-10-04 | perf | Bound opportunistic atomic-save cleanup to 32 directory entries per save/listing operation. Large directory scans now resume from a retained POSIX stream cursor, reacquiring the parent lock only while advancing each slice; lock/enumeration failures retry immediately. Added mixed-directory stress coverage proving the first pass is bounded, later passes reclaim all stale workspaces, and ordinary entries remain intact. Updated filesystem and architecture docs; the full local headless/sanitizer suite and production build pass. |

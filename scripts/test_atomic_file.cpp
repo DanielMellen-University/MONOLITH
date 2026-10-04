@@ -1,6 +1,7 @@
 #include "../src/detail/AtomicFile.hpp"
 #include "TestTempDir.hpp"
 
+#include <array>
 #include <cstddef>
 #include <filesystem>
 #include <fstream>
@@ -78,11 +79,18 @@ int main() {
 
     const fs::path aliasTarget = parent / "alias-target";
     const fs::path aliasPath = parent / "alias-path";
+    const fs::path aliasPathTwo = parent / "alias-path-two";
+    const fs::path aliasPathThree = parent / "alias-path-three";
     ec.clear();
     const bool aliasTargetReady = fs::create_directory(aliasTarget, ec) && !ec;
-    ec.clear();
-    if (aliasTargetReady) fs::create_directory_symlink(aliasTarget, aliasPath, ec);
-    const bool aliasFixturesReady = aliasTargetReady && !ec;
+    const std::array aliases{aliasPath, aliasPathTwo, aliasPathThree};
+    bool aliasFixturesReady = aliasTargetReady;
+    for (const auto& alias : aliases) {
+        if (!aliasFixturesReady) break;
+        ec.clear();
+        fs::create_directory_symlink(aliasTarget, alias, ec);
+        aliasFixturesReady = !ec;
+    }
     const bool firstAliasSweep = aliasFixturesReady
         && monolith::detail::shouldSweepAtomicTempParent(aliasTarget);
     const bool secondAliasSweep = aliasFixturesReady
@@ -91,7 +99,9 @@ int main() {
     for (unsigned long long write = 2;
          aliasFixturesReady && write < monolith::detail::atomicTempSweepInterval;
          ++write) {
-        const auto& spelling = write % 2 == 0 ? aliasTarget : aliasPath;
+        const auto& spelling = write % 3 == 0
+            ? aliasPath
+            : write % 3 == 1 ? aliasPathTwo : aliasPathThree;
         aliasCadenceHeld = aliasCadenceHeld
             && !monolith::detail::shouldSweepAtomicTempParent(spelling);
     }

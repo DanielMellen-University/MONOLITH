@@ -1,5 +1,10 @@
 # Changelog
 
+## 2026-10: Cache multiple atomic-save directory aliases
+
+- Keep three alternate lexical paths per tracked parent so repeated operations through multiple symlink aliases share the cleanup cadence without repeatedly resolving each spelling.
+- Extend sweep cadence coverage to rotate through three aliases of one physical directory.
+
 ## 2026-10: Reuse tracked atomic-save sweep paths
 
 - Resume a known directory cursor without canonicalizing its parent path on every save/listing slice; newly encountered aliases still resolve to the shared physical-directory cadence.
