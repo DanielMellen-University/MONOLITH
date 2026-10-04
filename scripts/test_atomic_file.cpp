@@ -20,6 +20,17 @@ static bool writeFixture(const fs::path& path, const std::string& text) {
     return static_cast<bool>(out);
 }
 
+class ScopedUmask {
+public:
+    explicit ScopedUmask(mode_t mask) : previous_(::umask(mask)) {}
+    ScopedUmask(const ScopedUmask&) = delete;
+    ScopedUmask& operator=(const ScopedUmask&) = delete;
+    ~ScopedUmask() { ::umask(previous_); }
+
+private:
+    mode_t previous_;
+};
+
 static bool writeOwnerMarker(const fs::path& directory) {
     return writeFixture(directory / monolith::detail::atomicTempOwnerName,
                         monolith::detail::atomicTempOwnerMarker);
@@ -249,6 +260,58 @@ int main() {
     check(markerWrite && markerObservedDuringSave && workspaceNameValidated
               && workspacePermissionsPrivate,
           "new workspaces use validated random names and private permissions before content");
+
+    const fs::path restrictiveUmaskParent = parent / "restrictive-umask";
+    ec.clear();
+    const bool restrictiveParentReady = fs::create_directory(restrictiveUmaskParent, ec)
+        && !ec;
+    const fs::path restrictiveTarget = restrictiveUmaskParent / "record.txt";
+    const bool restrictiveTargetReady = restrictiveParentReady
+        && writeFixture(restrictiveTarget, "before");
+    if (restrictiveTargetReady) {
+        ec.clear();
+        fs::permissions(restrictiveTarget,
+                        fs::perms::owner_read | fs::perms::owner_write,
+                        fs::perm_options::replace, ec);
+    }
+    const bool restrictiveTargetModeReady = restrictiveTargetReady && !ec;
+    bool restrictiveWorkspacePrivate = false;
+    bool restrictiveLeaseReadable = false;
+    bool restrictiveWrite = false;
+    {
+        ScopedUmask restrictiveUmask(S_IRWXU | S_IRWXG | S_IRWXO);
+        restrictiveWrite = restrictiveTargetModeReady
+            && monolith::detail::writeTextAtomically(
+                restrictiveTarget,
+                [&](std::ostream& out) {
+                    for (const auto& entry : fs::directory_iterator(
+                             restrictiveUmaskParent)) {
+                        if (!entry.path().filename().string().starts_with(
+                                monolith::detail::atomicTempPrefix)) {
+                            continue;
+                        }
+                        struct stat directoryStatus {};
+                        struct stat leaseStatus {};
+                        restrictiveWorkspacePrivate =
+                            ::stat(entry.path().c_str(), &directoryStatus) == 0
+                            && (directoryStatus.st_mode & S_IRWXU) == S_IRWXU
+                            && (directoryStatus.st_mode & (S_IRWXG | S_IRWXO)) == 0;
+                        restrictiveLeaseReadable =
+                            ::stat((entry.path() / "lease").c_str(), &leaseStatus) == 0
+                            && (leaseStatus.st_mode & (S_IRUSR | S_IWUSR))
+                                == (S_IRUSR | S_IWUSR)
+                            && (leaseStatus.st_mode & (S_IRWXG | S_IRWXO)) == 0;
+                        break;
+                    }
+                    out << "after";
+                });
+    }
+    std::ifstream restrictiveResult(restrictiveTarget, std::ios::binary);
+    std::string restrictiveContents;
+    restrictiveResult >> restrictiveContents;
+    check(restrictiveWrite && restrictiveWorkspacePrivate
+              && restrictiveLeaseReadable && restrictiveContents == "after",
+          "atomic saves normalize workspace and lease permissions under a restrictive umask");
 
     const fs::path target = parent / "settings.txt";
     const auto stalePath = workspacePath(parent, target, 7);

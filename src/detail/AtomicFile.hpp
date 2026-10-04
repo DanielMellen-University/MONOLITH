@@ -457,17 +457,17 @@ inline bool createAtomicTempDirectory(const std::filesystem::path& targetPath,
     if (sweepDue) scavengeAtomicTempDirectoriesLocked(parent, parentLock);
 
     auto prepareNewDirectory = [&](const std::filesystem::path& candidate) {
-        if (!createAtomicTempOwnerMarker(candidate)) {
-            removeAtomicTempDirectoryIfEmpty(candidate);
-            return false;
-        }
-
         std::error_code permissionError;
         std::filesystem::permissions(candidate, std::filesystem::perms::owner_all,
                                      std::filesystem::perm_options::replace,
                                      permissionError);
         if (permissionError) {
-            removeAtomicTempWorkspace(candidate, false);
+            removeAtomicTempDirectoryIfEmpty(candidate);
+            return false;
+        }
+
+        if (!createAtomicTempOwnerMarker(candidate)) {
+            removeAtomicTempDirectoryIfEmpty(candidate);
             return false;
         }
 
@@ -475,8 +475,13 @@ inline bool createAtomicTempDirectory(const std::filesystem::path& targetPath,
         const int leaseFd = ::open(leasePath.c_str(),
                                    O_CREAT | O_EXCL | O_RDWR | O_CLOEXEC | O_NOFOLLOW,
                                    S_IRUSR | S_IWUSR);
-        if (leaseFd < 0 || ::flock(leaseFd, LOCK_EX | LOCK_NB) != 0) {
-            if (leaseFd >= 0) ::close(leaseFd);
+        if (leaseFd < 0) {
+            removeAtomicTempWorkspace(candidate, false);
+            return false;
+        }
+        if (::fchmod(leaseFd, S_IRUSR | S_IWUSR) != 0
+            || ::flock(leaseFd, LOCK_EX | LOCK_NB) != 0) {
+            ::close(leaseFd);
             removeAtomicTempWorkspace(candidate, false);
             return false;
         }

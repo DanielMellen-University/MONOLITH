@@ -1,5 +1,10 @@
 # Changelog
 
+## 2026-10: Handle restrictive umasks in atomic saves
+
+- Normalize workspace permissions before publishing ownership, and make lease files owner-readable so crash cleanup still works under restrictive umasks.
+- Cover a full atomic replacement with `umask(0777)`.
+
 ## 2026-10: Create atomic-save workspaces privately
 
 - Create staging workspaces with owner-only permissions at the initial `mkdir`, closing the brief window before permission normalization.

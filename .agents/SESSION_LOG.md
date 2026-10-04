@@ -1,5 +1,7 @@
 # Session log
 
+| 2026-10-04 | fix | Normalize atomic-save workspace permissions before publishing the owner token, and force lease files to owner read/write so cleanup can reopen them after a crash. A full save now passes under `umask(0777)` with private directory and lease modes; removed the resolved private-creation note from active debts. |
+
 | 2026-10-04 | fix | Atomic-save staging directories are now created owner-only at the initial `mkdir`, removing the brief permissive setup window; permission normalization still handles restrictive umasks. Added a live-workspace permission regression and documented the behavior. |
 
 | 2026-10-04 | test | Added an end-to-end Drawing state regression for Ctrl+O, typed filename prefix, Tab completion, and Enter through `handleEvent`; this protects the actual workflow rather than only testing the completion helper. Updated the developer verification guide. |
