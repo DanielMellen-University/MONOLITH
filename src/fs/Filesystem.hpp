@@ -11,6 +11,18 @@
 
 namespace monolith::fs {
 
+struct FileStamp {
+    std::uint64_t device = 0;
+    std::uint64_t inode = 0;
+    std::uint64_t size = 0;
+    std::int64_t modifiedSeconds = 0;
+    std::int64_t modifiedNanoseconds = 0;
+    std::int64_t changedSeconds = 0;
+    std::int64_t changedNanoseconds = 0;
+
+    bool operator==(const FileStamp&) const = default;
+};
+
 /**
  * Basic host-backed filesystem for Monolith.
  *
@@ -96,6 +108,9 @@ public:
 
     /** Updates the last-write time of an existing regular file without changing its content. */
     bool updateModifiedTime(const std::string& virtualPath);
+
+    /** Reads a regular file's identity, size, and high-resolution change times. */
+    bool fileStamp(const std::string& virtualPath, FileStamp& outStamp) const;
 
     /** Reads the entire content of a file. Returns empty string on failure. */
     std::string readFile(const std::string& virtualPath) const;

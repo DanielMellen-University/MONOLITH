@@ -99,6 +99,7 @@ private:
     static constexpr size_t kMaxDocumentLines = 65'536;
     static bool documentFitsFileLimits(const std::vector<std::string>& lines,
                                        size_t* serializedBytes = nullptr);
+    bool savedDocumentMatchesBoundFile(bool& matches);
     bool loadInitialFile(const std::string& virtualPath);
     bool saveCurrentFile(bool confirmedExternalOverwrite);
     std::string getDisplayName() const;
@@ -211,6 +212,9 @@ private:
     bool m_selectingWithMouse = false;
 
     std::string m_filePath;   // virtual path in Monolith FS (if set)
+    bool m_hasSavedFileBaseline = false;
+    monolith::fs::FileStamp m_savedFileStamp;
+    bool m_hasSavedFileStamp = false;
     bool m_dirty = false;
     bool m_externalChangePending = false;
     bool m_overwriteConfirmationPending = false;

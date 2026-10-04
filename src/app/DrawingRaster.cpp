@@ -357,6 +357,35 @@ bool writeModr(std::ostream& output, int width, int height,
                     });
 }
 
+bool matchesModrChunk(int width, int height, const std::vector<uint8_t>& rgba,
+                      std::size_t encodedOffset, std::string_view encodedChunk) {
+    if (!hasValidModrCanvas(width, height, rgba)) return false;
+
+    const std::size_t pixelCount = static_cast<std::size_t>(width)
+        * static_cast<std::size_t>(height);
+    const std::size_t encodedBytes = kModrHeaderBytes
+        + pixelCount * kModrRgbBytesPerPixel;
+    if (encodedOffset > encodedBytes
+        || encodedChunk.size() > encodedBytes - encodedOffset) {
+        return false;
+    }
+
+    const auto header = makeModrHeader(width, height);
+    for (std::size_t index = 0; index < encodedChunk.size(); ++index) {
+        const std::size_t position = encodedOffset + index;
+        uint8_t expected = 0;
+        if (position < header.size()) {
+            expected = static_cast<uint8_t>(header[position]);
+        } else {
+            const std::size_t payloadOffset = position - header.size();
+            expected = rgba[(payloadOffset / kModrRgbBytesPerPixel) * 4
+                            + payloadOffset % kModrRgbBytesPerPixel];
+        }
+        if (static_cast<uint8_t>(encodedChunk[index]) != expected) return false;
+    }
+    return true;
+}
+
 ModrStreamDecoder::ModrStreamDecoder(std::uint64_t fileBytes)
     : m_fileBytes(fileBytes),
       m_failed(fileBytes < kModrHeaderBytes

@@ -68,6 +68,10 @@ std::string encodeModr(int width, int height, const std::vector<uint8_t>& rgba);
 bool writeModr(std::ostream& output, int width, int height,
                const std::vector<uint8_t>& rgba);
 
+/** Compare an encoded byte range with the exact .modr stream for a canvas. */
+bool matchesModrChunk(int width, int height, const std::vector<uint8_t>& rgba,
+                      std::size_t encodedOffset, std::string_view encodedChunk);
+
 /** Incrementally validates and decodes a .modr file without buffering its RGB payload. */
 class ModrStreamDecoder {
 public:

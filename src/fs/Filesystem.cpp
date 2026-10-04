@@ -15,6 +15,7 @@
 #include <linux/fs.h>
 #include <stdexcept>
 #include <string_view>
+#include <sys/stat.h>
 #include <system_error>
 #include <sys/syscall.h>
 #include <unordered_set>
@@ -1206,6 +1207,29 @@ bool Filesystem::fileSize(const std::string& virtualPath, std::uint64_t& outByte
         stdfs::path hostPath = toHostPath(virtualPath);
         if (!stdfs::is_regular_file(hostPath)) return false;
         outBytes = static_cast<std::uint64_t>(stdfs::file_size(hostPath));
+        return true;
+    } catch (...) {
+        return false;
+    }
+}
+
+bool Filesystem::fileStamp(const std::string& virtualPath, FileStamp& outStamp) const {
+    try {
+        const std::string hostPath = toHostPath(virtualPath);
+        if (hostPath.empty()) return false;
+
+        struct stat info {};
+        if (::stat(hostPath.c_str(), &info) != 0 || !S_ISREG(info.st_mode)) return false;
+
+        FileStamp stamp;
+        stamp.device = static_cast<std::uint64_t>(info.st_dev);
+        stamp.inode = static_cast<std::uint64_t>(info.st_ino);
+        stamp.size = static_cast<std::uint64_t>(info.st_size);
+        stamp.modifiedSeconds = static_cast<std::int64_t>(info.st_mtim.tv_sec);
+        stamp.modifiedNanoseconds = static_cast<std::int64_t>(info.st_mtim.tv_nsec);
+        stamp.changedSeconds = static_cast<std::int64_t>(info.st_ctim.tv_sec);
+        stamp.changedNanoseconds = static_cast<std::int64_t>(info.st_ctim.tv_nsec);
+        outStamp = stamp;
         return true;
     } catch (...) {
         return false;

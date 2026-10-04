@@ -902,6 +902,63 @@ std::string DrawingApp::defaultSavePath() {
     return baseDir + "/sketch.modr";
 }
 
+bool DrawingApp::savedCanvasMatchesFile(const std::string& path, bool& matches) {
+    matches = true;
+    if (!m_hasSavedFileBaseline) return true;
+    matches = false;
+    if (!m_fs) return false;
+
+    monolith::fs::FileStamp observedStamp;
+    if (!m_fs->fileStamp(path, observedStamp)) {
+        if (!m_fs->exists(path)) return true;
+        return false;
+    }
+    if (m_hasSavedFileStamp && observedStamp == m_savedFileStamp) {
+        matches = true;
+        return true;
+    }
+    if (m_savedSnapshot.width <= 0 || m_savedSnapshot.height <= 0
+        || m_savedSnapshot.width > monolith::drawing::kMaxModrDimension
+        || m_savedSnapshot.height > monolith::drawing::kMaxModrDimension
+        || m_savedSnapshot.pixels.size()
+            != static_cast<std::size_t>(m_savedSnapshot.width)
+                * static_cast<std::size_t>(m_savedSnapshot.height) * 4) {
+        return false;
+    }
+
+    const std::size_t expectedBytes = monolith::drawing::kModrHeaderBytes
+        + static_cast<std::size_t>(m_savedSnapshot.width)
+            * static_cast<std::size_t>(m_savedSnapshot.height)
+            * monolith::drawing::kModrRgbBytesPerPixel;
+    if (observedStamp.size != expectedBytes) return true;
+
+    std::size_t offset = 0;
+    bool equal = true;
+    const bool readOk = m_fs->readFileChunks(path, [&](std::string_view chunk) {
+        if (!monolith::drawing::matchesModrChunk(
+                m_savedSnapshot.width, m_savedSnapshot.height,
+                m_savedSnapshot.pixels, offset, chunk)) {
+            equal = false;
+            return false;
+        }
+        offset += chunk.size();
+        return true;
+    });
+    if (!readOk) return false;
+
+    monolith::fs::FileStamp verifiedStamp;
+    if (!m_fs->fileStamp(path, verifiedStamp) || verifiedStamp != observedStamp) {
+        return false;
+    }
+
+    matches = equal && offset == expectedBytes;
+    if (matches) {
+        m_savedFileStamp = observedStamp;
+        m_hasSavedFileStamp = true;
+    }
+    return true;
+}
+
 bool DrawingApp::saveToPath(const std::string& virtualPath,
                             bool confirmedExternalOverwrite) {
     if (!m_fs) {
@@ -934,6 +991,17 @@ bool DrawingApp::saveToPath(const std::string& virtualPath,
     }
 
     const bool overwritingCurrentPath = path == m_filePath;
+    if (overwritingCurrentPath && !m_externalChangePending
+        && !confirmedExternalOverwrite) {
+        bool matchesSavedCanvas = false;
+        if (!savedCanvasMatchesFile(path, matchesSavedCanvas)) {
+            clearDiscardArm();
+            setStatus("Save failed: could not verify file.");
+            return false;
+        }
+        if (!matchesSavedCanvas) m_externalChangePending = true;
+    }
+
     if (m_externalChangePending && overwritingCurrentPath
         && !confirmedExternalOverwrite) {
         if (m_drawing) endActiveStroke();
@@ -964,6 +1032,8 @@ bool DrawingApp::saveToPath(const std::string& virtualPath,
     }
 
     m_filePath = path;
+    m_hasSavedFileBaseline = true;
+    m_hasSavedFileStamp = m_fs->fileStamp(path, m_savedFileStamp);
     m_externalChangePending = false;
     m_overwriteConfirmationPending = false;
     captureSavedSnapshot();
@@ -1008,11 +1078,12 @@ bool DrawingApp::loadFromPath(const std::string& virtualPath) {
         return false;
     }
 
-    std::uint64_t fileBytes = 0;
-    if (!m_fs->fileSize(path, fileBytes)) {
+    monolith::fs::FileStamp initialStamp;
+    if (!m_fs->fileStamp(path, initialStamp)) {
         setStatus("Open failed: could not read file.");
         return false;
     }
+    const std::uint64_t fileBytes = initialStamp.size;
     if (fileBytes > monolith::drawing::kMaxModrEncodedBytes) {
         setStatus("Open failed: .modr file exceeds the size limit.");
         return false;
@@ -1040,12 +1111,21 @@ bool DrawingApp::loadFromPath(const std::string& virtualPath) {
         return false;
     }
 
+    monolith::fs::FileStamp finalStamp;
+    if (!m_fs->fileStamp(path, finalStamp) || finalStamp != initialStamp) {
+        setStatus("Open failed: file changed while reading.");
+        return false;
+    }
+
     m_canvasWidth = width;
     m_canvasHeight = height;
     m_pixels = std::move(rgba);
     markTextureDirty();
 
     m_filePath = path;
+    m_hasSavedFileBaseline = true;
+    m_savedFileStamp = finalStamp;
+    m_hasSavedFileStamp = true;
     m_externalChangePending = false;
     m_overwriteConfirmationPending = false;
     captureSavedSnapshot();
@@ -1153,6 +1233,8 @@ void DrawingApp::onBoundFileRemoved(const std::string& removedPath) {
     }
 
     m_filePath.clear();
+    m_hasSavedFileBaseline = false;
+    m_hasSavedFileStamp = false;
     m_externalChangePending = false;
     m_overwriteConfirmationPending = false;
     m_closeAfterSave = false;
@@ -1207,6 +1289,8 @@ void DrawingApp::startNewSketch(bool explicitlyConfirmed) {
     }
     clearCanvas(false);
     m_filePath.clear();
+    m_hasSavedFileBaseline = false;
+    m_hasSavedFileStamp = false;
     m_externalChangePending = false;
     m_overwriteConfirmationPending = false;
     captureSavedSnapshot();

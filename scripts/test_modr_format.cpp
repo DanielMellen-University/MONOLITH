@@ -81,6 +81,17 @@ int main() {
     check(monolith::drawing::writeModr(streamed, 2, 2, original)
               && streamed.str() == encoded,
           "streaming encoder preserves exact production format bytes");
+    check(monolith::drawing::matchesModrChunk(
+              2, 2, original, 0, std::string_view(encoded).substr(0, 7))
+              && monolith::drawing::matchesModrChunk(
+                  2, 2, original, 7, std::string_view(encoded).substr(7)),
+          "saved-canvas comparison handles chunks split across the header and RGB payload");
+    std::string changedChunk = encoded.substr(4, 4);
+    changedChunk[2] ^= 1;
+    check(!monolith::drawing::matchesModrChunk(2, 2, original, 4, changedChunk)
+              && !monolith::drawing::matchesModrChunk(
+                  2, 2, original, encoded.size(), "x"),
+          "saved-canvas comparison rejects changed bytes and ranges beyond the encoded file");
 
     monolith::drawing::ModrStreamDecoder chunkDecoder(encoded.size());
     constexpr std::size_t chunkSizes[] = {1, 2, 5, 3, 1, 4};

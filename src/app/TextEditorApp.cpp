@@ -433,6 +433,80 @@ bool TextEditorApp::documentFitsFileLimits(const std::vector<std::string>& lines
     return true;
 }
 
+bool TextEditorApp::savedDocumentMatchesBoundFile(bool& matches) {
+    matches = true;
+    if (!m_hasSavedFileBaseline) return true;
+    matches = false;
+    if (!m_fs || m_filePath.empty()) return false;
+
+    monolith::fs::FileStamp observedStamp;
+    if (!m_fs->fileStamp(m_filePath, observedStamp)) {
+        if (!m_fs->exists(m_filePath)) return true;
+        return false;
+    }
+    if (m_hasSavedFileStamp && observedStamp == m_savedFileStamp) {
+        matches = true;
+        return true;
+    }
+
+    std::size_t expectedLine = 0;
+    std::size_t expectedColumn = 0;
+    bool pendingCarriageReturn = false;
+    bool equal = true;
+    auto consumeExpected = [&](char actual) {
+        while (expectedLine < m_savedLines.size()) {
+            const std::string& line = m_savedLines[expectedLine];
+            if (expectedColumn < line.size()) {
+                return actual == line[expectedColumn++];
+            }
+            if (expectedLine + 1 < m_savedLines.size()) {
+                ++expectedLine;
+                expectedColumn = 0;
+                return actual == '\n';
+            }
+            break;
+        }
+        return false;
+    };
+    const bool readOk = m_fs->readFileChunks(m_filePath, [&](std::string_view chunk) {
+        for (const char character : chunk) {
+            if (pendingCarriageReturn) {
+                if (!consumeExpected('\n')) {
+                    equal = false;
+                    return false;
+                }
+                pendingCarriageReturn = false;
+                if (character == '\n') continue;
+            }
+
+            if (character == '\r') {
+                pendingCarriageReturn = true;
+            } else if (!consumeExpected(character)) {
+                equal = false;
+                return false;
+            }
+        }
+        return true;
+    });
+    if (!readOk) return false;
+
+    monolith::fs::FileStamp verifiedStamp;
+    if (!m_fs->fileStamp(m_filePath, verifiedStamp)
+        || verifiedStamp != observedStamp) {
+        return false;
+    }
+
+    if (equal && pendingCarriageReturn) equal = consumeExpected('\n');
+    matches = equal
+        && expectedLine == (m_savedLines.empty() ? 0 : m_savedLines.size() - 1)
+        && (m_savedLines.empty() || expectedColumn == m_savedLines.back().size());
+    if (matches) {
+        m_savedFileStamp = observedStamp;
+        m_hasSavedFileStamp = true;
+    }
+    return true;
+}
+
 bool TextEditorApp::loadInitialFile(const std::string& virtualPath) {
     if (!m_fs) {
         setStatus("Open failed: filesystem not available");
@@ -442,6 +516,12 @@ bool TextEditorApp::loadInitialFile(const std::string& virtualPath) {
     std::string normalized = m_fs->normalize(expandVirtualHomeShorthand(virtualPath));
     if (!m_fs->isFile(normalized)) {
         setStatus("Open failed: not a file — " + normalized);
+        return false;
+    }
+
+    monolith::fs::FileStamp initialStamp;
+    if (!m_fs->fileStamp(normalized, initialStamp)) {
+        setStatus("Open failed: could not read " + normalized);
         return false;
     }
 
@@ -511,9 +591,18 @@ bool TextEditorApp::loadInitialFile(const std::string& virtualPath) {
         return false;
     }
 
+    monolith::fs::FileStamp finalStamp;
+    if (!m_fs->fileStamp(normalized, finalStamp) || finalStamp != initialStamp) {
+        setStatus("Open failed: file changed while reading " + normalized);
+        return false;
+    }
+
     m_lines = std::move(loadedLines);
     m_documentSerializedBytes = serializedBytes;
     m_filePath = normalized;
+    m_hasSavedFileBaseline = true;
+    m_savedFileStamp = finalStamp;
+    m_hasSavedFileStamp = true;
     m_savedLines = m_lines;
     m_externalChangePending = false;
     m_overwriteConfirmationPending = false;
@@ -550,6 +639,16 @@ bool TextEditorApp::saveCurrentFile(bool confirmedExternalOverwrite) {
         return false;
     }
 
+    if (!m_externalChangePending && !confirmedExternalOverwrite) {
+        bool matchesSavedDocument = false;
+        if (!savedDocumentMatchesBoundFile(matchesSavedDocument)) {
+            clearDiscardArm();
+            setStatus("Save failed: could not verify " + m_filePath);
+            return false;
+        }
+        if (!matchesSavedDocument) m_externalChangePending = true;
+    }
+
     if (m_externalChangePending && !confirmedExternalOverwrite) {
         m_selectingWithMouse = false;
         m_overwriteConfirmationPending = true;
@@ -568,6 +667,8 @@ bool TextEditorApp::saveCurrentFile(bool confirmedExternalOverwrite) {
         return writer.finish();
     });
     if (ok) {
+        m_hasSavedFileBaseline = true;
+        m_hasSavedFileStamp = m_fs->fileStamp(m_filePath, m_savedFileStamp);
         m_savedLines = m_lines;
         m_dirty = false;
         m_externalChangePending = false;
@@ -727,6 +828,8 @@ void TextEditorApp::onBoundFileRemoved(const std::string& removedPath) {
     }
 
     m_filePath.clear();
+    m_hasSavedFileBaseline = false;
+    m_hasSavedFileStamp = false;
     m_externalChangePending = false;
     m_overwriteConfirmationPending = false;
     m_closeAfterSave = false;

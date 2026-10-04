@@ -914,6 +914,35 @@ int main() {
               && !drawing.m_externalChangePending,
           "Drawing ignores its own synchronous change notification");
 
+    const std::string unannouncedPath = "/drawings/unannounced.modr";
+    const std::string originalDrawingBytes = monolith::drawing::encodeModr(
+        2, 2, loadedPixels);
+    check(fs.writeFile(unannouncedPath, originalDrawingBytes),
+          "create a Drawing baseline for an unannounced disk change");
+    TestDrawing unannouncedDrawing(nullptr, &fs);
+    check(unannouncedDrawing.loadFromPath(unannouncedPath),
+          "load the Drawing baseline before the external write");
+    const monolith::fs::FileStamp originalDrawingStamp =
+        unannouncedDrawing.m_savedFileStamp;
+    monolith::fs::FileStamp touchedDrawingStamp;
+    check(fs.updateModifiedTime(unannouncedPath)
+              && fs.fileStamp(unannouncedPath, touchedDrawingStamp)
+              && touchedDrawingStamp != originalDrawingStamp
+              && unannouncedDrawing.saveToPath(unannouncedPath)
+              && !unannouncedDrawing.m_externalChangePending
+              && unannouncedDrawing.m_savedFileStamp != originalDrawingStamp,
+          "identical Drawing bytes after a metadata change save without a false conflict");
+    recordPixelEdit(unannouncedDrawing, 0, 0, 11, 12, 13);
+    const std::string hostDrawingBytes = monolith::drawing::encodeModr(
+        1, 1, externalPixels);
+    check(fs.writeFile(unannouncedPath, hostDrawingBytes),
+          "write a host-side Drawing version without sending an app notification");
+    check(!unannouncedDrawing.saveToPath(unannouncedPath)
+              && unannouncedDrawing.m_externalChangePending
+              && unannouncedDrawing.m_overwriteConfirmationPending
+              && fs.readFile(unannouncedPath) == hostDrawingBytes,
+          "Drawing detects an unannounced disk change and preserves it for confirmation");
+
     controller.occupiedDrawingPath = "/drawings/resize.modr";
     check(fs.writeFile("/drawings/resize.modr",
                        monolith::drawing::encodeModr(1, 1, externalPixels)),

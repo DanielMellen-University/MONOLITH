@@ -122,6 +122,7 @@ private:
     // === File I/O ===
     bool saveToPath(const std::string& virtualPath,
                     bool confirmedExternalOverwrite = false);
+    bool savedCanvasMatchesFile(const std::string& path, bool& matches);
     bool loadFromPath(const std::string& virtualPath);
     std::string defaultSavePath();
 
@@ -204,6 +205,9 @@ private:
     bool m_sparseHistoryOverflowed = false;
 
     std::string m_filePath;
+    bool m_hasSavedFileBaseline = false;
+    monolith::fs::FileStamp m_savedFileStamp;
+    bool m_hasSavedFileStamp = false;
     bool m_dirty = false;
     bool m_externalChangePending = false;
     bool m_overwriteConfirmationPending = false;

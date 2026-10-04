@@ -1051,6 +1051,35 @@ int main() {
               && !selfSaveEditor.m_externalChangePending,
           "the editor ignores its own synchronous change notification");
 
+    TestEditor hostChangeEditor(nullptr, &fs, "/new.txt");
+    hostChangeEditor.m_lines = {"stale local version"};
+    hostChangeEditor.m_dirty = true;
+    check(fs.writeFile("/new.txt", "host-side version"),
+          "write a host-side version without sending an app notification");
+    check(!hostChangeEditor.saveCurrentFile()
+              && hostChangeEditor.m_externalChangePending
+              && hostChangeEditor.m_overwriteConfirmationPending
+              && fs.readFile("/new.txt") == "host-side version",
+          "bound save detects an unannounced disk change and preserves it for confirmation");
+
+    check(fs.writeFile("/line-endings.txt", "first\r\nsecond\r"),
+          "create a CRLF and CR line-ending fixture");
+    TestEditor lineEndingEditor(nullptr, &fs, "/line-endings.txt");
+    const monolith::fs::FileStamp originalLineEndingStamp =
+        lineEndingEditor.m_savedFileStamp;
+    check(fs.writeFile("/line-endings.txt", "first\r\nsecond\r"),
+          "replace unchanged line-ending bytes to exercise the exact comparison path");
+    monolith::fs::FileStamp replacedLineEndingStamp;
+    check(fs.fileStamp("/line-endings.txt", replacedLineEndingStamp)
+              && replacedLineEndingStamp != originalLineEndingStamp,
+          "atomic replacement changes the bound file stamp");
+    lineEndingEditor.m_lines[0] = "edited first";
+    lineEndingEditor.m_dirty = true;
+    check(lineEndingEditor.saveCurrentFile()
+              && !lineEndingEditor.m_externalChangePending
+              && fs.readFile("/line-endings.txt") == "edited first\nsecond\n",
+          "bound-save comparison normalizes existing CRLF and CR separators");
+
     check(fs.createDirectory("/blocked.txt"), "create blocked direct-save target");
     editor.m_filePath = "/blocked.txt";
     editor.m_dirty = true;

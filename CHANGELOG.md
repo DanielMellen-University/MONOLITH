@@ -1,5 +1,11 @@
 # Changelog
 
+## 2026-10: Detect unannounced changes before bound-file saves
+
+- Check a bound file's identity and high-resolution version stamp before overwrite; unchanged saves avoid a content reread, while changed stamps trigger an exact streamed comparison and the existing Ctrl+D/Esc decision.
+- Normalize CRLF and CR separators for Text Editor and compare Drawing's exact `.modr` bytes without retaining another file-sized copy.
+- Cover silent external writes, unchanged CRLF documents, split `.modr` comparison chunks, and mismatch preservation.
+
 ## 2026-10: Paste text into the active Browser filter
 
 - Route Ctrl+V to system clipboard text while the Filesystem Browser filter is being edited, preserving its caret and leaving file-copy clipboard operations untouched.
