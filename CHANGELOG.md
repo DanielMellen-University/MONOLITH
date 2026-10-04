@@ -1,5 +1,10 @@
 # Changelog
 
+## 2026-10: Account Text Editor snapshots while cloning
+
+- Measure copied line storage during undo-snapshot creation, removing a second pass over the full snapshot while keeping the pre-copy budget check.
+- Verify snapshot contents, cursor state, and byte accounting in the Text Editor state test.
+
 ## 2026-10: Trim Terminal command history in one pass
 
 - Preserve the newest valid commands within the existing 500-entry and 2 MiB limits while scanning backward once and erasing the discarded prefix once.

@@ -1,5 +1,7 @@
 # Session log
 
+| 2026-10-03 | perf | Text Editor undo snapshots now account copied line storage during cloning, removing the post-copy measurement pass while preserving the active-document budget precheck. Snapshot content/cursor/accounting regression, full headless suite, and production build passed; hosted workflow #307 passed both normal and sanitized jobs. |
+
 | 2026-10-03 | perf | Terminal command-history trimming now filters invalid entries, scans backward once to retain the newest suffix within count and byte caps, and erases the discarded prefix once. Added a 256-entry boundary regression; normal and sanitized hosted workflow #303 passed. |
 
 | 2026-10-03 | perf | Filesystem tree copying now keeps directory traversal state in an explicit frame stack instead of recursive calls, while preserving direct native iteration, atomic 16 KiB file streaming, symlink checks, and cleanup of newly created subtrees on failure. Added deep-copy and nested rollback coverage; normal and sanitized hosted workflow #299 passed. |

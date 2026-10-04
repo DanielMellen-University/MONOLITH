@@ -1134,6 +1134,17 @@ int main() {
     check(editor.m_undoStack.size() + editor.m_redoStack.size() == TestEditor::kMaxUndoStates,
           "undo and redo share the 50-state cap");
 
+    TestEditor snapshotEditor(nullptr, &fs, "");
+    snapshotEditor.m_lines = {"alpha", "", "omega"};
+    snapshotEditor.m_cursorRow = 2;
+    snapshotEditor.m_cursorCol = 3;
+    const auto snapshot = snapshotEditor.captureEditorState();
+    check(snapshot.lines == snapshotEditor.m_lines
+              && snapshot.cursorRow == 2 && snapshot.cursorCol == 3
+              && snapshot.memoryBytes
+                  == snapshotEditor.measureEditorStateBytes(snapshot.lines),
+          "editor snapshots account cloned storage while preserving document and cursor state");
+
     {
         TestEditor memoryEditor(nullptr, &fs, "");
         constexpr size_t largeLineBytes = 24 * 1024 * 1024;
