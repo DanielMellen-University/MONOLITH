@@ -24,6 +24,51 @@
 namespace stdfs = std::filesystem;
 using monolith::fs::Filesystem;
 
+class ScopedDescriptorPressure {
+public:
+    ~ScopedDescriptorPressure() { restore(); }
+
+    bool apply() {
+        if (::getrlimit(RLIMIT_NOFILE, &originalLimit_) != 0
+            || originalLimit_.rlim_cur <= 16) {
+            return false;
+        }
+
+        struct rlimit restrictedLimit = originalLimit_;
+        restrictedLimit.rlim_cur = std::min<rlim_t>(32, originalLimit_.rlim_cur);
+        descriptors_.reserve(static_cast<std::size_t>(restrictedLimit.rlim_cur));
+        if (::setrlimit(RLIMIT_NOFILE, &restrictedLimit) != 0) return false;
+        active_ = true;
+
+        while (true) {
+            const int descriptor = ::open("/dev/null", O_RDONLY | O_CLOEXEC);
+            if (descriptor < 0) {
+                reachedLimit_ = errno == EMFILE;
+                break;
+            }
+            descriptors_.push_back(descriptor);
+        }
+        return true;
+    }
+
+    bool reachedLimit() const { return reachedLimit_; }
+
+    bool restore() {
+        for (const int descriptor : descriptors_) ::close(descriptor);
+        descriptors_.clear();
+        if (!active_) return false;
+        if (::setrlimit(RLIMIT_NOFILE, &originalLimit_) != 0) return false;
+        active_ = false;
+        return true;
+    }
+
+private:
+    struct rlimit originalLimit_ {};
+    std::vector<int> descriptors_;
+    bool active_ = false;
+    bool reachedLimit_ = false;
+};
+
 static std::string referenceNormalize(const std::string& path) {
     if (path.empty()) return "/";
 
@@ -191,6 +236,40 @@ int main() {
               && outsideLinkReady && stdfs::exists(outsideWorkspace),
           "maintenance preserves unknown workspace data and does not follow directory symlinks");
 
+    const stdfs::path descriptorRoot = hostRoot / "maintenance-root-descriptor-limit";
+    std::string rootDescriptorWorkspaceName;
+    ec.clear();
+    const bool rootDescriptorFixturesReady =
+        monolith::detail::createAtomicTempTokenName(rootDescriptorWorkspaceName)
+        && stdfs::create_directory(descriptorRoot, ec) && !ec;
+    const stdfs::path rootDescriptorWorkspace = descriptorRoot
+        / rootDescriptorWorkspaceName;
+    ec.clear();
+    const bool rootDescriptorWorkspaceReady = rootDescriptorFixturesReady
+        && stdfs::create_directory(rootDescriptorWorkspace, ec) && !ec
+        && monolith::detail::createAtomicTempOwnerMarker(rootDescriptorWorkspace);
+    Filesystem rootDescriptorFs(descriptorRoot.string());
+    ScopedDescriptorPressure rootDescriptorPressure;
+    const bool rootDescriptorLimitApplied = rootDescriptorWorkspaceReady
+        && rootDescriptorPressure.apply();
+    const bool rootDescriptorLimitReached = rootDescriptorPressure.reachedLimit();
+    const bool rootDescriptorFsReady = rootDescriptorLimitApplied
+        && rootDescriptorFs.initialize();
+    const bool rootDescriptorLimitRestored = rootDescriptorPressure.restore();
+    std::size_t rootDescriptorMaintenanceSteps = 0;
+    bool rootDescriptorMaintenancePending = rootDescriptorFsReady
+        && rootDescriptorFs.maintenanceStep(32);
+    while (rootDescriptorMaintenancePending && rootDescriptorMaintenanceSteps < 1000) {
+        rootDescriptorMaintenancePending = rootDescriptorFs.maintenanceStep(32);
+        ++rootDescriptorMaintenanceSteps;
+    }
+    check(rootDescriptorWorkspaceReady && rootDescriptorLimitApplied
+              && rootDescriptorLimitReached && rootDescriptorFsReady
+              && rootDescriptorLimitRestored && !rootDescriptorMaintenancePending
+              && rootDescriptorMaintenanceSteps < 1000
+              && !stdfs::exists(rootDescriptorWorkspace),
+          "startup cleanup retries its root after initialization hits descriptor exhaustion");
+
     const stdfs::path descriptorLimitRoot = hostRoot / "maintenance-descriptor-limit";
     stdfs::path descriptorLimitDeep = descriptorLimitRoot;
     ec.clear();
@@ -223,34 +302,15 @@ int main() {
     Filesystem descriptorLimitFs(hostRoot.string());
     const bool descriptorLimitFsReady = descriptorLimitFixturesReady
         && descriptorLimitFs.initialize();
-    struct rlimit originalFileLimit {};
-    const bool originalFileLimitRead = ::getrlimit(RLIMIT_NOFILE, &originalFileLimit) == 0;
-    bool fileLimitApplied = false;
-    if (descriptorLimitFsReady && originalFileLimitRead && originalFileLimit.rlim_cur > 16) {
-        struct rlimit restrictedFileLimit = originalFileLimit;
-        restrictedFileLimit.rlim_cur = std::min<rlim_t>(32, originalFileLimit.rlim_cur);
-        fileLimitApplied = ::setrlimit(RLIMIT_NOFILE, &restrictedFileLimit) == 0;
-    }
-    std::vector<int> fileDescriptorPressure;
-    bool fileDescriptorLimitReached = false;
-    if (fileLimitApplied) {
-        while (true) {
-            const int descriptor = ::open("/dev/null", O_RDONLY | O_CLOEXEC);
-            if (descriptor < 0) {
-                fileDescriptorLimitReached = errno == EMFILE;
-                break;
-            }
-            fileDescriptorPressure.push_back(descriptor);
-        }
-    }
+    ScopedDescriptorPressure descriptorPressure;
+    const bool fileLimitApplied = descriptorLimitFsReady && descriptorPressure.apply();
+    const bool fileDescriptorLimitReached = descriptorPressure.reachedLimit();
     bool descriptorMaintenancePending = false;
     std::size_t descriptorMaintenanceSteps = 0;
     if (fileLimitApplied) {
         descriptorMaintenancePending = descriptorLimitFs.maintenanceStep(32);
     }
-    for (const int descriptor : fileDescriptorPressure) ::close(descriptor);
-    const bool fileLimitRestored = fileLimitApplied
-        && ::setrlimit(RLIMIT_NOFILE, &originalFileLimit) == 0;
+    const bool fileLimitRestored = descriptorPressure.restore();
     if (fileLimitApplied) {
         while (descriptorMaintenancePending && descriptorMaintenanceSteps < 4000) {
             descriptorMaintenancePending = descriptorLimitFs.maintenanceStep(32);

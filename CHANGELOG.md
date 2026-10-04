@@ -2,8 +2,8 @@
 
 ## 2026-10: Resume startup cleanup after descriptor exhaustion
 
-- Defer child directories whose iterator open fails with `EMFILE` or `ENFILE`, then retry after active depth-first frames unwind and release handles.
-- Keep the normal depth-first path and per-frame entry budget; add a deep-branching regression under a saturated descriptor limit.
+- Defer the root or a child directory whose iterator open fails with `EMFILE` or `ENFILE`, then retry after active depth-first frames unwind and release handles.
+- Keep the normal depth-first path and per-frame entry budget; cover both root initialization and deep branching under a saturated descriptor limit.
 
 ## 2026-10: Avoid path copies in startup cleanup
 
