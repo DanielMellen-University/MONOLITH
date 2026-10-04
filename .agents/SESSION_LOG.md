@@ -1,5 +1,7 @@
 # Session log
 
+| 2026-10-04 | perf | Startup workspace maintenance now borrows each ordinary path from its `directory_entry` and copies paths only for a cleanup candidate or real child directory, avoiding one full path copy per scanned filesystem entry without changing its 32-entry frame budget. |
+
 | 2026-10-04 | perf | Retain three alternate lexical spellings per tracked atomic-save parent so multiple symlink aliases avoid repeat canonicalization while sharing the same cleanup cadence. Expanded the regression to rotate through three aliases of one physical directory. |
 
 | 2026-10-04 | perf | Reuse tracked lexical paths when advancing atomic-save cleanup cursors, avoiding a canonical path walk on every slice while still resolving new aliases into the shared parent cadence. Extend the mixed-directory regression to alternate between canonical and symlink paths; update filesystem/architecture docs. |

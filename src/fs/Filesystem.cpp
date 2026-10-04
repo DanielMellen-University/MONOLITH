@@ -327,13 +327,19 @@ bool Filesystem::maintenanceStep(std::size_t entryBudget) noexcept {
 
             bool isWorkspace = false;
             stdfs::path workspacePath;
-            const stdfs::path entryPath = frame.current->path();
+            stdfs::path childPath;
+            const stdfs::directory_entry& currentEntry = *frame.current;
+            const stdfs::path& entryPath = currentEntry.path();
             const std::string_view name = monolith::detail::pathBasenameView(entryPath);
             if (name.starts_with(monolith::detail::atomicTempPrefix)
                 || name.starts_with(monolith::detail::atomicTempPreviousPrefix)
                 || name.starts_with(monolith::detail::atomicTempOlderPrefix)) {
                 workspacePath = entryPath;
                 isWorkspace = true;
+            } else {
+                std::error_code statusError;
+                const auto status = currentEntry.symlink_status(statusError);
+                if (!statusError && stdfs::is_directory(status)) childPath = entryPath;
             }
 
             std::error_code iteratorError;
@@ -348,14 +354,11 @@ bool Filesystem::maintenanceStep(std::size_t entryBudget) noexcept {
                 continue;
             }
             if (isWorkspace) continue;
-
-            std::error_code statusError;
-            const auto status = stdfs::symlink_status(entryPath, statusError);
-            if (statusError || !stdfs::is_directory(status)) continue;
+            if (childPath.empty()) continue;
 
             std::error_code childError;
             stdfs::directory_iterator child(
-                entryPath, stdfs::directory_options::skip_permission_denied, childError);
+                childPath, stdfs::directory_options::skip_permission_denied, childError);
             if (!childError && child != stdfs::directory_iterator{}) {
                 traversal->frames.push_back({std::move(child)});
             }

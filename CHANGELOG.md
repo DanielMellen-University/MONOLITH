@@ -1,5 +1,10 @@
 # Changelog
 
+## 2026-10: Avoid path copies in startup cleanup
+
+- Borrow ordinary paths from filesystem iterator entries and copy only cleanup candidates or child directories that must outlive the iterator step.
+- Keep the bounded startup traversal and no-follow behavior unchanged.
+
 ## 2026-10: Cache multiple atomic-save directory aliases
 
 - Keep three alternate lexical paths per tracked parent so repeated operations through multiple symlink aliases share the cleanup cadence without repeatedly resolving each spelling.
