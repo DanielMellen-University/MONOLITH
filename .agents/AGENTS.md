@@ -34,7 +34,7 @@ The human funds token budget and lives in the desktop. You:
 
 | When | Kind | Note |
 |------|------|------|
-| 2026-10-04 | atomic-save-alias-cadence | Coalesce destination-parent sweep cadence across symlink aliases; resolve lexical tracker misses and keep cached repeat spellings on the fast path |
+| 2026-10-04 | atomic-save-alias-cadence | Coalesce destination-parent sweep cadence across symlink aliases; resolve lexical tracker misses and keep cached repeat spellings on the fast path; workflow #350 passed both jobs |
 | 2026-10-04 | atomic-save-mode-retention | Reapply existing permission bits after the staged stream closes so content writes do not clear special mode bits |
 | 2026-10-04 | atomic-save-owner-marker | Require a validated ownership marker before reclaiming incomplete v4 workspaces; preserve user-created lookalike directories and retain ready-marked v3/v2 recovery |
 | 2026-10-03 | terminal-operand-validation | Reject excess operands before running fixed-arity built-ins or mutating filesystem commands; workflow #343 passed normal and sanitized jobs |
@@ -312,7 +312,7 @@ Older recent-work rows: [`SESSION_LOG.md`](SESSION_LOG.md).
 | 7.112 | Track atomic-save sweeps per directory | done | Give every newly used destination directory an immediate sweep and its own 32-write interval using bounded 16-parent bookkeeping; verify second-parent first touch, interval boundary, and resweep after tracker eviction; normal and sanitized hosted workflow #331 passed |
 | 7.113 | Resolve Terminal home shorthand | done | Expand only `~` and `~/` to `/home/monolith` for command paths; preserve shorthand through quoted/unquoted path completion; normal and sanitized hosted workflow #335 passed |
 | 7.114 | Share virtual-home path shorthand | done | Reuse one app-level `~` / `~/` expansion rule for Terminal, Text Editor, Drawing, and Settings wallpaper paths; cover completion, accepted paths, and path move/delete notifications; normal and sanitized hosted workflow #338 passed |
-| 7.115 | Share atomic-save sweep cadence across aliases | done | Track cleanup cadence by resolved physical parent across symlink spellings; resolve lexical tracker misses and verify alternating aliases share the first-touch and 32-write boundary |
+| 7.115 | Share atomic-save sweep cadence across aliases | done | Track cleanup cadence by resolved physical parent across symlink spellings; resolve lexical tracker misses and verify alternating aliases share the first-touch and 32-write boundary; normal and sanitized workflow #350 passed |
 | fs-browser-filter-cache | Reuse Filesystem Browser filter snapshots | done | Reuse one directory listing for filter edits; refresh it on F5 and Monolith filesystem notifications, including while filtering |
 | terminal-input-editing | Terminal command-line selection | done | Support UTF-8-safe keyboard/mouse selection and Ctrl+A/C/X/V; normalize all clipboard lines and tabs into the single-line prompt |
 | terminal-touch-mtime | Complete Terminal touch semantics | done | Update existing regular-file last-write time without truncation; reject outside-root symlink targets |
