@@ -96,10 +96,10 @@ TextEditorApp::TextEditorApp(TTF_Font* font, monolith::fs::Filesystem* fs, const
         m_lines.emplace_back("This editor is very early. More features coming.");
         m_cursorRow = 0;
         m_cursorCol = 0;
+        documentFitsFileLimits(m_lines, &m_documentSerializedBytes);
     }
 
     m_savedLines = m_lines;
-    documentFitsFileLimits(m_lines, &m_documentSerializedBytes);
 
     refreshSyntaxMode();
 }
@@ -414,16 +414,18 @@ bool TextEditorApp::loadInitialFile(const std::string& virtualPath) {
     std::vector<std::string> loadedLines;
     std::string line;
     size_t bytesRead = 0;
+    size_t serializedBytes = 0;
     bool pendingCarriageReturn = false;
     bool tooLarge = false;
     bool tooManyLines = false;
-    auto appendLine = [&]() {
+    auto appendLine = [&](bool hasSeparator) {
         if (loadedLines.size() >= kMaxDocumentLines) {
             tooManyLines = true;
             return false;
         }
         loadedLines.emplace_back();
         loadedLines.back().swap(line);
+        if (hasSeparator) ++serializedBytes;
         return true;
     };
 
@@ -436,7 +438,7 @@ bool TextEditorApp::loadInitialFile(const std::string& virtualPath) {
 
         for (const char character : chunk) {
             if (pendingCarriageReturn) {
-                if (!appendLine()) return false;
+                if (!appendLine(true)) return false;
                 pendingCarriageReturn = false;
                 if (character == '\n') continue;
             }
@@ -444,9 +446,10 @@ bool TextEditorApp::loadInitialFile(const std::string& virtualPath) {
             if (character == '\r') {
                 pendingCarriageReturn = true;
             } else if (character == '\n') {
-                if (!appendLine()) return false;
+                if (!appendLine(true)) return false;
             } else {
                 line.push_back(character);
+                ++serializedBytes;
             }
         }
         return true;
@@ -465,22 +468,17 @@ bool TextEditorApp::loadInitialFile(const std::string& virtualPath) {
         return false;
     }
 
-    if (pendingCarriageReturn && !appendLine()) {
+    if (pendingCarriageReturn && !appendLine(true)) {
         setStatus("Open failed: exceeds 65,536-line limit.");
         return false;
     }
-    if (!appendLine()) {
+    if (!appendLine(false)) {
         setStatus("Open failed: exceeds 65,536-line limit.");
-        return false;
-    }
-    size_t loadedSerializedBytes = 0;
-    if (!documentFitsFileLimits(loadedLines, &loadedSerializedBytes)) {
-        setStatus("Open failed: exceeds document limits.");
         return false;
     }
 
     m_lines = std::move(loadedLines);
-    m_documentSerializedBytes = loadedSerializedBytes;
+    m_documentSerializedBytes = serializedBytes;
     m_filePath = normalized;
     m_savedLines = m_lines;
     m_cursorRow = 0;

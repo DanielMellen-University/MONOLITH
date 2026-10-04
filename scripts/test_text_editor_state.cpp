@@ -663,28 +663,34 @@ int main() {
           "write second Unicode completion candidate");
 
     TestEditor emptyEditor(nullptr, &fs, "/empty.txt");
-    check(emptyEditor.m_lines == std::vector<std::string>{""},
+    check(emptyEditor.m_lines == std::vector<std::string>{""}
+              && emptyEditor.m_documentSerializedBytes == 0,
           "empty files open as one editable blank line");
 
     TestEditor windowsEditor(nullptr, &fs, "/windows.txt");
-    check(windowsEditor.m_lines == std::vector<std::string>{"first", "second", ""},
+    check(windowsEditor.m_lines == std::vector<std::string>{"first", "second", ""}
+              && windowsEditor.m_documentSerializedBytes == 13,
           "CRLF files open with normalized line endings");
 
     TestEditor classicMacEditor(nullptr, &fs, "/classic-mac.txt");
-    check(classicMacEditor.m_lines == std::vector<std::string>{"first", "second", ""},
+    check(classicMacEditor.m_lines == std::vector<std::string>{"first", "second", ""}
+              && classicMacEditor.m_documentSerializedBytes == 13,
           "lone-CR files open with normalized line endings");
 
     TestEditor chunkBoundaryEditor(nullptr, &fs, "/chunk-boundary.txt");
     check(chunkBoundaryEditor.m_lines.size() == 3
               && chunkBoundaryEditor.m_lines[0] == std::string(16 * 1024 - 1, 'x')
               && chunkBoundaryEditor.m_lines[1] == "end"
-              && chunkBoundaryEditor.m_lines[2].empty(),
+              && chunkBoundaryEditor.m_lines[2].empty()
+              && chunkBoundaryEditor.m_documentSerializedBytes == 16 * 1024 + 4,
           "streamed editor open normalizes CRLF split across chunks and trailing CR");
 
     TestEditor maxLinesEditor(nullptr, &fs, "/max-lines.txt");
     check(maxLinesEditor.m_lines.size() == TestEditor::kMaxDocumentLines
               && maxLinesEditor.m_lines.front().empty()
-              && maxLinesEditor.m_lines.back().empty(),
+              && maxLinesEditor.m_lines.back().empty()
+              && maxLinesEditor.m_documentSerializedBytes
+                  == TestEditor::kMaxDocumentLines - 1,
           "Text Editor accepts a file exactly at its line limit");
 
     TestEditor boundedEditor(nullptr, &fs, "/old.txt");
