@@ -1,6 +1,6 @@
 # Session log
 
-| 2026-10-03 | fix | Terminal now rejects extra operands for fixed-arity built-ins instead of silently acting on only the first paths; `cp` and `rm` keep their documented flags but reject excess path operands. Regression tests verify rejected touch, mkdir, cp, mv, and rm commands leave entries unchanged. Full regular and ASan/UBSan headless suites passed locally with LeakSanitizer disabled due sandbox limitations; hosted verification pending. |
+| 2026-10-03 | fix | Terminal now rejects extra operands for fixed-arity built-ins instead of silently acting on only the first paths; `cp` and `rm` keep their documented flags but reject excess path operands. Regression tests verify rejected touch, mkdir, cp, mv, and rm commands leave entries unchanged. Full regular and ASan/UBSan headless suites passed locally with LeakSanitizer disabled due sandbox limitations; workflow #343 passed normal and full ASan/UBSan jobs. |
 
 | 2026-10-03 | fix | Atomic-save workspaces now use v3 setup coordination: a brief parent-directory lock prevents sweeps from mistaking an active creator's incomplete directory for a crash remnant, allowing later sweeps to reclaim incomplete v3 workspaces. Marked v2 recovery remains supported; incomplete v2 and legacy workspaces are preserved. Focused recovery and lock tests added; workflow #340 passed normal and ASan/UBSan suites. |
 
