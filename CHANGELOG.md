@@ -1,5 +1,10 @@
 # Changelog
 
+## 2026-10: Reclaim interrupted atomic-save workspaces
+
+- Hold an OS lock for each active atomic-save workspace and periodically reclaim only completed workspaces whose lock is available.
+- Leave active, unmarked, and legacy workspaces untouched; cover interrupted-save recovery and concurrent-writer safety in a focused headless test.
+
 ## 2026-10: Preserve unknown backslashes in Terminal quotes
 
 - Inside double quotes, unescape only `\\` and `\"`; keep other backslashes literal when parsing commands and deriving Tab-completion prefixes.

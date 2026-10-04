@@ -92,6 +92,7 @@ cmake --build "$BUILD_DIR" --target monolith_settings_bodies monolith_stb_image
 compile_plain test_file_path scripts/test_file_path.cpp
 compile_plain test_utf8 scripts/test_utf8.cpp
 compile_plain test_random scripts/test_random.cpp
+compile_plain test_atomic_file scripts/test_atomic_file.cpp
 compile_plain test_tick_math scripts/test_tick_math.cpp
 compile_plain test_terminal_lexer scripts/test_terminal_lexer.cpp src/app/TerminalLexer.cpp
 compile_sdl test_terminal_filesystem_state \
@@ -133,6 +134,7 @@ compile_window_manager test_window_quit scripts/test_window_quit.cpp
 run_plain test_file_path
 run_plain test_utf8
 run_plain test_random
+run_plain test_atomic_file
 run_plain test_tick_math
 run_plain test_terminal_lexer
 run_sdl test_terminal_filesystem_state

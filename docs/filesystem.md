@@ -33,7 +33,7 @@ For example, `/home/monolith/welcome.txt` is stored at:
 
 The host root is created on startup if it does not exist. Startup rejects a host path that exists but is not a directory. The Settings app displays the actual host path.
 
-Regular file writes stage into a uniquely reserved, hidden sibling workspace and atomically replace the destination only after the complete byte stream succeeds. Existing permission bits are retained, and an in-root file symlink is updated through its target instead of being replaced. A neighboring file such as `notes.txt.tmp` is ordinary user data and remains untouched.
+Regular file writes stage into a uniquely reserved, hidden sibling workspace and atomically replace the destination only after the complete byte stream succeeds. Existing permission bits are retained, and an in-root file symlink is updated through its target instead of being replaced. A neighboring file such as `notes.txt.tmp` is ordinary user data and remains untouched. New workspaces hold an OS file lock while a save is active. The first atomic save and every 32 saves after that opportunistically remove marked workspaces left by interrupted saves in that save's parent directory when their lock is free; active workspaces are skipped. Unmarked workspaces and legacy workspaces from older versions are left untouched because they cannot be distinguished reliably from an active writer.
 
 Related host files (not inside the virtual tree):
 
@@ -44,7 +44,7 @@ Related host files (not inside the virtual tree):
 | `~/.monolith/snake_highscore.txt` | Snake high score (games host file) |
 | `~/.monolith/minesweeper_best.txt` | Minesweeper best times (game host file) |
 
-All Monolith text snapshots, including game records, use the same unique temporary-workspace replacement path. A failed stream or replacement leaves the previous host record intact and cleans up the temporary workspace. Replacing an existing regular snapshot also retains its permission bits; a new snapshot uses the host process's normal creation mode.
+All Monolith text snapshots, including game records, use the same unique temporary-workspace replacement path. A failed stream or replacement leaves the previous host record intact and cleans up the temporary workspace. Replacing an existing regular snapshot also retains its permission bits; a new snapshot uses the host process's normal creation mode. A hard process termination releases the workspace lock, allowing a later maintenance sweep to reclaim its completed workspace marker and partial content.
 
 ## API Overview
 
