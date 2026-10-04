@@ -1,5 +1,7 @@
 # Session log
 
+| 2026-10-03 | fix | Terminal now resolves a leading `~` or `~/` to `/home/monolith` for command operands, including quoted paths. Home-relative Tab completion searches the resolved directory while retaining the typed shorthand. `cat`, `cd`, escaped-space paths, and quoted/unquoted completion regressions passed in hosted workflow #335, including ASan/UBSan; no tests were run on the user's device. |
+
 | 2026-10-03 | fix | Atomic-save sweep cadence is now tracked independently for 16 recent destination parents: each is swept on first use and every 32 writes, and an evicted parent is swept again on revisit. Added first-touch, interval-boundary, and tracker-eviction recovery coverage; hosted workflow #331 passed normal and ASan/UBSan suites; no tests were run on the user's device. |
 
 | 2026-10-03 | fix | Atomic-save workspaces now hold a nonblocking OS lease while active. The first atomic write and every 32 writes afterward sweep the current destination's parent, reclaiming completed v2 workspaces only when they have a ready marker and free lock; active, unmarked, and legacy workspaces remain untouched. Focused stale/active/legacy coverage and hosted workflow #327 passed normal and ASan/UBSan suites; no tests were run on the user's device. |
