@@ -1,5 +1,10 @@
 # Changelog
 
+## 2026-10: Reclaim atomic-save setup orphans
+
+- Name new atomic-save workspaces with a 128-bit OS-random token and reclaim a pre-marker crash remnant only when the token format is valid and the directory is still empty.
+- Use empty-directory removal semantics so cleanup preserves any user data added to a matching lookalike.
+
 ## 2026-10: Publish atomic-save ownership markers atomically
 
 - Publish new workspace ownership tokens as symlinks in one filesystem operation instead of opening and filling a marker file.
