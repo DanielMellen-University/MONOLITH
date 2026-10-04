@@ -19,9 +19,10 @@ static bool writeFixture(const fs::path& path, const std::string& text) {
 
 static fs::path workspacePath(const fs::path& parent,
                               const fs::path& target,
-                              unsigned long long sequence) {
+                              unsigned long long sequence,
+                              const char* prefix = monolith::detail::atomicTempPrefix) {
     const auto hash = std::hash<std::string>{}(target.filename().string());
-    return parent / (std::string(monolith::detail::atomicTempPrefix)
+    return parent / (std::string(prefix)
                      + std::to_string(hash) + "-" + std::to_string(sequence));
 }
 
@@ -44,6 +45,13 @@ int main() {
     if (ec) {
         std::cerr << "FAIL: could not create atomic-file test directory\n";
         return 1;
+    }
+
+    {
+        monolith::detail::AtomicTempParentLock heldLock(parent);
+        monolith::detail::AtomicTempParentLock competingLock(parent, true);
+        check(heldLock.locked() && !competingLock.locked(),
+              "workspace setup and sweeping share an exclusive parent lock");
     }
 
     const fs::path target = parent / "settings.txt";
@@ -95,7 +103,9 @@ int main() {
           "a later write reclaims an unlocked interrupted candidate");
 
     constexpr unsigned long long unmarkedSequence = 20;
-    const fs::path unmarkedPath = workspacePath(parent, target, unmarkedSequence);
+    const fs::path unmarkedPath = workspacePath(
+        parent, target, unmarkedSequence,
+        monolith::detail::atomicTempPreviousPrefix);
     ec.clear();
     const bool unmarkedFixtureReady = fs::create_directory(unmarkedPath, ec) && !ec
         && writeFixture(unmarkedPath / "content", "possibly active");
@@ -104,7 +114,7 @@ int main() {
         && monolith::detail::writeTextAtomically(
             target, [](std::ostream& out) { out << "leave unmarked"; });
     check(unmarkedWrite && fs::exists(unmarkedPath / "content"),
-          "a workspace without its ready marker is left untouched");
+          "an incomplete v2 workspace is left untouched for older active writers");
 
     const fs::path legacyPath = parent / ".monolith-tmp-123-4";
     ec.clear();
@@ -116,6 +126,28 @@ int main() {
             target, [](std::ostream& out) { out << "preserve legacy"; });
     check(legacyWrite && fs::exists(legacyPath / "content"),
           "legacy workspaces without lease metadata are left untouched");
+
+    const fs::path incompleteParent = parent / "incomplete";
+    ec.clear();
+    const bool incompleteParentReady = fs::create_directory(incompleteParent, ec) && !ec;
+    const fs::path incompleteTarget = incompleteParent / "record.txt";
+    const fs::path incompletePath = workspacePath(incompleteParent, incompleteTarget, 31);
+    const fs::path previousStalePath = workspacePath(
+        incompleteParent, incompleteTarget, 32,
+        monolith::detail::atomicTempPreviousPrefix);
+    const bool incompleteFixturesReady = incompleteParentReady
+        && fs::create_directory(incompletePath, ec) && !ec
+        && writeFixture(incompletePath / "content", "crashed during setup")
+        && fs::create_directory(previousStalePath, ec) && !ec
+        && writeFixture(previousStalePath / "lease", "")
+        && writeFixture(previousStalePath / "ready", "")
+        && writeFixture(previousStalePath / "content", "old marked workspace");
+    const bool incompleteRecoveryWrite = incompleteFixturesReady
+        && monolith::detail::writeTextAtomically(
+            incompleteTarget, [](std::ostream& out) { out << "recovered v3"; });
+    check(incompleteRecoveryWrite && !fs::exists(incompletePath)
+              && !fs::exists(previousStalePath),
+          "a first-touch sweep removes incomplete v3 and stale marked v2 workspaces");
 
     const fs::path secondParent = parent / "second";
     ec.clear();

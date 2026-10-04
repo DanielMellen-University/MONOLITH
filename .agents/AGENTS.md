@@ -34,6 +34,7 @@ The human funds token budget and lives in the desktop. You:
 
 | When | Kind | Note |
 |------|------|------|
+| 2026-10-03 | atomic-save-setup-recovery | Coordinate v3 workspace initialization and sweeps with a brief exclusive parent-directory lock; reclaim incomplete v3 directories, preserve incomplete v2/legacy workspaces, and retain marked v2 recovery |
 | 2026-10-03 | virtual-home-paths | Share leading `~` / `~/` expansion across Terminal, Text Editor, Drawing, and Settings wallpaper entry; preserve shorthand during completion and path notifications; workflow #338 passed normal and sanitized jobs |
 | 2026-10-03 | terminal-home-shorthand | Expand leading `~` and `~/` to the fixed virtual home in Terminal commands; preserve shorthand in home-relative completions; workflow #335 passed normal and sanitized jobs |
 | 2026-10-03 | atomic-save-directory-sweeps | Track first sweeps and 32-write cadence per destination directory with a bounded 16-parent ring; resweep after eviction; normal and sanitized hosted workflow #331 passed |
@@ -157,7 +158,7 @@ Older recent-work rows: [`SESSION_LOG.md`](SESSION_LOG.md).
 
 ## Known debts
 
-- Atomic-save cleanup is opportunistic: a bounded 16-parent tracker scans each recently used destination directory on first use and every 32 writes, then scans again immediately if an evicted directory is revisited. V2 workspaces need a ready marker and free lease lock; directories interrupted before the marker and legacy `.monolith-tmp-*` workspaces remain untouched because active old writers cannot be identified safely.
+- Atomic-save cleanup is opportunistic: a bounded 16-parent tracker scans each recently used destination directory on first use and every 32 writes, then scans again immediately if an evicted directory is revisited. V3 setup and sweeps coordinate through a brief parent-directory lock; marked v2 workspaces still require a ready marker and free lease lock. Incomplete v2 and pre-v2 legacy workspaces remain untouched because active old writers do not participate in the v3 setup lock.
 
 ## Priority order for "next / continue"
 

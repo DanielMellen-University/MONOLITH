@@ -2,6 +2,7 @@
 
 #include <atomic>
 #include <array>
+#include <cerrno>
 #include <cstddef>
 #include <filesystem>
 #include <fstream>
@@ -22,7 +23,8 @@ namespace monolith::detail {
 
 inline std::atomic<unsigned long long> atomicTempSequence{0};
 
-inline constexpr const char* atomicTempPrefix = ".monolith-tmp-v2-";
+inline constexpr const char* atomicTempPrefix = ".monolith-tmp-v3-";
+inline constexpr const char* atomicTempPreviousPrefix = ".monolith-tmp-v2-";
 inline constexpr unsigned long long atomicTempSweepInterval = 32;
 inline constexpr std::size_t atomicTempTrackedParents = 16;
 
@@ -34,6 +36,38 @@ struct AtomicTempSweepSlot {
 inline std::array<AtomicTempSweepSlot, atomicTempTrackedParents> atomicTempSweepSlots{};
 inline std::mutex atomicTempSweepMutex;
 inline std::size_t atomicTempSweepNextSlot{0};
+
+class AtomicTempParentLock {
+public:
+    explicit AtomicTempParentLock(const std::filesystem::path& parent,
+                                  bool nonBlocking = false) {
+        fd_ = ::open(parent.c_str(), O_RDONLY | O_CLOEXEC | O_DIRECTORY);
+        if (fd_ < 0) return;
+
+        const int flags = LOCK_EX | (nonBlocking ? LOCK_NB : 0);
+        int result;
+        do {
+            result = ::flock(fd_, flags);
+        } while (result != 0 && errno == EINTR && !nonBlocking);
+        if (result != 0) release();
+    }
+
+    AtomicTempParentLock(const AtomicTempParentLock&) = delete;
+    AtomicTempParentLock& operator=(const AtomicTempParentLock&) = delete;
+    ~AtomicTempParentLock() { release(); }
+
+    bool locked() const { return fd_ >= 0; }
+
+    void release() {
+        if (fd_ < 0) return;
+        ::flock(fd_, LOCK_UN);
+        ::close(fd_);
+        fd_ = -1;
+    }
+
+private:
+    int fd_{-1};
+};
 
 inline bool shouldSweepAtomicTempParent(const std::filesystem::path& parent) {
     const auto key = parent.lexically_normal();
@@ -97,18 +131,46 @@ inline bool tryReclaimAtomicTempDirectory(const std::filesystem::path& directory
     return !statusError;
 }
 
+// V3 setup holds the parent lock until lease and ready are established, so an
+// unmarked v3 directory cannot belong to an active writer while the lock is held.
+inline bool tryReclaimIncompleteAtomicTempDirectory(
+    const std::filesystem::path& directory) {
+    if (!directory.filename().string().starts_with(atomicTempPrefix)) return false;
+
+    std::error_code statusError;
+    const auto directoryStatus = std::filesystem::symlink_status(directory, statusError);
+    if (statusError || !std::filesystem::is_directory(directoryStatus)) return false;
+
+    statusError.clear();
+    const auto readyStatus = std::filesystem::symlink_status(directory / "ready", statusError);
+    if ((!statusError && readyStatus.type() != std::filesystem::file_type::not_found)
+        || (statusError && statusError != std::errc::no_such_file_or_directory)) {
+        return false;
+    }
+
+    statusError.clear();
+    std::filesystem::remove_all(directory, statusError);
+    return !statusError;
+}
+
 inline void scavengeAtomicTempDirectories(const std::filesystem::path& parent) {
+    AtomicTempParentLock parentLock(parent);
+    if (!parentLock.locked()) return;
+
     std::error_code iteratorError;
     std::filesystem::directory_iterator entry(parent, iteratorError);
     const std::filesystem::directory_iterator end;
     std::vector<std::filesystem::path> candidates;
     while (!iteratorError && entry != end) {
-        if (entry->path().filename().string().starts_with(atomicTempPrefix)) {
+        const std::string name = entry->path().filename().string();
+        if (name.starts_with(atomicTempPrefix)
+            || name.starts_with(atomicTempPreviousPrefix)) {
             candidates.push_back(entry->path());
         }
         entry.increment(iteratorError);
     }
     for (const auto& candidate : candidates) {
+        if (tryReclaimIncompleteAtomicTempDirectory(candidate)) continue;
         tryReclaimAtomicTempDirectory(candidate);
     }
 }
@@ -123,6 +185,9 @@ inline bool createAtomicTempDirectory(const std::filesystem::path& targetPath,
     const std::size_t nameHash = std::hash<std::string>{}(targetPath.filename().string());
 
     if (shouldSweepAtomicTempParent(parent)) scavengeAtomicTempDirectories(parent);
+
+    AtomicTempParentLock parentLock(parent);
+    if (!parentLock.locked()) return false;
 
     auto prepareNewDirectory = [&](const std::filesystem::path& candidate) {
         std::error_code permissionError;
@@ -167,6 +232,7 @@ inline bool createAtomicTempDirectory(const std::filesystem::path& targetPath,
 
         outDirectory = candidate;
         outLeaseFd = leaseFd;
+        parentLock.release();
         return true;
     };
 
@@ -179,7 +245,10 @@ inline bool createAtomicTempDirectory(const std::filesystem::path& targetPath,
             return prepareNewDirectory(candidate);
         }
         if (createError && createError != std::errc::file_exists) return false;
-        if (!tryReclaimAtomicTempDirectory(candidate)) continue;
+        if (!tryReclaimAtomicTempDirectory(candidate)
+            && !tryReclaimIncompleteAtomicTempDirectory(candidate)) {
+            continue;
+        }
 
         createError.clear();
         if (std::filesystem::create_directory(candidate, createError)) {

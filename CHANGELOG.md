@@ -5,6 +5,12 @@
 - Use one `~` / `~/` expansion rule across Terminal, Text Editor, Drawing, and Settings wallpaper paths without changing Filesystem normalization semantics.
 - Preserve the shorthand during path completion while searching `/home/monolith`; cover path opens/saves, wallpaper updates, and move/delete prompt handling.
 
+## 2026-10: Reclaim incomplete atomic-save setup workspaces
+
+- Protect v3 workspace setup and cleanup scans with a brief exclusive destination-directory lock, then use the per-workspace lease during the actual save.
+- Reclaim v3 directories interrupted before their ready marker while preserving incomplete v2 and legacy workspaces that older active writers cannot safely distinguish.
+- Continue reclaiming marked v2 workspaces when their lease is free.
+
 ## 2026-10: Resolve Terminal home shorthand
 
 - Expand a leading `~` or `~/` to `/home/monolith` for command paths, including quoted paths.

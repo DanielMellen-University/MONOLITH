@@ -1,5 +1,7 @@
 # Session log
 
+| 2026-10-03 | fix | Atomic-save workspaces now use v3 setup coordination: a brief parent-directory lock prevents sweeps from mistaking an active creator's incomplete directory for a crash remnant, allowing later sweeps to reclaim incomplete v3 workspaces. Marked v2 recovery remains supported; incomplete v2 and legacy workspaces are preserved. Focused recovery and lock tests added; hosted CI pending. |
+
 | 2026-10-03 | fix | Text Editor Open/Save As, Drawing Open/Save, and Settings wallpaper entry now share Terminal's `~` / `~/` expansion to `/home/monolith`; path completion keeps the shorthand visible, and move/delete notifications resolve it consistently. Added shared helper/cursor mapping coverage and app-state regressions. The first hosted run exposed test-fixture issues; the focused Settings test passed locally after correction, then workflow #338 passed both normal and ASan/UBSan suites. |
 
 | 2026-10-03 | fix | Terminal now resolves a leading `~` or `~/` to `/home/monolith` for command operands, including quoted paths. Home-relative Tab completion searches the resolved directory while retaining the typed shorthand. `cat`, `cd`, escaped-space paths, and quoted/unquoted completion regressions passed in hosted workflow #335, including ASan/UBSan; no tests were run on the user's device. |
