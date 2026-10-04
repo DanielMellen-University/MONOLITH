@@ -245,8 +245,6 @@ private:
     std::string m_statusCursorMeasureText;
     int m_statusCursorPixelWidth = 0;
     bool m_statusCursorMeasureValid = false;
-    int m_findQueryPixelWidth = 0;
-    bool m_findQueryPixelWidthValid = false;
     std::vector<FindMatchCheckpoint> m_findCheckpoints;
     std::size_t m_findMatchCount = 0;
     std::size_t m_currentFindMatch = 0;
@@ -258,6 +256,7 @@ private:
     int m_renderedFindTextWidth = -1;
     std::vector<std::pair<int, int>> m_renderedFindVisibleMatches;
     std::vector<int> m_renderedFindPrefixWidths;
+    std::vector<int> m_renderedFindVisibleWidths;
 
     SyntaxMode m_syntaxMode = SyntaxMode::Light;
     std::vector<SyntaxState> m_syntaxLineStates;

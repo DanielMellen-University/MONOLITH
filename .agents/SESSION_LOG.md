@@ -1,5 +1,7 @@
 # Session log
 
+| 2026-10-04 | perf | Keep complete Find/Replace strings while rendering only 64-byte UTF-8-safe context around each caret. Highlights measure visible match slices and start from sparse checkpoints, avoiding giant off-screen measurements, dense-prefix rescans, and overlapping viewport-only false hits. Maximum-size field coverage passes. |
+
 | 2026-10-04 | fix | Bound each Text Editor Find/Replace field to 16 MiB, preserving complete UTF-8 codepoints and reporting rejected overflow. Added exact-fit typing and over-limit typing/paste regressions for Find and Replace. |
 
 | 2026-10-04 | fix | Startup atomic-save traversal now uses explicit directory frames; an unreadable or failed subtree no longer aborts cleanup for readable siblings. The 32-entry per-frame budget, ownership checks, and no-follow behavior remain intact. Added inaccessible-subtree and sibling-recovery coverage. |

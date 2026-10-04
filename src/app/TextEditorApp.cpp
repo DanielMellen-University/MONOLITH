@@ -18,6 +18,38 @@ namespace monolith::app {
 
 namespace {
 
+constexpr std::size_t kSearchPromptContextBytes = 64;
+
+struct SearchFieldExcerpt {
+    std::size_t start = 0;
+    std::size_t cursor = 0;
+    std::size_t end = 0;
+};
+
+SearchFieldExcerpt searchFieldExcerpt(const std::string& value,
+                                      std::size_t cursor) {
+    cursor = utf8ClampToCodepointBoundary(value, cursor);
+    std::size_t start = cursor > kSearchPromptContextBytes
+        ? cursor - kSearchPromptContextBytes : 0;
+    start = utf8ClampToCodepointBoundary(value, start);
+    const std::size_t end = utf8ClampToCodepointBoundary(
+        value, std::min(value.size(), cursor + kSearchPromptContextBytes));
+    return {start, cursor, std::max(cursor, end)};
+}
+
+void appendSearchFieldExcerpt(std::string& destination,
+                              const std::string& value,
+                              const SearchFieldExcerpt& excerpt,
+                              bool showCursor,
+                              bool includeAfterCursor) {
+    if (excerpt.start > 0) destination.append("...");
+    destination.append(value, excerpt.start, excerpt.cursor - excerpt.start);
+    if (showCursor) destination.push_back('_');
+    if (!includeAfterCursor) return;
+    destination.append(value, excerpt.cursor, excerpt.end - excerpt.cursor);
+    if (excerpt.end < value.size()) destination.append("...");
+}
+
 bool isCodeExtension(const std::string& ext) {
     static const std::unordered_set<std::string> kCodeExtensions = {
         "c", "cc", "cpp", "cxx", "h", "hh", "hpp", "hxx",
@@ -1803,6 +1835,7 @@ void TextEditorApp::invalidateFindHighlightCache() {
     m_renderedFindTextWidth = -1;
     m_renderedFindVisibleMatches.clear();
     m_renderedFindPrefixWidths.clear();
+    m_renderedFindVisibleWidths.clear();
 }
 
 void TextEditorApp::updateFindMatches() {
@@ -1812,8 +1845,6 @@ void TextEditorApp::updateFindMatches() {
     m_currentFindMatch = 0;
     m_hasCurrentFindMatch = false;
     m_currentFindPosition = {-1, -1};
-    m_findQueryPixelWidth = 0;
-    m_findQueryPixelWidthValid = false;
 
     if (m_findQuery.empty()) {
         clearSelection();
@@ -2199,14 +2230,6 @@ void TextEditorApp::render(SDL_Renderer* renderer, const SDL_Rect& contentRect) 
         m_renderedTextSlices.clear();
         m_renderedTextSlices.resize(static_cast<size_t>(renderedLineCount));
     }
-    if (!m_findQuery.empty() && !m_findQueryPixelWidthValid) {
-        int width = 0;
-        int height = 0;
-        if (TTF_SizeUTF8(m_font, m_findQuery.c_str(), &width, &height) == 0) {
-            m_findQueryPixelWidth = width;
-            m_findQueryPixelWidthValid = true;
-        }
-    }
     if (m_renderedFindStartRow != m_scrollOffset
         || m_renderedFindLineCount != renderedLineCount
         || m_renderedFindHorizontalOffset != m_horizontalScrollOffset
@@ -2217,6 +2240,7 @@ void TextEditorApp::render(SDL_Renderer* renderer, const SDL_Rect& contentRect) 
         m_renderedFindTextWidth = textWidth;
         m_renderedFindVisibleMatches.clear();
         m_renderedFindPrefixWidths.clear();
+        m_renderedFindVisibleWidths.clear();
         if (!m_findQuery.empty() && renderedLineCount > 0) {
             const std::size_t querySize = m_findQuery.size();
             for (int rowOffset = 0; rowOffset < renderedLineCount; ++rowOffset) {
@@ -2231,32 +2255,53 @@ void TextEditorApp::render(SDL_Renderer* renderer, const SDL_Rect& contentRect) 
                 const std::size_t probe = slice.firstVisibleByte >= querySize
                     ? slice.firstVisibleByte - querySize + 1
                     : 0;
-                std::size_t searchFrom = probe;
+                std::size_t searchFrom = 0;
+                const auto nextCheckpoint = std::lower_bound(
+                    m_findCheckpoints.begin(), m_findCheckpoints.end(),
+                    std::pair<int, std::size_t>{row, probe},
+                    [](const FindMatchCheckpoint& checkpoint, const auto& target) {
+                        return checkpoint.row < target.first
+                            || (checkpoint.row == target.first
+                                && static_cast<std::size_t>(checkpoint.col) < target.second);
+                    });
+                if (nextCheckpoint != m_findCheckpoints.begin()) {
+                    const FindMatchCheckpoint& previous = *std::prev(nextCheckpoint);
+                    if (previous.row == row) {
+                        searchFrom = static_cast<std::size_t>(previous.col) + querySize;
+                    }
+                }
                 while (searchFrom < line.size()) {
                     const std::size_t pos = line.find(m_findQuery, searchFrom);
                     if (pos == std::string::npos || pos >= slice.visibleEndByte) break;
                     if (pos + querySize > slice.firstVisibleByte) {
                         int prefixWidth = 0;
                         int measuredHeight = 0;
-                        if (pos < slice.firstVisibleByte) {
-                            const std::string before = line.substr(0, pos);
-                            if (!before.empty()) {
-                                TTF_SizeUTF8(m_font, before.c_str(),
-                                             &prefixWidth, &measuredHeight);
-                            }
-                        } else if (pos > slice.firstVisibleByte) {
+                        if (pos >= slice.firstVisibleByte) {
                             const std::string visiblePrefix = line.substr(
                                 slice.firstVisibleByte, pos - slice.firstVisibleByte);
                             if (!visiblePrefix.empty()) {
                                 TTF_SizeUTF8(m_font, visiblePrefix.c_str(),
                                              &prefixWidth, &measuredHeight);
                             }
-                            prefixWidth += slice.hiddenPixelWidth;
-                        } else {
-                            prefixWidth = slice.hiddenPixelWidth;
                         }
+                        prefixWidth += slice.hiddenPixelWidth;
+
+                        const std::size_t visibleMatchStart =
+                            std::max(pos, slice.firstVisibleByte);
+                        const std::size_t visibleMatchEnd = std::min(
+                            pos + querySize, slice.visibleEndByte);
+                        int visibleMatchWidth = 0;
+                        if (visibleMatchEnd > visibleMatchStart) {
+                            const std::string visibleMatch = line.substr(
+                                visibleMatchStart,
+                                visibleMatchEnd - visibleMatchStart);
+                            TTF_SizeUTF8(m_font, visibleMatch.c_str(),
+                                         &visibleMatchWidth, &measuredHeight);
+                        }
+                        visibleMatchWidth = std::min(visibleMatchWidth, textWidth);
                         m_renderedFindVisibleMatches.push_back({row, static_cast<int>(pos)});
                         m_renderedFindPrefixWidths.push_back(prefixWidth);
+                        m_renderedFindVisibleWidths.push_back(visibleMatchWidth);
                     }
                     searchFrom = pos + querySize;
                 }
@@ -2345,7 +2390,7 @@ void TextEditorApp::render(SDL_Renderer* renderer, const SDL_Rect& contentRect) 
                     textStartX + m_renderedFindPrefixWidths[visibleFindHighlightIndex]
                         - m_horizontalScrollOffset,
                     y + 1,
-                    std::max(2, m_findQueryPixelWidth),
+                    std::max(2, m_renderedFindVisibleWidths[visibleFindHighlightIndex]),
                     lineHeight - 2
                 };
                 SDL_RenderFillRect(renderer, &highlightRect);
@@ -2408,41 +2453,45 @@ void TextEditorApp::render(SDL_Renderer* renderer, const SDL_Rect& contentRect) 
         if (m_searchMode != SearchMode::None) {
             const bool onQuery = (m_searchField == SearchField::Query);
             const bool onRepl = (m_searchField == SearchField::Replacement);
+            m_findCursorPos = utf8ClampToCodepointBoundary(
+                m_findQuery, m_findCursorPos);
+            m_replaceCursorPos = utf8ClampToCodepointBoundary(
+                m_replaceText, m_replaceCursorPos);
+            const SearchFieldExcerpt findExcerpt = searchFieldExcerpt(
+                m_findQuery, m_findCursorPos);
             std::string& cursorText = m_renderCursorText;
             cursorText.clear();
             cursorText.append("Find: ");
             if (m_searchMode == SearchMode::Replace) {
-                m_findCursorPos = std::min(m_findCursorPos, m_findQuery.size());
-                m_replaceCursorPos = std::min(m_replaceCursorPos, m_replaceText.size());
+                const SearchFieldExcerpt replaceExcerpt = searchFieldExcerpt(
+                    m_replaceText, m_replaceCursorPos);
                 status.clear();
                 status.append("Find: ");
-                status.append(m_findQuery, 0, m_findCursorPos);
-                if (onQuery) status.push_back('_');
-                status.append(m_findQuery, m_findCursorPos, std::string::npos);
+                appendSearchFieldExcerpt(status, m_findQuery, findExcerpt,
+                                         onQuery, true);
                 status.append("  Repl: ");
-                status.append(m_replaceText, 0, m_replaceCursorPos);
-                if (onRepl) status.push_back('_');
-                status.append(m_replaceText, m_replaceCursorPos, std::string::npos);
+                appendSearchFieldExcerpt(status, m_replaceText, replaceExcerpt,
+                                         onRepl, true);
 
                 if (onQuery) {
-                    cursorText.append(m_findQuery, 0, m_findCursorPos);
+                    appendSearchFieldExcerpt(cursorText, m_findQuery,
+                                             findExcerpt, true, false);
                 } else {
-                    cursorText.append(m_findQuery);
+                    appendSearchFieldExcerpt(cursorText, m_findQuery,
+                                             findExcerpt, false, true);
                     cursorText.append("  Repl: ");
-                    cursorText.append(m_replaceText, 0, m_replaceCursorPos);
+                    appendSearchFieldExcerpt(cursorText, m_replaceText,
+                                             replaceExcerpt, true, false);
                 }
-                cursorText.push_back('_');
                 searchCursorPx = measureStatusCursorWidth(cursorText);
             } else {
-                m_findCursorPos = std::min(m_findCursorPos, m_findQuery.size());
                 status.clear();
                 status.append("Find: ");
-                status.append(m_findQuery, 0, m_findCursorPos);
-                status.push_back('_');
-                status.append(m_findQuery, m_findCursorPos, std::string::npos);
+                appendSearchFieldExcerpt(status, m_findQuery,
+                                         findExcerpt, true, true);
 
-                cursorText.append(m_findQuery, 0, m_findCursorPos);
-                cursorText.push_back('_');
+                appendSearchFieldExcerpt(cursorText, m_findQuery,
+                                         findExcerpt, true, false);
                 searchCursorPx = measureStatusCursorWidth(cursorText);
             }
             searchPromptActive = true;
@@ -2859,8 +2908,6 @@ void TextEditorApp::onUiScaleChanged() {
     invalidateRenderedTextSlices();
     invalidateFindHighlightCache();
     m_statusCursorMeasureValid = false;
-    m_findQueryPixelWidth = 0;
-    m_findQueryPixelWidthValid = false;
     const int visible = std::max(
         1,
         getVisibleLineCount({0, 0, m_clientWidth, m_clientHeight}));

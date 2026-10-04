@@ -421,14 +421,37 @@ int main() {
                 const bool scaledWidthMeasured = TTF_SizeUTF8(
                     promptFont, saveAsCursorText.c_str(), &expectedCursorWidth,
                     &expectedCursorHeight) == 0;
+                const bool scaledPromptMetricsRetained = scaledWidthMeasured
+                    && promptMetricEditor.m_statusCursorMeasureText == saveAsCursorText
+                    && promptMetricEditor.m_statusCursorPixelWidth == expectedCursorWidth;
+                promptMetricEditor.m_searchMode = TestEditor::SearchMode::Replace;
+                promptMetricEditor.m_searchField = TestEditor::SearchField::Replacement;
+                promptMetricEditor.m_findQuery.assign(
+                    TestEditor::kMaxDocumentBytes - 4, 'q');
+                promptMetricEditor.m_findQuery.append("\xF0\x9F\x99\x82");
+                promptMetricEditor.m_findCursorPos = promptMetricEditor.m_findQuery.size();
+                promptMetricEditor.m_replaceText.assign(
+                    TestEditor::kMaxDocumentBytes, 'r');
+                promptMetricEditor.m_replaceCursorPos = 256;
+                promptMetricEditor.updateFindMatches();
+                promptMetricEditor.render(renderer, {0, 0, 240, 200});
+                const bool largeSearchPromptBounded =
+                    promptMetricEditor.m_renderStatusText.size() < 512
+                    && promptMetricEditor.m_renderCursorText.size() < 256
+                    && promptMetricEditor.m_statusCursorMeasureText.size() < 256
+                    && promptMetricEditor.m_renderStatusText.find("...")
+                        != std::string::npos
+                    && promptMetricEditor.m_renderStatusText.find("\xF0\x9F\x99\x82")
+                        != std::string::npos;
                 check(findPromptRetained && findCursorMovementRefreshes
                           && replacePromptCached && goToLinePromptCached
                           && openPromptCached && saveAsPromptCached
                           && fontResized && promptMetricsInvalidated && scaledWidthMeasured
-                          && promptMetricEditor.m_statusCursorMeasureText == saveAsCursorText
-                          && promptMetricEditor.m_statusCursorPixelWidth == expectedCursorWidth
+                          && scaledPromptMetricsRetained
                           && expectedCursorWidth != oldPromptWidth,
                       "Text Editor reuses prompt caret widths across Find, Replace, path prompts, and UI scaling");
+                check(largeSearchPromptBounded,
+                      "Text Editor renders bounded UTF-8 excerpts for maximum-size search fields");
                 TTF_CloseFont(promptFont);
             }
 
@@ -456,20 +479,22 @@ int main() {
                 && findViewportEditor.m_renderedFindPrefixWidths.size()
                     == static_cast<size_t>(visibleFindRows * 2)
                 && findViewportEditor.m_renderedFindVisibleMatches.size()
+                    == findViewportEditor.m_renderedFindPrefixWidths.size()
+                && findViewportEditor.m_renderedFindVisibleWidths.size()
                     == findViewportEditor.m_renderedFindPrefixWidths.size();
             const auto* findGeometryStorage =
                 findViewportEditor.m_renderedFindPrefixWidths.data();
+            const auto* findHighlightWidthStorage =
+                findViewportEditor.m_renderedFindVisibleWidths.data();
             findViewportEditor.render(renderer, {0, 0, 240, 200});
             const bool retainedFindGeometry = cachedFindGeometry
                 && findGeometryStorage
-                    == findViewportEditor.m_renderedFindPrefixWidths.data();
+                    == findViewportEditor.m_renderedFindPrefixWidths.data()
+                && findHighlightWidthStorage
+                    == findViewportEditor.m_renderedFindVisibleWidths.data();
             int matchPrefixWidth = 0;
             int matchPrefixHeight = 0;
             TTF_SizeUTF8(scaleFont, "target ", &matchPrefixWidth, &matchPrefixHeight);
-            int expectedFindQueryWidth = 0;
-            int expectedFindQueryHeight = 0;
-            const bool measuredFindQueryWidth = TTF_SizeUTF8(
-                scaleFont, "target", &expectedFindQueryWidth, &expectedFindQueryHeight) == 0;
             const int matchRowY = TestEditor::kPadding + 1;
             Uint8 inactiveMatchPixel[4]{};
             Uint8 activeMatchPixel[4]{};
@@ -495,10 +520,7 @@ int main() {
                       && inactiveMatchPixel[2] == 58
                       && activeMatchPixel[0] == 54 && activeMatchPixel[1] == 92
                       && activeMatchPixel[2] == 116
-                      && retainedFindGeometry
-                      && measuredFindQueryWidth
-                      && findViewportEditor.m_findQueryPixelWidthValid
-                      && findViewportEditor.m_findQueryPixelWidth == expectedFindQueryWidth,
+                      && retainedFindGeometry,
                   "Find reuses viewport highlight geometry and preserves active styling after scrolling");
             findViewportEditor.moveFindMatch(1);
             findViewportEditor.render(renderer, {0, 0, 240, 200});
@@ -506,32 +528,34 @@ int main() {
                 findViewportEditor.m_currentFindMatch == 258
                 && findViewportEditor.m_renderedFindStartRow == 128
                 && findGeometryStorage
-                    == findViewportEditor.m_renderedFindPrefixWidths.data();
+                    == findViewportEditor.m_renderedFindPrefixWidths.data()
+                && findHighlightWidthStorage
+                    == findViewportEditor.m_renderedFindVisibleWidths.data();
             findViewportEditor.m_scrollOffset = 129;
             findViewportEditor.render(renderer, {0, 0, 240, 200});
             const bool viewportGeometryRebuilt =
                 findViewportEditor.m_renderedFindStartRow == 129
                 && findViewportEditor.m_renderedFindLineCount == visibleFindRows
-                && !findViewportEditor.m_renderedFindPrefixWidths.empty();
+                      && !findViewportEditor.m_renderedFindPrefixWidths.empty();
             findViewportEditor.m_findQuery = "target ";
             findViewportEditor.updateFindMatches();
-            const bool queryWidthInvalidated = !findViewportEditor.m_findQueryPixelWidthValid;
             const bool queryGeometryInvalidated =
                 findViewportEditor.m_renderedFindStartRow == -1
-                && findViewportEditor.m_renderedFindPrefixWidths.empty();
+                && findViewportEditor.m_renderedFindPrefixWidths.empty()
+                && findViewportEditor.m_renderedFindVisibleWidths.empty();
             findViewportEditor.render(renderer, {0, 0, 240, 200});
-            const bool fontMetricWasCached = findViewportEditor.m_findQueryPixelWidthValid;
             const bool queryGeometryRebuilt =
                 findViewportEditor.m_renderedFindStartRow == findViewportEditor.m_scrollOffset
                 && !findViewportEditor.m_renderedFindPrefixWidths.empty();
             findViewportEditor.onUiScaleChanged();
+            const bool fontGeometryInvalidated =
+                findViewportEditor.m_renderedFindStartRow == -1
+                && findViewportEditor.m_renderedFindPrefixWidths.empty()
+                && findViewportEditor.m_renderedFindVisibleWidths.empty();
             check(navigationReusesGeometry && viewportGeometryRebuilt
-                      && queryWidthInvalidated && fontMetricWasCached
                       && queryGeometryInvalidated && queryGeometryRebuilt
-                      && !findViewportEditor.m_findQueryPixelWidthValid
-                      && findViewportEditor.m_renderedFindStartRow == -1
-                      && findViewportEditor.m_renderedFindPrefixWidths.empty(),
-                  "Find query and font changes invalidate cached highlight geometry and width");
+                      && fontGeometryInvalidated,
+                  "Find query and font changes invalidate cached highlight geometry");
 
             TestEditor denseViewportEditor(scaleFont, &fs, "/dense-find.txt");
             denseViewportEditor.m_lines = {std::string(100'000, 'x')};
@@ -547,6 +571,28 @@ int main() {
                       && denseViewportEditor.m_renderedFindVisibleMatches.size()
                           <= denseViewportHighlightLimit,
                   "Find caches only viewport-intersecting highlights for dense long lines");
+
+            TestEditor clippedFindEditor(scaleFont, &fs, "/clipped-find.txt");
+            clippedFindEditor.m_lines = {std::string(12'000, 'x')};
+            clippedFindEditor.m_findQuery.assign(4096, 'x');
+            clippedFindEditor.updateFindMatches();
+            clippedFindEditor.onResize(240, 200);
+            int farPrefixWidth = 0;
+            int farPrefixHeight = 0;
+            const std::string farPrefix(6000, 'x');
+            const bool measuredFarOffset = TTF_SizeUTF8(
+                scaleFont, farPrefix.c_str(), &farPrefixWidth, &farPrefixHeight) == 0;
+            clippedFindEditor.m_horizontalScrollOffset = farPrefixWidth;
+            clippedFindEditor.render(renderer, {0, 0, 240, 200});
+            const int clippedTextWidth = 240 - 2 * TestEditor::kPadding
+                - TestEditor::kLineNumWidth;
+            check(measuredFarOffset && clippedFindEditor.m_findMatchCount == 2
+                      && clippedFindEditor.m_renderedFindVisibleMatches.size() == 1,
+                  "long Find retains only the match intersecting the scrolled viewport");
+            check(clippedFindEditor.m_renderedFindVisibleWidths.size() == 1
+                      && clippedFindEditor.m_renderedFindVisibleWidths[0] > 0
+                      && clippedFindEditor.m_renderedFindVisibleWidths[0] <= clippedTextWidth,
+                  "long Find highlights are measured only over their visible slice");
 
             TestEditor syntaxCacheEditor(scaleFont, &fs, "");
             syntaxCacheEditor.m_syntaxMode = TestEditor::SyntaxMode::Code;

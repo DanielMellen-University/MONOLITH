@@ -1,5 +1,10 @@
 # Changelog
 
+## 2026-10: Keep long Text Editor searches responsive
+
+- Render bounded UTF-8-safe excerpts around the active Find/Replace caret while preserving the full search text.
+- Measure each match highlight only over the part inside the visible text viewport, and seek from sparse checkpoints so scrolled highlights keep Find's non-overlapping match order.
+
 ## 2026-10: Bound Text Editor Find and Replace inputs
 
 - Limit each search field to 16 MiB and report when more input is rejected.

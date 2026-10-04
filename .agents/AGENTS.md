@@ -36,6 +36,7 @@ The human funds token budget and lives in the desktop. You:
 |------|------|------|
 | 2026-10-04 | atomic-save-subtree-recovery | Replace the recursive iterator with an explicit directory stack so a traversal error skips only its folder and continues through siblings |
 | 2026-10-04 | text-editor-search-bound | Cap Find and Replace fields at 16 MiB and reject over-limit UTF-8 input without splitting codepoints |
+| 2026-10-04 | text-editor-search-render-bound | Keep full search strings but bound status rendering to caret excerpts and highlight measurements to visible match slices; align viewport scans to sparse match checkpoints |
 | 2026-10-04 | atomic-save-startup-maintenance | Reclaim stale workspaces throughout readable nested directories through a resumable 32-entry-per-frame traversal; preserve unknown data and avoid following symlinks |
 | 2026-10-04 | atomic-save-listing-sweep | Share bounded stale-workspace cleanup cadence across saves and directory listings; recover abandoned workspaces when directories are revisited |
 | 2026-10-04 | atomic-save-lease-access | Reclaim stale read-only and write-only leases using an exclusive lock through an owner access mode that remains available; verify active read-only locks block cleanup |
@@ -382,6 +383,7 @@ Older recent-work rows: [`SESSION_LOG.md`](SESSION_LOG.md).
 | 7.145 | Reclaim abandoned saves in untouched directories | done | Traverse startup filesystem entries cooperatively at 32 entries per frame; reclaim validated nested workspaces without following symlinks and preserve unknown workspace contents |
 | 7.146 | Continue atomic cleanup after subtree errors | done | Use an explicit directory stack so permission or iterator failures discard only the affected frame; verify other readable directories still reclaim stale workspaces |
 | 7.147 | Bound Text Editor search fields | done | Cap each Find/Replace input at 16 MiB, preserve complete UTF-8 characters at the limit, and report rejected input; cover typing and paste in both fields |
+| 7.148 | Bound long Find/Replace rendering | done | Render UTF-8-safe 64-byte contexts around Find/Replace carets and measure each match highlight only across its visible viewport slice; start viewport scans from sparse checkpoints to preserve non-overlap without rescanning dense prefixes |
 | fs-browser-filter-cache | Reuse Filesystem Browser filter snapshots | done | Reuse one directory listing for filter edits; refresh it on F5 and Monolith filesystem notifications, including while filtering |
 | terminal-input-editing | Terminal command-line selection | done | Support UTF-8-safe keyboard/mouse selection and Ctrl+A/C/X/V; normalize all clipboard lines and tabs into the single-line prompt |
 | terminal-touch-mtime | Complete Terminal touch semantics | done | Update existing regular-file last-write time without truncation; reject outside-root symlink targets |
