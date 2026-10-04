@@ -449,7 +449,7 @@ Use the action that matches your intent:
 | You want to inspect the version written by another app | Press **Ctrl+O**, select the same `.modr`, then press **Ctrl+D** if the canvas is modified. |
 | You want both versions | Copy the file to a new `.modr` path first, then open the copy or save the current canvas to another path. |
 
-An external overwrite does not change the Drawing title, bound path, dirty marker, or undo history. The status bar says `File changed externally; canvas unchanged. Save to overwrite it.` Opening the currently bound path reloads that external version in the same window; if the canvas is dirty, press **Ctrl+D** to explicitly discard local pixels and reload. A successful Save still sends the normal filesystem change notification so other open apps can refresh their views.
+An external overwrite does not change the Drawing title, bound path, dirty marker, or undo history. The status bar says `File changed externally; canvas unchanged. Save to overwrite it.` An `[external change]` marker remains visible through other status updates until the file is reloaded, successfully saved, removed, or replaced with a new sketch. Opening the currently bound path reloads that external version in the same window; if the canvas is dirty, press **Ctrl+D** to explicitly discard local pixels and reload. A successful Save still sends the normal filesystem change notification so other open apps can refresh their views.
 
 ## Common File Workflows
 

@@ -515,6 +515,7 @@ bool TextEditorApp::loadInitialFile(const std::string& virtualPath) {
     m_documentSerializedBytes = serializedBytes;
     m_filePath = normalized;
     m_savedLines = m_lines;
+    m_externalChangePending = false;
     m_cursorRow = 0;
     m_cursorCol = 0;
     m_scrollOffset = 0;
@@ -556,6 +557,7 @@ bool TextEditorApp::saveCurrentFile() {
     if (ok) {
         m_savedLines = m_lines;
         m_dirty = false;
+        m_externalChangePending = false;
         clearDiscardArm();
         if (auto* ctrl = getController()) {
             // Claim the singleton before broadcasting so a synchronous observer
@@ -686,6 +688,7 @@ void TextEditorApp::onVirtualPathChanged(const std::string& changedPath) {
 
     if (m_fs->normalize(changedPath) != m_fs->normalize(m_filePath)) return;
 
+    m_externalChangePending = true;
     setStatus("File changed externally; buffer unchanged. Save to overwrite it.");
 }
 
@@ -705,6 +708,7 @@ void TextEditorApp::onBoundFileRemoved(const std::string& removedPath) {
     }
 
     m_filePath.clear();
+    m_externalChangePending = false;
     refreshSyntaxMode();
     clearDiscardArm();
     if (auto* ctrl = getController()) {
@@ -2491,11 +2495,13 @@ void TextEditorApp::render(SDL_Renderer* renderer, const SDL_Rect& contentRect) 
                 m_findQuery, m_findCursorPos);
             std::string& cursorText = m_renderCursorText;
             cursorText.clear();
+            if (m_externalChangePending) cursorText.append("[external change] ");
             cursorText.append("Find: ");
             if (m_searchMode == SearchMode::Replace) {
                 const SearchFieldExcerpt replaceExcerpt = searchFieldExcerpt(
                     m_replaceText, m_replaceCursorPos);
                 status.clear();
+                if (m_externalChangePending) status.append("[external change] ");
                 status.append("Find: ");
                 appendSearchFieldExcerpt(status, m_findQuery, findExcerpt,
                                          onQuery, true);
@@ -2516,6 +2522,7 @@ void TextEditorApp::render(SDL_Renderer* renderer, const SDL_Rect& contentRect) 
                 searchCursorPx = measureStatusCursorWidth(cursorText);
             } else {
                 status.clear();
+                if (m_externalChangePending) status.append("[external change] ");
                 status.append("Find: ");
                 appendSearchFieldExcerpt(status, m_findQuery,
                                          findExcerpt, true, true);
@@ -2544,6 +2551,7 @@ void TextEditorApp::render(SDL_Renderer* renderer, const SDL_Rect& contentRect) 
             const char* promptLabel = goToLine ? "Go to line: "
                 : m_pathPromptMode == PathPromptMode::Open ? "Open: " : "Save as: ";
             status.clear();
+            if (m_externalChangePending) status.append("[external change] ");
             status.append(promptLabel);
             status.append(m_pathPromptBuffer, 0, cursor);
             status.push_back('_');
@@ -2551,6 +2559,7 @@ void TextEditorApp::render(SDL_Renderer* renderer, const SDL_Rect& contentRect) 
 
             std::string& cursorText = m_renderCursorText;
             cursorText.clear();
+            if (m_externalChangePending) cursorText.append("[external change] ");
             cursorText.append(promptLabel);
             cursorText.append(m_pathPromptBuffer, 0, cursor);
             cursorText.push_back('_');
@@ -2566,6 +2575,7 @@ void TextEditorApp::render(SDL_Renderer* renderer, const SDL_Rect& contentRect) 
             searchPromptActive = true;
         } else {
             m_statusHorizontalScrollPx = 0;
+            if (m_externalChangePending) status.insert(0, "[external change] ");
             if (m_dirty) status += " *";
             if (!m_statusMessage.empty()) {
                 status += "   |  ";

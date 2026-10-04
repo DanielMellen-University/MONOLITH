@@ -204,6 +204,7 @@ private:
 
     std::string m_filePath;
     bool m_dirty = false;
+    bool m_externalChangePending = false;
     bool m_suppressChangedNotification = false;
     DiscardKind m_discardKind = DiscardKind::None;
     std::string m_discardPath;
@@ -217,6 +218,7 @@ private:
     int m_statusBarHeight = 22;
 
     std::string m_statusMessage;
+    std::string m_renderStatusText;
 
     PathPromptMode m_pathPromptMode = PathPromptMode::None;
     std::string m_pathPromptBuffer;

@@ -883,12 +883,17 @@ int main() {
     check(drawing.m_pixels == loadedPixels
               && drawing.m_canvasWidth == 2
               && drawing.m_canvasHeight == 2
+              && drawing.m_externalChangePending
               && drawing.m_statusMessage.find("changed externally") != std::string::npos,
           "external overwrite warns without replacing the Drawing canvas");
+    drawing.setStatus("Undo.");
+    check(drawing.m_externalChangePending,
+          "routine Drawing status updates retain the external-change state");
     check(drawing.saveToPath("/drawings/resize.modr"),
           "Drawing save succeeds after an external overwrite");
     check(drawing.m_statusMessage == "Saved: /drawings/resize.modr"
-              && !drawing.m_suppressChangedNotification,
+              && !drawing.m_suppressChangedNotification
+              && !drawing.m_externalChangePending,
           "Drawing ignores its own synchronous change notification");
 
     controller.occupiedDrawingPath = "/drawings/resize.modr";
@@ -1248,6 +1253,15 @@ int main() {
     SDL_Renderer* renderer = surface ? SDL_CreateSoftwareRenderer(surface) : nullptr;
     check(renderer != nullptr, "drawing state creates a software renderer");
     if (renderer) {
+        TestDrawing statusMarker(font, &fs);
+        statusMarker.resizeCanvas(1, 1, false);
+        statusMarker.m_externalChangePending = true;
+        statusMarker.setStatus("Undo.");
+        statusMarker.render(renderer, {0, 0, 320, 320});
+        check(statusMarker.m_renderStatusText.find("[external change]")
+                  != std::string::npos,
+              "Drawing keeps the external-change marker in its status bar");
+
         TestDrawing partialUpload(font, &fs);
         partialUpload.resizeCanvas(128, 96, false);
         partialUpload.syncTexture(renderer);

@@ -1,5 +1,10 @@
 # Changelog
 
+## 2026-10: Keep external file-change warnings visible
+
+- Keep a persistent status-bar marker in Text Editor and Drawing after another app changes their bound files, even when later actions replace the transient status message.
+- Clear the marker after a successful reload/save or when the bound file is removed; cover status rendering and lifecycle transitions in app state tests.
+
 ## 2026-10: Keep startup cleanup nonblocking
 
 - Probe candidate parent locks without blocking the UI frame; resume at the same candidate after lock contention.

@@ -211,6 +211,7 @@ private:
 
     std::string m_filePath;   // virtual path in Monolith FS (if set)
     bool m_dirty = false;
+    bool m_externalChangePending = false;
     bool m_suppressChangedNotification = false;
     std::string m_statusMessage;  // transient status-bar feedback (save/open errors, etc.)
     std::string m_renderStatusText;

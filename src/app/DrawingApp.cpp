@@ -953,6 +953,7 @@ bool DrawingApp::saveToPath(const std::string& virtualPath) {
     }
 
     m_filePath = path;
+    m_externalChangePending = false;
     captureSavedSnapshot();
     m_dirty = false;
     clearDirtyTiles();
@@ -1033,6 +1034,7 @@ bool DrawingApp::loadFromPath(const std::string& virtualPath) {
     markTextureDirty();
 
     m_filePath = path;
+    m_externalChangePending = false;
     captureSavedSnapshot();
     m_dirty = false;
     clearDirtyTiles();
@@ -1114,6 +1116,7 @@ void DrawingApp::onVirtualPathChanged(const std::string& changedPath) {
 
     if (m_fs->normalize(changedPath) != m_fs->normalize(m_filePath)) return;
 
+    m_externalChangePending = true;
     setStatus("File changed externally; canvas unchanged. Save to overwrite it.");
 }
 
@@ -1133,6 +1136,7 @@ void DrawingApp::onBoundFileRemoved(const std::string& removedPath) {
     }
 
     m_filePath.clear();
+    m_externalChangePending = false;
     clearDiscardArm();
     if (auto* ctrl = getController()) {
         ctrl->clearDrawingFileBinding();
@@ -1182,6 +1186,7 @@ void DrawingApp::startNewSketch(bool explicitlyConfirmed) {
     }
     clearCanvas(false);
     m_filePath.clear();
+    m_externalChangePending = false;
     captureSavedSnapshot();
     clearHistory();
     m_dirty = false; // blank new sketch is clean
@@ -1679,14 +1684,22 @@ void DrawingApp::drawStatusBar(SDL_Renderer* renderer, const SDL_Rect& contentRe
 
     if (!m_font) return;
 
-    std::string text = m_statusMessage;
+    std::string& text = m_renderStatusText;
+    text.clear();
+    if (m_externalChangePending) text.append("[external change] ");
+    text.append(m_statusMessage);
     bool promptActive = false;
     int promptCursorPx = 0;
     if (m_pathPromptMode != PathPromptMode::None) {
         m_pathPromptCursorPos = std::min(m_pathPromptCursorPos, m_pathPromptBuffer.size());
         const std::string beforeCursor = m_pathPromptBuffer.substr(0, m_pathPromptCursorPos);
         text += " " + beforeCursor + "_" + m_pathPromptBuffer.substr(m_pathPromptCursorPos);
-        const std::string cursorText = m_statusMessage + " " + beforeCursor + "_";
+        std::string cursorText;
+        if (m_externalChangePending) cursorText.append("[external change] ");
+        cursorText.append(m_statusMessage);
+        cursorText.push_back(' ');
+        cursorText.append(beforeCursor);
+        cursorText.push_back('_');
         promptCursorPx = measurePromptCursorWidth(cursorText);
         promptActive = true;
     } else if (m_dirty) {

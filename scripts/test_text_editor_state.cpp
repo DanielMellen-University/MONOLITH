@@ -299,6 +299,14 @@ int main() {
                       && restoredClip.w == expectedClip.w
                       && restoredClip.h == expectedClip.h,
                   "Text Editor restores the caller renderer clip after rendering");
+            scaleEditor.m_externalChangePending = true;
+            scaleEditor.setStatus("Copied selection.");
+            scaleEditor.render(renderer, {0, 0, 200, 160});
+            check(scaleEditor.m_renderStatusText.find("[external change]")
+                      != std::string::npos,
+                  "Text Editor keeps the external-change marker in its status bar");
+            scaleEditor.m_externalChangePending = false;
+            scaleEditor.render(renderer, {0, 0, 200, 160});
             const auto firstTextTexture = scaleEditor.m_textTextureCache.get(
                 renderer, scaleFont, "first", {200, 205, 210, 255});
             const size_t cachedTextureCount = scaleEditor.m_textTextureCache.size();
@@ -978,14 +986,18 @@ int main() {
           "overwrite the editor file outside the editor");
     externalEditor.onVirtualPathChanged("/new.txt");
     check(externalEditor.m_lines == std::vector<std::string>{"original"}
+              && externalEditor.m_externalChangePending
               && externalEditor.m_statusMessage.find("changed externally") != std::string::npos,
           "external overwrite warns without replacing the editor buffer");
+    externalEditor.setStatus("Copied selection.");
+    check(externalEditor.m_externalChangePending,
+          "routine Text Editor status updates retain the external-change state");
     externalController.blockedPath = "/new.txt";
     prepareOpen(externalEditor, "/new.txt");
     externalEditor.finishPathPrompt(true);
     check(externalEditor.m_filePath == "/new.txt"
               && externalEditor.m_lines == std::vector<std::string>{"outside change"}
-              && !externalEditor.m_dirty,
+              && !externalEditor.m_dirty && !externalEditor.m_externalChangePending,
           "Open reloads the current file instead of focusing its own singleton window");
 
     externalEditor.m_lines = {"local edit"};
@@ -1004,18 +1016,20 @@ int main() {
           "repeating Enter does not discard a dirty editor buffer");
     sendKey(externalEditor, SDLK_d, KMOD_CTRL);
     check(externalEditor.m_lines == std::vector<std::string>{"newer external change"}
-              && !externalEditor.m_dirty,
+              && !externalEditor.m_dirty && !externalEditor.m_externalChangePending,
           "Ctrl+D explicitly confirms a same-file reload");
 
     TestEditor selfSaveEditor(nullptr, &fs, "/new.txt");
     TestController selfSaveController;
     selfSaveEditor.setController(&selfSaveController);
     selfSaveController.editor = &selfSaveEditor;
+    selfSaveEditor.onVirtualPathChanged("/new.txt");
     selfSaveEditor.m_lines = {"editor save"};
     selfSaveEditor.m_dirty = true;
     check(selfSaveEditor.saveCurrentFile(), "editor save succeeds after an external overwrite");
     check(selfSaveEditor.m_statusMessage == "Saved: new.txt"
-              && !selfSaveEditor.m_suppressChangedNotification,
+              && !selfSaveEditor.m_suppressChangedNotification
+              && !selfSaveEditor.m_externalChangePending,
           "the editor ignores its own synchronous change notification");
     check(fs.readFile("/new.txt") == "editor save",
           "editor save deliberately replaces the external file content");

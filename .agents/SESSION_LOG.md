@@ -1,5 +1,7 @@
 # Session log
 
+| 2026-10-04 | fix/ux | Text Editor and Drawing now retain an external-change status marker across routine status updates until reload, successful save, or unbinding. Added lifecycle and rendered-status regressions; cloud verification pending. |
+
 | 2026-10-04 | fix/perf | Startup stale-workspace cleanup now probes candidate parent locks nonblocking so another instance cannot freeze the UI frame. Contention keeps the current iterator entry for the next frame; descriptor exhaustion defers the parent for retry after traversal frames unwind. Added held-lock and candidate-parent descriptor-pressure regressions and updated filesystem architecture/process notes. |
 
 | 2026-10-04 | fix | Fully blocked Browser cut paste now reports that nothing moved rather than saying nothing was copied; the failed cut stays retryable. Added all-conflict copy and cut state regressions verifying both files and clipboard state are preserved; documented the status behavior. |
