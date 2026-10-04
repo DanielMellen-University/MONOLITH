@@ -197,6 +197,17 @@ int main() {
     const fs::path target = parent / "settings.txt";
     const auto stalePath = workspacePath(parent, target, 7);
     fs::create_directory(stalePath, ec);
+    std::string currentWorkspaceName;
+    const bool currentWorkspaceNameReady =
+        monolith::detail::createAtomicTempTokenName(currentWorkspaceName);
+    const fs::path currentStalePath = parent / currentWorkspaceName;
+    ec.clear();
+    const bool currentStaleFixturesReady = currentWorkspaceNameReady
+        && fs::create_directory(currentStalePath, ec) && !ec
+        && monolith::detail::createAtomicTempOwnerMarker(currentStalePath)
+        && writeFixture(currentStalePath / "lease", "")
+        && writeFixture(currentStalePath / "ready", "")
+        && writeFixture(currentStalePath / "content", "current partial snapshot");
     const bool staleFixturesReady = !ec
         && writeOwnerMarker(stalePath)
         && writeFixture(stalePath / "lease", "")
@@ -216,16 +227,33 @@ int main() {
         && writeFixture(userMarkedPath / monolith::detail::atomicTempOwnerName,
                         "not Monolith's marker")
         && writeFixture(userMarkedPath / "notes.txt", "keep this too");
-    const bool staleWrite = staleFixturesReady && userIncompleteReady && userMarkedReady
+    const bool staleWrite = staleFixturesReady && currentStaleFixturesReady
+        && userIncompleteReady && userMarkedReady
         && monolith::detail::writeTextAtomically(
             target, [](std::ostream& out) { out << "recovered"; });
-    check(staleWrite && !fs::exists(stalePath)
+    check(staleWrite && !fs::exists(stalePath) && !fs::exists(currentStalePath)
               && fs::exists(target) && fs::file_size(target, ec) == 9,
-          "a marked unlocked workspace is reclaimed after an interrupted save");
+          "marked legacy and current-format workspaces are reclaimed after an interrupted save");
     check(userIncompleteReady && userMarkedReady
               && fs::exists(userIncompletePath / "notes.txt")
               && fs::exists(userMarkedPath / "notes.txt"),
           "lookalike directories without a valid ownership marker survive cleanup");
+
+    const fs::path retryParent = parent / "retry-after-sweep-failure";
+    const bool retryWasDue = monolith::detail::shouldSweepAtomicTempParent(retryParent);
+    const bool missingParentSweepReported =
+        !monolith::detail::scavengeAtomicTempDirectories(retryParent);
+    ec.clear();
+    const bool retryParentCreated = fs::create_directory(retryParent, ec) && !ec;
+    const bool retryTriggeredImmediately = retryParentCreated
+        && monolith::detail::shouldSweepAtomicTempParent(retryParent);
+    const bool retrySweepCompleted = retryTriggeredImmediately
+        && monolith::detail::scavengeAtomicTempDirectories(retryParent);
+    const bool normalCadenceRestored = retrySweepCompleted
+        && !monolith::detail::shouldSweepAtomicTempParent(retryParent);
+    check(retryWasDue && missingParentSweepReported && retryParentCreated
+              && retryTriggeredImmediately && retrySweepCompleted && normalCadenceRestored,
+          "a failed sweep retries on the next write, then resumes its normal cadence");
 
     constexpr unsigned long long activeSequence = 12;
     const fs::path activePath = workspacePath(parent, target, activeSequence);

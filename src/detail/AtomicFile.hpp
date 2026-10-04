@@ -113,6 +113,28 @@ inline bool shouldSweepAtomicTempParent(const std::filesystem::path& parent) {
     return true;
 }
 
+inline void scheduleAtomicTempSweepRetry(const std::filesystem::path& parent) {
+    const auto lexicalKey = parent.lexically_normal();
+    std::error_code pathError;
+    const auto resolvedKey = std::filesystem::weakly_canonical(parent, pathError);
+    const auto key = pathError ? lexicalKey : resolvedKey;
+
+    std::lock_guard lock(atomicTempSweepMutex);
+    for (auto& slot : atomicTempSweepSlots) {
+        if (slot.parent != key && slot.parent != lexicalKey && slot.alias != lexicalKey) {
+            continue;
+        }
+        slot.writesSinceSweep = atomicTempSweepInterval;
+        return;
+    }
+
+    auto& slot = atomicTempSweepSlots[atomicTempSweepNextSlot];
+    atomicTempSweepNextSlot = (atomicTempSweepNextSlot + 1) % atomicTempSweepSlots.size();
+    slot.parent = key;
+    slot.alias = key == lexicalKey ? std::filesystem::path{} : lexicalKey;
+    slot.writesSinceSweep = atomicTempSweepInterval;
+}
+
 inline bool hasAtomicTempOwnerMarker(const std::filesystem::path& directory) {
     const auto markerPath = directory / atomicTempOwnerName;
     struct stat pathStatus {};
@@ -349,13 +371,21 @@ inline bool tryReclaimIncompleteAtomicTempDirectory(
     return removeAtomicTempWorkspace(directory, false);
 }
 
-inline void scavengeAtomicTempDirectories(const std::filesystem::path& parent) {
+inline bool scavengeAtomicTempDirectories(const std::filesystem::path& parent) {
     AtomicTempParentLock parentLock(parent);
-    if (!parentLock.locked()) return;
+    if (!parentLock.locked()) {
+        scheduleAtomicTempSweepRetry(parent);
+        return false;
+    }
 
     std::error_code iteratorError;
     std::filesystem::directory_iterator entry(parent, iteratorError);
     const std::filesystem::directory_iterator end;
+    if (iteratorError) {
+        scheduleAtomicTempSweepRetry(parent);
+        return false;
+    }
+
     std::vector<std::filesystem::path> candidates;
     while (!iteratorError && entry != end) {
         const std::string name = entry->path().filename().string();
@@ -366,10 +396,13 @@ inline void scavengeAtomicTempDirectories(const std::filesystem::path& parent) {
         }
         entry.increment(iteratorError);
     }
+    const bool complete = !iteratorError;
     for (const auto& candidate : candidates) {
         if (tryReclaimIncompleteAtomicTempDirectory(candidate)) continue;
         tryReclaimAtomicTempDirectory(candidate);
     }
+    if (!complete) scheduleAtomicTempSweepRetry(parent);
+    return complete;
 }
 
 inline bool createAtomicTempDirectory(const std::filesystem::path& targetPath,

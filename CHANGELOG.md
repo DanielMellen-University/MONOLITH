@@ -1,5 +1,10 @@
 # Changelog
 
+## 2026-10: Retry interrupted atomic-save sweeps promptly
+
+- If a destination-parent lock or directory enumeration fails during cleanup, schedule another sweep on the next write instead of waiting for the normal 32-write interval.
+- Cover retry cadence and recovery of a current-format workspace with its symlink ownership token.
+
 ## 2026-10: Preserve unexpected data in atomic-save workspaces
 
 - Reclaim stale workspaces by removing only recognized owner, lease, ready, and content entries; any unexpected child keeps the workspace intact.
