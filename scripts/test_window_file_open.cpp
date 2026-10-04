@@ -17,8 +17,9 @@
 #include <fstream>
 #include <iostream>
 #include <string>
-#include <unistd.h>
 #include <vector>
+
+#include "TestTempDir.hpp"
 
 namespace {
 
@@ -51,10 +52,13 @@ int main() {
         }
     };
 
-    const std::filesystem::path hostRoot = std::filesystem::temp_directory_path()
-        / ("monolith-window-file-open-" + std::to_string(getpid()));
+    monolith::test::ScopedTempDirectory temp("monolith-window-file-open");
+    if (!temp) {
+        std::cerr << "FAIL: could not create file-open probe directory\n";
+        return 1;
+    }
+    const std::filesystem::path hostRoot = temp.path();
     std::error_code ec;
-    std::filesystem::remove_all(hostRoot, ec);
 
     monolith::fs::Filesystem fs(hostRoot.string());
     check(fs.initialize(), "file-open probe filesystem initialize");
@@ -68,7 +72,6 @@ int main() {
     check(font != nullptr, "load headless test font");
     if (!font) {
         TTF_Quit();
-        std::filesystem::remove_all(hostRoot, ec);
         return 1;
     }
 
@@ -564,7 +567,6 @@ int main() {
     TTF_CloseFont(font);
     TTF_Quit();
 
-    std::filesystem::remove_all(hostRoot, ec);
     if (failures == 0) {
         std::cout << "ALL WINDOW FILE OPEN TESTS PASSED\n";
         return 0;

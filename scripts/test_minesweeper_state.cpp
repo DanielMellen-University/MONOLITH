@@ -11,8 +11,8 @@
 #include <iostream>
 #include <iterator>
 #include <string>
-#include <unistd.h>
 
+#include "TestTempDir.hpp"
 #include "../src/app/App.hpp"
 
 #define private public
@@ -43,18 +43,14 @@ int main() {
     const char* originalHomeValue = std::getenv("HOME");
     const bool hadOriginalHome = originalHomeValue != nullptr;
     const std::string originalHome = originalHomeValue ? originalHomeValue : "";
-    const std::filesystem::path testHome =
-        std::filesystem::temp_directory_path()
-        / ("monolith-minesweeper-state-"
-           + std::to_string(static_cast<long long>(getpid())));
+    monolith::test::ScopedTempDirectory testHomeTemp("monolith-minesweeper-state");
+    const std::filesystem::path testHome = testHomeTemp.path();
     std::error_code cleanupError;
-    std::filesystem::remove_all(testHome, cleanupError);
-    const bool homeReady = std::filesystem::create_directories(testHome);
-    const bool homeConfigured = homeReady && setenv("HOME", testHome.c_str(), 1) == 0;
+    const bool homeConfigured = testHomeTemp
+        && setenv("HOME", testHome.c_str(), 1) == 0;
     check(homeConfigured,
           "Minesweeper state isolates host best-time persistence");
     if (!homeConfigured) {
-        std::filesystem::remove_all(testHome, cleanupError);
         TTF_CloseFont(font);
         TTF_Quit();
         return 1;
@@ -358,7 +354,6 @@ int main() {
     }
     if (minesweeperSurface) SDL_FreeSurface(minesweeperSurface);
 
-    std::filesystem::remove_all(testHome, cleanupError);
     if (hadOriginalHome) {
         setenv("HOME", originalHome.c_str(), 1);
     } else {

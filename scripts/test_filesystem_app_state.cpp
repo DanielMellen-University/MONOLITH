@@ -1,6 +1,7 @@
 // Headless regression test for Filesystem Browser selection after filtering.
 
 #include "../src/fs/Filesystem.hpp"
+#include "TestTempDir.hpp"
 
 #include <SDL2/SDL.h>
 #include <SDL2/SDL_ttf.h>
@@ -8,7 +9,6 @@
 #include <filesystem>
 #include <iostream>
 #include <string>
-#include <unistd.h>
 
 #define private public
 #include "../src/app/FilesystemApp.hpp"
@@ -69,10 +69,13 @@ int main() {
         }
     };
 
-    const std::filesystem::path hostRoot = std::filesystem::temp_directory_path()
-        / ("monolith-filesystem-app-state-" + std::to_string(getpid()));
+    monolith::test::ScopedTempDirectory temp("monolith-filesystem-app-state");
+    if (!temp) {
+        std::cerr << "FAIL: could not create browser state directory\n";
+        return 1;
+    }
+    const std::filesystem::path hostRoot = temp.path();
     std::error_code ec;
-    std::filesystem::remove_all(hostRoot, ec);
 
     monolith::fs::Filesystem fs(hostRoot.string());
     check(fs.initialize(), "browser state filesystem initialize");
@@ -91,7 +94,6 @@ int main() {
     if (!font) {
         TTF_Quit();
         SDL_Quit();
-        std::filesystem::remove_all(hostRoot, ec);
         return 1;
     }
 
@@ -768,7 +770,6 @@ int main() {
     TTF_CloseFont(font);
     TTF_Quit();
     SDL_Quit();
-    std::filesystem::remove_all(hostRoot, ec);
     if (failures == 0) {
         std::cout << "ALL FILESYSTEM APP STATE TESTS PASSED\n";
         return 0;

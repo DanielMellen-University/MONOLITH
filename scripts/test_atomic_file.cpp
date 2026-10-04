@@ -1,4 +1,5 @@
 #include "../src/detail/AtomicFile.hpp"
+#include "TestTempDir.hpp"
 
 #include <cstddef>
 #include <filesystem>
@@ -44,15 +45,13 @@ int main() {
         }
     };
 
-    const fs::path parent = fs::temp_directory_path()
-        / ("monolith-atomic-file-" + std::to_string(getpid()));
-    std::error_code ec;
-    fs::remove_all(parent, ec);
-    fs::create_directories(parent, ec);
-    if (ec) {
+    monolith::test::ScopedTempDirectory temp("monolith-atomic-file");
+    if (!temp) {
         std::cerr << "FAIL: could not create atomic-file test directory\n";
         return 1;
     }
+    const fs::path parent = temp.path();
+    std::error_code ec;
 
     {
         monolith::detail::AtomicTempParentLock heldLock(parent);
@@ -353,7 +352,6 @@ int main() {
     check(rotationWritesSucceeded && evictedParentWrite && !fs::exists(evictedStalePath),
           "a destination parent is swept again after tracker eviction");
 
-    fs::remove_all(parent, ec);
     if (failures == 0) {
         std::cout << "ALL ATOMIC FILE TESTS PASSED\n";
         return 0;

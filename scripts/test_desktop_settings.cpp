@@ -3,6 +3,7 @@
 #include "../src/settings/DesktopSettings.hpp"
 #include "../src/detail/AtomicFile.hpp"
 #include "../src/detail/BoundedLineReader.hpp"
+#include "TestTempDir.hpp"
 
 #include <cstdio>
 #include <filesystem>
@@ -23,10 +24,13 @@ int main() {
         }
     };
 
-    const std::filesystem::path path =
-        std::filesystem::temp_directory_path() / "monolith-desktop-settings-roadmap.txt";
+    monolith::test::ScopedTempDirectory temp("monolith-desktop-settings");
+    if (!temp) {
+        std::cerr << "FAIL: could not create Desktop Settings test directory\n";
+        return 1;
+    }
+    const std::filesystem::path path = temp.path() / "settings.txt";
     std::error_code ec;
-    std::filesystem::remove(path, ec);
 
     DesktopSettings saved;
     saved.setDesktopBackground({18, 24, 42});
@@ -59,9 +63,7 @@ int main() {
     check(std::filesystem::status(path).permissions() == restrictivePermissions,
           "settings replacement retains existing permissions");
 
-    const std::filesystem::path outsideTempTarget =
-        std::filesystem::temp_directory_path() / "monolith-desktop-settings-temp-target";
-    std::filesystem::remove(outsideTempTarget, ec);
+    const std::filesystem::path outsideTempTarget = temp.path() / "neighboring-user-file";
     {
         std::ofstream outsideTempFile(outsideTempTarget);
         outsideTempFile << "outside-before";
@@ -85,9 +87,7 @@ int main() {
     }
     std::filesystem::remove(outsideTempTarget, ec);
 
-    const std::filesystem::path blockedPath =
-        std::filesystem::temp_directory_path() / "monolith-desktop-settings-blocked";
-    std::filesystem::remove_all(blockedPath, ec);
+    const std::filesystem::path blockedPath = temp.path() / "blocked-target";
     check(std::filesystem::create_directory(blockedPath),
           "create blocked settings target");
     check(!saved.saveToHostPath(blockedPath.string()),
@@ -96,9 +96,7 @@ int main() {
               && !std::filesystem::exists(blockedPath.string() + ".tmp"),
           "failed settings replacement preserves the target and cleans up");
 
-    const std::filesystem::path throwingPath =
-        std::filesystem::temp_directory_path() / "monolith-desktop-settings-throwing";
-    std::filesystem::remove(throwingPath, ec);
+    const std::filesystem::path throwingPath = temp.path() / "throwing-target";
     check(!monolith::detail::writeTextAtomically(
               throwingPath,
               [](std::ostream&) { throw std::runtime_error("serializer failed"); },
@@ -253,9 +251,6 @@ int main() {
     check(setterGuard.wallpaperPath() == "/existing.bmp",
           "invalid wallpaper path cannot replace the persisted setting");
 
-    std::filesystem::remove(path, ec);
-    std::filesystem::remove_all(blockedPath, ec);
-    std::filesystem::remove(throwingPath, ec);
     if (failures == 0) {
         std::cout << "ALL DESKTOP SETTINGS TESTS PASSED\n";
         return 0;

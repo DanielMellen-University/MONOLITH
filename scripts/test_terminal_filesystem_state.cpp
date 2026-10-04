@@ -14,9 +14,9 @@
 #include <string>
 #include <string_view>
 #include <streambuf>
-#include <unistd.h>
 #include <vector>
 
+#include "TestTempDir.hpp"
 #include "../src/app/App.hpp"
 #include "../src/fs/Filesystem.hpp"
 #include "../src/app/TerminalLexer.hpp"
@@ -108,10 +108,13 @@ int main() {
     check(!failingWriter.append(fullWriterChunk) && !failingWriter.finish(),
           "bounded stream writer propagates a failed chunk write");
 
-    const std::filesystem::path hostRoot = std::filesystem::temp_directory_path()
-        / ("monolith-terminal-fs-state-" + std::to_string(getpid()));
+    monolith::test::ScopedTempDirectory temp("monolith-terminal-fs-state");
+    if (!temp) {
+        std::cerr << "FAIL: could not create Terminal filesystem test directory\n";
+        return 1;
+    }
+    const std::filesystem::path hostRoot = temp.path();
     std::error_code ec;
-    std::filesystem::remove_all(hostRoot, ec);
 
     monolith::fs::Filesystem fs(hostRoot.string());
     check(fs.initialize(), "terminal filesystem initialize");
@@ -167,7 +170,6 @@ int main() {
     if (!font) {
         TTF_Quit();
         SDL_Quit();
-        std::filesystem::remove_all(hostRoot, ec);
         return 1;
     }
 
@@ -1218,7 +1220,6 @@ int main() {
         std::filesystem::perm_options::add, ec);
     check(!ec, "restore Terminal history write permission after migration test");
 
-    std::filesystem::remove_all(hostRoot, ec);
     if (failures == 0) {
         std::cout << "ALL TERMINAL FILESYSTEM TESTS PASSED\n";
         TTF_CloseFont(font);

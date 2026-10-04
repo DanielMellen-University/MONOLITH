@@ -8,10 +8,10 @@
 #include <iostream>
 #include <limits>
 #include <string>
-#include <unistd.h>
 #include <utility>
 #include <vector>
 
+#include "TestTempDir.hpp"
 #include "../src/app/App.hpp"
 #include "../src/app/DrawingRaster.hpp"
 #include "../src/fs/Filesystem.hpp"
@@ -94,10 +94,13 @@ int main() {
                 <= 64 * 1024 * 1024;
     };
 
-    const std::filesystem::path hostRoot = std::filesystem::temp_directory_path()
-        / ("monolith-drawing-state-" + std::to_string(getpid()));
+    monolith::test::ScopedTempDirectory temp("monolith-drawing-state");
+    if (!temp) {
+        std::cerr << "FAIL: could not create Drawing state directory\n";
+        return 1;
+    }
+    const std::filesystem::path hostRoot = temp.path();
     std::error_code ec;
-    std::filesystem::remove_all(hostRoot, ec);
 
     monolith::fs::Filesystem fs(hostRoot.string());
     check(fs.initialize(), "drawing state filesystem initialize");
@@ -132,7 +135,6 @@ int main() {
     if (!font) {
         TTF_Quit();
         SDL_Quit();
-        std::filesystem::remove_all(hostRoot, ec);
         return 1;
     }
 
@@ -1270,7 +1272,6 @@ int main() {
     }
     if (surface) SDL_FreeSurface(surface);
 
-    std::filesystem::remove_all(hostRoot, ec);
     if (failures == 0) {
         std::cout << "ALL DRAWING STATE TESTS PASSED\n";
         TTF_CloseFont(font);

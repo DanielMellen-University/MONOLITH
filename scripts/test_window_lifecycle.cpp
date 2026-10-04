@@ -3,11 +3,11 @@
 #include "../src/window/WindowManager.hpp"
 #undef private
 #include "../src/fs/Filesystem.hpp"
+#include "TestTempDir.hpp"
 
 #include <filesystem>
 #include <iostream>
 #include <memory>
-#include <unistd.h>
 
 namespace {
 
@@ -412,8 +412,9 @@ int main() {
     }
 
     {
-        const std::filesystem::path hostRoot = std::filesystem::temp_directory_path()
-            / ("monolith-window-notification-" + std::to_string(getpid()));
+        monolith::test::ScopedTempDirectory temp("monolith-window-notification");
+        if (!temp) return 1;
+        const std::filesystem::path hostRoot = temp.path();
         monolith::fs::Filesystem fs(hostRoot.string());
         check(fs.initialize(), "notification probe filesystem initialize");
 
@@ -433,13 +434,12 @@ int main() {
         check(wm.getWindowAt(100, 160) == nullptr,
               "notification-triggered close removes the source window safely");
 
-        std::error_code ec;
-        std::filesystem::remove_all(hostRoot, ec);
     }
 
     {
-        const std::filesystem::path hostRoot = std::filesystem::temp_directory_path()
-            / ("monolith-window-reentrant-notification-" + std::to_string(getpid()));
+        monolith::test::ScopedTempDirectory temp("monolith-window-reentrant-notification");
+        if (!temp) return 1;
+        const std::filesystem::path hostRoot = temp.path();
         monolith::fs::Filesystem fs(hostRoot.string());
         check(fs.initialize(), "reentrant notification filesystem initialize");
 
@@ -464,13 +464,12 @@ int main() {
         check(sourceWindow == nullptr && wm.m_windows.size() == 1,
               "the observer-triggered close is applied after the source callback returns");
 
-        std::error_code ec;
-        std::filesystem::remove_all(hostRoot, ec);
     }
 
     {
-        const std::filesystem::path hostRoot = std::filesystem::temp_directory_path()
-            / ("monolith-window-binding-" + std::to_string(getpid()));
+        monolith::test::ScopedTempDirectory temp("monolith-window-binding");
+        if (!temp) return 1;
+        const std::filesystem::path hostRoot = temp.path();
         monolith::fs::Filesystem fs(hostRoot.string());
         check(fs.initialize(), "binding callback filesystem initialize");
 
@@ -495,8 +494,6 @@ int main() {
                   && wm.focusEditorForFile("/archive/new.txt"),
               "surviving bound editor keeps its remapped singleton path");
 
-        std::error_code ec;
-        std::filesystem::remove_all(hostRoot, ec);
     }
 
     {

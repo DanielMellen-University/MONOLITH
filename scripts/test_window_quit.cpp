@@ -12,7 +12,8 @@
 #include <cstring>
 #include <iostream>
 #include <memory>
-#include <unistd.h>
+
+#include "TestTempDir.hpp"
 
 namespace {
 
@@ -175,10 +176,9 @@ int main() {
     }
 
     {
-        const std::filesystem::path hostRoot = std::filesystem::temp_directory_path()
-            / ("monolith-window-quit-snapshot-" + std::to_string(getpid()));
-        std::error_code ec;
-        std::filesystem::remove_all(hostRoot, ec);
+        monolith::test::ScopedTempDirectory temp("monolith-window-quit-snapshot");
+        if (!temp) return 1;
+        const std::filesystem::path hostRoot = temp.path();
         monolith::fs::Filesystem fs(hostRoot.string());
         check(fs.initialize(), "shutdown snapshot filesystem initialize");
         check(fs.createDirectory("/docs"), "shutdown snapshot creates editor directory");
@@ -211,14 +211,12 @@ int main() {
             TTF_CloseFont(font);
         }
         TTF_Quit();
-        std::filesystem::remove_all(hostRoot, ec);
     }
 
     {
-        const std::filesystem::path hostRoot = std::filesystem::temp_directory_path()
-            / ("monolith-window-quit-new-app-" + std::to_string(getpid()));
-        std::error_code ec;
-        std::filesystem::remove_all(hostRoot, ec);
+        monolith::test::ScopedTempDirectory temp("monolith-window-quit-new-app");
+        if (!temp) return 1;
+        const std::filesystem::path hostRoot = temp.path();
         monolith::fs::Filesystem fs(hostRoot.string());
         check(fs.initialize(), "new-app shutdown filesystem initialize");
         check(fs.createDirectory("/docs"), "new-app shutdown creates editor directory");
@@ -251,7 +249,6 @@ int main() {
             TTF_CloseFont(font);
         }
         TTF_Quit();
-        std::filesystem::remove_all(hostRoot, ec);
     }
 
     if (failures == 0) {

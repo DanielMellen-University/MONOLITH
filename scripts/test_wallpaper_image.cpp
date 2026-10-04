@@ -1,4 +1,5 @@
 #include "../src/window/WallpaperImage.hpp"
+#include "TestTempDir.hpp"
 
 #include <cstdint>
 #include <cstring>
@@ -6,7 +7,6 @@
 #include <fstream>
 #include <iostream>
 #include <string>
-#include <unistd.h>
 #include <vector>
 
 namespace {
@@ -135,11 +135,12 @@ int main() {
         }
     };
 
-    const std::filesystem::path root = std::filesystem::temp_directory_path()
-        / ("monolith-wallpaper-image-" + std::to_string(getpid()));
-    std::error_code ec;
-    std::filesystem::remove_all(root, ec);
-    check(std::filesystem::create_directories(root), "create wallpaper test directory");
+    monolith::test::ScopedTempDirectory temp("monolith-wallpaper-image");
+    if (!temp) {
+        std::cerr << "FAIL: could not create wallpaper test directory\n";
+        return 1;
+    }
+    const std::filesystem::path root = temp.path();
 
     const auto validPng = onePixelPng();
     const auto validPath = root / "one.png";
@@ -195,7 +196,5 @@ int main() {
     check(surface == nullptr, "non-wallpaper extensions remain rejected");
     if (surface) SDL_FreeSurface(surface);
 
-    std::filesystem::remove_all(root, ec);
-    check(!ec, "remove wallpaper test directory");
     return failures == 0 ? 0 : 1;
 }

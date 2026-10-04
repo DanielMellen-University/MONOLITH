@@ -1,5 +1,6 @@
 // Headless regression test for focus handoff when the active window is minimized.
 #include "../src/fs/Filesystem.hpp"
+#include "TestTempDir.hpp"
 #define private public
 #include "../src/window/WindowManager.hpp"
 #undef private
@@ -8,7 +9,6 @@
 #include <cstring>
 #include <iostream>
 #include <memory>
-#include <unistd.h>
 
 namespace {
 
@@ -96,8 +96,12 @@ int main() {
         }
     };
 
-    const std::filesystem::path hostRoot = std::filesystem::temp_directory_path()
-        / ("monolith-window-focus-" + std::to_string(getpid()));
+    monolith::test::ScopedTempDirectory temp("monolith-window-focus");
+    if (!temp) {
+        std::cerr << "FAIL: could not create focus probe directory\n";
+        return 1;
+    }
+    const std::filesystem::path hostRoot = temp.path();
     monolith::fs::Filesystem fs(hostRoot.string());
     check(fs.initialize(), "focus probe filesystem initialize");
 
@@ -305,9 +309,6 @@ int main() {
               "closing Start resumes the current focused survivor once");
         callbackWm.handleEvent(toggleStartRelease);
     }
-
-    std::error_code ec;
-    std::filesystem::remove_all(hostRoot, ec);
 
     if (failures == 0) {
         std::cout << "ALL WINDOW FOCUS TESTS PASSED\n";

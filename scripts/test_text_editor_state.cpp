@@ -11,9 +11,9 @@
 #include <string>
 #include <string_view>
 #include <utility>
-#include <unistd.h>
 #include <vector>
 
+#include "TestTempDir.hpp"
 #include "../src/app/App.hpp"
 #include "../src/fs/Filesystem.hpp"
 
@@ -85,10 +85,12 @@ int main() {
         }
     };
 
-    const std::filesystem::path hostRoot = std::filesystem::temp_directory_path()
-        / ("monolith-text-editor-state-" + std::to_string(getpid()));
-    std::error_code ec;
-    std::filesystem::remove_all(hostRoot, ec);
+    monolith::test::ScopedTempDirectory temp("monolith-text-editor-state");
+    if (!temp) {
+        std::cerr << "FAIL: could not create Text Editor state directory\n";
+        return 1;
+    }
+    const std::filesystem::path hostRoot = temp.path();
 
     monolith::fs::Filesystem fs(hostRoot.string());
     check(fs.initialize(), "editor state filesystem initialize");
@@ -1280,7 +1282,6 @@ int main() {
     check(promptEditor.m_pathPromptBuffer == "/",
           "Save As prompt returns to a valid parent after deletion");
 
-    std::filesystem::remove_all(hostRoot, ec);
     if (scaleFont) TTF_CloseFont(scaleFont);
     if (ttfReady) TTF_Quit();
     if (videoReady) SDL_Quit();

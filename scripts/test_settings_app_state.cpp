@@ -1,13 +1,12 @@
 // Headless regression test for Settings wallpaper path completion.
 
 #include "../src/fs/Filesystem.hpp"
+#include "TestTempDir.hpp"
 
 #include <SDL2/SDL.h>
 #include <SDL2/SDL_ttf.h>
-#include <filesystem>
 #include <iostream>
 #include <string>
-#include <unistd.h>
 
 #define private public
 #include "../src/app/SettingsApp.hpp"
@@ -134,10 +133,12 @@ int main() {
         }
     };
 
-    const std::string hostRoot =
-        "/tmp/monolith-settings-app-state-" + std::to_string(getpid());
-    std::error_code ec;
-    std::filesystem::remove_all(hostRoot, ec);
+    monolith::test::ScopedTempDirectory temp("monolith-settings-app-state");
+    if (!temp) {
+        std::cerr << "FAIL: could not create Settings state directory\n";
+        return 1;
+    }
+    const std::string hostRoot = temp.path().string();
     monolith::fs::Filesystem fs(hostRoot);
     check(fs.initialize(), "settings state filesystem initialize");
     check(fs.createDirectory("/Wallpapers/art"), "create wallpaper completion directories");
@@ -163,7 +164,6 @@ int main() {
     if (!font) {
         TTF_Quit();
         SDL_Quit();
-        std::filesystem::remove_all(hostRoot, ec);
         return 1;
     }
 
@@ -458,7 +458,6 @@ int main() {
     }
     if (surface) SDL_FreeSurface(surface);
 
-    std::filesystem::remove_all(hostRoot, ec);
     TTF_CloseFont(font);
     TTF_Quit();
     SDL_Quit();

@@ -2,6 +2,7 @@
 // Compiles against src/fs/Filesystem.cpp (no SDL).
 
 #include "../src/fs/Filesystem.hpp"
+#include "TestTempDir.hpp"
 
 #include <algorithm>
 #include <chrono>
@@ -12,7 +13,6 @@
 #include <iostream>
 #include <sstream>
 #include <string>
-#include <unistd.h>
 #include <vector>
 
 namespace stdfs = std::filesystem;
@@ -87,15 +87,13 @@ int main() {
         }
     };
 
-    const stdfs::path hostRoot = stdfs::temp_directory_path()
-        / ("monolith-fs-roadmap-" + std::to_string(getpid()));
-    std::error_code ec;
-    stdfs::remove_all(hostRoot, ec);
-    stdfs::create_directories(hostRoot, ec);
-    if (ec) {
+    monolith::test::ScopedTempDirectory hostTemp("monolith-fs-roadmap");
+    if (!hostTemp) {
         std::cerr << "FAIL: could not create temp host root\n";
         return 1;
     }
+    const stdfs::path hostRoot = hostTemp.path();
+    std::error_code ec;
 
     Filesystem fs(hostRoot.string());
     check(fs.initialize(), "filesystem initialize");
@@ -177,11 +175,13 @@ int main() {
     check(fs.normalize(std::string(65536, '/')) == "/",
           "normalization handles long redundant separator runs");
 
-    const stdfs::path outsideRoot = stdfs::temp_directory_path()
-        / ("monolith-fs-outside-" + std::to_string(getpid()));
-    stdfs::remove_all(outsideRoot, ec);
-    stdfs::create_directories(outsideRoot, ec);
-    check(!ec, "create outside symlink target");
+    monolith::test::ScopedTempDirectory outsideTemp("monolith-fs-outside");
+    if (!outsideTemp) {
+        std::cerr << "FAIL: could not create outside symlink target\n";
+        return 1;
+    }
+    const stdfs::path outsideRoot = outsideTemp.path();
+    check(stdfs::is_directory(outsideRoot), "create outside symlink target");
     {
         std::ofstream outsideFile(outsideRoot / "secret.txt");
         outsideFile << "outside";
@@ -615,16 +615,18 @@ int main() {
               "dangling destination and rename source remain intact");
     }
 
-    const stdfs::path fileRoot = stdfs::temp_directory_path()
-        / ("monolith-fs-file-root-" + std::to_string(getpid()));
-    stdfs::remove_all(fileRoot, ec);
+    monolith::test::ScopedTempDirectory fileRootTemp("monolith-fs-file-root");
+    if (!fileRootTemp) {
+        std::cerr << "FAIL: could not create invalid-root test directory\n";
+        return 1;
+    }
+    const stdfs::path fileRoot = fileRootTemp.path() / "host-root-file";
     {
         std::ofstream blocker(fileRoot);
         blocker << "not a directory";
     }
     Filesystem invalidRoot(fileRoot.string());
     check(!invalidRoot.initialize(), "filesystem rejects a file as the host root");
-    stdfs::remove(fileRoot, ec);
 
     check(fs.createDirectory("/src"), "create /src");
     check(fs.createDirectory("/dst"), "create /dst");
@@ -916,9 +918,6 @@ int main() {
           "filterEntryIndices matches without copying entries and preserves source order");
     check(Filesystem::filterEntryIndices(mixedCaseEntries, "").empty(),
           "filterEntryIndices uses an empty result for the unfiltered identity view");
-
-    stdfs::remove_all(hostRoot, ec);
-    stdfs::remove_all(outsideRoot, ec);
 
     if (failures == 0) {
         std::cout << "ALL FS ROADMAP TESTS PASSED\n";
