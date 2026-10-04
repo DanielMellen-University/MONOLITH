@@ -287,6 +287,24 @@ int main() {
           "remove the filter-interior-edit fixture");
     browser.onVirtualPathRemoved("/home/monolith/axb.txt");
 
+    key(browser, SDLK_f, KMOD_CTRL);
+    const std::string filterChunk(31, 'x');
+    for (int chunk = 0; chunk < 8; ++chunk) {
+        text(browser, filterChunk.c_str());
+    }
+    text(browser, "xxxxxx");
+    const std::string filterEmoji = "\xF0\x9F\x98\x80";
+    text(browser, filterEmoji.c_str());
+    check(browser.m_filterQuery.size() == 254
+              && browser.m_filterCursorPos == 254,
+          "filter input drops a whole UTF-8 character that crosses the byte limit");
+    text(browser, "x");
+    text(browser, filterEmoji.c_str());
+    check(browser.m_filterQuery.size() == 255
+              && browser.m_filterCursorPos == 255,
+          "filter input remains bounded by the maximum filename component length");
+    key(browser, SDLK_ESCAPE);
+
     check(browser.selectEntryNamed("b.txt", false), "select an entry before narrowing again");
     key(browser, SDLK_f, KMOD_CTRL);
     text(browser, "b");

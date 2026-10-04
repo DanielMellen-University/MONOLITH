@@ -16,6 +16,7 @@ constexpr int kToolbarPadding = 8;
 constexpr int kToolbarGap = 6;
 constexpr int kStatusBarHeight = 22;
 constexpr int kStatusBarPadding = 8;
+constexpr std::size_t kMaxFilterQueryBytes = 255;
 
 using monolith::detail::RendererClipState;
 using monolith::detail::captureRendererClip;
@@ -1451,7 +1452,14 @@ void FilesystemApp::handleEvent(const SDL_Event& event) {
     if (m_filtering && event.type == SDL_TEXTINPUT) {
         if (event.text.text) {
             m_filterCursorPos = std::min(m_filterCursorPos, m_filterQuery.size());
-            const std::string inserted = event.text.text;
+            std::string inserted = event.text.text;
+            const std::size_t available = kMaxFilterQueryBytes
+                - std::min(m_filterQuery.size(), kMaxFilterQueryBytes);
+            if (inserted.size() > available) {
+                inserted.resize(available);
+                trimIncompleteUtf8Suffix(inserted);
+            }
+            if (inserted.empty()) return;
             m_filterQuery.insert(m_filterCursorPos, inserted);
             m_filterCursorPos += inserted.size();
             applyFilterQuery();

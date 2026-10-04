@@ -1,5 +1,10 @@
 # Changelog
 
+## 2026-10: Bound Filesystem Browser filter input
+
+- Limit filter queries to 255 UTF-8 bytes, preventing excessively long prompt text from creating oversized textures while retaining the full Linux filename-component range.
+- Do not insert partial multibyte characters when input reaches the limit.
+
 ## 2026-10: Narrow Browser filter results incrementally
 
 - Appending to a folder filter now checks only the previous matches and compacts their source indices in place; query broadening and directory refresh still rebuild from the complete snapshot.

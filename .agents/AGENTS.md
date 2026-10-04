@@ -34,6 +34,7 @@ The human funds token budget and lives in the desktop. You:
 
 | When | Kind | Note |
 |------|------|------|
+| 2026-10-04 | browser-filter-bound | Cap Filesystem Browser filter queries at 255 UTF-8 bytes and discard any character that would cross the limit partially |
 | 2026-10-04 | browser-filter-narrowing | Narrow folder-filter matches in place when appending query text; rebuild the full snapshot after query broadening or directory refresh |
 | 2026-10-04 | utf8-delete-boundaries | Clamp Backspace and Delete cursor offsets to complete UTF-8 codepoint boundaries before erasing; cover interior-byte offsets in both directions |
 | 2026-10-04 | utf8-forward-delete | Share the UTF-8-aware forward-delete primitive across Terminal, Text Editor, Drawing, and Filesystem Browser editing prompts; no-op edits keep existing update behavior |
