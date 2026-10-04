@@ -447,6 +447,28 @@ int main() {
               "recursive deletion clears a wide tree without following external symlinks");
     }
 
+    std::string deepSuffix;
+    for (int i = 0; i < 128; ++i) deepSuffix += "/d";
+    const std::string deepSource = "/deep-copy-source" + deepSuffix;
+    const std::string deepDestination = "/deep-copy-destination" + deepSuffix;
+    check(fs.createDirectory(deepSource), "create deeply nested copy source");
+    check(fs.writeFile(fs.join(deepSource, "leaf.txt"), "deep content"),
+          "write deeply nested copy leaf");
+    check(fs.copyRecursive("/deep-copy-source", "/deep-copy-destination")
+              && fs.readFile(fs.join(deepDestination, "leaf.txt")) == "deep content",
+          "recursive copy preserves contents through a growing traversal stack");
+
+    const stdfs::path deepInternalLink =
+        hostRoot / deepSource.substr(1) / "z-internal-link";
+    stdfs::create_symlink(hostRoot / "copy-link-source.txt", deepInternalLink, ec);
+    check(!ec, "create in-root link at the bottom of a deep source tree");
+    check(fs.createDirectory("/partial-deep-destination"),
+          "create existing destination for deep rollback");
+    check(!ec && !fs.copyRecursive("/deep-copy-source", "/partial-deep-destination")
+              && fs.isDirectory("/partial-deep-destination")
+              && fs.list("/partial-deep-destination").empty(),
+          "failed deep copy removes its newly created subtree from an existing destination");
+
     check(fs.writeFile("/rename-source.txt", "keep source"),
           "write rename source for dangling-link coverage");
     const stdfs::path danglingDestination = hostRoot / "dangling-destination";

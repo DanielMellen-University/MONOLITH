@@ -1,5 +1,10 @@
 # Changelog
 
+## 2026-10: Iterate filesystem tree copies
+
+- Replace recursive directory-copy calls with an explicit frame stack while retaining direct iterator traversal and bounded atomic file streaming.
+- Preserve symlink containment checks and cleanup of newly created destination subtrees when a nested copy fails.
+
 ## 2026-10: Iterate Terminal copy notifications
 
 - Walk changed paths from recursive copies with an explicit depth-first stack and reuse directory-entry types instead of recursively probing every child again.

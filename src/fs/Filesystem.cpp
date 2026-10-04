@@ -298,12 +298,11 @@ bool Filesystem::copyRecursive(const std::string& srcVirtualPath, const std::str
 
     const bool destinationExisted = hostEntryExists(destination.raw);
     return copyRecursiveResolved(
-        src, dst, source, destination, canonicalRoot.string(),
+        dst, source, destination, canonicalRoot.string(),
         sourceIsDirectory, destinationExisted);
 }
 
-bool Filesystem::copyRecursiveResolved(const std::string& srcVirtualPath,
-                                       const std::string& dstVirtualPath,
+bool Filesystem::copyRecursiveResolved(const std::string& dstVirtualPath,
                                        const HostPath& source,
                                        const HostPath& destination,
                                        const std::string& canonicalRootString,
@@ -314,13 +313,14 @@ bool Filesystem::copyRecursiveResolved(const std::string& srcVirtualPath,
 
     if (pathHasPrefix(sourceResolved, destinationResolved)) return false;
 
-    if (!sourceIsDirectory) {
+    auto copyFileResolved = [&](const stdfs::path& sourcePath,
+                                const std::string& destinationHostPath) {
         std::error_code sizeError;
-        const std::uintmax_t expectedBytes = stdfs::file_size(sourceResolved, sizeError);
+        const std::uintmax_t expectedBytes = stdfs::file_size(sourcePath, sizeError);
         if (sizeError) return false;
 
-        return writeFileWithProducerAtHostPath(destination.resolved, [&](std::ostream& out) {
-            std::ifstream input(sourceResolved, std::ios::binary);
+        return writeFileWithProducerAtHostPath(destinationHostPath, [&](std::ostream& out) {
+            std::ifstream input(sourcePath, std::ios::binary);
             if (!input) return false;
 
             std::array<char, 16 * 1024> chunk{};
@@ -341,64 +341,100 @@ bool Filesystem::copyRecursiveResolved(const std::string& srcVirtualPath,
                 if (!input) return false;
             }
         });
+    };
+
+    if (!sourceIsDirectory) {
+        return copyFileResolved(sourceResolved, destination.resolved);
     }
 
     const stdfs::path canonicalRoot(canonicalRootString);
-    auto failCopy = [&]() {
-        if (!destinationExisted) removeRecursive(dstVirtualPath);
+    struct DirectoryFrame {
+        std::string destinationVirtualPath;
+        stdfs::path destinationRaw;
+        stdfs::path destinationResolved;
+        bool destinationExisted = false;
+        stdfs::directory_iterator iterator;
+        std::error_code iteratorError;
+        bool advanceIterator = false;
+    };
+
+    std::vector<DirectoryFrame> frames;
+    auto failCopy = [&](const std::string& failingPath, bool failingPathExisted) {
+        for (const auto& frame : frames) {
+            if (!frame.destinationExisted) {
+                removeRecursive(frame.destinationVirtualPath);
+                return false;
+            }
+        }
+        if (!failingPathExisted) removeRecursive(failingPath);
         return false;
     };
 
+    stdfs::directory_iterator rootIterator;
     std::error_code createError;
     stdfs::create_directories(destinationResolved, createError);
-    if (createError) return failCopy();
+    if (createError) return failCopy(dstVirtualPath, destinationExisted);
     std::error_code directoryError;
     if (!stdfs::is_directory(destinationResolved, directoryError) || directoryError) {
-        return failCopy();
+        return failCopy(dstVirtualPath, destinationExisted);
     }
+    std::error_code rootIteratorError;
+    rootIterator = stdfs::directory_iterator(sourceResolved, rootIteratorError);
+    if (rootIteratorError) return failCopy(dstVirtualPath, destinationExisted);
 
-    std::error_code iteratorEc;
+    frames.push_back({
+        dstVirtualPath, stdfs::path(destination.raw), destinationResolved,
+        destinationExisted, std::move(rootIterator), {}, false});
+
     const stdfs::directory_iterator end;
-    for (stdfs::directory_iterator it(sourceResolved, iteratorEc);
-         it != end;
-         it.increment(iteratorEc)) {
-        if (iteratorEc) return failCopy();
+    while (!frames.empty()) {
+        DirectoryFrame& frame = frames.back();
+        if (frame.advanceIterator) {
+            frame.advanceIterator = false;
+            frame.iterator.increment(frame.iteratorError);
+        }
+        if (frame.iteratorError) {
+            return failCopy(frame.destinationVirtualPath, frame.destinationExisted);
+        }
+        if (frame.iterator == end) {
+            frames.pop_back();
+            continue;
+        }
 
-        const stdfs::path entryPath = it->path();
+        const stdfs::path entryPath = frame.iterator->path();
         std::error_code statusEc;
-        const auto entryStatus = it->symlink_status(statusEc);
-        if (statusEc) return failCopy();
+        const auto entryStatus = frame.iterator->symlink_status(statusEc);
+        if (statusEc) {
+            return failCopy(frame.destinationVirtualPath, frame.destinationExisted);
+        }
 
         const std::string childName = entryPath.filename().string();
-        const std::string childSourceVirtual = join(srcVirtualPath, childName);
-        const std::string childDestinationVirtual = join(dstVirtualPath, childName);
+        const std::string childDestinationVirtual =
+            join(frame.destinationVirtualPath, childName);
         if (stdfs::is_symlink(entryStatus)) {
             stdfs::path resolvedLink;
             // Outside-root links stay omitted; links into the virtual tree are
             // rejected rather than copied through to another location.
-            if (!resolveWithinRoot(canonicalRoot, entryPath, resolvedLink)) continue;
-            return failCopy();
+            if (!resolveWithinRoot(canonicalRoot, entryPath, resolvedLink)) {
+                frame.advanceIterator = true;
+                continue;
+            }
+            return failCopy(frame.destinationVirtualPath, frame.destinationExisted);
         }
 
         const bool childIsDirectory = stdfs::is_directory(entryStatus);
         if (!childIsDirectory && !stdfs::is_regular_file(entryStatus)) {
-            return failCopy();
+            return failCopy(frame.destinationVirtualPath, frame.destinationExisted);
         }
 
-        HostPath childSource{
-            {},
-            (sourceResolved / childName).string()};
-        HostPath childDestination;
-        const stdfs::path rawDestinationChild =
-            stdfs::path(destination.raw) / childName;
-        childDestination.raw = rawDestinationChild.string();
+        const stdfs::path rawDestinationChild = frame.destinationRaw / childName;
 
         std::error_code destinationStatusError;
         const auto destinationStatus =
             stdfs::symlink_status(rawDestinationChild, destinationStatusError);
         if (destinationStatusError
             && destinationStatusError != std::errc::no_such_file_or_directory) {
-            return failCopy();
+            return failCopy(frame.destinationVirtualPath, frame.destinationExisted);
         }
         const bool childDestinationExisted = !destinationStatusError
             && destinationStatus.type() != stdfs::file_type::not_found;
@@ -407,22 +443,49 @@ bool Filesystem::copyRecursiveResolved(const std::string& srcVirtualPath,
         if (childDestinationExisted && stdfs::is_symlink(destinationStatus)) {
             if (!resolveWithinRoot(
                     canonicalRoot, rawDestinationChild, resolvedDestinationChild)) {
-                return failCopy();
+                return failCopy(frame.destinationVirtualPath, frame.destinationExisted);
             }
         } else {
-            resolvedDestinationChild = destinationResolved / childName;
-            if (!pathHasPrefix(canonicalRoot, resolvedDestinationChild)) return failCopy();
+            resolvedDestinationChild = frame.destinationResolved / childName;
+            if (!pathHasPrefix(canonicalRoot, resolvedDestinationChild)) {
+                return failCopy(frame.destinationVirtualPath, frame.destinationExisted);
+            }
         }
-        childDestination.resolved = resolvedDestinationChild.string();
+        if (pathHasPrefix(entryPath, resolvedDestinationChild)) {
+            return failCopy(frame.destinationVirtualPath, frame.destinationExisted);
+        }
 
-        if (!copyRecursiveResolved(
-                childSourceVirtual, childDestinationVirtual,
-                childSource, childDestination, canonicalRootString,
-                childIsDirectory, childDestinationExisted)) {
-            return failCopy();
+        if (childIsDirectory) {
+            std::error_code childCreateError;
+            stdfs::create_directories(resolvedDestinationChild, childCreateError);
+            if (childCreateError) {
+                return failCopy(childDestinationVirtual, childDestinationExisted);
+            }
+            std::error_code childDirectoryError;
+            if (!stdfs::is_directory(resolvedDestinationChild, childDirectoryError)
+                || childDirectoryError) {
+                return failCopy(childDestinationVirtual, childDestinationExisted);
+            }
+
+            std::error_code childIteratorError;
+            stdfs::directory_iterator childIterator(entryPath, childIteratorError);
+            if (childIteratorError) {
+                return failCopy(childDestinationVirtual, childDestinationExisted);
+            }
+
+            frame.advanceIterator = true;
+            frames.push_back({
+                childDestinationVirtual, rawDestinationChild, resolvedDestinationChild,
+                childDestinationExisted, std::move(childIterator), {}, false});
+        } else {
+            const std::string resolvedDestinationChildString =
+                resolvedDestinationChild.string();
+            if (!copyFileResolved(entryPath, resolvedDestinationChildString)) {
+                return failCopy(frame.destinationVirtualPath, frame.destinationExisted);
+            }
+            frame.advanceIterator = true;
         }
     }
-    if (iteratorEc) return failCopy();
     return true;
 }
 
