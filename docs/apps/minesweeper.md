@@ -67,14 +67,16 @@ Direct render-size changes refresh the cached client geometry before board layou
 
 HUD, overlay, and repeated cell-glyph draws reuse a bounded renderer-owned text texture cache between frames. Changing the shared interface text scale clears it so labels and numbers use the new font metrics.
 
+Changing difficulty resizes the window for roughly 24-pixel cells when the desktop has room. A maximized window stays maximized and remembers the new restore size; restarting the same difficulty keeps any manual window resize.
+
 ## Current Limitations
 
 - No sound
-- Window size does not auto-change with difficulty
 
 ## Developer Notes
 
 - `src/app/MinesweeperApp.{hpp,cpp}`
+- `scripts/test_minesweeper_window_size.cpp` covers difficulty-driven resize requests through WindowManager, including maximized windows and small desktops
 - `src/detail/Random.hpp` provides the per-game bounded random helper shared with Snake
 - `scripts/test_minesweeper_state.cpp` covers focus pause/resume, render-state restoration, and text texture reuse
 - `WindowManager::launchMinesweeper()` and Start menu action `6` (listed under the **Games** category)

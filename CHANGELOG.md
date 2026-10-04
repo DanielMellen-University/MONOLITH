@@ -1,5 +1,10 @@
 # Changelog
 
+## 2026-10: Size Minesweeper windows for the selected board
+
+- Difficulty changes request a comfortable board size from the shell, while same-difficulty restarts preserve manual sizing.
+- Keep maximized windows maximized, update their restore size, and clamp requests to the usable desktop.
+
 ## 2026-10: Reclaim atomic-save setup orphans
 
 - Name new atomic-save workspaces with a 128-bit OS-random token and reclaim a pre-marker crash remnant only when the token format is valid and the directory is still empty.

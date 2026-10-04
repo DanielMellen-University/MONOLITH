@@ -12,7 +12,7 @@ ctest --test-dir build --output-on-failure
 
 After configuring and building with CMake, this registered CTest test runs the complete headless suite. It builds generated source fragments, compiles the existing tests, and executes SDL tests with dummy video and audio drivers by default. Set `BUILD_DIR`, `CXX`, `CXXFLAGS`, `SDL_VIDEODRIVER`, or `SDL_AUDIODRIVER` to override those defaults. `CXXFLAGS` are passed to each test compiler invocation, including the shared Window Manager test objects. The runner can also be invoked directly with `./scripts/run_headless_tests.sh`; individual commands below remain useful when iterating on one subsystem.
 
-The six Window Manager integration tests link against one set of shared app/runtime objects, so the same implementation is not recompiled for each test binary. Lifecycle and coordinate coverage also exercises nested callback snapshots, close-during-render, identity-index consistency, snapshot-buffer reuse after warm-up, focused-first taskbar order, and the non-owning taskbar layout invariant.
+The Window Manager integration tests link against one set of shared app/runtime objects, so the same implementation is not recompiled for each test binary. Coverage includes difficulty-driven Minesweeper sizing, nested callback snapshots, close-during-render, identity-index consistency, snapshot-buffer reuse after warm-up, focused-first taskbar order, and the non-owning taskbar layout invariant.
 
 Both cloud jobs configure and build the complete `monolith` executable before running the registered test through CTest. The sanitizer job additionally instruments the application and every headless test with AddressSanitizer and UndefinedBehaviorSanitizer.
 
@@ -151,6 +151,8 @@ Headless Minesweeper state and tiny-client layout test for best-time persistence
 ```bash
 g++ -std=c++23 scripts/test_minesweeper_state.cpp src/app/MinesweeperApp.cpp $(pkg-config --cflags --libs sdl2 SDL2_ttf) -o build/test_minesweeper_state && ./build/test_minesweeper_state
 ```
+
+The full runner also covers difficulty-driven window resizing through WindowManager, including manual sizing, maximized restore geometry, and small logical desktops.
 
 ## Filesystem Roadmap Checks
 
