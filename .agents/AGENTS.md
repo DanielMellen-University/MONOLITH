@@ -34,6 +34,7 @@ The human funds token budget and lives in the desktop. You:
 
 | When | Kind | Note |
 |------|------|------|
+| 2026-10-04 | test-temp-isolation | Migrate headless host fixtures and the optional Drawing smoke script from fixed/PID paths to unique owned directories; verify the smoke script uses the app's actual filesystem root |
 | 2026-10-04 | atomic-save-orphan-recovery | Give new workspaces 128-bit OS-random names and reclaim pre-marker remnants only when still empty; nonempty lookalikes remain untouched |
 | 2026-10-04 | atomic-save-atomic-owner-token | Publish the v4 ownership token with one symlink creation call, read legacy regular markers, and narrow the remaining orphan window to workspace creation before token publication |
 | 2026-10-04 | wallpaper-move-refresh | Invalidate the failed wallpaper-load cache when a successful move supplies its configured missing path; full headless suite and production build pass locally |
@@ -321,6 +322,7 @@ Older recent-work rows: [`SESSION_LOG.md`](SESSION_LOG.md).
 | 7.117 | Reload wallpaper supplied by a move | done | Invalidate the failed-load cache when a successful move creates the configured wallpaper path; cover a move into a previously missing path |
 | 7.118 | Publish atomic-save ownership tokens atomically | done | Create the v4 owner token as a validated symlink in one filesystem call, preserve legacy regular markers, and retain nonblocking rejection of FIFO/lookalike markers; the pre-publication crash gap remains documented |
 | 7.119 | Reclaim atomic-save setup orphans | done | Name new v4 workspaces with 128-bit OS-random tokens; reclaim an unmarked pre-publication remnant only through empty-directory removal, preserving nonempty lookalikes |
+| 7.120 | Isolate headless test data | done | Replace predictable PID/shared `/tmp` fixtures with unique `mkdtemp` directories and scoped cleanup; make the Drawing smoke test use the app's actual filesystem root; verify owner-only cleanup |
 | fs-browser-filter-cache | Reuse Filesystem Browser filter snapshots | done | Reuse one directory listing for filter edits; refresh it on F5 and Monolith filesystem notifications, including while filtering |
 | terminal-input-editing | Terminal command-line selection | done | Support UTF-8-safe keyboard/mouse selection and Ctrl+A/C/X/V; normalize all clipboard lines and tabs into the single-line prompt |
 | terminal-touch-mtime | Complete Terminal touch semantics | done | Update existing regular-file last-write time without truncation; reject outside-root symlink targets |
