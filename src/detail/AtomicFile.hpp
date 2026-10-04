@@ -34,6 +34,7 @@ inline constexpr std::size_t atomicTempTrackedParents = 16;
 
 struct AtomicTempSweepSlot {
     std::filesystem::path parent;
+    std::filesystem::path alias;
     unsigned long long writesSinceSweep{0};
 };
 
@@ -74,21 +75,41 @@ private:
 };
 
 inline bool shouldSweepAtomicTempParent(const std::filesystem::path& parent) {
-    const auto key = parent.lexically_normal();
-    std::lock_guard lock(atomicTempSweepMutex);
-    for (auto& slot : atomicTempSweepSlots) {
-        if (slot.parent != key) continue;
+    const auto lexicalKey = parent.lexically_normal();
+    auto countWrite = [](AtomicTempSweepSlot& slot) {
         if (slot.writesSinceSweep >= atomicTempSweepInterval) {
             slot.writesSinceSweep = 1;
             return true;
         }
         ++slot.writesSinceSweep;
         return false;
+    };
+
+    {
+        std::lock_guard lock(atomicTempSweepMutex);
+        for (auto& slot : atomicTempSweepSlots) {
+            if (slot.parent == lexicalKey || slot.alias == lexicalKey) {
+                return countWrite(slot);
+            }
+        }
+    }
+
+    // Resolve only an unseen spelling, keeping ordinary writes on the lexical hot path.
+    std::error_code pathError;
+    const auto resolvedKey = std::filesystem::weakly_canonical(parent, pathError);
+    const auto key = pathError ? lexicalKey : resolvedKey;
+
+    std::lock_guard lock(atomicTempSweepMutex);
+    for (auto& slot : atomicTempSweepSlots) {
+        if (slot.parent != key) continue;
+        slot.alias = lexicalKey;
+        return countWrite(slot);
     }
 
     auto& slot = atomicTempSweepSlots[atomicTempSweepNextSlot];
     atomicTempSweepNextSlot = (atomicTempSweepNextSlot + 1) % atomicTempSweepSlots.size();
     slot.parent = key;
+    slot.alias = key == lexicalKey ? std::filesystem::path{} : lexicalKey;
     slot.writesSinceSweep = 1;
     return true;
 }

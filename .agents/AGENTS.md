@@ -34,6 +34,7 @@ The human funds token budget and lives in the desktop. You:
 
 | When | Kind | Note |
 |------|------|------|
+| 2026-10-04 | atomic-save-alias-cadence | Coalesce destination-parent sweep cadence across symlink aliases; resolve lexical tracker misses and keep cached repeat spellings on the fast path |
 | 2026-10-04 | atomic-save-mode-retention | Reapply existing permission bits after the staged stream closes so content writes do not clear special mode bits |
 | 2026-10-04 | atomic-save-owner-marker | Require a validated ownership marker before reclaiming incomplete v4 workspaces; preserve user-created lookalike directories and retain ready-marked v3/v2 recovery |
 | 2026-10-03 | terminal-operand-validation | Reject excess operands before running fixed-arity built-ins or mutating filesystem commands; workflow #343 passed normal and sanitized jobs |
@@ -161,7 +162,7 @@ Older recent-work rows: [`SESSION_LOG.md`](SESSION_LOG.md).
 
 ## Known debts
 
-- Atomic-save cleanup is opportunistic: a bounded 16-parent tracker scans each recently used destination directory on first use and every 32 writes, then scans again immediately if an evicted directory is revisited. V4 setup and sweeps coordinate through a brief parent-directory lock; incomplete v4 workspaces require a valid ownership marker, while marked v4/v3/v2 workspaces require a ready marker and free lease lock. Incomplete older workspaces remain untouched, and a crash before the v4 marker is fully written may leave an unmarked directory.
+- Atomic-save cleanup is opportunistic: a bounded 16-parent tracker scans each recently used physical destination directory on first use and every 32 writes, sharing cadence across symlink aliases, then scans again immediately if an evicted directory is revisited. A lexical tracker hit skips resolution; a miss resolves before looking up the physical parent. V4 setup and sweeps coordinate through a brief parent-directory lock; incomplete v4 workspaces require a valid ownership marker, while marked v4/v3/v2 workspaces require a ready marker and free lease lock. Incomplete older workspaces remain untouched, and a crash before the v4 marker is fully written may leave an unmarked directory.
 
 ## Priority order for "next / continue"
 
@@ -311,6 +312,7 @@ Older recent-work rows: [`SESSION_LOG.md`](SESSION_LOG.md).
 | 7.112 | Track atomic-save sweeps per directory | done | Give every newly used destination directory an immediate sweep and its own 32-write interval using bounded 16-parent bookkeeping; verify second-parent first touch, interval boundary, and resweep after tracker eviction; normal and sanitized hosted workflow #331 passed |
 | 7.113 | Resolve Terminal home shorthand | done | Expand only `~` and `~/` to `/home/monolith` for command paths; preserve shorthand through quoted/unquoted path completion; normal and sanitized hosted workflow #335 passed |
 | 7.114 | Share virtual-home path shorthand | done | Reuse one app-level `~` / `~/` expansion rule for Terminal, Text Editor, Drawing, and Settings wallpaper paths; cover completion, accepted paths, and path move/delete notifications; normal and sanitized hosted workflow #338 passed |
+| 7.115 | Share atomic-save sweep cadence across aliases | done | Track cleanup cadence by resolved physical parent across symlink spellings; resolve lexical tracker misses and verify alternating aliases share the first-touch and 32-write boundary |
 | fs-browser-filter-cache | Reuse Filesystem Browser filter snapshots | done | Reuse one directory listing for filter edits; refresh it on F5 and Monolith filesystem notifications, including while filtering |
 | terminal-input-editing | Terminal command-line selection | done | Support UTF-8-safe keyboard/mouse selection and Ctrl+A/C/X/V; normalize all clipboard lines and tabs into the single-line prompt |
 | terminal-touch-mtime | Complete Terminal touch semantics | done | Update existing regular-file last-write time without truncation; reject outside-root symlink targets |

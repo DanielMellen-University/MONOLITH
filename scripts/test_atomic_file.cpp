@@ -59,6 +59,30 @@ int main() {
               "workspace setup and sweeping share an exclusive parent lock");
     }
 
+    const fs::path aliasTarget = parent / "alias-target";
+    const fs::path aliasPath = parent / "alias-path";
+    ec.clear();
+    const bool aliasTargetReady = fs::create_directory(aliasTarget, ec) && !ec;
+    ec.clear();
+    if (aliasTargetReady) fs::create_directory_symlink(aliasTarget, aliasPath, ec);
+    const bool aliasFixturesReady = aliasTargetReady && !ec;
+    const bool firstAliasSweep = aliasFixturesReady
+        && monolith::detail::shouldSweepAtomicTempParent(aliasTarget);
+    const bool secondAliasSweep = aliasFixturesReady
+        && monolith::detail::shouldSweepAtomicTempParent(aliasPath);
+    bool aliasCadenceHeld = aliasFixturesReady && !secondAliasSweep;
+    for (unsigned long long write = 2;
+         aliasFixturesReady && write < monolith::detail::atomicTempSweepInterval;
+         ++write) {
+        const auto& spelling = write % 2 == 0 ? aliasTarget : aliasPath;
+        aliasCadenceHeld = aliasCadenceHeld
+            && !monolith::detail::shouldSweepAtomicTempParent(spelling);
+    }
+    const bool aliasIntervalSweep = aliasFixturesReady
+        && monolith::detail::shouldSweepAtomicTempParent(aliasTarget);
+    check(aliasFixturesReady && firstAliasSweep && aliasCadenceHeld && aliasIntervalSweep,
+          "symlink aliases share one destination-parent sweep cadence");
+
     const fs::path markerParent = parent / "marker-check";
     ec.clear();
     const bool markerParentReady = fs::create_directory(markerParent, ec) && !ec;
