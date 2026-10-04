@@ -807,6 +807,33 @@ int main() {
               && browser.m_clipboardPaths.front() == "/home/monolith/move_a.txt"
               && browser.m_clipboardIsCut,
           "partial cut clipboard keeps only the retryable source");
+    check(browser.m_statusMessage == "Moved 1 of 2 items; some skipped/failed",
+          "partial cut reports how many selected items moved");
+
+    check(fs.writeFile("/home/monolith/copy_a.txt", "a"), "create first copy source");
+    check(fs.writeFile("/home/monolith/copy_b.txt", "b"), "create second copy source");
+    check(fs.createDirectory("/home/monolith/copy-dest"), "create copy destination");
+    check(fs.writeFile("/home/monolith/copy-dest/copy_a.txt", "existing"),
+          "create copy destination conflict");
+    browser.setCurrentPath("/home/monolith");
+    check(browser.selectEntryNamed("copy_a.txt", false), "select first copy source");
+    int copyBIndex = -1;
+    for (size_t i = 0; i < browser.visibleEntryCount(); ++i) {
+        if (browser.visibleEntryAt(i).name == "copy_b.txt") {
+            copyBIndex = static_cast<int>(i);
+            break;
+        }
+    }
+    check(copyBIndex >= 0, "find second copy source");
+    if (copyBIndex >= 0) browser.setSelection(copyBIndex, true);
+    browser.copySelectedToClipboard(false);
+    browser.setCurrentPath("/home/monolith/copy-dest");
+    browser.pasteFromClipboard();
+    check(fs.readFile("/home/monolith/copy-dest/copy_a.txt") == "existing"
+              && fs.readFile("/home/monolith/copy-dest/copy_b.txt") == "b",
+          "partial copy preserves the conflict and copies the remaining source");
+    check(browser.m_statusMessage == "Pasted 1 of 2 items; some skipped/failed",
+          "partial copy reports how many selected items pasted");
 
     check(fs.createDirectory("/home/monolith/dest/sub"),
           "create browser folder move source");

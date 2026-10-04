@@ -1,5 +1,7 @@
 # Session log
 
+| 2026-10-04 | fix | Report completed-versus-selected counts for partial Filesystem Browser copy and cut paste; add state tests for conflict-skipping cases and document the status behavior. |
+
 | 2026-10-04 | fix/perf | Preserve startup cleanup progress when root or child iterator opens reach `EMFILE`/`ENFILE`: defer the directory path and retry under a per-step open budget. Cover root initialization and a deep branching tree under descriptor pressure; document the retry behavior. |
 
 | 2026-10-04 | perf | Startup workspace maintenance now borrows each ordinary path from its `directory_entry` and copies paths only for a cleanup candidate or real child directory, avoiding one full path copy per scanned filesystem entry without changing its 32-entry frame budget. |

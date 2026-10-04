@@ -34,6 +34,7 @@ The human funds token budget and lives in the desktop. You:
 
 | When | Kind | Note |
 |------|------|------|
+| 2026-10-04 | filesystem-browser-paste-results | Report completed versus selected counts when multi-item copy/cut paste skips conflicts or partially fails; cover both paths in Browser state tests |
 | 2026-10-04 | atomic-save-startup-fd-retry | Defer root and child directories on `EMFILE`/`ENFILE` and retry after active DFS handles unwind; verify root initialization and deep branching under a saturated FD table |
 | 2026-10-04 | atomic-save-startup-path-views | Borrow ordinary startup traversal paths and copy only workspace candidates or child directories; preserve the frame budget and no-follow behavior |
 | 2026-10-04 | atomic-save-multiple-alias-cache | Keep three alternate lexical paths per tracked parent to avoid repeat canonicalization across several symlink spellings; verify the shared cadence through all three |

@@ -750,20 +750,28 @@ void FilesystemApp::pasteFromClipboard() {
         setStatus("Paste failed: nothing copied (name exists, same folder, or blocked)");
         return;
     }
+    std::string singleName;
     if (copied == 1) {
-        std::string name;
         for (const auto& candidate : candidateNames) {
             if (m_fs->exists(fullPathFor(candidate))) {
-                name = candidate;
+                singleName = candidate;
                 break;
             }
         }
-        if (!name.empty()) {
-            selectEntryNamed(name, m_fs->isDirectory(fullPathFor(name)));
-            setStatus((wasCut ? "Moved: " : "Pasted: ") + name);
-        } else {
-            setStatus(wasCut ? "Moved 1 item" : "Pasted 1 item");
+        if (!singleName.empty()) {
+            selectEntryNamed(singleName, m_fs->isDirectory(fullPathFor(singleName)));
         }
+    }
+
+    const std::size_t requested = clipboardPaths.size();
+    if (static_cast<std::size_t>(copied) < requested) {
+        setStatus(std::string(wasCut ? "Moved " : "Pasted ")
+                  + std::to_string(copied) + " of " + std::to_string(requested)
+                  + " items; some skipped/failed");
+    } else if (copied == 1 && !singleName.empty()) {
+        setStatus((wasCut ? "Moved: " : "Pasted: ") + singleName);
+    } else if (copied == 1) {
+        setStatus(wasCut ? "Moved 1 item" : "Pasted 1 item");
     } else {
         setStatus(wasCut
             ? ("Moved: " + std::to_string(copied) + " items")

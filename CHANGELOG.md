@@ -1,5 +1,10 @@
 # Changelog
 
+## 2026-10: Report partial Filesystem Browser pastes
+
+- Show the completed-versus-selected item count when a multi-item copy or cut paste skips conflicts or fails partway through.
+- Add Browser state regressions for partial copy and move results.
+
 ## 2026-10: Resume startup cleanup after descriptor exhaustion
 
 - Defer the root or a child directory whose iterator open fails with `EMFILE` or `ENFILE`, then retry after active depth-first frames unwind and release handles.

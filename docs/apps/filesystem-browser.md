@@ -163,6 +163,7 @@ Right-clicking an already selected row keeps the current multi-selection, so con
 - A change event for the directory currently being viewed refreshes that directory too, which keeps the open listing current after recursive tree merges.
 - The shared virtual clipboard follows a successful rename or move made by another Filesystem Browser or Terminal, including sources nested under a moved directory.
 - Paste skips items whose names already exist in the destination, same-folder sources, and folders pasted into themselves (`isSameOrDescendant`).
+- When a multi-item paste only copies or moves part of the selection, the status reports the completed count and notes that other items were skipped or failed.
 - Backspace in rename and filter prompts removes one UTF-8 codepoint at a time.
 - The path bar, toolbar buttons, list start, and status bar follow the shared interface font with stable minimums, so scaled labels keep their hit targets and the listing below them.
 - Toolbar and filter hit rectangles are cleared immediately when the client resizes or the shared interface text scale changes; they are rebuilt on demand before input or during the next render, so an event between frames uses the current layout instead of activating a control at its old position.
