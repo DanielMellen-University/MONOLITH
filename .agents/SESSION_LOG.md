@@ -1,5 +1,7 @@
 # Session log
 
+| 2026-10-03 | perf | Recursive Terminal copy notifications now use an explicit depth-first stack and `DirEntry` type data instead of recursive calls and an extra `isDirectory` query for every child. Expanded coverage checks exact directory-first notification order across nested, sibling, and root-level entries. |
+
 | 2026-10-03 | perf | Terminal scrollback now stores output rows and their viewport measurements in deques, avoiding a full retained-history shift when capped output evicts the oldest rows. The regression checks bounded newest-row behavior and stable identity/alignment for retained rows and measures; normal and sanitized hosted workflow #291 passed. |
 
 | 2026-10-03 | perf | Taskbar layout now walks the focused window and remaining z-order directly, using cached title widths rather than allocating per-pass order and width vectors. Rendering and hit-target construction share the traversal; the coordinate test asserts focused-first ordering and statically rejects an owning TaskbarLayout. |

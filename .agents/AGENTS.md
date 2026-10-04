@@ -63,6 +63,7 @@ The human funds token budget and lives in the desktop. You:
 | 2026-10-03 | window-traversal-reuse | Reuse nesting-safe identity snapshots across update/render passes and validate live windows through a pointer/ID index; normal and sanitized hosted workflow #283 passed |
 | 2026-10-03 | taskbar-layout-reuse | Remove temporary taskbar order/width vectors and retain focused-first traversal with shared draw/hit geometry; normal and sanitized hosted workflow #287 passed |
 | 2026-10-03 | terminal-scrollback-deque | Evict capped Terminal output and viewport measurements from the front without shifting retained rows; normal and sanitized hosted workflow #291 passed |
+| 2026-10-03 | terminal-copy-notify-stack | Walk recursive-copy notifications iteratively and reuse directory-entry type data while preserving order; hosted workflow pending |
 | 2026-10-02 | settings-line-bound | Share the 16 KiB persisted-line reader with Desktop Settings and reject wallpaper paths that cannot round-trip |
 | 2026-10-02 | game-record-bound | Bound Snake and Minesweeper save-file reads by row and byte limits; reject malformed or impossible records |
 | 2026-10-02 | terminal-output-pan | Pan clipped Terminal output rows with UTF-8-safe viewport-sized segments and preserve vertical history scrolling |
@@ -279,6 +280,7 @@ Older recent-work rows: [`SESSION_LOG.md`](SESSION_LOG.md).
 | 7.100 | Reuse Window Manager traversal snapshots | done | Reuse nesting-safe update/render snapshots after warm-up, index live pointer/ID identities for expected constant-time validation, and cover nested callbacks plus close-during-render; normal and sanitized hosted workflow #283 passed |
 | 7.101 | Remove taskbar layout vectors | done | Traverse focused-first windows directly and calculate button widths from cached title metrics; preserve scroll, clipping, scaled geometry, and hit targets; normal and sanitized hosted workflow #287 passed |
 | 7.102 | Evict Terminal scrollback without shifts | done | Use front-removable storage for output rows and aligned viewport measurements; preserve row and byte caps, rendering, and newest-output behavior; normal and sanitized hosted workflow #291 passed |
+| 7.103 | Iterate recursive-copy notifications | testing | Preserve directory-first depth-first changed-path delivery while replacing recursive calls and redundant per-child directory probes |
 | fs-browser-filter-cache | Reuse Filesystem Browser filter snapshots | done | Reuse one directory listing for filter edits; refresh it on F5 and Monolith filesystem notifications, including while filtering |
 | terminal-input-editing | Terminal command-line selection | done | Support UTF-8-safe keyboard/mouse selection and Ctrl+A/C/X/V; normalize all clipboard lines and tabs into the single-line prompt |
 | terminal-touch-mtime | Complete Terminal touch semantics | done | Update existing regular-file last-write time without truncation; reject outside-root symlink targets |
