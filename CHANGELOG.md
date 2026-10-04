@@ -1,5 +1,10 @@
 # Changelog
 
+## 2026-10: Share virtual-home path shorthand
+
+- Use one `~` / `~/` expansion rule across Terminal, Text Editor, Drawing, and Settings wallpaper paths without changing Filesystem normalization semantics.
+- Preserve the shorthand during path completion while searching `/home/monolith`; cover path opens/saves, wallpaper updates, and move/delete prompt handling.
+
 ## 2026-10: Resolve Terminal home shorthand
 
 - Expand a leading `~` or `~/` to `/home/monolith` for command paths, including quoted paths.

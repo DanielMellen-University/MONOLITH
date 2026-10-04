@@ -143,6 +143,8 @@ int main() {
     check(fs.createDirectory("/Wallpapers/art"), "create wallpaper completion directories");
     check(fs.createDirectory("/Wallpapers/unicode"),
           "create Unicode wallpaper completion directory");
+    check(fs.createDirectory("/home/monolith/Wallpapers"),
+          "create virtual-home wallpaper completion directory");
     check(fs.writeFile("/Wallpapers/alpha.bmp", "a"), "create first BMP wallpaper");
     check(fs.writeFile("/Wallpapers/alpine.bmp", "b"), "create second BMP wallpaper");
     check(fs.writeFile("/Wallpapers/unicode/\xC3\xA9" "clair.png", "a"),
@@ -151,6 +153,8 @@ int main() {
           "write second Unicode wallpaper completion candidate");
     check(fs.writeFile("/Wallpapers/notes.txt", "not a wallpaper"),
           "create non-BMP completion distractor");
+    check(fs.writeFile("/home/monolith/Wallpapers/alpha.bmp", "home wallpaper"),
+          "create virtual-home wallpaper path target");
 
     check(SDL_Init(SDL_INIT_VIDEO) == 0, "settings state SDL initialize");
     check(TTF_Init() == 0, "settings state SDL_ttf initialize");
@@ -211,6 +215,32 @@ int main() {
     check(controller.wallpaperPath == "/Wallpapers/alpha.bmp"
               && !settings.m_wallpaperFieldFocused,
           "completed wallpaper path applies through the shell controller");
+
+    settings.m_wallpaperFieldFocused = true;
+    settings.m_wallpaperEditBuffer = "~/Wallpapers/al";
+    settings.m_wallpaperCursorPos = settings.m_wallpaperEditBuffer.size();
+    key(settings, SDLK_TAB);
+    check(settings.m_wallpaperEditBuffer == "~/Wallpapers/alpha.bmp",
+          "Settings completion searches virtual home and keeps the shorthand");
+    settings.m_wallpaperEditBuffer = "~/Wallpapers/alpha.bmp";
+    settings.m_wallpaperCursorPos = settings.m_wallpaperEditBuffer.size();
+    key(settings, SDLK_RETURN);
+    check(controller.wallpaperPath == "/home/monolith/Wallpapers/alpha.bmp"
+              && !settings.m_wallpaperFieldFocused,
+          "Settings expands home-relative wallpaper paths before applying them");
+
+    settings.m_wallpaperFieldFocused = true;
+    settings.m_wallpaperEditBuffer = "~/Wallpapers/alpha.bmp";
+    settings.m_wallpaperCursorPos = std::string("~/Wallpapers/").size();
+    settings.onVirtualPathMoved("/home/monolith/Wallpapers", "/Archive");
+    check(settings.m_wallpaperEditBuffer == "/Archive/alpha.bmp"
+              && settings.m_wallpaperCursorPos == std::string("/Archive/").size(),
+          "focused wallpaper prompt follows moves after expanding home shorthand");
+    settings.m_wallpaperEditBuffer = "~/Wallpapers/alpha.bmp";
+    settings.m_wallpaperCursorPos = settings.m_wallpaperEditBuffer.size();
+    settings.onVirtualPathRemoved("/home/monolith/Wallpapers");
+    check(settings.m_wallpaperEditBuffer.empty(),
+          "focused wallpaper prompt recognizes a deleted home-relative path");
 
     settings.m_wallpaperFieldFocused = true;
     settings.m_wallpaperEditBuffer = "/Wallpapers/alpha.bmp/child.bmp";

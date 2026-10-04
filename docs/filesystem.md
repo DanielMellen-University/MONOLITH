@@ -17,6 +17,8 @@ All filesystem operations use paths starting with `/`. Common locations:
 
 Paths are normalized by `Filesystem::normalize()` — `..`, `.`, duplicate slashes, and relative segments are resolved consistently across Terminal, Filesystem Browser, and Drawing. Normalization and `join()` scan components directly into the canonical output instead of allocating a stream, a combined path, or separate strings for every component.
 
+User-facing path entry in Terminal, Text Editor Open/Save As, Drawing Open/Save, and Settings wallpaper controls accepts a leading `~` or `~/` as `/home/monolith`. Completion searches the resolved directory and keeps the shorthand visible; accepted paths are passed to the Filesystem as canonical absolute paths. `~name` is not expanded. This is an app-level input rule; `Filesystem::normalize()` itself does not expand tildes.
+
 ## Host Persistence
 
 Virtual paths map under a host directory, typically:

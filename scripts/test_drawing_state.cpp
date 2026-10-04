@@ -105,6 +105,11 @@ int main() {
     check(fs.writeFile("/drawings/resize.modr",
                        monolith::drawing::encodeModr(2, 2, pixels)),
           "write resize drawing");
+    check(fs.createDirectory("/home/monolith/drawings"),
+          "create virtual-home Drawing prompt directory");
+    check(fs.writeFile("/home/monolith/drawings/home.modr",
+                       monolith::drawing::encodeModr(2, 2, pixels)),
+          "write virtual-home Drawing prompt target");
     check(fs.writeFile("/drawings/corrupt.modr", "not a drawing"),
           "write corrupt drawing retry target");
     check(fs.writeFile("/drawings/oversized.modr", ""),
@@ -168,6 +173,28 @@ int main() {
     check(drawing.m_pathPromptBuffer == "/drawings/unicode/",
           "Drawing completion does not insert a partial UTF-8 codepoint");
     drawing.finishPathPrompt(false);
+
+    TestDrawing homeAliasDrawing(font, &fs);
+    homeAliasDrawing.onResize(300, 300);
+    homeAliasDrawing.beginPathPrompt(monolith::app::DrawingApp::PathPromptMode::Open);
+    homeAliasDrawing.m_pathPromptBuffer = "~/drawings/home";
+    homeAliasDrawing.m_pathPromptCursorPos = homeAliasDrawing.m_pathPromptBuffer.size();
+    homeAliasDrawing.completePathPrompt();
+    check(homeAliasDrawing.m_pathPromptBuffer == "~/drawings/home.modr",
+          "Drawing completion searches virtual home and keeps the shorthand");
+    homeAliasDrawing.finishPathPrompt(true);
+    check(homeAliasDrawing.m_filePath == "/home/monolith/drawings/home.modr"
+              && homeAliasDrawing.m_canvasWidth == 2
+              && homeAliasDrawing.m_canvasHeight == 2,
+          "Drawing Open expands a home-relative prompt path");
+    homeAliasDrawing.beginPathPrompt(monolith::app::DrawingApp::PathPromptMode::Save);
+    homeAliasDrawing.m_pathPromptBuffer = "~/drawings/home-save";
+    homeAliasDrawing.m_pathPromptCursorPos = homeAliasDrawing.m_pathPromptBuffer.size();
+    homeAliasDrawing.finishPathPrompt(true);
+    check(homeAliasDrawing.m_filePath
+                  == "/home/monolith/drawings/home-save.modr"
+              && fs.isFile("/home/monolith/drawings/home-save.modr"),
+          "Drawing Save expands a home-relative prompt path");
 
     drawing.onResize(300, 300);
     check(!drawing.m_dirty, "initial blank resize stays clean");

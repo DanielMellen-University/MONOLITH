@@ -642,6 +642,10 @@ int main() {
           "write editor file at the line limit");
     check(fs.createDirectory("/folder"), "create unwritable save target directory");
     check(fs.createDirectory("/unicode"), "create Unicode completion directory");
+    check(fs.createDirectory("/home/monolith/documents"),
+          "create virtual-home path prompt directory");
+    check(fs.writeFile("/home/monolith/documents/home-note.txt", "home prompt target"),
+          "write virtual-home path prompt target");
     const std::string eAcuteName = std::string("\xC3\xA9") + "clair.txt";
     const std::string eCircumflexName = std::string("\xC3\xAA") + "clair.txt";
     check(fs.writeFile("/unicode/" + eAcuteName, "acute"),
@@ -1234,6 +1238,30 @@ int main() {
     promptEditor.completePathPrompt();
     check(promptEditor.m_pathPromptBuffer == "/unicode/" + eAcuteName,
           "Unicode path completion expands an exact codepoint prefix");
+
+    TestEditor homePathEditor(nullptr, &fs);
+    prepareOpen(homePathEditor, "~/documents/home-");
+    homePathEditor.completePathPrompt();
+    check(homePathEditor.m_pathPromptBuffer == "~/documents/home-note.txt",
+          "Text Editor completion searches virtual home and keeps the shorthand");
+    homePathEditor.finishPathPrompt(true);
+    check(homePathEditor.m_filePath == "/home/monolith/documents/home-note.txt"
+              && homePathEditor.m_lines == std::vector<std::string>{"home prompt target"},
+          "Text Editor Open expands a home-relative prompt path");
+    prepareSaveAs(homePathEditor, "~/documents/home-saved.txt");
+    homePathEditor.finishPathPrompt(true);
+    check(homePathEditor.m_filePath == "/home/monolith/documents/home-saved.txt"
+              && fs.readFile("/home/monolith/documents/home-saved.txt")
+                  == "home prompt target",
+          "Text Editor Save As expands a home-relative prompt path");
+
+    prepareOpen(homePathEditor, "~/documents/home-note.txt");
+    homePathEditor.m_pathPromptCursorPos = std::string("~/documents/").size();
+    homePathEditor.onVirtualPathMoved(
+        "/home/monolith/documents", "/archive");
+    check(homePathEditor.m_pathPromptBuffer == "/archive/home-note.txt"
+              && homePathEditor.m_pathPromptCursorPos == std::string("/archive/").size(),
+          "Text Editor move notifications preserve the caret after home expansion");
 
     prepareSaveAs(promptEditor, "/new.txt/child.txt");
     promptEditor.m_pathPromptCursorPos = std::string("/new.txt/").size();

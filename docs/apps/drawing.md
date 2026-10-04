@@ -95,8 +95,9 @@ Drawing stores internal filesystem paths in canonical form. Before a path is ope
 | `/home/monolith/drawings/./sketch.modr` | `/home/monolith/drawings/sketch.modr` |
 | `/home/monolith/drawings/../drawings/sketch.modr` | `/home/monolith/drawings/sketch.modr` |
 | `//home//monolith//drawings//sketch.modr` | `/home/monolith/drawings/sketch.modr` |
+| `~/drawings/sketch.modr` | `/home/monolith/drawings/sketch.modr` |
 
-Normalization only changes the path spelling. It does not make a missing file valid. Save separately creates missing parent directories before writing when the internal filesystem allows it; Open never creates a missing file. The same canonical path is used for Drawing's title, Save target, session record, one-window-per-file routing, and active path prompt. Directory moves and file renames therefore update the normalized path consistently.
+In Drawing's Open and Save prompts, a leading `~` or `~/` expands to `/home/monolith`; Tab completion searches the resolved directory but keeps the shorthand in the prompt until accepted. `~name` is not expanded. Normalization only changes the path spelling. It does not make a missing file valid. Save separately creates missing parent directories before writing when the internal filesystem allows it; Open never creates a missing file. The same canonical path is used for Drawing's title, Save target, session record, one-window-per-file routing, and active path prompt. Directory moves and file renames therefore update the normalized path consistently.
 
 ## At A Glance
 

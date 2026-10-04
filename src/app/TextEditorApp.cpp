@@ -1,4 +1,5 @@
 #include "TextEditorApp.hpp"
+#include "FilePath.hpp"
 #include "Utf8.hpp"
 #include "../detail/BufferedStreamWriter.hpp"
 #include "../detail/RendererClip.hpp"
@@ -401,7 +402,7 @@ bool TextEditorApp::loadInitialFile(const std::string& virtualPath) {
         return false;
     }
 
-    std::string normalized = m_fs->normalize(virtualPath);
+    std::string normalized = m_fs->normalize(expandVirtualHomeShorthand(virtualPath));
     if (!m_fs->isFile(normalized)) {
         setStatus("Open failed: not a file — " + normalized);
         return false;
@@ -622,7 +623,9 @@ void TextEditorApp::remapPathPrompt(const std::string& oldPath,
         && m_pathPromptBuffer.back() == '/';
     const std::string oldPrompt = m_pathPromptBuffer;
     const std::size_t oldCursor = m_pathPromptCursorPos;
-    const std::string promptPath = m_fs->normalize(m_pathPromptBuffer);
+    const std::size_t expandedCursor = expandVirtualHomeCursorPosition(oldPrompt, oldCursor);
+    const std::string promptPath = m_fs->normalize(
+        expandVirtualHomeShorthand(m_pathPromptBuffer));
     if (!m_fs->isSameOrDescendant(oldNormalized, promptPath)) return;
 
     m_pathPromptBuffer = normalizedNewPath + promptPath.substr(oldNormalized.size());
@@ -630,7 +633,7 @@ void TextEditorApp::remapPathPrompt(const std::string& oldPath,
         m_pathPromptBuffer.push_back('/');
     }
     m_pathPromptCursorPos = remapUtf8CursorAfterPrefix(
-        oldPrompt, oldCursor, oldNormalized, normalizedNewPath,
+        promptPath, expandedCursor, oldNormalized, normalizedNewPath,
         m_pathPromptBuffer);
     m_statusHorizontalScrollPx = 0;
 }
@@ -647,7 +650,8 @@ void TextEditorApp::onBoundFileRemoved(const std::string& removedPath) {
     if (m_fs && (m_pathPromptMode == PathPromptMode::Open
                  || m_pathPromptMode == PathPromptMode::SaveAs)) {
         const std::string removed = m_fs->normalize(removedPath);
-        const std::string promptPath = m_fs->normalize(m_pathPromptBuffer);
+        const std::string promptPath = m_fs->normalize(
+            expandVirtualHomeShorthand(m_pathPromptBuffer));
         if (m_fs->isSameOrDescendant(removed, promptPath)) {
             const size_t slash = removed.find_last_of('/');
             const std::string parent = slash == 0 ? "/" : removed.substr(0, slash);
@@ -764,7 +768,7 @@ void TextEditorApp::finishPathPrompt(bool commit) {
         return;
     }
 
-    const std::string path = m_fs->normalize(buffer);
+    const std::string path = m_fs->normalize(expandVirtualHomeShorthand(buffer));
 
     if (mode == PathPromptMode::Open) {
         if (!m_fs->isFile(path)) {
@@ -845,7 +849,8 @@ void TextEditorApp::completePathPrompt() {
     const size_t nameStart = (slash == std::string::npos) ? 0 : slash + 1;
     const std::string dirPart = (slash == std::string::npos) ? "" : prefixBuffer.substr(0, slash);
     const std::string namePrefix = prefixBuffer.substr(nameStart);
-    const std::string searchDir = m_fs->normalize(dirPart.empty() ? "/" : dirPart);
+    const std::string searchDir = m_fs->normalize(
+        expandVirtualHomeShorthand(dirPart.empty() ? "/" : dirPart));
     const std::string completionBase = (slash == std::string::npos)
         ? ""
         : ((slash == 0) ? "/" : dirPart + "/");

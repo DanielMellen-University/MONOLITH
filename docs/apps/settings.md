@@ -23,6 +23,7 @@ The **APPEARANCE** section at the top lets you change live desktop preferences.
 ### Wallpaper image
 
 - Enter a virtual filesystem path to a **BMP**, **PNG**, or **JPEG** file (for example `/Wallpapers/sample.png`) and press **Set**.
+- A leading `~` or `~/` expands to `/home/monolith`; Tab completion searches that directory and retains the shorthand until **Set** is pressed. `~name` is not expanded.
 - While the path field is focused, Left/Right/Home/End move the caret, typed text is inserted at the caret, Delete removes the next complete UTF-8 character, and Backspace removes the previous one.
 - Press Tab to complete a directory or image filename (`.bmp`/`.png`/`.jpg`/`.jpeg`). With several matches, completion extends the shared prefix; the caret must be in the final path component.
 - Ambiguous completion stops at a complete UTF-8 codepoint, so filenames that share only leading bytes cannot insert an invalid partial character.
