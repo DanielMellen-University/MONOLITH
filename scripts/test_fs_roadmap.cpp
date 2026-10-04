@@ -916,6 +916,13 @@ int main() {
     const auto mixedCaseIndices = Filesystem::filterEntryIndices(mixedCaseEntries, "tXt");
     check(mixedCaseIndices == std::vector<std::size_t>{0, 1},
           "filterEntryIndices matches without copying entries and preserves source order");
+    std::vector<std::size_t> narrowingIndices{0, 1, 2};
+    Filesystem::filterEntryIndicesInPlace(mixedCaseEntries, "tXt", narrowingIndices);
+    check(narrowingIndices == std::vector<std::size_t>{0, 1},
+          "in-place filtering narrows candidate indices while preserving order");
+    Filesystem::filterEntryIndicesInPlace(mixedCaseEntries, "PHA.", narrowingIndices);
+    check(narrowingIndices == std::vector<std::size_t>{0},
+          "successive in-place filtering keeps only candidates matching the narrower query");
     check(Filesystem::filterEntryIndices(mixedCaseEntries, "").empty(),
           "filterEntryIndices uses an empty result for the unfiltered identity view");
 

@@ -92,6 +92,7 @@ List rows use the existing cached filename texture dimensions for clipping. Duri
 - The caret-prefix width is reused between frames until the caret prefix or shared font changes.
 - Filter edits reuse the current folder snapshot instead of re-enumerating the directory on every keystroke. **F5** refreshes that snapshot even while the filter has focus; Monolith filesystem change notifications also refresh it.
 - Matching rows are held as indices into that snapshot, so editing a filter does not copy each matching filename.
+- Extending a query at the end narrows its existing match indices in place; deleting characters, editing earlier in the query, or refreshing the directory rebuilds matches from the full snapshot.
 - **Enter** keeps the filter and leaves typing mode.
 - **Esc** clears the filter.
 - Changing directory clears the filter.

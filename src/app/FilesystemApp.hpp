@@ -38,7 +38,8 @@ private:
     void goUp();
     void refreshEntries(const std::string& movedFrom = {},
                         const std::string& movedTo = {},
-                        bool reloadDirectory = true);
+                        bool reloadDirectory = true,
+                        bool allowFilterNarrowing = false);
     void activateEntry(size_t index);           // double-click / enter behavior
     void openFileEntry(const std::string& name, const char* forceApp = nullptr);
     // forceApp: nullptr = default routing, "editor", or "drawing"
@@ -65,7 +66,7 @@ private:
     std::size_t visibleEntryCount() const;
     const monolith::fs::Filesystem::DirEntry& visibleEntryAt(std::size_t index) const;
     std::size_t sourceEntryIndexAtVisible(std::size_t index) const;
-    void rebuildVisibleEntryIndices();
+    void rebuildVisibleEntryIndices(bool allowNarrowing = false);
     void showPropertiesForSelection();
 
     std::string entryBaseName(const std::string& virtualPath) const;
@@ -170,6 +171,7 @@ private:
     // Folder listing filter/search (Ctrl+F)
     bool m_filtering = false;
     std::string m_filterQuery;
+    std::string m_appliedFilterQuery;
     std::size_t m_filterCursorPos = 0;
     int m_filterScrollPx = 0;
     std::string m_filterRenderLabel;

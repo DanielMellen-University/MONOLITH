@@ -795,6 +795,21 @@ std::vector<std::size_t> Filesystem::filterEntryIndices(
     return matches;
 }
 
+void Filesystem::filterEntryIndicesInPlace(
+    const std::vector<DirEntry>& entries,
+    const std::string& query,
+    std::vector<std::size_t>& candidates) {
+    const std::string lowercaseQuery = lowercaseAscii(query);
+    auto output = candidates.begin();
+    for (const std::size_t index : candidates) {
+        if (index < entries.size()
+            && containsCaseInsensitive(entries[index].name, lowercaseQuery)) {
+            *output++ = index;
+        }
+    }
+    candidates.erase(output, candidates.end());
+}
+
 bool Filesystem::writeFileWithProducer(
     const std::string& virtualPath,
     const FileContentProducer& produceContent) {

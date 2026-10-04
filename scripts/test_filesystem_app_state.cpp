@@ -239,12 +239,23 @@ int main() {
           "starting an empty filter keeps the existing listing snapshot");
     text(browser, "a");
     check(browser.m_entries.size() == 15 && browser.visibleEntryCount() == 1
-              && browser.visibleEntryAt(0).name == "a.txt",
+              && browser.visibleEntryAt(0).name == "a.txt"
+              && browser.m_appliedFilterQuery == "a",
           "filter uses a visible index over the unchanged directory snapshot");
     check(browser.m_selectedIndex == -1 && browser.m_selectedSet.empty(),
           "filter clears a selection that is no longer present");
     check(browser.m_scrollOffset == 0, "filter clamps scrolling to the reduced result set");
     browser.setSelection(0);
+    text(browser, ".");
+    check(browser.visibleEntryCount() == 1
+              && browser.visibleEntryAt(0).name == "a.txt"
+              && browser.m_appliedFilterQuery == "a.",
+          "appending filter text narrows the prior match indices");
+    key(browser, SDLK_BACKSPACE);
+    check(browser.visibleEntryCount() == 1
+              && browser.visibleEntryAt(0).name == "a.txt"
+              && browser.m_appliedFilterQuery == "a",
+          "backspace broadens the filter by rebuilding from the directory snapshot");
     key(browser, SDLK_BACKSPACE);
     check(browser.m_entries.size() == 15 && browser.visibleEntryCount() == 15
               && browser.m_visibleEntryIndices.empty()
@@ -257,6 +268,25 @@ int main() {
 
     key(browser, SDLK_ESCAPE);
     check(browser.visibleEntryCount() == 15, "escape restores the full listing");
+
+    check(fs.writeFile("/home/monolith/axb.txt", "interior edit"),
+          "create a filter-interior-edit fixture");
+    browser.refreshEntries();
+    key(browser, SDLK_f, KMOD_CTRL);
+    text(browser, "ab");
+    check(browser.visibleEntryCount() == 0,
+          "filter query has no match before an interior insertion");
+    browser.m_filterCursorPos = 1;
+    text(browser, "x");
+    check(browser.visibleEntryCount() == 1
+              && browser.visibleEntryAt(0).name == "axb.txt"
+              && browser.m_appliedFilterQuery == "axb",
+          "interior filter edits rebuild against the full folder snapshot");
+    key(browser, SDLK_ESCAPE);
+    check(fs.remove("/home/monolith/axb.txt"),
+          "remove the filter-interior-edit fixture");
+    browser.onVirtualPathRemoved("/home/monolith/axb.txt");
+
     check(browser.selectEntryNamed("b.txt", false), "select an entry before narrowing again");
     key(browser, SDLK_f, KMOD_CTRL);
     text(browser, "b");

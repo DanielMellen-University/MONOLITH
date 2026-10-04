@@ -174,6 +174,11 @@ public:
     /** Matching source indices without copying entry names. */
     static std::vector<std::size_t> filterEntryIndices(
         const std::vector<DirEntry>& entries, const std::string& query);
+    /** Narrow an ordered candidate index list in place for a more restrictive query. */
+    static void filterEntryIndicesInPlace(
+        const std::vector<DirEntry>& entries,
+        const std::string& query,
+        std::vector<std::size_t>& candidates);
 
     /** Lists entries with type info (directories first, then case-insensitive alpha-sorted files). */
     std::vector<DirEntry> listEntries(const std::string& virtualPath) const;

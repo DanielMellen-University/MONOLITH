@@ -176,7 +176,8 @@ void FilesystemApp::goUp() {
 
 void FilesystemApp::refreshEntries(const std::string& movedFrom,
                                    const std::string& movedTo,
-                                   bool reloadDirectory) {
+                                   bool reloadDirectory,
+                                   bool allowFilterNarrowing) {
     // External filesystem events replace the row vector. Any active inline
     // rename points into the old vector, so discard it before rebuilding.
     if (m_renaming) {
@@ -193,6 +194,7 @@ void FilesystemApp::refreshEntries(const std::string& movedFrom,
         m_entries.clear();
         m_visibleEntryIndices.clear();
         m_visibleUsesIndices = false;
+        m_appliedFilterQuery.clear();
         clearMultiSelection();
         m_selectedIndex = -1;
         return;
@@ -231,7 +233,7 @@ void FilesystemApp::refreshEntries(const std::string& movedFrom,
             ? sourceEntryIndexAtVisible(static_cast<std::size_t>(m_anchorIndex))
             : 0;
 
-        rebuildVisibleEntryIndices();
+        rebuildVisibleEntryIndices(allowFilterNarrowing);
         clearMultiSelection();
         int restoredPrimary = -1;
         int restoredAnchor = -1;
@@ -946,7 +948,7 @@ void FilesystemApp::clearFilter() {
 }
 
 void FilesystemApp::applyFilterQuery() {
-    refreshEntries({}, {}, false);
+    refreshEntries({}, {}, false, true);
     updateFilterStatus();
 }
 
@@ -972,14 +974,22 @@ std::size_t FilesystemApp::sourceEntryIndexAtVisible(std::size_t index) const {
     return m_visibleUsesIndices ? m_visibleEntryIndices[index] : index;
 }
 
-void FilesystemApp::rebuildVisibleEntryIndices() {
+void FilesystemApp::rebuildVisibleEntryIndices(bool allowNarrowing) {
     if (m_filterQuery.empty()) {
         m_visibleEntryIndices.clear();
         m_visibleUsesIndices = false;
+    } else if (allowNarrowing && m_visibleUsesIndices
+               && m_filterQuery.size() > m_appliedFilterQuery.size()
+               && m_filterQuery.compare(0, m_appliedFilterQuery.size(),
+                                        m_appliedFilterQuery) == 0) {
+        monolith::fs::Filesystem::filterEntryIndicesInPlace(
+            m_entries, m_filterQuery, m_visibleEntryIndices);
+        m_visibleUsesIndices = true;
     } else {
         m_visibleEntryIndices = monolith::fs::Filesystem::filterEntryIndices(m_entries, m_filterQuery);
         m_visibleUsesIndices = true;
     }
+    m_appliedFilterQuery = m_filterQuery;
 }
 
 void FilesystemApp::setSelection(int index, bool additive) {

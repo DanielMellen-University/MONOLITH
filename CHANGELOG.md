@@ -1,5 +1,10 @@
 # Changelog
 
+## 2026-10: Narrow Browser filter results incrementally
+
+- Appending to a folder filter now checks only the previous matches and compacts their source indices in place; query broadening and directory refresh still rebuild from the complete snapshot.
+- Cover match ordering, query narrowing/broadening, and refresh while the filter is active.
+
 ## 2026-10: Clamp UTF-8 delete cursors to character boundaries
 
 - Normalize stale interior-byte cursor offsets before Backspace or Delete, preventing either operation from splitting a multibyte character.
