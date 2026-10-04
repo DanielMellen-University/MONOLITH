@@ -1,5 +1,7 @@
 # Session log
 
+| 2026-10-04 | fix | Atomic-save cleanup now opens owner markers with `O_NONBLOCK`; a FIFO in a user-created lookalike directory previously stalled the scanner before its regular-file check. The timeout-guarded sweep regression reproduces the hang and verifies cleanup preserves the directory. |
+
 | 2026-10-04 | perf/fix | Atomic-save cleanup now keys its bounded parent cadence by resolved directory, so symlink aliases share first-touch and 32-write sweeps. Lexical tracker hits skip resolution; misses resolve before cadence lookup. Regression alternates both spellings through the interval boundary. Full headless suite, production build, focused ASan/UBSan test, and both hosted workflow #350 jobs passed. |
 
 | 2026-10-04 | fix | Atomic saves now restore existing mode bits after writing and closing the staged file, preserving setuid that POSIX may clear during writes. The focused regression failed before the change and passes afterward, including failed-producer preservation; the complete headless suite, production build, and targeted ASan/UBSan filesystem suite pass. |

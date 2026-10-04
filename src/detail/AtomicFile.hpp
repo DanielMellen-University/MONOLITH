@@ -116,7 +116,7 @@ inline bool shouldSweepAtomicTempParent(const std::filesystem::path& parent) {
 
 inline bool hasAtomicTempOwnerMarker(const std::filesystem::path& directory) {
     const int markerFd = ::open((directory / atomicTempOwnerName).c_str(),
-                                O_RDONLY | O_CLOEXEC | O_NOFOLLOW);
+                                O_RDONLY | O_CLOEXEC | O_NOFOLLOW | O_NONBLOCK);
     if (markerFd < 0) return false;
 
     struct stat markerStatus {};

@@ -1,5 +1,10 @@
 # Changelog
 
+## 2026-10: Keep atomic-save cleanup nonblocking on lookalikes
+
+- Probe ownership markers with nonblocking opens and reject non-regular files, preventing a user-created FIFO from hanging a save-time cleanup sweep.
+- Verify cleanup completes and preserves a prefixed directory containing a FIFO marker.
+
 ## 2026-10: Share atomic-save cleanup cadence across path aliases
 
 - Key bounded sweep tracking by resolved destination directory so in-root symlink aliases share first-touch and 32-write cleanup cadence.

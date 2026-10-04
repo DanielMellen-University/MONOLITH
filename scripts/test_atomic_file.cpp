@@ -7,6 +7,8 @@
 #include <iostream>
 #include <string>
 #include <sys/file.h>
+#include <sys/stat.h>
+#include <sys/wait.h>
 #include <unistd.h>
 
 namespace fs = std::filesystem;
@@ -82,6 +84,32 @@ int main() {
         && monolith::detail::shouldSweepAtomicTempParent(aliasTarget);
     check(aliasFixturesReady && firstAliasSweep && aliasCadenceHeld && aliasIntervalSweep,
           "symlink aliases share one destination-parent sweep cadence");
+
+    const fs::path fifoMarkerDirectory = parent
+        / (std::string(monolith::detail::atomicTempPrefix) + "fifo-owner");
+    ec.clear();
+    const bool fifoDirectoryReady = fs::create_directory(fifoMarkerDirectory, ec) && !ec;
+    const fs::path fifoOwnerPath = fifoMarkerDirectory / monolith::detail::atomicTempOwnerName;
+    const bool fifoFixturesReady = fifoDirectoryReady
+        && ::mkfifo(fifoOwnerPath.c_str(), S_IRUSR | S_IWUSR) == 0
+        && writeFixture(fifoMarkerDirectory / "notes.txt", "keep this directory");
+    bool fifoSweepFinished = false;
+    if (fifoFixturesReady) {
+        const pid_t child = ::fork();
+        if (child == 0) {
+            ::alarm(2);
+            monolith::detail::scavengeAtomicTempDirectories(parent);
+            const bool preserved = fs::exists(fifoOwnerPath)
+                && fs::exists(fifoMarkerDirectory / "notes.txt");
+            _exit(preserved ? 0 : 1);
+        }
+        int childStatus = 0;
+        const pid_t waited = child > 0 ? ::waitpid(child, &childStatus, 0) : -1;
+        fifoSweepFinished = waited == child && WIFEXITED(childStatus)
+            && WEXITSTATUS(childStatus) == 0;
+    }
+    check(fifoFixturesReady && fifoSweepFinished,
+          "a FIFO owner lookalike cannot block cleanup or lose user data");
 
     const fs::path markerParent = parent / "marker-check";
     ec.clear();
