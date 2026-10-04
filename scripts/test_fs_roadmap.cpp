@@ -351,8 +351,24 @@ int main() {
     }
     const stdfs::path escapeLink = hostRoot / "escape";
     stdfs::create_directory_symlink(outsideRoot, escapeLink, ec);
-    check(!ec, "create outside symlink");
-    if (!ec) {
+    const bool escapeLinkReady = !ec;
+    check(escapeLinkReady, "create outside symlink");
+    const stdfs::path outsideNestedFileLink = outsideRoot / "nested-file-link";
+    ec.clear();
+    stdfs::create_symlink(outsideRoot / "secret.txt", outsideNestedFileLink, ec);
+    const bool outsideNestedFileLinkReady = !ec;
+    const stdfs::path outsideNestedDirectory = outsideRoot / "nested-target";
+    ec.clear();
+    const bool outsideNestedDirectoryReady =
+        stdfs::create_directory(outsideNestedDirectory, ec) && !ec;
+    const stdfs::path outsideNestedDirectoryLink = outsideRoot / "nested-directory-link";
+    ec.clear();
+    if (outsideNestedDirectoryReady) {
+        stdfs::create_directory_symlink(outsideNestedDirectory,
+                                        outsideNestedDirectoryLink, ec);
+    }
+    const bool outsideNestedDirectoryLinkReady = outsideNestedDirectoryReady && !ec;
+    if (escapeLinkReady) {
         check(fs.toHostPath("/escape/secret.txt").empty(),
               "host path rejects symlink target outside root");
         check(!fs.exists("/escape") && !fs.isDirectory("/escape"),
@@ -375,6 +391,23 @@ int main() {
               "modified-time updates cannot follow a symlink outside the virtual root");
         check(!fs.writeFile("/escape/new.txt", "blocked"),
               "write rejects outside symlink target");
+        const bool nestedFileDeleteRejected = !fs.remove("/escape/nested-file-link");
+        ec.clear();
+        const bool nestedFileLinkPreserved =
+            stdfs::is_symlink(stdfs::symlink_status(outsideNestedFileLink, ec)) && !ec;
+        check(outsideNestedFileLinkReady && nestedFileDeleteRejected
+                  && nestedFileLinkPreserved,
+              "remove rejects a final symlink reached through an outside parent");
+
+        const bool nestedDirectoryDeleteRejected =
+            !fs.removeRecursive("/escape/nested-directory-link");
+        ec.clear();
+        const bool nestedDirectoryLinkPreserved =
+            stdfs::is_symlink(stdfs::symlink_status(outsideNestedDirectoryLink, ec)) && !ec;
+        check(outsideNestedDirectoryLinkReady && nestedDirectoryDeleteRejected
+                  && nestedDirectoryLinkPreserved,
+              "recursive remove rejects a final symlink reached through an outside parent");
+
         const auto rootEntries = fs.list("/");
         check(std::find(rootEntries.begin(), rootEntries.end(), "escape")
                   == rootEntries.end(),

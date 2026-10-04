@@ -196,6 +196,27 @@ bool resolveWithinRoot(const stdfs::path& root,
     return !ec && pathHasPrefix(root, resolved);
 }
 
+// Resolve only the parent so an in-root final symlink can be unlinked safely.
+bool resolveEntryHostPathWithinRoot(const stdfs::path& hostRoot,
+                                     const std::string& normalizedVirtualPath,
+                                     stdfs::path& resolvedEntry) {
+    std::error_code ec;
+    const stdfs::path canonicalRoot = stdfs::weakly_canonical(hostRoot, ec);
+    if (ec) return false;
+
+    std::string_view relativePath = normalizedVirtualPath;
+    if (!relativePath.empty() && relativePath.front() == '/') {
+        relativePath.remove_prefix(1);
+    }
+    const stdfs::path rawEntry = hostRoot / stdfs::path(relativePath);
+    const stdfs::path canonicalParent =
+        stdfs::weakly_canonical(rawEntry.parent_path(), ec);
+    if (ec || !pathHasPrefix(canonicalRoot, canonicalParent)) return false;
+
+    resolvedEntry = canonicalParent / rawEntry.filename();
+    return true;
+}
+
 bool inspectVisibleEntry(const stdfs::path& root,
                          const stdfs::directory_entry& entry,
                          bool* outIsDirectory = nullptr) {
@@ -408,48 +429,39 @@ bool Filesystem::remove(const std::string& virtualPath) {
         const std::string path = normalize(virtualPath);
         if (path == "/") return false;
 
-        // Removing a symlink must unlink the directory entry, never follow it
-        // and delete the target file or directory instead.
-        const stdfs::path rawHostPath = stdfs::path(m_hostRoot) / path.substr(1);
-        if (isSymlinkPath(rawHostPath)) {
-            std::error_code symlinkError;
-            return stdfs::remove(rawHostPath, symlinkError) && !symlinkError;
-        }
+        stdfs::path hostEntry;
+        if (!resolveEntryHostPathWithinRoot(m_hostRoot, path, hostEntry)) return false;
 
-        const std::string hostPath = toHostPath(path);
-        if (hostPath.empty()) return false;
-        return stdfs::remove(hostPath);
+        std::error_code removeError;
+        return stdfs::remove(hostEntry, removeError) && !removeError;
     } catch (...) {
         return false;
     }
 }
 
 bool Filesystem::removeRecursive(const std::string& virtualPath) {
-    const std::string path = normalize(virtualPath);
-    if (path == "/") {
-        return false; // never delete the virtual root
-    }
+    try {
+        const std::string path = normalize(virtualPath);
+        if (path == "/") return false;
 
-    const stdfs::path rawHostPath = stdfs::path(m_hostRoot) / path.substr(1);
-    if (isSymlinkPath(rawHostPath)) {
-        std::error_code symlinkError;
-        return stdfs::remove(rawHostPath, symlinkError) && !symlinkError;
-    }
+        stdfs::path hostEntry;
+        if (!resolveEntryHostPathWithinRoot(m_hostRoot, path, hostEntry)) return false;
 
-    const std::string hostPathString = toHostPath(path);
-    if (hostPathString.empty()) return false;
-    const stdfs::path hostPath(hostPathString);
+        std::error_code statusError;
+        const auto entryStatus = stdfs::symlink_status(hostEntry, statusError);
+        if (statusError) return false;
+        if (stdfs::is_symlink(entryStatus) || stdfs::is_regular_file(entryStatus)) {
+            std::error_code removeError;
+            return stdfs::remove(hostEntry, removeError) && !removeError;
+        }
+        if (!stdfs::is_directory(entryStatus)) return false;
 
-    if (isFile(path)) {
-        return remove(path);
-    }
-    if (!isDirectory(path)) {
+        std::error_code removeError;
+        const std::uintmax_t removed = stdfs::remove_all(hostEntry, removeError);
+        return !removeError && removed != 0;
+    } catch (...) {
         return false;
     }
-
-    std::error_code removeEc;
-    const std::uintmax_t removed = stdfs::remove_all(hostPath, removeEc);
-    return !removeEc && removed != 0;
 }
 
 bool Filesystem::copyRecursive(const std::string& srcVirtualPath, const std::string& dstVirtualPath) {

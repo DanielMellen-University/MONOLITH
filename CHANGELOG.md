@@ -1,5 +1,10 @@
 # Changelog
 
+## 2026-10: Contain recursive and ordinary deletion
+
+- Resolve and validate a virtual entry's parent before deletion, preventing paths through outside-pointing directory symlinks from unlinking host entries beyond the virtual root.
+- Continue unlinking a final symlink itself without following its target.
+
 ## 2026-10: Unify filesystem directory-entry validation
 
 - Share one visibility and symlink-containment check between `list()` and `listEntries()`.

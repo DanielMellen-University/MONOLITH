@@ -1,5 +1,7 @@
 # Session log
 
+| 2026-10-04 | fix | Resolve and contain the parent of each filesystem deletion target before removing its final entry. Regression tests reproduced and now prevent `remove()` and `removeRecursive()` from unlinking files through an outside-pointing parent symlink; direct final-symlink unlinking remains supported. |
+
 | 2026-10-04 | cleanup/perf | Shared directory-entry visibility and symlink-containment validation between `list()` and `listEntries()`, and resolve the configured host root once per listing rather than once per directory or symlink. The focused filesystem roadmap suite, full headless matrix, production build, and focused ASan/UBSan suite pass. |
 
 | 2026-10-04 | perf | Keep complete Find/Replace strings while rendering only 64-byte UTF-8-safe context around each caret. Highlights measure visible match slices and start from sparse checkpoints, avoiding giant off-screen measurements, dense-prefix rescans, and overlapping viewport-only false hits. Maximum-size field coverage passes. |

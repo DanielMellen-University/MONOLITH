@@ -34,6 +34,7 @@ The human funds token budget and lives in the desktop. You:
 
 | When | Kind | Note |
 |------|------|------|
+| 2026-10-04 | filesystem-delete-containment | Validate the resolved parent before unlinking the final entry so an outside-pointing parent symlink cannot delete external entries |
 | 2026-10-04 | filesystem-listing-validation | Share symlink visibility checks between both listing APIs and canonicalize the host root once per listing |
 | 2026-10-04 | atomic-save-subtree-recovery | Replace the recursive iterator with an explicit directory stack so a traversal error skips only its folder and continues through siblings |
 | 2026-10-04 | text-editor-search-bound | Cap Find and Replace fields at 16 MiB and reject over-limit UTF-8 input without splitting codepoints |
