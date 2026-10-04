@@ -1,5 +1,7 @@
 # Session log
 
+| 2026-10-04 | fix | New atomic-save workspaces use 128-bit OS-random names, making the directory name available as a strict pre-marker recovery token. Cleanup removes such an incomplete workspace only through empty-directory removal, so user-added data makes reclamation fail closed; marked and legacy workspace handling is unchanged. Added token-format, empty-orphan, and nonempty-lookalike coverage. |
+
 | 2026-10-04 | fix | Atomic-save ownership tokens now publish as a symlink in one filesystem operation, eliminating partially written marker files while retaining validated regular markers for older v4 workspaces. Focused regression failed before the change and passes afterward; FIFO/lookalike cleanup coverage remains green. The only remaining orphan window is between workspace-directory creation and token publication. |
 
 | 2026-10-04 | fix | Successful moves now invalidate the wallpaper failed-load cache when they supply the configured image path (or a containing directory), so the next render retries it. Added a WindowManager regression for moving into a previously missing configured path, clarified Terminal behavior, and updated architecture/changelog docs. Full headless suite and production build pass locally. |

@@ -34,6 +34,7 @@ The human funds token budget and lives in the desktop. You:
 
 | When | Kind | Note |
 |------|------|------|
+| 2026-10-04 | atomic-save-orphan-recovery | Give new workspaces 128-bit OS-random names and reclaim pre-marker remnants only when still empty; nonempty lookalikes remain untouched |
 | 2026-10-04 | atomic-save-atomic-owner-token | Publish the v4 ownership token with one symlink creation call, read legacy regular markers, and narrow the remaining orphan window to workspace creation before token publication |
 | 2026-10-04 | wallpaper-move-refresh | Invalidate the failed wallpaper-load cache when a successful move supplies its configured missing path; full headless suite and production build pass locally |
 | 2026-10-04 | atomic-save-nonblocking-owner-probe | Open lookalike ownership markers nonblocking and accept only regular files, so a FIFO cannot stall cleanup; workflow #353 passed both jobs |
@@ -165,7 +166,7 @@ Older recent-work rows: [`SESSION_LOG.md`](SESSION_LOG.md).
 
 ## Known debts
 
-- Atomic-save cleanup is opportunistic: a bounded 16-parent tracker scans each recently used physical destination directory on first use and every 32 writes, sharing cadence across symlink aliases, then scans again immediately if an evicted directory is revisited. A lexical tracker hit skips resolution; a miss resolves before looking up the physical parent. V4 setup and sweeps coordinate through a brief parent-directory lock; incomplete v4 workspaces require a valid ownership token, while marked v4/v3/v2 workspaces require a ready marker and free lease lock. Incomplete older workspaces remain untouched. New ownership tokens are atomically published symlinks, but a hard stop between workspace-directory creation and token publication can still leave an unmarked directory.
+- Atomic-save cleanup is opportunistic: a bounded 16-parent tracker scans each recently used physical destination directory on first use and every 32 writes, sharing cadence across symlink aliases, then scans again immediately if an evicted directory is revisited. A lexical tracker hit skips resolution; a miss resolves before looking up the physical parent. V4 setup and sweeps coordinate through a brief parent-directory lock; incomplete v4 workspaces require a valid ownership token, with the pre-marker crash remnant recoverable only by its strict 128-bit random name and empty-directory removal. Marked v4/v3/v2 workspaces require a ready marker and free lease lock; incomplete older workspaces remain untouched.
 
 ## Priority order for "next / continue"
 
@@ -319,6 +320,7 @@ Older recent-work rows: [`SESSION_LOG.md`](SESSION_LOG.md).
 | 7.116 | Keep atomic-save lookalike probes nonblocking | done | Open ownership markers nonblocking and reject non-regular marker entries; a timeout-guarded sweep regression verifies FIFO lookalikes do not stall cleanup or lose user data; normal and sanitized workflow #353 passed |
 | 7.117 | Reload wallpaper supplied by a move | done | Invalidate the failed-load cache when a successful move creates the configured wallpaper path; cover a move into a previously missing path |
 | 7.118 | Publish atomic-save ownership tokens atomically | done | Create the v4 owner token as a validated symlink in one filesystem call, preserve legacy regular markers, and retain nonblocking rejection of FIFO/lookalike markers; the pre-publication crash gap remains documented |
+| 7.119 | Reclaim atomic-save setup orphans | done | Name new v4 workspaces with 128-bit OS-random tokens; reclaim an unmarked pre-publication remnant only through empty-directory removal, preserving nonempty lookalikes |
 | fs-browser-filter-cache | Reuse Filesystem Browser filter snapshots | done | Reuse one directory listing for filter edits; refresh it on F5 and Monolith filesystem notifications, including while filtering |
 | terminal-input-editing | Terminal command-line selection | done | Support UTF-8-safe keyboard/mouse selection and Ctrl+A/C/X/V; normalize all clipboard lines and tabs into the single-line prompt |
 | terminal-touch-mtime | Complete Terminal touch semantics | done | Update existing regular-file last-write time without truncation; reject outside-root symlink targets |
