@@ -1000,6 +1000,43 @@ int main() {
               && noOpSelectionEditor.m_undoStack.empty(),
           "pasting the selected text preserves clean state and undo history");
 
+    TestEditor batchPasteEditor(nullptr, &fs, "");
+    batchPasteEditor.m_lines = {"abMIDCD", "tail"};
+    batchPasteEditor.m_selAnchorRow = 0;
+    batchPasteEditor.m_selAnchorCol = 2;
+    batchPasteEditor.m_cursorRow = 0;
+    batchPasteEditor.m_cursorCol = 5;
+    batchPasteEditor.m_hasSelection = true;
+    check(SDL_SetClipboardText("X\r\nY\rZ") == 0,
+          "set mixed-line-ending multiline paste fixture");
+    batchPasteEditor.pasteClipboard();
+    const std::vector<std::string> batchPasteLines = {"abX", "Y", "ZCD", "tail"};
+    check(batchPasteEditor.m_lines == batchPasteLines
+              && batchPasteEditor.m_cursorRow == 2
+              && batchPasteEditor.m_cursorCol == 1,
+          "multiline paste replaces selection, normalizes line endings, and keeps suffix and caret");
+    batchPasteEditor.undo();
+    check(batchPasteEditor.m_lines == std::vector<std::string>{"abMIDCD", "tail"}
+              && batchPasteEditor.m_cursorRow == 0
+              && batchPasteEditor.m_cursorCol == 5,
+          "undo restores the document and cursor from before multiline paste");
+    batchPasteEditor.redo();
+    check(batchPasteEditor.m_lines == batchPasteLines
+              && batchPasteEditor.m_cursorRow == 2
+              && batchPasteEditor.m_cursorCol == 1,
+          "redo restores the complete multiline paste");
+
+    TestEditor trailingPasteEditor(nullptr, &fs, "");
+    trailingPasteEditor.m_lines = {"prepost"};
+    trailingPasteEditor.m_cursorCol = 3;
+    check(SDL_SetClipboardText("A\nB\n") == 0,
+          "set trailing-newline multiline paste fixture");
+    trailingPasteEditor.pasteClipboard();
+    check(trailingPasteEditor.m_lines == std::vector<std::string>{"preA", "B", "post"}
+              && trailingPasteEditor.m_cursorRow == 2
+              && trailingPasteEditor.m_cursorCol == 0,
+          "multiline paste preserves a trailing newline before the original line suffix");
+
     editor.m_lines = {"aa"};
     editor.m_cursorRow = 0;
     editor.m_cursorCol = 0;

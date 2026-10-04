@@ -1,5 +1,10 @@
 # Changelog
 
+## 2026-10: Batch Text Editor multiline paste rows
+
+- Assemble normalized clipboard rows before editing and insert them with one vector range operation instead of shifting the document tail once per pasted line.
+- Preserve selection replacement, suffix placement, trailing newlines, caret position, and single-step undo/redo.
+
 ## 2026-10: Account Text Editor snapshots while cloning
 
 - Measure copied line storage during undo-snapshot creation, removing a second pass over the full snapshot while keeping the pre-copy budget check.
