@@ -709,7 +709,7 @@ void FilesystemApp::pasteFromClipboard() {
         candidateNames.push_back(name);
         candidateMoves.emplace_back(src, dest);
     }
-    const int copied = wasCut
+    const int completed = wasCut
         ? m_fs->moveItemsInto(sources, m_currentPath)
         : m_fs->copyItemsInto(sources, m_currentPath);
 
@@ -746,12 +746,14 @@ void FilesystemApp::pasteFromClipboard() {
     }
 
     refreshEntries();
-    if (copied == 0) {
-        setStatus("Paste failed: nothing copied (name exists, same folder, or blocked)");
+    if (completed == 0) {
+        setStatus(std::string("Paste failed: nothing ")
+                  + (wasCut ? "moved" : "copied")
+                  + " (name exists, same folder, or blocked)");
         return;
     }
     std::string singleName;
-    if (copied == 1) {
+    if (completed == 1) {
         for (const auto& candidate : candidateNames) {
             if (m_fs->exists(fullPathFor(candidate))) {
                 singleName = candidate;
@@ -764,18 +766,18 @@ void FilesystemApp::pasteFromClipboard() {
     }
 
     const std::size_t requested = clipboardPaths.size();
-    if (static_cast<std::size_t>(copied) < requested) {
+    if (static_cast<std::size_t>(completed) < requested) {
         setStatus(std::string(wasCut ? "Moved " : "Pasted ")
-                  + std::to_string(copied) + " of " + std::to_string(requested)
+                  + std::to_string(completed) + " of " + std::to_string(requested)
                   + " items; some skipped/failed");
-    } else if (copied == 1 && !singleName.empty()) {
+    } else if (completed == 1 && !singleName.empty()) {
         setStatus((wasCut ? "Moved: " : "Pasted: ") + singleName);
-    } else if (copied == 1) {
+    } else if (completed == 1) {
         setStatus(wasCut ? "Moved 1 item" : "Pasted 1 item");
     } else {
         setStatus(wasCut
-            ? ("Moved: " + std::to_string(copied) + " items")
-            : ("Pasted: " + std::to_string(copied) + " items"));
+            ? ("Moved: " + std::to_string(completed) + " items")
+            : ("Pasted: " + std::to_string(completed) + " items"));
     }
 }
 

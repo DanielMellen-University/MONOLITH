@@ -835,6 +835,52 @@ int main() {
     check(browser.m_statusMessage == "Pasted 1 of 2 items; some skipped/failed",
           "partial copy reports how many selected items pasted");
 
+    check(fs.writeFile("/home/monolith/blocked-copy.txt", "source"),
+          "create fully blocked copy source");
+    check(fs.createDirectory("/home/monolith/blocked-copy-dest"),
+          "create fully blocked copy destination");
+    check(fs.writeFile("/home/monolith/blocked-copy-dest/blocked-copy.txt", "existing"),
+          "create fully blocked copy conflict");
+    browser.setCurrentPath("/home/monolith");
+    check(browser.selectEntryNamed("blocked-copy.txt", false),
+          "select fully blocked copy source");
+    browser.copySelectedToClipboard(false);
+    browser.setCurrentPath("/home/monolith/blocked-copy-dest");
+    browser.pasteFromClipboard();
+    check(fs.readFile("/home/monolith/blocked-copy.txt") == "source"
+              && fs.readFile("/home/monolith/blocked-copy-dest/blocked-copy.txt") == "existing",
+          "fully blocked copy preserves both files");
+    check(browser.m_statusMessage
+              == "Paste failed: nothing copied (name exists, same folder, or blocked)",
+          "fully blocked copy reports that nothing was copied");
+    check(browser.m_clipboardPaths.size() == 1
+              && browser.m_clipboardPaths.front() == "/home/monolith/blocked-copy.txt"
+              && !browser.m_clipboardIsCut,
+          "fully blocked copy remains available on the clipboard");
+
+    check(fs.writeFile("/home/monolith/blocked-move.txt", "source"),
+          "create fully blocked cut source");
+    check(fs.createDirectory("/home/monolith/blocked-move-dest"),
+          "create fully blocked cut destination");
+    check(fs.writeFile("/home/monolith/blocked-move-dest/blocked-move.txt", "existing"),
+          "create fully blocked cut conflict");
+    browser.setCurrentPath("/home/monolith");
+    check(browser.selectEntryNamed("blocked-move.txt", false),
+          "select fully blocked cut source");
+    browser.copySelectedToClipboard(true);
+    browser.setCurrentPath("/home/monolith/blocked-move-dest");
+    browser.pasteFromClipboard();
+    check(fs.readFile("/home/monolith/blocked-move.txt") == "source"
+              && fs.readFile("/home/monolith/blocked-move-dest/blocked-move.txt") == "existing",
+          "fully blocked cut preserves both files");
+    check(browser.m_statusMessage
+              == "Paste failed: nothing moved (name exists, same folder, or blocked)",
+          "fully blocked cut reports that nothing was moved");
+    check(browser.m_clipboardPaths.size() == 1
+              && browser.m_clipboardPaths.front() == "/home/monolith/blocked-move.txt"
+              && browser.m_clipboardIsCut,
+          "fully blocked cut remains retryable on the clipboard");
+
     check(fs.createDirectory("/home/monolith/dest/sub"),
           "create browser folder move source");
     check(fs.writeFile("/home/monolith/dest/sub/inside.txt", "inside"),

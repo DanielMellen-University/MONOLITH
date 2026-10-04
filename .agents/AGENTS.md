@@ -34,6 +34,7 @@ The human funds token budget and lives in the desktop. You:
 
 | When | Kind | Note |
 |------|------|------|
+| 2026-10-04 | filesystem-browser-blocked-paste-feedback | Use operation-specific failure text when every copy/cut paste item is blocked; verify failed cuts remain retryable and preserve conflicting files |
 | 2026-10-04 | filesystem-browser-paste-results | Report completed versus selected counts when multi-item copy/cut paste skips conflicts or partially fails; cover both paths in Browser state tests |
 | 2026-10-04 | atomic-save-startup-fd-retry | Defer root and child directories on `EMFILE`/`ENFILE` and retry after active DFS handles unwind; verify root initialization and deep branching under a saturated FD table |
 | 2026-10-04 | atomic-save-startup-path-views | Borrow ordinary startup traversal paths and copy only workspace candidates or child directories; preserve the frame budget and no-follow behavior |
@@ -401,6 +402,7 @@ Older recent-work rows: [`SESSION_LOG.md`](SESSION_LOG.md).
 | 7.150 | Make dirty Editor decisions explicit | done | Require Ctrl+D for dirty Close/Open discard, preserve dirty text on repeated actions, support Esc cancellation and save-and-close, and re-confirm if the Open target changes; global shutdown remains blocked until the dirty Editor is explicitly resolved |
 | 7.151 | Make dirty Drawing decisions explicit | done | Require Ctrl+D for dirty Close/New/Open discard, preserve the canvas on repeated actions, support Esc cancellation and save-before-Close/New, and re-confirm if the Open target changes; global shutdown remains blocked until the dirty Drawing is explicitly resolved |
 | 7.152 | Bound opportunistic atomic-save sweeps | done | Inspect at most 32 directory entries per save/listing sweep step; retain resumable per-parent cursors and reacquire the parent lock for each slice; ensure large mixed directories are eventually reclaimed without deleting ordinary entries |
+| 7.153 | Report fully blocked Browser pastes accurately | done | Distinguish a failed copy from a failed move in status text, preserve fully blocked cut clipboard entries for retry, and verify that conflicting source/destination files remain untouched |
 | fs-browser-filter-cache | Reuse Filesystem Browser filter snapshots | done | Reuse one directory listing for filter edits; refresh it on F5 and Monolith filesystem notifications, including while filtering |
 | terminal-input-editing | Terminal command-line selection | done | Support UTF-8-safe keyboard/mouse selection and Ctrl+A/C/X/V; normalize all clipboard lines and tabs into the single-line prompt |
 | terminal-touch-mtime | Complete Terminal touch semantics | done | Update existing regular-file last-write time without truncation; reject outside-root symlink targets |

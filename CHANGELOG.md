@@ -1,5 +1,10 @@
 # Changelog
 
+## 2026-10: Report fully blocked paste actions accurately
+
+- Distinguish a copy that copies nothing from a cut that moves nothing.
+- Keep failed cuts retryable and cover all-conflict copy/cut behavior in Browser state tests.
+
 ## 2026-10: Report partial Filesystem Browser pastes
 
 - Show the completed-versus-selected item count when a multi-item copy or cut paste skips conflicts or fails partway through.

@@ -1,5 +1,7 @@
 # Session log
 
+| 2026-10-04 | fix | Fully blocked Browser cut paste now reports that nothing moved rather than saying nothing was copied; the failed cut stays retryable. Added all-conflict copy and cut state regressions verifying both files and clipboard state are preserved; documented the status behavior. |
+
 | 2026-10-04 | fix | Report completed-versus-selected counts for partial Filesystem Browser copy and cut paste; add state tests for conflict-skipping cases and document the status behavior. |
 
 | 2026-10-04 | fix/perf | Preserve startup cleanup progress when root or child iterator opens reach `EMFILE`/`ENFILE`: defer the directory path and retry under a per-step open budget. Cover root initialization and a deep branching tree under descriptor pressure; document the retry behavior. |
