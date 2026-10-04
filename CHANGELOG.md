@@ -1,5 +1,10 @@
 # Changelog
 
+## 2026-10: Continue cleanup past inaccessible folders
+
+- Traverse the host tree with an explicit directory stack, dropping only a failed folder frame so readable siblings still receive startup cleanup.
+- Keep the per-frame entry budget and no-follow symlink behavior.
+
 ## 2026-10: Reclaim abandoned saves across the filesystem
 
 - Continue a 32-entry-per-frame startup traversal so stale atomic-save workspaces in untouched nested directories are eventually reclaimed without a blocking startup scan.

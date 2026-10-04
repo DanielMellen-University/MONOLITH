@@ -122,6 +122,26 @@ int main() {
         && monolith::detail::createAtomicTempOwnerMarker(maintenanceLookalike)
         && writeFixture(maintenanceLookalike / "user-data", "keep");
 
+    const stdfs::path maintenanceRestricted = hostRoot / "maintenance-restricted";
+    const stdfs::path restrictedStaleWorkspace = maintenanceRestricted
+        / ".monolith-tmp-v3-unreadable";
+    ec.clear();
+    const bool restrictedWorkspaceReady = stdfs::create_directory(maintenanceRestricted, ec)
+        && !ec && stdfs::create_directory(restrictedStaleWorkspace, ec) && !ec
+        && writeFixture(restrictedStaleWorkspace / "lease", "")
+        && writeFixture(restrictedStaleWorkspace / "ready", "")
+        && writeFixture(restrictedStaleWorkspace / "content", "restricted");
+    ec.clear();
+    const auto restrictedPermissions = stdfs::status(maintenanceRestricted, ec).permissions();
+    const bool restrictedPermissionsRead = restrictedWorkspaceReady && !ec;
+    ec.clear();
+    stdfs::permissions(maintenanceRestricted, stdfs::perms::none,
+                       stdfs::perm_options::replace, ec);
+    const bool restrictedPermissionsApplied = restrictedPermissionsRead && !ec;
+    ec.clear();
+    stdfs::directory_iterator restrictedProbe(maintenanceRestricted, ec);
+    const bool restrictedActuallyDenied = ec == std::errc::permission_denied;
+
     monolith::test::ScopedTempDirectory maintenanceOutsideTemp(
         "monolith-fs-maintenance-outside");
     const stdfs::path outsideWorkspace = maintenanceOutsideTemp.path()
@@ -150,10 +170,19 @@ int main() {
         maintenancePending = fs.maintenanceStep(1);
         ++maintenanceSteps;
     }
+    ec.clear();
+    stdfs::permissions(maintenanceRestricted, restrictedPermissions,
+                       stdfs::perm_options::replace, ec);
+    const bool restrictedPermissionsRestored = !ec;
     check(maintenanceFixturesReady && firstMaintenanceStepWasBounded
               && !maintenancePending && maintenanceSteps < 1000
               && !stdfs::exists(maintenanceStaleWorkspace),
           "bounded maintenance reclaims an abandoned workspace in an untouched nested directory");
+    check(restrictedWorkspaceReady && restrictedPermissionsApplied
+              && (restrictedActuallyDenied || ::geteuid() == 0)
+              && restrictedPermissionsRestored
+              && (!restrictedActuallyDenied || stdfs::exists(restrictedStaleWorkspace)),
+          "maintenance continues through accessible siblings when a directory cannot be read");
     check(maintenanceLookalikeReady && stdfs::exists(maintenanceLookalike / "user-data")
               && outsideLinkReady && stdfs::exists(outsideWorkspace),
           "maintenance preserves unknown workspace data and does not follow directory symlinks");

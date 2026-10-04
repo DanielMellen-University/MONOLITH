@@ -199,8 +199,11 @@ bool resolveWithinRoot(const stdfs::path& root,
 } // namespace
 
 struct Filesystem::CleanupTraversal {
-    stdfs::recursive_directory_iterator current;
-    stdfs::recursive_directory_iterator end;
+    struct Frame {
+        stdfs::directory_iterator current;
+    };
+
+    std::vector<Frame> frames;
     bool finished = true;
 };
 
@@ -223,9 +226,12 @@ bool Filesystem::initialize() {
         try {
             auto traversal = std::make_shared<CleanupTraversal>();
             std::error_code iteratorError;
-            traversal->current = stdfs::recursive_directory_iterator(
+            stdfs::directory_iterator current(
                 root, stdfs::directory_options::skip_permission_denied, iteratorError);
-            traversal->finished = iteratorError || traversal->current == traversal->end;
+            if (!iteratorError && current != stdfs::directory_iterator{}) {
+                traversal->frames.push_back({std::move(current)});
+                traversal->finished = false;
+            }
             m_cleanupTraversal = std::move(traversal);
         } catch (...) {
             // Cleanup is best-effort and must not make a usable filesystem fail to initialize.
@@ -242,29 +248,46 @@ bool Filesystem::maintenanceStep(std::size_t entryBudget) noexcept {
     if (!traversal || traversal->finished) return false;
 
     try {
-        while (entryBudget > 0 && traversal->current != traversal->end) {
-            const stdfs::path* workspace = nullptr;
+        while (entryBudget > 0 && !traversal->frames.empty()) {
+            auto& frame = traversal->frames.back();
+            if (frame.current == stdfs::directory_iterator{}) {
+                traversal->frames.pop_back();
+                continue;
+            }
+
+            bool isWorkspace = false;
             stdfs::path workspacePath;
-            const auto& entryPath = traversal->current->path();
+            const stdfs::path entryPath = frame.current->path();
             const std::string_view name = monolith::detail::pathBasenameView(entryPath);
             if (name.starts_with(monolith::detail::atomicTempPrefix)
                 || name.starts_with(monolith::detail::atomicTempPreviousPrefix)
                 || name.starts_with(monolith::detail::atomicTempOlderPrefix)) {
                 workspacePath = entryPath;
-                workspace = &workspacePath;
-                traversal->current.disable_recursion_pending();
+                isWorkspace = true;
             }
 
             std::error_code iteratorError;
-            traversal->current.increment(iteratorError);
+            frame.current.increment(iteratorError);
             --entryBudget;
 
-            if (workspace) {
-                monolith::detail::tryScavengeAtomicTempWorkspace(*workspace);
+            if (isWorkspace) {
+                monolith::detail::tryScavengeAtomicTempWorkspace(workspacePath);
             }
             if (iteratorError) {
-                traversal->finished = true;
-                return false;
+                traversal->frames.pop_back();
+                continue;
+            }
+            if (isWorkspace) continue;
+
+            std::error_code statusError;
+            const auto status = stdfs::symlink_status(entryPath, statusError);
+            if (statusError || !stdfs::is_directory(status)) continue;
+
+            std::error_code childError;
+            stdfs::directory_iterator child(
+                entryPath, stdfs::directory_options::skip_permission_denied, childError);
+            if (!childError && child != stdfs::directory_iterator{}) {
+                traversal->frames.push_back({std::move(child)});
             }
         }
     } catch (...) {
@@ -272,7 +295,7 @@ bool Filesystem::maintenanceStep(std::size_t entryBudget) noexcept {
         return false;
     }
 
-    traversal->finished = traversal->current == traversal->end;
+    traversal->finished = traversal->frames.empty();
     return !traversal->finished;
 }
 
