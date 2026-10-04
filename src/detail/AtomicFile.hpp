@@ -7,6 +7,7 @@
 #include <filesystem>
 #include <fstream>
 #include <functional>
+#include <memory>
 #include <mutex>
 #include <ostream>
 #include <string>
@@ -14,6 +15,7 @@
 #include <system_error>
 #include <utility>
 
+#include <dirent.h>
 #include <fcntl.h>
 #include <sys/file.h>
 #include <sys/random.h>
@@ -70,6 +72,12 @@ public:
 
 private:
     int fd_{-1};
+};
+
+struct AtomicTempDirectoryCloser {
+    void operator()(DIR* directory) const noexcept {
+        if (directory) ::closedir(directory);
+    }
 };
 
 inline bool shouldSweepAtomicTempParent(const std::filesystem::path& parent) {
@@ -380,36 +388,32 @@ inline bool scavengeAtomicTempDirectories(const std::filesystem::path& parent) {
         return false;
     }
 
-    std::error_code iteratorError;
-    std::filesystem::directory_iterator entry(parent, iteratorError);
-    const std::filesystem::directory_iterator end;
-    if (iteratorError) {
+    std::unique_ptr<DIR, AtomicTempDirectoryCloser> directory(
+        ::opendir(parent.c_str()));
+    if (!directory) {
         scheduleAtomicTempSweepRetry(parent);
         return false;
     }
 
-    while (!iteratorError && entry != end) {
-        const auto& entryPath = entry->path();
-        const auto& nativePath = entryPath.native();
-        const auto separator = nativePath.find_last_of(
-            std::filesystem::path::preferred_separator);
-        const std::size_t nameOffset = separator == std::string::npos
-            ? 0
-            : separator + 1;
-        const std::string_view name(nativePath.data() + nameOffset,
-                                    nativePath.size() - nameOffset);
+    int readError = 0;
+    while (true) {
+        // POSIX leaves errno unchanged at end-of-directory.
+        errno = 0;
+        const dirent* entry = ::readdir(directory.get());
+        if (!entry) {
+            readError = errno;
+            break;
+        }
+        const std::string_view name(entry->d_name);
         const bool isWorkspace = name.starts_with(atomicTempPrefix)
             || name.starts_with(atomicTempPreviousPrefix)
             || name.starts_with(atomicTempOlderPrefix);
-        // Copy candidate paths before advancing; ordinary siblings need no owned strings.
-        const std::filesystem::path candidate = isWorkspace ? entryPath
-                                                              : std::filesystem::path{};
-        entry.increment(iteratorError);
         if (!isWorkspace) continue;
+        const std::filesystem::path candidate = parent / std::filesystem::path(name);
         if (tryReclaimIncompleteAtomicTempDirectory(candidate)) continue;
         tryReclaimAtomicTempDirectory(candidate);
     }
-    const bool complete = !iteratorError;
+    const bool complete = readError == 0;
     if (!complete) scheduleAtomicTempSweepRetry(parent);
     return complete;
 }

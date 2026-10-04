@@ -1,5 +1,10 @@
 # Changelog
 
+## 2026-10: Avoid path construction during save sweeps
+
+- Read directory names directly from a POSIX directory stream and construct paths only for recognized workspace candidates.
+- Preserve prompt retry behavior when opening or enumerating a destination directory fails.
+
 ## 2026-10: Avoid ordinary-entry allocations during save cleanup
 
 - Inspect destination entry names through borrowed views and copy paths only for recognized workspaces, avoiding per-entry allocations for ordinary siblings.
