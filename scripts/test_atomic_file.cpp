@@ -137,6 +137,34 @@ int main() {
               && fs::exists(tokenLookalikePath / "notes.txt"),
           "cleanup reclaims empty pre-marker orphans but preserves nonempty token lookalikes");
 
+    const fs::path sweepBatchParent = parent / "sweep-batch";
+    ec.clear();
+    bool sweepBatchFixturesReady = fs::create_directory(sweepBatchParent, ec) && !ec;
+    constexpr std::size_t sweepBatchSize = 128;
+    for (std::size_t index = 0; sweepBatchFixturesReady && index < sweepBatchSize; ++index) {
+        const fs::path workspace = sweepBatchParent
+            / (std::string(monolith::detail::atomicTempPreviousPrefix)
+               + std::to_string(index));
+        ec.clear();
+        sweepBatchFixturesReady = fs::create_directory(workspace, ec) && !ec
+            && writeFixture(workspace / "lease", "")
+            && writeFixture(workspace / "ready", "")
+            && writeFixture(workspace / "content", "stale snapshot");
+    }
+    const bool sweepBatchCompleted = sweepBatchFixturesReady
+        && monolith::detail::scavengeAtomicTempDirectories(sweepBatchParent);
+    std::size_t sweepBatchRemaining = 0;
+    if (sweepBatchFixturesReady) {
+        for (const auto& entry : fs::directory_iterator(sweepBatchParent)) {
+            if (entry.path().filename().string().starts_with(
+                    monolith::detail::atomicTempPreviousPrefix)) {
+                ++sweepBatchRemaining;
+            }
+        }
+    }
+    check(sweepBatchCompleted && sweepBatchRemaining == 0,
+          "a single incremental sweep reclaims a large batch of stale workspaces");
+
     const fs::path failedSetupPath = parent
         / (std::string(monolith::detail::atomicTempPrefix)
            + "aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa");

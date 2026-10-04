@@ -1,5 +1,7 @@
 # Session log
 
+| 2026-10-04 | perf | Atomic-save sweeps now process matching directories incrementally instead of allocating a vector sized to every stale workspace. A focused batch of 128 interrupted workspaces and the full headless suite passed. |
+
 | 2026-10-04 | fix | Require the current symlink owner marker to live inside a strict random-token workspace name, so a prefixed lookalike cannot copy the fixed marker and have its fully populated contents scavenged; retain validated regular-file markers for legacy workspaces. Full local headless suite and Release build passed, the focused ASan/UBSan test passed, and hosted run #378 passed both jobs. |
 
 | 2026-10-04 | fix | Atomic-save sweep attempts now report lock/enumeration failure and schedule a retry on the next write rather than consuming the full 32-write interval. Added cadence coverage plus current-format symlink-owner stale recovery coverage. Full local headless suite, Release build, focused ASan/UBSan test, and hosted run #376 both jobs passed. |

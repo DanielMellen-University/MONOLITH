@@ -1,5 +1,10 @@
 # Changelog
 
+## 2026-10: Bound atomic-save sweep memory
+
+- Process stale workspace candidates as the parent directory is traversed instead of retaining a vector proportional to the number of candidates.
+- Verify one sweep still reclaims a large batch of interrupted workspaces.
+
 ## 2026-10: Require random names for symlink owner markers
 
 - Accept a symlink owner token only when its workspace name matches the strict 128-bit random format, preventing marked non-token lookalikes from being reclaimed.

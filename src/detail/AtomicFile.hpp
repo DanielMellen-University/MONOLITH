@@ -13,7 +13,6 @@
 #include <string_view>
 #include <system_error>
 #include <utility>
-#include <vector>
 
 #include <fcntl.h>
 #include <sys/file.h>
@@ -389,21 +388,18 @@ inline bool scavengeAtomicTempDirectories(const std::filesystem::path& parent) {
         return false;
     }
 
-    std::vector<std::filesystem::path> candidates;
     while (!iteratorError && entry != end) {
-        const std::string name = entry->path().filename().string();
-        if (name.starts_with(atomicTempPrefix)
+        const auto candidate = entry->path();
+        const std::string name = candidate.filename().string();
+        const bool isWorkspace = name.starts_with(atomicTempPrefix)
             || name.starts_with(atomicTempPreviousPrefix)
-            || name.starts_with(atomicTempOlderPrefix)) {
-            candidates.push_back(entry->path());
-        }
+            || name.starts_with(atomicTempOlderPrefix);
         entry.increment(iteratorError);
-    }
-    const bool complete = !iteratorError;
-    for (const auto& candidate : candidates) {
+        if (!isWorkspace) continue;
         if (tryReclaimIncompleteAtomicTempDirectory(candidate)) continue;
         tryReclaimAtomicTempDirectory(candidate);
     }
+    const bool complete = !iteratorError;
     if (!complete) scheduleAtomicTempSweepRetry(parent);
     return complete;
 }
