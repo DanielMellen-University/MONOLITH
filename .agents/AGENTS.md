@@ -34,6 +34,7 @@ The human funds token budget and lives in the desktop. You:
 
 | When | Kind | Note |
 |------|------|------|
+| 2026-10-04 | atomic-save-empty-setup-rollback | Roll back a workspace before ownership publication with directory-only removal so unexpected entries survive; share the empty-directory rule with orphan scavenging |
 | 2026-10-04 | text-editor-open-byte-count | Count normalized serialized bytes during streamed parsing and seed the live size cache without rescanning the opened document |
 | 2026-10-04 | text-editor-edit-limits | Preflight every content-growing edit against the open/save limits; maintain serialized byte size incrementally, bound clipboard normalization, and preserve document plus undo history on rejection |
 | 2026-10-04 | test-temp-isolation | Migrate headless host fixtures and the optional Drawing smoke script from fixed/PID paths to unique owned directories; verify the smoke script uses the app's actual filesystem root |
@@ -328,6 +329,7 @@ Older recent-work rows: [`SESSION_LOG.md`](SESSION_LOG.md).
 | 7.121 | Size Minesweeper for its difficulty | done | Request a comfortable board size through the per-window controller on difficulty changes; preserve maximized geometry and manual sizing on same-difficulty restarts; clamp requests and cover the real shell path |
 | 7.122 | Enforce Text Editor limits during edits | done | Preflight typing, Enter, paste, Replace, and Replace All against the 16 MiB / 65,536-line open/save limits; keep serialized byte accounting incremental and rejected edits out of undo history |
 | 7.123 | Count Text Editor bytes while opening | done | Track normalized serialized bytes alongside line parsing across chunk and CRLF boundaries; seed the live byte count directly and eliminate the post-open scan |
+| 7.124 | Preserve data during atomic-save setup rollback | done | Use `rmdir` semantics when owner-marker publication fails, preserving unexpected entries; reuse the same empty-directory cleanup rule during orphan scavenging |
 | fs-browser-filter-cache | Reuse Filesystem Browser filter snapshots | done | Reuse one directory listing for filter edits; refresh it on F5 and Monolith filesystem notifications, including while filtering |
 | terminal-input-editing | Terminal command-line selection | done | Support UTF-8-safe keyboard/mouse selection and Ctrl+A/C/X/V; normalize all clipboard lines and tabs into the single-line prompt |
 | terminal-touch-mtime | Complete Terminal touch semantics | done | Update existing regular-file last-write time without truncation; reject outside-root symlink targets |

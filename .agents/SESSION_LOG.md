@@ -1,5 +1,7 @@
 # Session log
 
+| 2026-10-04 | fix | Switched unpublished atomic-workspace rollback to `rmdir` semantics and shared that rule with pre-marker scavenging; unexpected entries now survive while empty setup remnants are reclaimed. |
+
 | 2026-10-04 | perf | Counted normalized Text Editor bytes while parsing streamed input, removing the post-open and constructor rescans; covered empty, CRLF, lone-CR, chunk-boundary, and maximum-line documents. |
 
 | 2026-10-04 | fix | Enforced Text Editor's 16 MiB / 65,536-line limits on typing, Enter, paste, Replace, and Replace All; maintained serialized-byte accounting incrementally, bounded clipboard normalization, and added exact-boundary/rejection tests. |
