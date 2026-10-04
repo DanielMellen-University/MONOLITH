@@ -34,7 +34,7 @@ The human funds token budget and lives in the desktop. You:
 
 | When | Kind | Note |
 |------|------|------|
-| 2026-10-04 | atomic-save-marker-name-check | Require symlink owner markers to use the strict random workspace-name format while retaining legacy regular-file markers |
+| 2026-10-04 | atomic-save-marker-name-check | Require symlink owner markers to use the strict random workspace-name format while retaining legacy regular-file markers; hosted run #378 passed both jobs |
 | 2026-10-04 | atomic-save-sweep-retry | Treat parent-lock or directory-iteration failure as an incomplete sweep and retry on the next write; also cover recovery of a current-format symlink-owned workspace; hosted run #376 passed both jobs |
 | 2026-10-04 | atomic-save-preserve-unknown-entries | Remove only known workspace entries with validated types; preserve complete/incomplete marked workspaces containing unexpected user data and retain v3/v2 recovery; hosted run #374 passed normal and sanitized jobs |
 | 2026-10-04 | editor-welcome-copy | Remove the stale early-development disclaimer and point users to the existing Ctrl+F / Ctrl+H features; keep the welcome buffer's clean saved baseline |
@@ -337,7 +337,7 @@ Older recent-work rows: [`SESSION_LOG.md`](SESSION_LOG.md).
 | 7.125 | Refresh Text Editor welcome guidance | done | Replace stale early-development copy with the existing Find/Replace shortcuts; assert the default document remains clean with a correct serialized-size baseline |
 | 7.126 | Preserve unknown atomic-save workspace entries | done | Remove only recognized owner/lease/ready/content entries of expected types; preserve unexpected files in marked ready and incomplete workspaces during active cleanup and scavenging; retain v3/v2 recovery; hosted run #374 passed both jobs |
 | 7.127 | Retry failed atomic-save sweeps promptly | done | Return sweep completion status and reschedule parent-lock/enumeration failures for the next write; cover immediate retry cadence and current-format stale workspace recovery; hosted run #376 passed both jobs |
-| 7.128 | Require random names for symlink owner markers | done | Validate the strict token-name format for symlink owner markers while preserving validated regular-file marker compatibility; protect a fully populated non-token lookalike workspace |
+| 7.128 | Require random names for symlink owner markers | done | Validate the strict token-name format for symlink owner markers while preserving validated regular-file marker compatibility; protect a fully populated non-token lookalike workspace; hosted run #378 passed both jobs |
 | fs-browser-filter-cache | Reuse Filesystem Browser filter snapshots | done | Reuse one directory listing for filter edits; refresh it on F5 and Monolith filesystem notifications, including while filtering |
 | terminal-input-editing | Terminal command-line selection | done | Support UTF-8-safe keyboard/mouse selection and Ctrl+A/C/X/V; normalize all clipboard lines and tabs into the single-line prompt |
 | terminal-touch-mtime | Complete Terminal touch semantics | done | Update existing regular-file last-write time without truncation; reject outside-root symlink targets |
