@@ -1,6 +1,6 @@
 # Session log
 
-| 2026-10-04 | fix | Atomic-save teardown and scavenging now remove only validated workspace entries and use `rmdir` for final cleanup, preserving unexpected user data in both marked-ready and marked-incomplete workspaces. Require regular lease files before opening; add regressions for stale recovery, active-save cleanup, and retained v3/v2 recovery. |
+| 2026-10-04 | fix | Atomic-save teardown and scavenging now remove only validated workspace entries and use `rmdir` for final cleanup, preserving unexpected user data in both marked-ready and marked-incomplete workspaces. Require regular lease files before opening; add regressions for stale recovery, active-save cleanup, FIFO lease lookalikes, and retained v3/v2 recovery. Full local headless suite and Release build passed; full ASan/UBSan headless suite passed with LeakSanitizer disabled for the sandbox; hosted run #374 passed both jobs. |
 
 | 2026-10-04 | polish | Replaced the Text Editor's outdated welcome disclaimer with current Find/Replace shortcut guidance and covered the unchanged clean baseline. |
 
