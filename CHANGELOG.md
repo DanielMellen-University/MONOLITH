@@ -1,5 +1,10 @@
 # Changelog
 
+## 2026-10: Enforce Text Editor document limits while editing
+
+- Reject typing, newline, paste, Replace, and Replace All operations that would grow a document beyond 16 MiB or 65,536 lines, without changing its content or undo history.
+- Track serialized document bytes incrementally so the guard stays constant-time during normal edits; bound clipboard copying before normalization.
+
 ## 2026-10: Size Minesweeper windows for the selected board
 
 - Difficulty changes request a comfortable board size from the shell, while same-difficulty restarts preserve manual sizing.
