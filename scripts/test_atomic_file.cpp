@@ -212,6 +212,7 @@ int main() {
     bool markerObservedDuringSave = false;
     bool markerPublishedAtomically = false;
     bool workspaceNameValidated = false;
+    bool workspacePermissionsPrivate = false;
     const bool markerWrite = markerParentReady
         && monolith::detail::writeTextAtomically(
             markerParent / "record.txt",
@@ -232,6 +233,10 @@ int main() {
                     }
                     workspaceNameValidated = monolith::detail::hasAtomicTempTokenName(
                         entry.path());
+                    struct stat workspaceStatus {};
+                    workspacePermissionsPrivate =
+                        ::stat(entry.path().c_str(), &workspaceStatus) == 0
+                        && (workspaceStatus.st_mode & (S_IRWXG | S_IRWXO)) == 0;
                     markerObservedDuringSave = monolith::detail::hasAtomicTempOwnerMarker(
                         entry.path())
                         && markerPublishedAtomically
@@ -241,8 +246,9 @@ int main() {
                 }
                 out << "owned";
             });
-    check(markerWrite && markerObservedDuringSave && workspaceNameValidated,
-          "new workspaces use validated random names and atomically publish ownership before content");
+    check(markerWrite && markerObservedDuringSave && workspaceNameValidated
+              && workspacePermissionsPrivate,
+          "new workspaces use validated random names and private permissions before content");
 
     const fs::path target = parent / "settings.txt";
     const auto stalePath = workspacePath(parent, target, 7);

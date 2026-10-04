@@ -34,6 +34,7 @@ The human funds token budget and lives in the desktop. You:
 
 | When | Kind | Note |
 |------|------|------|
+| 2026-10-04 | atomic-save-private-creation | Create staging workspaces owner-only from the initial mkdir; retain umask normalization and cover active permissions |
 | 2026-10-04 | drawing-keyboard-completion-coverage | Drive Ctrl+O, typed prefix, Tab, and Enter through DrawingApp::handleEvent so regressions in the actual shortcut route are covered |
 | 2026-10-04 | text-editor-selection-search | Seed Ctrl+F/Ctrl+H from a single-line selection and select that occurrence; leave multi-line or control-bearing selections out of the single-line query |
 | 2026-10-04 | text-editor-search-input-unify | Share one control-filtering insertion path between typed and clipboard Find/Replace input; own clipboard memory through RAII |
@@ -193,6 +194,7 @@ Older recent-work rows: [`SESSION_LOG.md`](SESSION_LOG.md).
 ## Known debts
 
 - Atomic-save cleanup is opportunistic: a bounded 16-parent tracker scans each recently used physical destination directory on first use and every 32 writes, sharing cadence across symlink aliases, then scans again immediately if an evicted directory is revisited. Each sweep reads borrowed names from a POSIX directory stream and constructs paths only for workspace candidates, avoiding per-entry path objects and a candidate list proportional to stale-workspace count. Workspace and child-entry validation borrow basenames from existing paths instead of allocating filename copies. Scheduled sweeps reuse the exclusive parent lock for following workspace setup, avoiding a redundant open/flock cycle. Failed parent locking or incomplete enumeration schedules a retry on the next write. A lexical tracker hit skips resolution; a miss resolves before looking up the physical parent. V4 setup and sweeps coordinate through a brief parent-directory lock; current symlink owner tokens require the strict random-name format, while validated regular markers remain supported for older v4 writers. Incomplete v4 workspaces require a valid ownership token, with the pre-marker crash remnant recoverable only by its strict 128-bit random name and empty-directory removal. Marked v4/v3/v2 workspaces require a ready marker and free regular-file lease lock. Cleanup removes only recognized entries with expected types and preserves any workspace containing unknown entries; incomplete older workspaces remain untouched.
+- Atomic-save workspaces are created owner-only at the initial `mkdir`; permission normalization restores owner access if an unusually restrictive host umask removes it.
 
 ## Priority order for "next / continue"
 

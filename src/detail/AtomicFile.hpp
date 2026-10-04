@@ -508,11 +508,14 @@ inline bool createAtomicTempDirectory(const std::filesystem::path& targetPath,
         std::string candidateName;
         if (!createAtomicTempTokenName(candidateName)) return false;
         const auto candidate = parent / candidateName;
-        std::error_code createError;
-        if (std::filesystem::create_directory(candidate, createError)) {
+        int createResult;
+        do {
+            createResult = ::mkdir(candidate.c_str(), S_IRUSR | S_IWUSR | S_IXUSR);
+        } while (createResult != 0 && errno == EINTR);
+        if (createResult == 0) {
             return prepareNewDirectory(candidate);
         }
-        if (createError && createError != std::errc::file_exists) return false;
+        if (errno != EEXIST) return false;
     }
     return false;
 }

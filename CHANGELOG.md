@@ -1,5 +1,10 @@
 # Changelog
 
+## 2026-10: Create atomic-save workspaces privately
+
+- Create staging workspaces with owner-only permissions at the initial `mkdir`, closing the brief window before permission normalization.
+- Retain permission normalization for hosts whose umask removes owner access.
+
 ## 2026-10: Cover Drawing keyboard path completion
 
 - Exercise Ctrl+O, typed filename input, Tab completion, and Enter through Drawing's real event handler in headless tests.

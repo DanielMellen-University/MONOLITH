@@ -1,5 +1,7 @@
 # Session log
 
+| 2026-10-04 | fix | Atomic-save staging directories are now created owner-only at the initial `mkdir`, removing the brief permissive setup window; permission normalization still handles restrictive umasks. Added a live-workspace permission regression and documented the behavior. |
+
 | 2026-10-04 | test | Added an end-to-end Drawing state regression for Ctrl+O, typed filename prefix, Tab completion, and Enter through `handleEvent`; this protects the actual workflow rather than only testing the completion helper. Updated the developer verification guide. |
 
 | 2026-10-04 | fix | Ctrl+F and Ctrl+H now use a selected single-line term as the query and begin on that occurrence, including reversed selections; multi-line and control-bearing selections stay out of the single-line field. Added headless event-path regressions and updated the Text Editor guide. |
