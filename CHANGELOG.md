@@ -1,5 +1,10 @@
 # Changelog
 
+## 2026-10: Iterate Terminal copy notifications
+
+- Walk changed paths from recursive copies with an explicit depth-first stack and reuse directory-entry types instead of recursively probing every child again.
+- Preserve the existing directory-first notification order for bound apps and Filesystem Browser refreshes.
+
 ## 2026-10: Avoid Terminal scrollback shifts
 
 - Store scrollback rows and their viewport measurements in deques, so trimming the oldest output does not shift every retained row.

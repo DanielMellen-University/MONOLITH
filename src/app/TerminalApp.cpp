@@ -23,15 +23,35 @@ void notifyChangedTree(IWindowController* controller,
                        const std::string& destinationPath) {
     if (!controller || !fs) return;
 
+    struct DirectoryFrame {
+        std::string sourcePath;
+        std::string destinationPath;
+        std::vector<monolith::fs::Filesystem::DirEntry> entries;
+        std::size_t nextEntry = 0;
+    };
+
     controller->notifyVirtualPathChanged(destinationPath);
     if (!fs->isDirectory(sourcePath)) return;
 
-    for (const auto& entry : fs->listEntries(sourcePath)) {
-        notifyChangedTree(
-            controller,
-            fs,
-            fs->join(sourcePath, entry.name),
-            fs->join(destinationPath, entry.name));
+    std::vector<DirectoryFrame> traversal;
+    traversal.push_back({sourcePath, destinationPath, fs->listEntries(sourcePath), 0});
+    while (!traversal.empty()) {
+        DirectoryFrame& frame = traversal.back();
+        if (frame.nextEntry >= frame.entries.size()) {
+            traversal.pop_back();
+            continue;
+        }
+
+        const auto& entry = frame.entries[frame.nextEntry++];
+        std::string childSourcePath = fs->join(frame.sourcePath, entry.name);
+        std::string childDestinationPath = fs->join(frame.destinationPath, entry.name);
+        controller->notifyVirtualPathChanged(childDestinationPath);
+        if (entry.isDirectory) {
+            auto childEntries = fs->listEntries(childSourcePath);
+            traversal.push_back({
+                std::move(childSourcePath), std::move(childDestinationPath),
+                std::move(childEntries), 0});
+        }
     }
 }
 
