@@ -336,8 +336,11 @@ inline bool tryReclaimAtomicTempDirectory(const std::filesystem::path& directory
         || !S_ISREG(leasePathStatus.st_mode)) {
         return false;
     }
-    const int leaseFd = ::open(
-        leasePath.c_str(), O_RDWR | O_CLOEXEC | O_NOFOLLOW | O_NONBLOCK);
+    constexpr int leaseFlags = O_CLOEXEC | O_NOFOLLOW | O_NONBLOCK;
+    int leaseFd = ::open(leasePath.c_str(), O_RDONLY | leaseFlags);
+    if (leaseFd < 0 && errno == EACCES) {
+        leaseFd = ::open(leasePath.c_str(), O_WRONLY | leaseFlags);
+    }
     if (leaseFd < 0) return false;
     if (::flock(leaseFd, LOCK_EX | LOCK_NB) != 0) {
         ::close(leaseFd);

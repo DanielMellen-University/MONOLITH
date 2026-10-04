@@ -167,6 +167,17 @@ int main() {
             && writeFixture(workspace / "ready", "")
             && writeFixture(workspace / "content", "stale snapshot");
     }
+    if (sweepBatchFixturesReady) {
+        ec.clear();
+        fs::permissions(
+            sweepBatchParent
+                / (std::string(monolith::detail::atomicTempPreviousPrefix) + "0")
+                / "lease",
+            fs::perms::owner_write,
+            fs::perm_options::replace,
+            ec);
+        sweepBatchFixturesReady = !ec;
+    }
     for (std::size_t index = 0; sweepBatchFixturesReady && index < sweepBatchSize; ++index) {
         sweepBatchFixturesReady = writeFixture(
             sweepBatchParent / ("ordinary-" + std::to_string(index) + ".txt"),
@@ -327,6 +338,13 @@ int main() {
         && writeFixture(currentStalePath / "lease", "")
         && writeFixture(currentStalePath / "ready", "")
         && writeFixture(currentStalePath / "content", "current partial snapshot");
+    bool currentStaleLeaseReadOnly = false;
+    if (currentStaleFixturesReady) {
+        ec.clear();
+        fs::permissions(currentStalePath / "lease", fs::perms::owner_read,
+                        fs::perm_options::replace, ec);
+        currentStaleLeaseReadOnly = !ec;
+    }
     const bool staleFixturesReady = !ec
         && writeOwnerMarker(stalePath)
         && writeFixture(stalePath / "lease", "")
@@ -356,12 +374,13 @@ int main() {
         && writeFixture(symlinkMarkedLookalikePath / "ready", "")
         && writeFixture(symlinkMarkedLookalikePath / "content", "user snapshot");
     const bool staleWrite = staleFixturesReady && currentStaleFixturesReady
+        && currentStaleLeaseReadOnly
         && userIncompleteReady && userMarkedReady && symlinkMarkedLookalikeReady
         && monolith::detail::writeTextAtomically(
             target, [](std::ostream& out) { out << "recovered"; });
     check(staleWrite && !fs::exists(stalePath) && !fs::exists(currentStalePath)
               && fs::exists(target) && fs::file_size(target, ec) == 9,
-          "marked legacy and current-format workspaces are reclaimed after an interrupted save");
+          "stale workspaces with read-only leases are reclaimed after an interrupted save");
     check(userIncompleteReady && userMarkedReady
               && fs::exists(userIncompletePath / "notes.txt")
               && fs::exists(userMarkedPath / "notes.txt"),
@@ -394,18 +413,25 @@ int main() {
         && writeFixture(activePath / "lease", "")
         && writeFixture(activePath / "ready", "")
         && writeFixture(activePath / "content", "active partial snapshot");
-    const int activeLeaseFd = activeFixtureReady
-        ? ::open((activePath / "lease").c_str(), O_RDWR | O_CLOEXEC | O_NOFOLLOW)
+    bool activeLeaseReadOnly = false;
+    if (activeFixtureReady) {
+        ec.clear();
+        fs::permissions(activePath / "lease", fs::perms::owner_read,
+                        fs::perm_options::replace, ec);
+        activeLeaseReadOnly = !ec;
+    }
+    const int activeLeaseFd = activeFixtureReady && activeLeaseReadOnly
+        ? ::open((activePath / "lease").c_str(), O_RDONLY | O_CLOEXEC | O_NOFOLLOW)
         : -1;
     const bool activeLockHeld = activeLeaseFd >= 0
         && ::flock(activeLeaseFd, LOCK_EX | LOCK_NB) == 0;
     if (activeFixtureReady && activeLockHeld) {
         monolith::detail::scavengeAtomicTempDirectories(parent);
     }
-    check(activeFixtureReady && activeLockHeld
+    check(activeFixtureReady && activeLeaseReadOnly && activeLockHeld
               && fs::exists(activePath / "content")
               && fs::exists(activePath / "ready"),
-          "an active writer's locked workspace is never scavenged");
+          "a read-only locked lease keeps an active workspace from being scavenged");
     if (activeLeaseFd >= 0) {
         ::flock(activeLeaseFd, LOCK_UN);
         ::close(activeLeaseFd);

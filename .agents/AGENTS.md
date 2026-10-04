@@ -34,6 +34,7 @@ The human funds token budget and lives in the desktop. You:
 
 | When | Kind | Note |
 |------|------|------|
+| 2026-10-04 | atomic-save-lease-access | Reclaim stale read-only and write-only leases using an exclusive lock through an owner access mode that remains available; verify active read-only locks block cleanup |
 | 2026-10-04 | atomic-save-restrictive-umask | Normalize workspace before owner-marker creation and force owner-only lease access; verify replacement under umask 0777 |
 | 2026-10-04 | atomic-save-private-creation | Create staging workspaces owner-only from the initial mkdir; retain umask normalization and cover active permissions |
 | 2026-10-04 | drawing-keyboard-completion-coverage | Drive Ctrl+O, typed prefix, Tab, and Enter through DrawingApp::handleEvent so regressions in the actual shortcut route are covered |
@@ -372,6 +373,7 @@ Older recent-work rows: [`SESSION_LOG.md`](SESSION_LOG.md).
 | 7.140 | Unify Text Editor search input | done | Reuse one sanitizer/insertion path for typed and pasted Find/Replace text; release SDL clipboard storage with RAII and verify both input routes |
 | 7.141 | Search selected Text Editor text | done | Seed Ctrl+F/Ctrl+H from a selected single-line query and start on that occurrence; leave multi-line or control-bearing selections out of the inline field |
 | 7.142 | Cover Drawing keyboard path completion | done | Exercise Ctrl+O, typed filename input, Tab completion, and Enter through Drawing's real event handler, confirming the `.modr` file opens |
+| 7.143 | Reclaim atomic-save leases with restricted access | done | Open stale read-only leases for locking and fall back to write-only access; verify both stale modes are reclaimed and a live read-only lock is preserved |
 | fs-browser-filter-cache | Reuse Filesystem Browser filter snapshots | done | Reuse one directory listing for filter edits; refresh it on F5 and Monolith filesystem notifications, including while filtering |
 | terminal-input-editing | Terminal command-line selection | done | Support UTF-8-safe keyboard/mouse selection and Ctrl+A/C/X/V; normalize all clipboard lines and tabs into the single-line prompt |
 | terminal-touch-mtime | Complete Terminal touch semantics | done | Update existing regular-file last-write time without truncation; reject outside-root symlink targets |

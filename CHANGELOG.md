@@ -3,6 +3,7 @@
 ## 2026-10: Handle restrictive umasks in atomic saves
 
 - Normalize workspace permissions before publishing ownership, and make lease files owner-readable so crash cleanup still works under restrictive umasks.
+- Reclaim older read-only or write-only lease files by locking through whichever owner access mode remains available.
 - Cover a full atomic replacement with `umask(0777)`.
 
 ## 2026-10: Create atomic-save workspaces privately
