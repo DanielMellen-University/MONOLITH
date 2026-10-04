@@ -152,6 +152,12 @@ g++ -std=c++23 scripts/test_minesweeper_state.cpp src/app/MinesweeperApp.cpp $(p
 
 ## Filesystem Roadmap Checks
 
+Headless atomic-writer regression for reclaiming interrupted workspaces without touching active locks or unmarked directories:
+
+```bash
+g++ -std=c++23 scripts/test_atomic_file.cpp -o build/test_atomic_file && ./build/test_atomic_file
+```
+
 Headless test of shipped `Filesystem` initialization, safe last-write-time updates, atomic streaming-writer success and rollback, preservation of neighboring `.tmp` files/symlinks, multi-item copy/paste, `/`-rejecting rename, and listing filter:
 
 ```bash
