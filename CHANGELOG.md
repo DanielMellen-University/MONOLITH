@@ -1,5 +1,11 @@
 # Changelog
 
+## 2026-10: Resolve Terminal home shorthand
+
+- Expand a leading `~` or `~/` to `/home/monolith` for command paths, including quoted paths.
+- Keep the shorthand in path completions while searching the resolved home directory.
+- Cover `cat`, `cd`, and quoted/unquoted Tab completion.
+
 ## 2026-10: Track atomic-save cleanup per directory
 
 - Sweep each newly used destination directory immediately, then every 32 saves there; retain bounded bookkeeping for 16 recent directories and sweep again when an evicted directory is revisited.

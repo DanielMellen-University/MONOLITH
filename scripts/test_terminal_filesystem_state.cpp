@@ -145,6 +145,10 @@ int main() {
           "create file with an apostrophe");
     check(fs.createDirectory("/home/monolith/quoted dir"),
           "create directory for quoted completion");
+    check(fs.createDirectory("/home/monolith/tilde dir"),
+          "create directory for home-shorthand paths");
+    check(fs.writeFile("/home/monolith/tilde dir/note.txt", "home shorthand"),
+          "create file for home-shorthand paths");
     check(fs.createDirectory("/home/monolith/only-entry"),
           "create directory for empty-prefix completion");
     check(fs.writeFile("/home/monolith/only-entry/result.txt", "result"),
@@ -551,6 +555,23 @@ int main() {
     check(terminal.m_history == std::deque<std::string>{"exact spacing"},
           "quoted command paths preserve repeated spaces");
 
+    terminal.m_history.clear();
+    terminal.m_historyBytes = 0;
+    terminal.executeCommand("cat ~/tilde\\ dir/note.txt");
+    check(terminal.m_history == std::deque<std::string>{"home shorthand"},
+          "unquoted leading tilde resolves command paths from virtual home");
+    terminal.m_history.clear();
+    terminal.m_historyBytes = 0;
+    terminal.executeCommand("cat \"~/tilde dir/note.txt\"");
+    check(terminal.m_history == std::deque<std::string>{"home shorthand"},
+          "quoted leading tilde resolves command paths from virtual home");
+    terminal.executeCommand("cd ~/tilde\\ dir");
+    check(terminal.m_cwd == "/home/monolith/tilde dir",
+          "cd accepts a home-relative path with escaped spaces");
+    terminal.executeCommand("cd ~");
+    check(terminal.m_cwd == "/home/monolith",
+          "cd accepts the home shorthand by itself");
+
     const std::filesystem::path danglingPath = hostRoot / "home/monolith/dangling";
     std::filesystem::create_symlink(hostRoot / "missing-terminal-target", danglingPath, ec);
     check(!ec, "create terminal dangling symlink");
@@ -576,6 +597,17 @@ int main() {
     terminal.handleTabCompletion();
     check(terminal.m_inputBuffer == "cd \"/home/monolith/quoted dir/",
           "quoted directory completion stays open for continued navigation");
+
+    terminal.m_inputBuffer = "cd ~/tilde";
+    terminal.m_inputCursorPos = static_cast<int>(terminal.m_inputBuffer.size());
+    terminal.handleTabCompletion();
+    check(terminal.m_inputBuffer == "cd ~/tilde\\ dir/",
+          "home-relative completion searches the virtual home and preserves shorthand");
+    terminal.m_inputBuffer = "cat \"~/tilde dir/no";
+    terminal.m_inputCursorPos = static_cast<int>(terminal.m_inputBuffer.size());
+    terminal.handleTabCompletion();
+    check(terminal.m_inputBuffer == "cat \"~/tilde dir/note.txt\"",
+          "quoted home-relative file completion keeps the shorthand and closes its quote");
 
     terminal.m_inputBuffer = "cat \"/home/monolith/my  file.txt\"";
     terminal.m_inputCursorPos = static_cast<int>(terminal.m_inputBuffer.size());

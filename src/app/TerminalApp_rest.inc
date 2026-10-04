@@ -493,6 +493,10 @@ std::string TerminalApp::resolvePath(const std::string& path) const {
     std::string target = path;
     if (target.empty()) {
         target = m_cwd;
+    } else if (target == "~") {
+        target = "/home/monolith";
+    } else if (target.size() >= 2 && target.compare(0, 2, "~/") == 0) {
+        target.replace(0, 1, "/home/monolith");
     } else if (target[0] != '/') {
         // relative path - centralize glue via joinPath
         target = joinPath(m_cwd, target);
