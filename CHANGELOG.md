@@ -1,5 +1,9 @@
 # Changelog
 
+## 2026-10: Refresh Text Editor welcome guidance
+
+- Replace the obsolete early-development disclaimer with the existing Find/Replace shortcuts.
+
 ## 2026-10: Preserve entries in unpublished save workspaces
 
 - Roll back a workspace whose ownership marker could not be published with directory-only removal; concurrent or unexpected entries prevent deletion instead of being recursively removed.
