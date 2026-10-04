@@ -267,6 +267,10 @@ int main() {
             check(firstTextTexture && repeatedTextTexture.handle == firstTextTexture.handle
                       && scaleEditor.m_textTextureCache.size() == cachedTextureCount,
                   "Text Editor reuses renderer textures between unchanged frames");
+            const std::size_t statusTextCapacity = scaleEditor.m_renderStatusText.capacity();
+            scaleEditor.render(renderer, {0, 0, 200, 160});
+            check(scaleEditor.m_renderStatusText.capacity() == statusTextCapacity,
+                  "Text Editor reuses status text storage between unchanged frames");
 
             TTF_Font* promptFont = TTF_OpenFont("assets/fonts/DejaVuSans.ttf", 14);
             check(promptFont != nullptr, "Text Editor prompt test loads an independent font");

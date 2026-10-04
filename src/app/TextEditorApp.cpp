@@ -8,6 +8,7 @@
 #include <iterator>
 #include <limits>
 #include <ostream>
+#include <string_view>
 #include <unordered_set>
 #include <utility>
 #include <vector>
@@ -2300,7 +2301,17 @@ void TextEditorApp::render(SDL_Renderer* renderer, const SDL_Rect& contentRect) 
         SDL_SetRenderDrawColor(renderer, 24, 26, 30, 255);
         SDL_RenderFillRect(renderer, &statusBar);
 
-        std::string status = getDisplayName();
+        std::string_view displayName = "Untitled";
+        if (!m_filePath.empty()) {
+            const std::size_t separator = m_filePath.find_last_of('/');
+            displayName = separator != std::string::npos
+                    && separator + 1 < m_filePath.size()
+                ? std::string_view(m_filePath).substr(separator + 1)
+                : std::string_view(m_filePath);
+        }
+        std::string& status = m_renderStatusText;
+        status.clear();
+        status.append(displayName);
         bool searchPromptActive = false;
         int searchCursorPx = 0;
         if (m_searchMode != SearchMode::None) {
@@ -2365,7 +2376,8 @@ void TextEditorApp::render(SDL_Renderer* renderer, const SDL_Rect& contentRect) 
             m_statusHorizontalScrollPx = 0;
             if (m_dirty) status += " *";
             if (!m_statusMessage.empty()) {
-                status += "   |  " + m_statusMessage;
+                status += "   |  ";
+                status += m_statusMessage;
             }
             // Keep the editor's discovery hints visible after status feedback
             // such as Opened, Saved, or Copied messages.

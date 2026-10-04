@@ -34,6 +34,7 @@ The human funds token budget and lives in the desktop. You:
 
 | When | Kind | Note |
 |------|------|------|
+| 2026-10-04 | editor-status-buffer | Reuse the Text Editor status string between frames and append a display-name view; verify unchanged-frame capacity stability |
 | 2026-10-04 | atomic-save-readdir | Read borrowed directory names directly and construct paths only for workspace candidates, retaining immediate retry on open/enumeration failure |
 | 2026-10-04 | atomic-save-sweep-entry-views | Inspect borrowed directory-entry names and copy paths only for workspace candidates, avoiding per-entry allocations for ordinary siblings; verify mixed-directory recovery |
 | 2026-10-04 | browser-filter-limit-feedback | Report the 255-byte query cap in Browser status, preserve it across re-entry/refresh, and clear it when the query changes |
@@ -350,6 +351,7 @@ Older recent-work rows: [`SESSION_LOG.md`](SESSION_LOG.md).
 | 7.130 | Share UTF-8 forward deletion | done | Centralize codepoint-safe Delete behavior across Terminal, Text Editor, Drawing, and Filesystem Browser prompts; clamp stale cursors and preserve no-op update semantics |
 | 7.131 | Avoid allocations for ordinary atomic-save sweep entries | done | Inspect basenames through borrowed views and copy paths only for workspace candidates; cover a mixed directory with 128 stale workspaces and 128 ordinary files |
 | 7.132 | Read atomic-save sweep names directly | done | Enumerate through a POSIX directory stream so ordinary siblings require no entry-path construction; only workspace candidates become paths, with retry preserved on open/read failures |
+| 7.133 | Reuse Text Editor status render storage | done | Retain status-bar text capacity between frames and avoid an owning display-name substring in the steady-state render path; verify unchanged frames keep capacity stable |
 | fs-browser-filter-cache | Reuse Filesystem Browser filter snapshots | done | Reuse one directory listing for filter edits; refresh it on F5 and Monolith filesystem notifications, including while filtering |
 | terminal-input-editing | Terminal command-line selection | done | Support UTF-8-safe keyboard/mouse selection and Ctrl+A/C/X/V; normalize all clipboard lines and tabs into the single-line prompt |
 | terminal-touch-mtime | Complete Terminal touch semantics | done | Update existing regular-file last-write time without truncation; reject outside-root symlink targets |

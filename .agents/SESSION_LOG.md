@@ -1,5 +1,7 @@
 # Session log
 
+| 2026-10-04 | perf | Text Editor rendering now reuses its status-bar string buffer and appends a borrowed display-name view instead of building an owning substring each frame; an unchanged-frame regression verifies stable buffer capacity. |
+
 | 2026-10-04 | perf | Atomic-save sweeps now use `readdir` names directly and build paths only for workspace candidates, avoiding per-entry path materialization for ordinary siblings. Directory-open and enumeration failures still schedule the next-write retry. |
 
 | 2026-10-04 | perf | Atomic-save parent sweeps now inspect basenames through borrowed views and copy a path only for workspace candidates, avoiding path and name allocations for ordinary siblings. Mixed-directory recovery retains 128 ordinary files while reclaiming 128 stale workspaces. |

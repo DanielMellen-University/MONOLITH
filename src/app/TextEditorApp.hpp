@@ -209,6 +209,7 @@ private:
     bool m_dirty = false;
     bool m_suppressChangedNotification = false;
     std::string m_statusMessage;  // transient status-bar feedback (save/open errors, etc.)
+    std::string m_renderStatusText;
     DiscardKind m_discardKind = DiscardKind::None;
     std::string m_discardPath;
 

@@ -1,5 +1,10 @@
 # Changelog
 
+## 2026-10: Reuse Text Editor status text storage
+
+- Retain the status-bar string buffer across frames and append the display-name view directly, avoiding reconstruction of the steady-state status string.
+- Verify unchanged frames keep the buffer capacity stable.
+
 ## 2026-10: Avoid path construction during save sweeps
 
 - Read directory names directly from a POSIX directory stream and construct paths only for recognized workspace candidates.
