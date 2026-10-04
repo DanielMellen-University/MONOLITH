@@ -1,5 +1,10 @@
 # Changelog
 
+## 2026-10: Reuse tracked atomic-save sweep paths
+
+- Resume a known directory cursor without canonicalizing its parent path on every save/listing slice; newly encountered aliases still resolve to the shared physical-directory cadence.
+- Extend the mixed-directory sweep regression to alternate between canonical and symlink path spellings.
+
 ## 2026-10: Bound opportunistic atomic-save cleanup
 
 - Limit each save/listing cleanup slice to 32 destination-directory entries and resume large sweeps across later operations instead of blocking one operation on a full-directory scan.

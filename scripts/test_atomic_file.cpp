@@ -210,8 +210,14 @@ int main() {
           "a sweep reuses the setup lock while reclaiming stale workspaces and preserving siblings");
 
     const fs::path incrementalParent = parent / "incremental-sweep";
+    const fs::path incrementalAlias = parent / "incremental-sweep-alias";
     ec.clear();
     bool incrementalFixturesReady = fs::create_directory(incrementalParent, ec) && !ec;
+    if (incrementalFixturesReady) {
+        ec.clear();
+        fs::create_directory_symlink(incrementalParent, incrementalAlias, ec);
+        incrementalFixturesReady = !ec;
+    }
     constexpr std::size_t incrementalWorkspaceCount = 48;
     constexpr std::size_t incrementalOrdinaryCount = 96;
     for (std::size_t index = 0;
@@ -251,8 +257,11 @@ int main() {
     while (incrementalWriteSucceeded
            && incrementalPasses < 16
            && countRemainingIncrementalWorkspaces() > 0) {
+        const fs::path& operationParent = incrementalPasses % 2 == 1
+            ? incrementalAlias
+            : incrementalParent;
         incrementalWriteSucceeded = monolith::detail::writeTextAtomically(
-            incrementalParent / ("followup-" + std::to_string(incrementalPasses) + ".txt"),
+            operationParent / ("followup-" + std::to_string(incrementalPasses) + ".txt"),
             [](std::ostream& out) { out << "follow-up write"; });
         ++incrementalPasses;
     }
@@ -274,7 +283,7 @@ int main() {
               && afterIncrementalSweep == 0
               && incrementalPasses < 16
               && incrementalOrdinaryRemaining == incrementalOrdinaryCount,
-          "opportunistic cleanup advances in bounded passes and eventually preserves all user entries");
+          "bounded cleanup resumes across canonical and symlink parent spellings");
 
     const fs::path failedSetupPath = parent
         / (std::string(monolith::detail::atomicTempPrefix)

@@ -430,17 +430,26 @@ inline bool scavengeAtomicTempDirectoryStepLocked(
     }
 
     const auto lexicalKey = parent.lexically_normal();
-    std::error_code pathError;
-    const auto resolvedKey = std::filesystem::weakly_canonical(parent, pathError);
-    const auto key = pathError ? lexicalKey : resolvedKey;
-
-    std::lock_guard lock(atomicTempSweepMutex);
-    AtomicTempSweepSlot* slot = nullptr;
-    for (auto& candidate : atomicTempSweepSlots) {
-        if (candidate.parent == lexicalKey || candidate.alias == lexicalKey) {
-            slot = &candidate;
-            break;
+    std::unique_lock lock(atomicTempSweepMutex);
+    auto findLexicalSlot = [&]() -> AtomicTempSweepSlot* {
+        for (auto& candidate : atomicTempSweepSlots) {
+            if (candidate.parent == lexicalKey || candidate.alias == lexicalKey) {
+                return &candidate;
+            }
         }
+        return nullptr;
+    };
+
+    AtomicTempSweepSlot* slot = findLexicalSlot();
+    auto key = lexicalKey;
+    if (!slot) {
+        lock.unlock();
+        std::error_code pathError;
+        const auto resolvedKey = std::filesystem::weakly_canonical(parent, pathError);
+        key = pathError ? lexicalKey : resolvedKey;
+        lock.lock();
+        // The lexical spelling may have been registered while resolution ran.
+        slot = findLexicalSlot();
     }
     if (!slot) {
         for (auto& candidate : atomicTempSweepSlots) {
