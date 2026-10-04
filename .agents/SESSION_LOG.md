@@ -1,5 +1,7 @@
 # Session log
 
+| 2026-10-04 | perf | Counted normalized Text Editor bytes while parsing streamed input, removing the post-open and constructor rescans; covered empty, CRLF, lone-CR, chunk-boundary, and maximum-line documents. |
+
 | 2026-10-04 | fix | Enforced Text Editor's 16 MiB / 65,536-line limits on typing, Enter, paste, Replace, and Replace All; maintained serialized-byte accounting incrementally, bounded clipboard normalization, and added exact-boundary/rejection tests. |
 
 | 2026-10-04 | fix | Minesweeper difficulty changes now request a board-sized window through `IWindowController`; WindowManager centers and clamps it, retains the preferred restore rectangle while maximized, and reports applied geometry back to the app. Same-difficulty restarts preserve manual sizing. Added headless shell integration coverage for difficulty switches, maximize/restore, and tiny desktops. |
