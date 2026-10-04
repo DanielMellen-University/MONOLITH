@@ -1,6 +1,6 @@
 # Session log
 
-| 2026-10-04 | fix/data-safety | Require Ctrl+D to overwrite an externally changed bound file from Text Editor or Drawing; Esc keeps the external version, repeated saves cannot bypass the decision, and save-before-close continues only after the confirmed write succeeds. Updated app, architecture, filesystem, and changelog documentation; production build and full headless suite pass locally, hosted verification pending. |
+| 2026-10-04 | fix/data-safety | Require Ctrl+D to overwrite an externally changed bound file from Text Editor or Drawing; Esc keeps the external version, repeated saves cannot bypass the decision, and save-before-close continues only after the confirmed write succeeds. Updated app, architecture, filesystem, and changelog documentation; production build, full headless suite, and hosted run #446 pass. |
 | 2026-10-04 | fix/ux | Text Editor and Drawing now retain an external-change status marker across routine status updates until reload, successful save, or unbinding. Lifecycle and rendered-status regressions, the full local headless suite, hosted `verify`, and hosted `sanitize` run #444 pass. |
 
 | 2026-10-04 | fix/perf | Startup stale-workspace cleanup now probes candidate parent locks nonblocking so another instance cannot freeze the UI frame. Contention keeps the current iterator entry for the next frame; descriptor exhaustion defers the parent for retry after traversal frames unwind. Added held-lock and candidate-parent descriptor-pressure regressions and updated filesystem architecture/process notes. |

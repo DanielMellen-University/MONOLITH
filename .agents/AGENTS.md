@@ -34,7 +34,7 @@ The human funds token budget and lives in the desktop. You:
 
 | When | Kind | Note |
 |------|------|------|
-| 2026-10-04 | external-overwrite-confirmation | Pause Text Editor and Drawing saves to externally changed bound files until Ctrl+D confirms or Esc cancels; preserve save-before-close continuations and document the cross-process limitation |
+| 2026-10-04 | external-overwrite-confirmation | Pause Text Editor and Drawing saves to externally changed bound files until Ctrl+D confirms or Esc cancels; preserve save-before-close continuations and document the cross-process limitation; hosted run #446 passed |
 | 2026-10-04 | external-file-change-status | Keep a persistent status-bar marker in Text Editor and Drawing after external writes; clear it on successful reload/save or when the binding is removed; hosted run #444 passed |
 | 2026-10-04 | atomic-save-startup-nonblocking-locks | Probe startup candidate locks without blocking the frame, retain a contended iterator entry for retry, and defer parent paths on descriptor exhaustion |
 | 2026-10-04 | filesystem-browser-blocked-paste-feedback | Use operation-specific failure text when every copy/cut paste item is blocked; verify failed cuts remain retryable and preserve conflicting files |
