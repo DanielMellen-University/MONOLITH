@@ -398,6 +398,8 @@ int main() {
     check(fs.createDirectory("/partial-src"), "create partial-copy source");
     check(fs.writeFile("/partial-src/a-good.txt", "keep"),
           "write partial-copy regular child");
+    check(fs.writeFile("/partial-src/b-new.txt", "new child"),
+          "write partial-copy new child");
     const stdfs::path partialLink = hostRoot / "partial-src/z-broken-link";
     stdfs::create_symlink(hostRoot / "missing-copy-target", partialLink, ec);
     check(!ec, "create partial-copy broken symlink child");
@@ -408,6 +410,126 @@ int main() {
               "failed recursive copy removes its partial new destination");
         check(fs.isFile("/partial-src/a-good.txt"),
               "failed recursive copy preserves the source tree");
+
+        struct SourceEntry {
+            std::string name;
+            bool isDirectory = false;
+        };
+        auto sourceEntriesBeforeFailure = [&] {
+            std::vector<SourceEntry> entries;
+            for (const auto& entry : stdfs::directory_iterator(hostRoot / "partial-src")) {
+                const std::string name = entry.path().filename().string();
+                if (name == "z-broken-link") break;
+                entries.push_back({name, entry.is_directory()});
+            }
+            return entries;
+        };
+        auto entriesBeforeFailure = sourceEntriesBeforeFailure();
+        auto hasRollbackSetup = [](const std::vector<SourceEntry>& entries) {
+            const auto fileCount = std::count_if(
+                entries.begin(), entries.end(), [](const SourceEntry& entry) {
+                    return !entry.isDirectory;
+                });
+            const bool hasNewDirectory = std::any_of(
+                entries.begin(), entries.end(), [](const SourceEntry& entry) {
+                    return entry.isDirectory;
+                });
+            return fileCount >= 3 && hasNewDirectory;
+        };
+        bool extraSourcesCreated = true;
+        for (int candidate = 0; !hasRollbackSetup(entriesBeforeFailure) && candidate < 64;
+             ++candidate) {
+            const std::string suffix = std::to_string(candidate);
+            extraSourcesCreated = fs.writeFile(
+                "/partial-src/rollback-file-" + suffix, "candidate") && extraSourcesCreated;
+            const std::string directoryName = "rollback-directory-" + suffix;
+            extraSourcesCreated = fs.createDirectory(
+                "/partial-src/" + directoryName) && extraSourcesCreated;
+            extraSourcesCreated = fs.writeFile(
+                "/partial-src/" + directoryName + "/child.txt", "nested candidate")
+                && extraSourcesCreated;
+            entriesBeforeFailure = sourceEntriesBeforeFailure();
+        }
+        std::vector<std::string> filesBeforeFailure;
+        std::string directoryBeforeFailure;
+        for (const auto& entry : entriesBeforeFailure) {
+            if (entry.isDirectory && directoryBeforeFailure.empty()) {
+                directoryBeforeFailure = entry.name;
+            } else if (!entry.isDirectory) {
+                filesBeforeFailure.push_back(entry.name);
+            }
+        }
+        check(extraSourcesCreated && hasRollbackSetup(entriesBeforeFailure),
+              "rollback fixture visits three regular files and a new directory before its rejected symlink");
+
+        check(fs.createDirectory("/partial-merge-dst"),
+              "create existing destination for copy rollback");
+        const std::string overwrittenName = filesBeforeFailure.empty()
+            ? "a-good.txt" : filesBeforeFailure.front();
+        const std::string createdName = filesBeforeFailure.size() < 2
+            ? "b-new.txt" : filesBeforeFailure[1];
+        const std::string symlinkName = filesBeforeFailure.size() < 3
+            ? "c-link-target.txt" : filesBeforeFailure[2];
+        check(fs.writeFile("/partial-merge-dst/" + overwrittenName, "old content"),
+              "write pre-existing file for copy rollback");
+        check(fs.writeFile("/partial-merge-dst/keep.txt", "untouched"),
+              "write unrelated file for copy rollback");
+        const stdfs::path mergeDestination = hostRoot / "partial-merge-dst";
+        const stdfs::path mergeExistingFile = mergeDestination / overwrittenName;
+        const std::string symlinkTargetPath = "/partial-merge-dst/rollback-link-target.txt";
+        const stdfs::path symlinkTargetHostPath = mergeDestination / "rollback-link-target.txt";
+        check(fs.writeFile(symlinkTargetPath, "old symlink target"),
+              "write in-root symlink target for copy rollback");
+        ec.clear();
+        stdfs::create_symlink(symlinkTargetHostPath,
+                              mergeDestination / symlinkName, ec);
+        check(!ec, "create in-root file symlink for copy rollback");
+        const auto originalModifiedTime = stdfs::file_time_type::clock::now()
+            - std::chrono::hours(24);
+        stdfs::last_write_time(mergeExistingFile, originalModifiedTime, ec);
+        const bool fileTimeSet = !ec;
+        ec.clear();
+        stdfs::last_write_time(symlinkTargetHostPath, originalModifiedTime, ec);
+        const bool symlinkTargetTimeSet = !ec;
+        ec.clear();
+        stdfs::last_write_time(mergeDestination, originalModifiedTime, ec);
+        const bool directoryTimeSet = !ec;
+        check(fileTimeSet && symlinkTargetTimeSet && directoryTimeSet,
+              "age existing file and directory before failed copy");
+
+        check(!fs.copyRecursive("/partial-src", "/partial-merge-dst"),
+              "recursive copy reports failure while merging into an existing tree");
+        const auto restoredFileTime = stdfs::last_write_time(mergeExistingFile, ec);
+        const bool fileTimeRestored = !ec && restoredFileTime == originalModifiedTime;
+        ec.clear();
+        const auto restoredSymlinkTargetTime = stdfs::last_write_time(
+            symlinkTargetHostPath, ec);
+        const bool symlinkTargetTimeRestored = !ec
+            && restoredSymlinkTargetTime == originalModifiedTime;
+        ec.clear();
+        const auto restoredDirectoryTime = stdfs::last_write_time(mergeDestination, ec);
+        const bool directoryTimeRestored = !ec
+            && restoredDirectoryTime == originalModifiedTime;
+        ec.clear();
+        const auto rollbackSymlinkStatus = stdfs::symlink_status(
+            mergeDestination / symlinkName, ec);
+        const bool symlinkRestored = !ec && stdfs::is_symlink(rollbackSymlinkStatus);
+        ec.clear();
+        const auto mergeNames = fs.list("/partial-merge-dst");
+        const bool noRollbackFilesRemain = std::none_of(
+            mergeNames.begin(), mergeNames.end(), [](const std::string& name) {
+                return name.find(".monolith-copy-rollback-") != std::string::npos;
+            });
+        check(fs.readFile("/partial-merge-dst/" + overwrittenName) == "old content"
+                  && !fs.exists("/partial-merge-dst/" + createdName)
+                  && !directoryBeforeFailure.empty()
+                  && !fs.exists("/partial-merge-dst/" + directoryBeforeFailure)
+                  && symlinkRestored
+                  && fs.readFile(symlinkTargetPath) == "old symlink target"
+                  && fs.readFile("/partial-merge-dst/keep.txt") == "untouched"
+                  && fileTimeRestored && symlinkTargetTimeRestored
+                  && directoryTimeRestored && noRollbackFilesRemain,
+              "failed merge restores overwritten data and timestamps, removes new files, and preserves unrelated entries");
     }
     check(fs.removeRecursive("/partial-src"), "remove partial-copy source");
 

@@ -1,5 +1,7 @@
 # Session log
 
+| 2026-10-03 | fix | Recursive directory copies now journal overwritten files before replacement, using same-volume hard links with a file-copy fallback; failed traversals restore file and directory timestamps, remove new files/subtrees, preserve symlink entries, and retain failed recovery backups. Cloud workflow #315 passed both normal and ASan/UBSan suites. |
+
 | 2026-10-03 | perf | Text Editor multiline paste now normalizes line endings while counting rows, moves the retained prefix into the first replacement row, and performs one range insertion instead of shifting all following rows for each newline. Regression covers selection replacement, CRLF/lone-CR normalization, suffix and caret placement, trailing newlines, undo, and redo; focused editor test and production build passed; hosted workflow #311 passed both normal and sanitized jobs. |
 
 | 2026-10-03 | perf | Text Editor undo snapshots now account copied line storage during cloning, removing the post-copy measurement pass while preserving the active-document budget precheck. Snapshot content/cursor/accounting regression, full headless suite, and production build passed; hosted workflow #307 passed both normal and sanitized jobs. |
