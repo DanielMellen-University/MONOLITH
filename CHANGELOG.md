@@ -1,5 +1,10 @@
 # Changelog
 
+## 2026-10: Explain the Browser filter limit
+
+- Report the 255-byte filter cap in the status bar when further input would be dropped, retaining the notice while the query is unchanged.
+- Clear the notice when editing the query below the cap.
+
 ## 2026-10: Bound Filesystem Browser filter input
 
 - Limit filter queries to 255 UTF-8 bytes, preventing excessively long prompt text from creating oversized textures while retaining the full Linux filename-component range.

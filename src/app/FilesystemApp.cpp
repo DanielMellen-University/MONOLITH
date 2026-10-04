@@ -931,14 +931,17 @@ void FilesystemApp::beginFilter() {
     closeContextMenu();
     m_filterCursorPos = m_filterQuery.size();
     m_filterScrollPx = 0;
-    setStatus(m_filterQuery.empty()
-        ? "Filter: type to search this folder (Enter keep, Esc clear)"
-        : ("Filter: " + m_filterQuery));
+    if (m_filterQuery.empty()) {
+        setStatus("Filter: type to search this folder (Enter keep, Esc clear)");
+    } else {
+        updateFilterStatus();
+    }
 }
 
 void FilesystemApp::clearFilter() {
     const bool hadFilter = m_filtering || !m_filterQuery.empty();
     m_filtering = false;
+    m_filterLimitReached = false;
     m_filterQuery.clear();
     m_filterCursorPos = 0;
     m_filterScrollPx = 0;
@@ -956,6 +959,10 @@ void FilesystemApp::applyFilterQuery() {
 void FilesystemApp::updateFilterStatus() {
     if (m_filterQuery.empty()) {
         setStatus("Filter: (all items)");
+    } else if (m_filterLimitReached) {
+        const std::size_t matches = visibleEntryCount();
+        setStatus("Filter limited to 255 UTF-8 bytes (" + std::to_string(matches)
+                  + (matches == 1 ? " match)" : " matches)"));
     } else {
         setStatus("Filter: " + m_filterQuery + "  (" + std::to_string(visibleEntryCount()) + " match"
                   + (visibleEntryCount() == 1 ? ")" : "es)"));
@@ -1272,7 +1279,11 @@ void FilesystemApp::handleKeyDown(const SDL_Keysym& keysym) {
     if (m_filtering) {
         if (keysym.sym == SDLK_F5) {
             refreshEntries();
-            setStatus("Refreshed");
+            if (m_filterLimitReached) {
+                updateFilterStatus();
+            } else {
+                setStatus("Refreshed");
+            }
             return;
         }
         if (keysym.sym == SDLK_RETURN || keysym.sym == SDLK_KP_ENTER) {
@@ -1285,12 +1296,15 @@ void FilesystemApp::handleKeyDown(const SDL_Keysym& keysym) {
             return;
         }
         if (keysym.sym == SDLK_BACKSPACE) {
+            const std::size_t previousSize = m_filterQuery.size();
             erasePreviousUtf8Codepoint(m_filterQuery, m_filterCursorPos);
+            if (m_filterQuery.size() != previousSize) m_filterLimitReached = false;
             applyFilterQuery();
             return;
         }
         if (keysym.sym == SDLK_DELETE) {
             if (eraseNextUtf8Codepoint(m_filterQuery, m_filterCursorPos)) {
+                m_filterLimitReached = false;
                 applyFilterQuery();
             }
             return;
@@ -1458,6 +1472,13 @@ void FilesystemApp::handleEvent(const SDL_Event& event) {
             if (inserted.size() > available) {
                 inserted.resize(available);
                 trimIncompleteUtf8Suffix(inserted);
+                m_filterLimitReached = true;
+                if (inserted.empty()) {
+                    updateFilterStatus();
+                    return;
+                }
+            } else {
+                m_filterLimitReached = false;
             }
             if (inserted.empty()) return;
             m_filterQuery.insert(m_filterCursorPos, inserted);

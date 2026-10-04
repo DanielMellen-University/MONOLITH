@@ -170,6 +170,7 @@ private:
 
     // Folder listing filter/search (Ctrl+F)
     bool m_filtering = false;
+    bool m_filterLimitReached = false;
     std::string m_filterQuery;
     std::string m_appliedFilterQuery;
     std::size_t m_filterCursorPos = 0;

@@ -1,5 +1,7 @@
 # Session log
 
+| 2026-10-04 | polish | When Browser filter input hits its UTF-8 byte cap, the status bar now explains the limit and match count; the notice survives Enter/re-entry and F5, and clears on query edits. Added focused state regressions. |
+
 | 2026-10-04 | fix/perf | Bounded the Filesystem Browser's horizontally scrolled filter text to 255 UTF-8 bytes, matching the standard Linux filename-component limit so user input cannot produce unbounded cached text textures. Added boundary coverage for a four-byte codepoint at the limit. |
 
 | 2026-10-04 | perf | Filesystem Browser now narrows the prior ordered source-index list in place when the filter query is appended, avoiding a full directory scan and match-vector allocation for each progressively longer query. Backspaces, interior edits, and snapshot reloads still perform a full scan; focused filter-state, filesystem-index, full headless, and build checks pass. |

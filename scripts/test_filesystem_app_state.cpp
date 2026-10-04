@@ -296,13 +296,30 @@ int main() {
     const std::string filterEmoji = "\xF0\x9F\x98\x80";
     text(browser, filterEmoji.c_str());
     check(browser.m_filterQuery.size() == 254
-              && browser.m_filterCursorPos == 254,
-          "filter input drops a whole UTF-8 character that crosses the byte limit");
+              && browser.m_filterCursorPos == 254
+              && browser.m_statusMessage.find("Filter limited to 255 UTF-8 bytes")
+                  != std::string::npos,
+          "filter input drops a partial UTF-8 character and reports its byte limit");
     text(browser, "x");
+    check(browser.m_statusMessage.find("Filter limited to 255 UTF-8 bytes")
+              == std::string::npos,
+          "filter limit feedback clears when the query changes under the cap");
     text(browser, filterEmoji.c_str());
     check(browser.m_filterQuery.size() == 255
-              && browser.m_filterCursorPos == 255,
+              && browser.m_filterCursorPos == 255
+              && browser.m_statusMessage.find("Filter limited to 255 UTF-8 bytes")
+                  != std::string::npos,
           "filter input remains bounded by the maximum filename component length");
+    key(browser, SDLK_RETURN);
+    key(browser, SDLK_f, KMOD_CTRL);
+    check(browser.m_filtering
+              && browser.m_statusMessage.find("Filter limited to 255 UTF-8 bytes")
+                  != std::string::npos,
+          "filter limit feedback survives leaving and re-entering filter mode");
+    key(browser, SDLK_F5);
+    check(browser.m_statusMessage.find("Filter limited to 255 UTF-8 bytes")
+              != std::string::npos,
+          "filter limit feedback survives refreshing the listing");
     key(browser, SDLK_ESCAPE);
 
     check(browser.selectEntryNamed("b.txt", false), "select an entry before narrowing again");
