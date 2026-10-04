@@ -72,12 +72,26 @@ int main() {
     check(cursor == 3 && cursorEdited == "A\xC3\xA9" "B",
           "cursor erase removes one complete codepoint");
 
+    std::string misalignedBackspace = mixed;
+    std::size_t misalignedBackspaceCursor = 2;
+    erasePreviousUtf8Codepoint(misalignedBackspace, misalignedBackspaceCursor);
+    check(misalignedBackspaceCursor == 0
+              && misalignedBackspace == "\xC3\xA9\xF0\x9F\x98\x80" "B",
+          "backspace clamps a cursor inside a codepoint before deleting");
+
     std::string forwardEdited = mixed;
     std::size_t forwardCursor = 1;
     const bool forwardErased = eraseNextUtf8Codepoint(forwardEdited, forwardCursor);
     check(forwardErased && forwardCursor == 1
               && forwardEdited == "A\xF0\x9F\x98\x80" "B",
           "forward delete removes one complete codepoint");
+    std::string misalignedForwardDelete = mixed;
+    std::size_t misalignedForwardCursor = 2;
+    const bool misalignedForwardErased = eraseNextUtf8Codepoint(
+        misalignedForwardDelete, misalignedForwardCursor);
+    check(misalignedForwardErased && misalignedForwardCursor == 1
+              && misalignedForwardDelete == "A\xF0\x9F\x98\x80" "B",
+          "forward delete clamps a cursor inside a codepoint before deleting");
     std::string endEdited = "x";
     std::size_t endCursor = 5;
     check(!eraseNextUtf8Codepoint(endEdited, endCursor)

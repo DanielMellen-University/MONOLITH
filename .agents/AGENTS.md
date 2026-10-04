@@ -34,6 +34,7 @@ The human funds token budget and lives in the desktop. You:
 
 | When | Kind | Note |
 |------|------|------|
+| 2026-10-04 | utf8-delete-boundaries | Clamp Backspace and Delete cursor offsets to complete UTF-8 codepoint boundaries before erasing; cover interior-byte offsets in both directions |
 | 2026-10-04 | utf8-forward-delete | Share the UTF-8-aware forward-delete primitive across Terminal, Text Editor, Drawing, and Filesystem Browser editing prompts; no-op edits keep existing update behavior |
 | 2026-10-04 | atomic-save-incremental-sweep | Process stale workspace candidates during parent traversal rather than building an unbounded path vector; one sweep reclaims a 128-workspace regression batch |
 | 2026-10-04 | atomic-save-marker-name-check | Require symlink owner markers to use the strict random workspace-name format while retaining legacy regular-file markers; hosted run #378 passed both jobs |

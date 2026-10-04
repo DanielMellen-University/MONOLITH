@@ -1,5 +1,7 @@
 # Session log
 
+| 2026-10-04 | fix | UTF-8 Backspace and Delete now clamp stale cursor offsets that land inside a multibyte codepoint before erasing, preventing either shared helper from splitting the encoded character. Added focused regressions for both directions. |
+
 | 2026-10-04 | cleanup | Consolidated duplicated forward-Delete byte slicing into `eraseNextUtf8Codepoint`, used by the Terminal input/reverse-search and the Text Editor, Drawing, and Filesystem Browser prompts. Added unit coverage for multi-byte deletion and an out-of-range cursor no-op. |
 
 | 2026-10-04 | perf | Atomic-save sweeps now process matching directories incrementally instead of allocating a vector sized to every stale workspace. A focused batch of 128 interrupted workspaces and the full headless suite passed. |

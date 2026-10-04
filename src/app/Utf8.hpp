@@ -99,7 +99,7 @@ inline std::size_t remapUtf8CursorAfterPrefix(
 }
 
 inline void erasePreviousUtf8Codepoint(std::string& value, std::size_t& cursor) {
-    if (cursor > value.size()) cursor = value.size();
+    cursor = utf8ClampToCodepointBoundary(value, cursor);
     if (cursor == 0) return;
 
     const std::size_t start = utf8PrevCodepointStart(value, cursor);
@@ -108,7 +108,7 @@ inline void erasePreviousUtf8Codepoint(std::string& value, std::size_t& cursor) 
 }
 
 inline bool eraseNextUtf8Codepoint(std::string& value, std::size_t& cursor) {
-    cursor = std::min(cursor, value.size());
+    cursor = utf8ClampToCodepointBoundary(value, cursor);
     const std::size_t next = utf8NextCodepointStart(value, cursor);
     if (next == cursor) return false;
     value.erase(cursor, next - cursor);

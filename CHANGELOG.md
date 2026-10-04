@@ -1,5 +1,10 @@
 # Changelog
 
+## 2026-10: Clamp UTF-8 delete cursors to character boundaries
+
+- Normalize stale interior-byte cursor offsets before Backspace or Delete, preventing either operation from splitting a multibyte character.
+- Add regressions for both editing directions.
+
 ## 2026-10: Share UTF-8 forward deletion
 
 - Route forward Delete in Terminal, Text Editor, Drawing, and Filesystem Browser prompts through one codepoint-safe helper with consistent cursor clamping.
