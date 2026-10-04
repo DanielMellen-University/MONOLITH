@@ -6,6 +6,7 @@
 #include <SDL2/SDL.h>
 #include <SDL2/SDL_ttf.h>
 #include <cstddef>
+#include <deque>
 #include <string>
 #include <utility>
 #include <vector>
@@ -107,8 +108,8 @@ private:
         bool valid = false;
     };
 
-    std::vector<std::string> m_history;          // Output history (what is displayed)
-    std::vector<HistoryViewportMeasure> m_historyViewportMeasures;
+    std::deque<std::string> m_history;          // Output history (what is displayed)
+    std::deque<HistoryViewportMeasure> m_historyViewportMeasures;
     std::vector<std::string> m_commandHistory;   // Commands the user has entered (for 'history' cmd)
 
     static constexpr size_t kMaxScrollbackLines = 2000;

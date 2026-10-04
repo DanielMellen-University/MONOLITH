@@ -6,6 +6,7 @@
 #include <algorithm>
 #include <chrono>
 #include <cstddef>
+#include <deque>
 #include <filesystem>
 #include <iostream>
 #include <iterator>
@@ -181,7 +182,17 @@ int main() {
               && terminal.m_history.front() == "line 2"
               && terminal.m_history.back() == "line 2001"
               && terminal.m_historyViewportMeasures.size() == terminal.m_history.size(),
-          "scrollback trims its excess in one pass while keeping the newest lines");
+          "scrollback keeps the newest rows at its row cap");
+    const std::string* retainedRow = &terminal.m_history[1000];
+    const auto* retainedMeasure = &terminal.m_historyViewportMeasures[1000];
+    terminal.addOutput("line 2002");
+    check(terminal.m_history.size() == 2000
+              && terminal.m_history.front() == "line 3"
+              && terminal.m_history.back() == "line 2002"
+              && retainedRow == &terminal.m_history[999]
+              && *retainedRow == "line 1002"
+              && retainedMeasure == &terminal.m_historyViewportMeasures[999],
+          "scrollback evicts oldest rows without relocating retained rows or measurements");
 
     const size_t truncationPrefixBytes = std::string("[truncated] ").size();
     std::string oversizedRow(
@@ -458,14 +469,14 @@ int main() {
     terminal.m_history.clear();
     terminal.m_historyBytes = 0;
     terminal.executeCommand("cat /home/monolith/line-endings.txt");
-    check(terminal.m_history == std::vector<std::string>{"first", "second", "third", ""},
+    check(terminal.m_history == std::deque<std::string>{"first", "second", "third", ""},
           "cat normalizes CRLF and lone-CR line endings");
 
     terminal.m_history.clear();
     terminal.m_historyBytes = 0;
     terminal.executeCommand("cat /home/monolith/chunk-boundary.txt");
     check(terminal.m_history
-              == std::vector<std::string>{std::string(16 * 1024 - 1, 'a'), "b", ""},
+              == std::deque<std::string>{std::string(16 * 1024 - 1, 'a'), "b", ""},
           "cat normalizes CRLF when its bytes cross a read-chunk boundary");
 
     terminal.m_history.clear();
@@ -480,7 +491,7 @@ int main() {
     terminal.m_history.clear();
     terminal.m_historyBytes = 0;
     terminal.executeCommand("cat /home/monolith/empty.txt");
-    check(terminal.m_history == std::vector<std::string>{""},
+    check(terminal.m_history == std::deque<std::string>{""},
           "cat displays an empty row for an empty file");
 
     terminal.m_history.clear();
@@ -493,7 +504,7 @@ int main() {
     terminal.m_history.clear();
     terminal.m_historyBytes = 0;
     terminal.executeCommand("cat \"/home/monolith/my  file.txt\"");
-    check(terminal.m_history == std::vector<std::string>{"exact spacing"},
+    check(terminal.m_history == std::deque<std::string>{"exact spacing"},
           "quoted command paths preserve repeated spaces");
 
     const std::filesystem::path danglingPath = hostRoot / "home/monolith/dangling";
