@@ -1239,7 +1239,7 @@ int main() {
     check(promptEditor.m_pathPromptBuffer == "/unicode/" + eAcuteName,
           "Unicode path completion expands an exact codepoint prefix");
 
-    TestEditor homePathEditor(nullptr, &fs);
+    TestEditor homePathEditor(nullptr, &fs, "");
     prepareOpen(homePathEditor, "~/documents/home-");
     homePathEditor.completePathPrompt();
     check(homePathEditor.m_pathPromptBuffer == "~/documents/home-note.txt",

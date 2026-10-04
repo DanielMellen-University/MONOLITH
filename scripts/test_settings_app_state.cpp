@@ -359,7 +359,7 @@ int main() {
     settings.m_wallpaperEditBuffer = "/invalid/path.bmp";
     settings.m_wallpaperCursorPos = settings.m_wallpaperEditBuffer.size();
     settings.applyWallpaperPath();
-    check(controller.wallpaperPath == "/Wallpapers/alpha.bmp"
+    check(controller.wallpaperPath == "/home/monolith/Wallpapers/alpha.bmp"
               && settings.m_statusMessage
                   == "Setting was rejected; current value is unchanged.",
           "Settings reports a rejected wallpaper path without changing the active path");
