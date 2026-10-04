@@ -1,10 +1,12 @@
 # Session log
 
+| 2026-10-03 | fix | Atomic-save sweep cadence is now tracked independently for 16 recent destination parents: each is swept on first use and every 32 writes, and an evicted parent is swept again on revisit. Added first-touch, interval-boundary, and tracker-eviction recovery coverage; hosted workflow #331 passed normal and ASan/UBSan suites; no tests were run on the user's device. |
+
 | 2026-10-03 | fix | Atomic-save workspaces now hold a nonblocking OS lease while active. The first atomic write and every 32 writes afterward sweep the current destination's parent, reclaiming completed v2 workspaces only when they have a ready marker and free lock; active, unmarked, and legacy workspaces remain untouched. Focused stale/active/legacy coverage and hosted workflow #327 passed normal and ASan/UBSan suites; no tests were run on the user's device. |
 
 | 2026-10-03 | fix | Terminal command parsing and completion-prefix scanning now unescape only `\\` and `\"` in double quotes, preserving paths such as `folder\notes.txt`. Added regressions for literal/escaped backslashes in arguments and completion paths; hosted workflow #323 passed both normal and ASan/UBSan suites. |
 
-| 2026-10-03 | fix | Atomic saves now reserve a unique hidden sibling workspace rather than truncating a fixed `<target>.tmp`; ordinary neighboring files and symlinks survive successful and failed writes. Filesystem and Desktop Settings regressions passed in hosted workflow #319, including ASan/UBSan. Workspace recovery was deferred here, then added in chunk 7.111 with process locks. |
+| 2026-10-03 | fix | Atomic saves now reserve a unique hidden sibling workspace rather than truncating a fixed `<target>.tmp`; ordinary neighboring files and symlinks survive successful and failed writes. Filesystem and Desktop Settings regressions passed in hosted workflow #319, including ASan/UBSan. Workspace recovery was deferred here, then added in chunk 7.111 and refined per destination directory in 7.112. |
 
 | 2026-10-03 | fix | Recursive directory copies now journal overwritten files before replacement, using same-volume hard links with a file-copy fallback; failed traversals restore file and directory timestamps, remove new files/subtrees, preserve symlink entries, and retain failed recovery backups. Cloud workflow #315 passed both normal and ASan/UBSan suites. |
 
