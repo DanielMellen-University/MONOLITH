@@ -206,8 +206,7 @@ private:
     };
 
     bool isWithinHostRoot(const std::string& hostPath) const;
-    bool copyRecursiveResolved(const std::string& srcVirtualPath,
-                               const std::string& dstVirtualPath,
+    bool copyRecursiveResolved(const std::string& dstVirtualPath,
                                const HostPath& source,
                                const HostPath& destination,
                                const std::string& canonicalRoot,
