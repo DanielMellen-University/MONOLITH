@@ -34,6 +34,7 @@ The human funds token budget and lives in the desktop. You:
 
 | When | Kind | Note |
 |------|------|------|
+| 2026-10-04 | text-editor-prefix-measure-buffer | Reuse bounded 4 KiB storage for cursor/selection prefix measurements; long-line fallback remains temporary so retained memory is fixed |
 | 2026-10-04 | atomic-save-entry-basename-views | Borrow each cleanup marker name from its entry path instead of allocating filename strings during workspace validation |
 | 2026-10-04 | atomic-save-basename-views | Borrow workspace basenames from path storage for ownership checks and cleanup instead of materializing repeated filename strings |
 | 2026-10-04 | editor-prompt-render-buffers | Assemble search and path prompt status/caret strings in retained buffers, eliminating per-frame substring and concatenation temporaries |
@@ -360,6 +361,7 @@ Older recent-work rows: [`SESSION_LOG.md`](SESSION_LOG.md).
 | 7.135 | Reuse Text Editor prompt render buffers | done | Append Find, Replace, Open, Save As, and Go to Line text directly from source buffers; preserve exact caret measurement while keeping unchanged prompt-buffer capacity stable |
 | 7.136 | Borrow atomic workspace basenames | done | Validate workspace names directly from path storage and avoid allocating filename copies in owner checks and cleanup; preserve path edge-case handling |
 | 7.137 | Borrow atomic workspace entry names | done | Inspect marker names from entry-path storage without allocating a filename string while retaining the allowed-entry and unexpected-user-data checks |
+| 7.138 | Reuse Text Editor prefix measurement storage | done | Reuse a bounded 4 KiB scratch buffer for cursor/selection geometry; unusually long prefixes use temporary storage so retained memory remains bounded |
 | fs-browser-filter-cache | Reuse Filesystem Browser filter snapshots | done | Reuse one directory listing for filter edits; refresh it on F5 and Monolith filesystem notifications, including while filtering |
 | terminal-input-editing | Terminal command-line selection | done | Support UTF-8-safe keyboard/mouse selection and Ctrl+A/C/X/V; normalize all clipboard lines and tabs into the single-line prompt |
 | terminal-touch-mtime | Complete Terminal touch semantics | done | Update existing regular-file last-write time without truncation; reject outside-root symlink targets |

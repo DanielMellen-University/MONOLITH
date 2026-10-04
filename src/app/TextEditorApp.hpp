@@ -87,7 +87,7 @@ private:
     void copySelection();
     void cutSelection();
     void pasteClipboard();
-    int measureTextPrefixWidth(const std::string& line, int col) const;
+    int measureTextPrefixWidth(const std::string& line, int col);
     int measureStatusCursorWidth(const std::string& text);
     bool clientToDocument(int clientX, int clientY, int& outRow, int& outCol,
                           bool clampToViewport = false) const;
@@ -211,6 +211,8 @@ private:
     std::string m_statusMessage;  // transient status-bar feedback (save/open errors, etc.)
     std::string m_renderStatusText;
     std::string m_renderCursorText;
+    static constexpr std::size_t kMaxRetainedTextPrefixBytes = 4096;
+    std::string m_textPrefixMeasureScratch;
     DiscardKind m_discardKind = DiscardKind::None;
     std::string m_discardPath;
 

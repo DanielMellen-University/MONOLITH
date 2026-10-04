@@ -1,5 +1,11 @@
 # Changelog
 
+## 2026-10: Reuse Text Editor prefix measurement storage
+
+- Reuse a bounded prefix buffer for cursor and selection text measurements, eliminating repeated substring allocations on ordinary lines.
+- Use temporary storage only for unusually long prefixes so the retained buffer cannot grow with document line size.
+- Verify measured widths stay exact and retained capacity stays stable.
+
 ## 2026-10: Borrow atomic workspace entry names
 
 - Inspect each cleanup marker through a borrowed basename from its existing entry path, eliminating another temporary filename string on every atomic save.

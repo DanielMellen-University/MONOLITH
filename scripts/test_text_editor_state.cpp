@@ -135,6 +135,38 @@ int main() {
         check(unicodePrefixMeasured && unicodeHitMapped && hitRow == 0 && hitCol == 3,
               "Text Editor maps UTF-8 hit-test positions to byte offsets");
 
+        TestEditor prefixMeasureEditor(scaleFont, &fs, "");
+        const std::string prefixMeasureLine(2048, 'm');
+        int expectedPrefixWidth = 0;
+        int expectedPrefixHeight = 0;
+        const std::string expectedPrefix = prefixMeasureLine.substr(0, 1536);
+        const bool expectedPrefixMeasured = TTF_SizeUTF8(
+            scaleFont, expectedPrefix.c_str(), &expectedPrefixWidth,
+            &expectedPrefixHeight) == 0;
+        const int firstPrefixWidth = prefixMeasureEditor.measureTextPrefixWidth(
+            prefixMeasureLine, 1536);
+        const size_t prefixScratchCapacity =
+            prefixMeasureEditor.m_textPrefixMeasureScratch.capacity();
+        const int repeatedPrefixWidth = prefixMeasureEditor.measureTextPrefixWidth(
+            prefixMeasureLine, 1536);
+        check(expectedPrefixMeasured && firstPrefixWidth == expectedPrefixWidth
+                  && repeatedPrefixWidth == expectedPrefixWidth
+                  && prefixMeasureEditor.m_textPrefixMeasureScratch == expectedPrefix
+                  && prefixScratchCapacity >= expectedPrefix.size()
+                  && prefixMeasureEditor.m_textPrefixMeasureScratch.capacity()
+                      == prefixScratchCapacity,
+              "Text Editor reuses prefix measurement storage without changing measured width");
+        const size_t retainedPrefixCapacity =
+            prefixMeasureEditor.m_textPrefixMeasureScratch.capacity();
+        const std::string oversizedMeasureLine(
+            TestEditor::kMaxRetainedTextPrefixBytes * 2, 'x');
+        check(prefixMeasureEditor.measureTextPrefixWidth(
+                      oversizedMeasureLine, static_cast<int>(oversizedMeasureLine.size()))
+                      > 0
+                  && prefixMeasureEditor.m_textPrefixMeasureScratch.capacity()
+                      == retainedPrefixCapacity,
+              "Text Editor bounds retained prefix scratch for exceptionally long lines");
+
         constexpr int longLineHitColumn = 70'000;
         const std::string longHitTestLine(100'000, 'x');
         int longPrefixWidth = 0;

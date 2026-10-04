@@ -1283,14 +1283,19 @@ void TextEditorApp::pasteClipboard() {
     ensureCursorVisible();
 }
 
-int TextEditorApp::measureTextPrefixWidth(const std::string& line, int col) const {
+int TextEditorApp::measureTextPrefixWidth(const std::string& line, int col) {
     if (!m_font || col <= 0 || line.empty()) return 0;
     const int n = std::min(col, static_cast<int>(line.size()));
-    const std::string prefix = line.substr(0, static_cast<size_t>(n));
-    int w = 0, h = 0;
-    if (!prefix.empty()) {
-        TTF_SizeUTF8(m_font, prefix.c_str(), &w, &h);
+    int w = 0;
+    int h = 0;
+    if (static_cast<std::size_t>(n) <= kMaxRetainedTextPrefixBytes) {
+        m_textPrefixMeasureScratch.assign(line.data(), static_cast<std::size_t>(n));
+        TTF_SizeUTF8(m_font, m_textPrefixMeasureScratch.c_str(), &w, &h);
+        return w;
     }
+
+    const std::string oversizedPrefix(line.data(), static_cast<std::size_t>(n));
+    TTF_SizeUTF8(m_font, oversizedPrefix.c_str(), &w, &h);
     return w;
 }
 
