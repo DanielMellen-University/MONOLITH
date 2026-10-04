@@ -1,30 +1,72 @@
 #pragma once
 
+#include <atomic>
+#include <cstddef>
 #include <filesystem>
 #include <fstream>
+#include <functional>
 #include <ostream>
+#include <string>
 #include <system_error>
 #include <utility>
 
 namespace monolith::detail {
 
-// A temporary sibling is an implementation detail, not a file that callers
-// should be able to redirect through a symlink. Existing regular temp files
-// may be replaced after an interrupted write; every other existing entry is
-// rejected.
-inline bool isSafeAtomicTempPath(const std::filesystem::path& tempPath) {
-    std::error_code statusError;
-    const auto status = std::filesystem::symlink_status(tempPath, statusError);
-    if (statusError
-        && statusError != std::make_error_code(std::errc::no_such_file_or_directory)) {
-        return false;
+inline std::atomic<unsigned long long> atomicTempSequence{0};
+
+inline bool createAtomicTempDirectory(const std::filesystem::path& targetPath,
+                                      std::filesystem::path& outDirectory) {
+    if (targetPath.filename().empty()) return false;
+    const std::filesystem::path parent = targetPath.has_parent_path()
+        ? targetPath.parent_path()
+        : std::filesystem::path(".");
+    const std::size_t nameHash = std::hash<std::string>{}(targetPath.filename().string());
+
+    for (unsigned attempt = 0; attempt < 128; ++attempt) {
+        const auto sequence = atomicTempSequence.fetch_add(1, std::memory_order_relaxed);
+        const auto candidate = parent / (".monolith-tmp-" + std::to_string(nameHash)
+            + "-" + std::to_string(sequence));
+        std::error_code createError;
+        if (!std::filesystem::create_directory(candidate, createError)) {
+            if (!createError || createError == std::errc::file_exists) continue;
+            return false;
+        }
+
+        std::error_code permissionError;
+        std::filesystem::permissions(candidate, std::filesystem::perms::owner_all,
+                                     std::filesystem::perm_options::replace,
+                                     permissionError);
+        if (permissionError) {
+            std::error_code cleanupError;
+            std::filesystem::remove(candidate, cleanupError);
+            return false;
+        }
+        outDirectory = candidate;
+        return true;
     }
-    return status.type() == std::filesystem::file_type::not_found
-        || std::filesystem::is_regular_file(status);
+    return false;
 }
 
-// Write to a sibling temporary file, then replace the target only after the
-// complete stream has succeeded.
+struct AtomicTempCleanup {
+    std::filesystem::path file;
+    std::filesystem::path directory;
+
+    AtomicTempCleanup(std::filesystem::path tempFile,
+                      std::filesystem::path tempDirectory)
+        : file(std::move(tempFile)), directory(std::move(tempDirectory)) {}
+    AtomicTempCleanup(const AtomicTempCleanup&) = delete;
+    AtomicTempCleanup& operator=(const AtomicTempCleanup&) = delete;
+
+    ~AtomicTempCleanup() {
+        std::error_code ignored;
+        std::filesystem::remove(file, ignored);
+        ignored.clear();
+        std::filesystem::remove(directory, ignored);
+    }
+};
+
+// Write inside a uniquely reserved hidden sibling workspace, then replace the
+// target only after the complete stream has succeeded.
 template <typename Writer>
 bool writeAtomically(const std::filesystem::path& targetPath,
                      Writer&& writer,
@@ -50,8 +92,10 @@ bool writeAtomically(const std::filesystem::path& targetPath,
         return false;
     }
 
-    const std::filesystem::path tempPath = targetPath.string() + ".tmp";
-    if (!isSafeAtomicTempPath(tempPath)) return false;
+    std::filesystem::path tempDirectory;
+    if (!createAtomicTempDirectory(targetPath, tempDirectory)) return false;
+    const std::filesystem::path tempPath = tempDirectory / "content";
+    AtomicTempCleanup cleanup(tempPath, tempDirectory);
 
     std::ofstream out(tempPath, openMode | std::ios_base::trunc);
     if (!out) return false;
@@ -61,50 +105,22 @@ bool writeAtomically(const std::filesystem::path& targetPath,
         std::filesystem::permissions(
             tempPath, existingPermissions, std::filesystem::perm_options::replace,
             permissionError);
-        if (permissionError) {
-            out.close();
-            std::error_code cleanupError;
-            std::filesystem::remove(tempPath, cleanupError);
-            return false;
-        }
+        if (permissionError) return false;
     }
 
     try {
         std::forward<Writer>(writer)(out);
     } catch (...) {
-        out.close();
-        std::error_code cleanupError;
-        std::filesystem::remove(tempPath, cleanupError);
         return false;
     }
     out.flush();
-    if (!out) {
-        out.close();
-        std::error_code cleanupError;
-        std::filesystem::remove(tempPath, cleanupError);
-        return false;
-    }
+    if (!out) return false;
     out.close();
-    if (!out) {
-        std::error_code cleanupError;
-        std::filesystem::remove(tempPath, cleanupError);
-        return false;
-    }
-
-    if (!isSafeAtomicTempPath(tempPath)) {
-        std::error_code cleanupError;
-        std::filesystem::remove(tempPath, cleanupError);
-        return false;
-    }
+    if (!out) return false;
 
     std::error_code renameError;
     std::filesystem::rename(tempPath, targetPath, renameError);
-    if (renameError) {
-        std::error_code cleanupError;
-        std::filesystem::remove(tempPath, cleanupError);
-        return false;
-    }
-    return true;
+    return !renameError;
 }
 
 template <typename Writer>

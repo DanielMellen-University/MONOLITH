@@ -54,6 +54,15 @@ static std::string referenceJoin(const std::string& directory,
     return referenceNormalize(joined);
 }
 
+static bool hasAtomicTempWorkspace(const stdfs::path& directory) {
+    for (const auto& entry : stdfs::directory_iterator(directory)) {
+        if (entry.path().filename().string().starts_with(".monolith-tmp-")) {
+            return true;
+        }
+    }
+    return false;
+}
+
 static bool referenceIsSameOrDescendant(const std::string& ancestor,
                                         const std::string& path) {
     const std::string normalizedAncestor = referenceNormalize(ancestor);
@@ -640,19 +649,25 @@ int main() {
     stdfs::permissions(hostRoot / "src/atomic.txt", atomicPermissions,
                        stdfs::perm_options::replace, ec);
     check(!ec, "set atomic file permission fixture");
+    {
+        std::ofstream neighbor(hostRoot / "src/atomic.txt.tmp", std::ios::binary);
+        neighbor << "important neighboring data";
+    }
     check(fs.writeFile("/src/atomic.txt", "after")
               && fs.readFile("/src/atomic.txt") == "after"
+              && fs.readFile("/src/atomic.txt.tmp") == "important neighboring data"
               && (stdfs::status(hostRoot / "src/atomic.txt").permissions()
                   == atomicPermissions)
-              && !stdfs::exists(hostRoot / "src/atomic.txt.tmp"),
-          "overwrite file atomically while retaining permission bits");
+              && !hasAtomicTempWorkspace(hostRoot / "src"),
+          "atomic overwrite preserves a neighboring .tmp file and destination permissions");
     check(!fs.writeFileWithProducer("/src/atomic.txt", [](std::ostream& out) {
               out.write("partial", 7);
               return false;
           })
               && fs.readFile("/src/atomic.txt") == "after"
-              && !stdfs::exists(hostRoot / "src/atomic.txt.tmp"),
-          "failed content producer preserves the old file and removes its temporary sibling");
+              && fs.readFile("/src/atomic.txt.tmp") == "important neighboring data"
+              && !hasAtomicTempWorkspace(hostRoot / "src"),
+          "failed producer preserves both destination data and neighboring .tmp file");
     const std::string streamedBinary("new\0bytes", 9);
     check(fs.writeFileWithProducer("/src/streamed.bin", [&streamedBinary](std::ostream& out) {
               out.write(streamedBinary.data(),
@@ -669,19 +684,21 @@ int main() {
     const stdfs::path atomicTempLink = hostRoot / "src/atomic.txt.tmp";
     stdfs::remove(atomicTempLink, ec);
     stdfs::create_symlink(outsideTempTarget, atomicTempLink, ec);
-    check(!ec, "create atomic temp symlink");
+    check(!ec, "create neighboring atomic-temp-name symlink");
     if (!ec) {
-        check(!fs.writeFile("/src/atomic.txt", "blocked"),
-              "atomic write rejects a symlink temporary sibling");
+        check(fs.writeFile("/src/atomic.txt", "symlink-neighbor-untouched"),
+              "atomic write succeeds beside a neighboring symlink");
         std::ifstream outsideTempCheck(outsideTempTarget);
         std::string outsideTempContent;
         std::getline(outsideTempCheck, outsideTempContent);
         check(outsideTempContent == "outside-before",
-              "atomic temp symlink target remains untouched");
-        check(fs.readFile("/src/atomic.txt") == "after",
-              "atomic temp symlink rejection preserves the destination");
+              "neighboring symlink target remains untouched");
+        check(fs.readFile("/src/atomic.txt") == "symlink-neighbor-untouched",
+              "atomic write replaces its destination without replacing the neighboring link");
         check(stdfs::is_symlink(stdfs::symlink_status(atomicTempLink)),
-              "atomic temp symlink remains an entry");
+              "neighboring symlink remains an entry");
+        check(!hasAtomicTempWorkspace(hostRoot / "src"),
+              "successful atomic write cleans its unique workspace");
         stdfs::remove(atomicTempLink, ec);
     }
     const stdfs::path blockedWritePath = hostRoot / "src/blocked-write.txt";
@@ -690,7 +707,7 @@ int main() {
           "create blocked write target");
     check(!fs.writeFile("/src/blocked-write.txt", "should fail")
               && stdfs::is_directory(blockedWritePath)
-              && !stdfs::exists(blockedWritePath.string() + ".tmp"),
+              && !hasAtomicTempWorkspace(hostRoot / "src"),
           "failed atomic write preserves the target and cleans up");
     check(fs.isFile("/src/empty.txt") && fs.readFile("/src/empty.txt").empty(),
           "read empty file without failure");

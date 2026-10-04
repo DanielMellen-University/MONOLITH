@@ -152,7 +152,7 @@ g++ -std=c++23 scripts/test_minesweeper_state.cpp src/app/MinesweeperApp.cpp $(p
 
 ## Filesystem Roadmap Checks
 
-Headless test of shipped `Filesystem` initialization, safe last-write-time updates, atomic streaming-writer success and rollback, multi-item copy/paste, `/`-rejecting rename, and listing filter:
+Headless test of shipped `Filesystem` initialization, safe last-write-time updates, atomic streaming-writer success and rollback, preservation of neighboring `.tmp` files/symlinks, multi-item copy/paste, `/`-rejecting rename, and listing filter:
 
 ```bash
 g++ -std=c++23 scripts/test_fs_roadmap.cpp src/fs/Filesystem.cpp -o build/test_fs_roadmap && ./build/test_fs_roadmap
@@ -180,7 +180,7 @@ g++ -std=c++23 scripts/test_drawing_state.cpp src/app/DrawingApp.cpp src/app/Dra
 
 ## Desktop Settings Persistence Check
 
-Headless test of desktop preference save/load, UI scale persistence, legacy files, bounded 16 KiB lines and 64-record loading, and wallpaper-path persistence limits:
+Headless test of desktop preference save/load, UI scale persistence, legacy files, bounded 16 KiB lines and 64-record loading, wallpaper-path persistence limits, and atomic-save behavior beside a neighboring symlink:
 
 ```bash
 g++ -std=c++23 scripts/test_desktop_settings.cpp src/settings/DesktopSettings.cpp -o build/test_desktop_settings && ./build/test_desktop_settings

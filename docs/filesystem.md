@@ -33,7 +33,7 @@ For example, `/home/monolith/welcome.txt` is stored at:
 
 The host root is created on startup if it does not exist. Startup rejects a host path that exists but is not a directory. The Settings app displays the actual host path.
 
-Regular file writes use a temporary sibling and atomic replacement after the complete byte stream succeeds. Existing permission bits are retained, an in-root file symlink is updated through its target instead of being replaced, and a temporary sibling that is a symlink or non-regular entry is rejected.
+Regular file writes stage into a uniquely reserved, hidden sibling workspace and atomically replace the destination only after the complete byte stream succeeds. Existing permission bits are retained, and an in-root file symlink is updated through its target instead of being replaced. A neighboring file such as `notes.txt.tmp` is ordinary user data and remains untouched.
 
 Related host files (not inside the virtual tree):
 
@@ -44,7 +44,7 @@ Related host files (not inside the virtual tree):
 | `~/.monolith/snake_highscore.txt` | Snake high score (games host file) |
 | `~/.monolith/minesweeper_best.txt` | Minesweeper best times (game host file) |
 
-All Monolith text snapshots, including game records, use the same temporary-sibling replacement path. A failed stream or replacement leaves the previous host record intact and removes the temporary file. Replacing an existing regular snapshot also retains its permission bits; a new snapshot uses the host process's normal creation mode.
+All Monolith text snapshots, including game records, use the same unique temporary-workspace replacement path. A failed stream or replacement leaves the previous host record intact and cleans up the temporary workspace. Replacing an existing regular snapshot also retains its permission bits; a new snapshot uses the host process's normal creation mode.
 
 ## API Overview
 
@@ -67,7 +67,7 @@ Implementation: `src/fs/Filesystem.hpp`, `src/fs/Filesystem.cpp`.
 
 `readFile()` materializes the entire file. Consumers that can process data incrementally can use `readFileChunks()`, which passes at most 16 KiB at a time as a temporary `string_view`; the Text Editor uses it to stream line parsing and rejects documents above 16 MiB or 65,536 lines. `readFileTailChunks()` seeks to the last requested number of bytes before streaming, and reports whether it skipped a prefix; the first chunk may start inside a logical record. Views are valid only during their callback. Returning `false` from the callback stops reading early and counts as success; path, open, read, or callback failures return `false` from either method. `copyRecursive()` streams regular files in 16 KiB chunks into atomic replacement without buffering each complete file. It resolves the root source and destination once, classifies each source entry once, and derives ordinary child paths from validated parents instead of repeating virtual-path and containment checks through the public API. Directory copies walk entries directly, avoiding the sorting and temporary entry vectors used for graphical listings, and use an explicit frame stack instead of consuming one C++ call frame per directory. Destination symlinks are resolved and checked, and copies are rejected if their physical destination is the source itself or a descendant, including aliases introduced by in-root symlinks. Before replacing a destination file, the copy journals its original through a same-volume hard link when possible, falling back to a bounded-memory file copy. If a later child fails, overwritten files, newly created entries, and existing destination-directory modification times are restored. `removeRecursive()` delegates directory-tree removal to `std::filesystem::remove_all`, avoiding a temporary vector of every direct child while retaining non-following symlink removal.
 
-`writeFileWithProducer()` streams generated content into an atomic temporary sibling without requiring one complete output string. The producer returns `false` on generation or stream failure to discard the temporary file and preserve the previous destination; `writeFile()` uses this same path for fixed strings. Drawing uses it with a bounded 16 KiB `.modr` encoder.
+`writeFileWithProducer()` streams generated content into an atomically reserved hidden sibling workspace without requiring one complete output string. The producer returns `false` on generation or stream failure to discard the workspace and preserve the previous destination; `writeFile()` uses this same path for fixed strings. Drawing uses it with a bounded 16 KiB `.modr` encoder.
 
 ### Recursive operations
 
