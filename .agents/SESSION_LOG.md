@@ -1,5 +1,7 @@
 # Session log
 
+| 2026-10-03 | fix | Text Editor Open/Save As, Drawing Open/Save, and Settings wallpaper entry now share Terminal's `~` / `~/` expansion to `/home/monolith`; path completion keeps the shorthand visible, and move/delete notifications resolve it consistently. Added shared helper/cursor mapping coverage and app-state regressions. The first hosted run exposed test-fixture issues; the focused Settings test passed locally after correction, then workflow #338 passed both normal and ASan/UBSan suites. |
+
 | 2026-10-03 | fix | Terminal now resolves a leading `~` or `~/` to `/home/monolith` for command operands, including quoted paths. Home-relative Tab completion searches the resolved directory while retaining the typed shorthand. `cat`, `cd`, escaped-space paths, and quoted/unquoted completion regressions passed in hosted workflow #335, including ASan/UBSan; no tests were run on the user's device. |
 
 | 2026-10-03 | fix | Atomic-save sweep cadence is now tracked independently for 16 recent destination parents: each is swept on first use and every 32 writes, and an evicted parent is swept again on revisit. Added first-touch, interval-boundary, and tracker-eviction recovery coverage; hosted workflow #331 passed normal and ASan/UBSan suites; no tests were run on the user's device. |

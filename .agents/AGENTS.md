@@ -34,6 +34,7 @@ The human funds token budget and lives in the desktop. You:
 
 | When | Kind | Note |
 |------|------|------|
+| 2026-10-03 | virtual-home-paths | Share leading `~` / `~/` expansion across Terminal, Text Editor, Drawing, and Settings wallpaper entry; preserve shorthand during completion and path notifications; workflow #338 passed normal and sanitized jobs |
 | 2026-10-03 | terminal-home-shorthand | Expand leading `~` and `~/` to the fixed virtual home in Terminal commands; preserve shorthand in home-relative completions; workflow #335 passed normal and sanitized jobs |
 | 2026-10-03 | atomic-save-directory-sweeps | Track first sweeps and 32-write cadence per destination directory with a bounded 16-parent ring; resweep after eviction; normal and sanitized hosted workflow #331 passed |
 | 2026-10-03 | atomic-save-scavenging | Hold a nonblocking OS lease lock for v2 atomic-save workspaces; periodically reclaim only ready-marked workspaces whose lock is free; workflow #327 passed normal and sanitized jobs |
@@ -305,6 +306,7 @@ Older recent-work rows: [`SESSION_LOG.md`](SESSION_LOG.md).
 | 7.111 | Reclaim interrupted atomic-save workspaces | done | Lock each active v2 workspace, sweep the current destination parent on the first save and every 32 writes thereafter, and reclaim only ready-marked workspaces with a free lock; cover stale recovery, active locks, unmarked paths, and legacy paths; normal and sanitized hosted workflow #327 passed |
 | 7.112 | Track atomic-save sweeps per directory | done | Give every newly used destination directory an immediate sweep and its own 32-write interval using bounded 16-parent bookkeeping; verify second-parent first touch, interval boundary, and resweep after tracker eviction; normal and sanitized hosted workflow #331 passed |
 | 7.113 | Resolve Terminal home shorthand | done | Expand only `~` and `~/` to `/home/monolith` for command paths; preserve shorthand through quoted/unquoted path completion; normal and sanitized hosted workflow #335 passed |
+| 7.114 | Share virtual-home path shorthand | done | Reuse one app-level `~` / `~/` expansion rule for Terminal, Text Editor, Drawing, and Settings wallpaper paths; cover completion, accepted paths, and path move/delete notifications; normal and sanitized hosted workflow #338 passed |
 | fs-browser-filter-cache | Reuse Filesystem Browser filter snapshots | done | Reuse one directory listing for filter edits; refresh it on F5 and Monolith filesystem notifications, including while filtering |
 | terminal-input-editing | Terminal command-line selection | done | Support UTF-8-safe keyboard/mouse selection and Ctrl+A/C/X/V; normalize all clipboard lines and tabs into the single-line prompt |
 | terminal-touch-mtime | Complete Terminal touch semantics | done | Update existing regular-file last-write time without truncation; reject outside-root symlink targets |
