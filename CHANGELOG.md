@@ -1,5 +1,11 @@
 # Changelog
 
+## 2026-10: Bound opportunistic atomic-save cleanup
+
+- Limit each save/listing cleanup slice to 32 destination-directory entries and resume large sweeps across later operations instead of blocking one operation on a full-directory scan.
+- Keep cleanup under the parent lock only while advancing each slice; preserve the existing stale-workspace ownership, lease, and retry checks.
+- Add mixed-directory stress coverage for bounded first-pass work, eventual reclamation, and untouched user files.
+
 ## 2026-10: Make dirty Drawing decisions explicit
 
 - Require Ctrl+D to discard dirty sketches on Close, New, and Open; Esc cancels, and repeating the original action no longer discards content.

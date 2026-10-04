@@ -209,6 +209,73 @@ int main() {
               && ordinaryEntriesRemaining == sweepBatchSize,
           "a sweep reuses the setup lock while reclaiming stale workspaces and preserving siblings");
 
+    const fs::path incrementalParent = parent / "incremental-sweep";
+    ec.clear();
+    bool incrementalFixturesReady = fs::create_directory(incrementalParent, ec) && !ec;
+    constexpr std::size_t incrementalWorkspaceCount = 48;
+    constexpr std::size_t incrementalOrdinaryCount = 96;
+    for (std::size_t index = 0;
+         incrementalFixturesReady && index < incrementalWorkspaceCount; ++index) {
+        const fs::path workspace = incrementalParent
+            / (std::string(monolith::detail::atomicTempPreviousPrefix)
+               + "incremental-" + std::to_string(index));
+        ec.clear();
+        incrementalFixturesReady = fs::create_directory(workspace, ec) && !ec
+            && writeFixture(workspace / "lease", "")
+            && writeFixture(workspace / "ready", "")
+            && writeFixture(workspace / "content", "stale snapshot");
+    }
+    for (std::size_t index = 0;
+         incrementalFixturesReady && index < incrementalOrdinaryCount; ++index) {
+        incrementalFixturesReady = writeFixture(
+            incrementalParent / ("ordinary-" + std::to_string(index) + ".txt"),
+            "user data");
+    }
+    auto countRemainingIncrementalWorkspaces = [&] {
+        std::size_t remaining = 0;
+        for (const auto& entry : fs::directory_iterator(incrementalParent)) {
+            if (monolith::detail::pathBasenameView(entry.path()).starts_with(
+                    monolith::detail::atomicTempPreviousPrefix)) {
+                ++remaining;
+            }
+        }
+        return remaining;
+    };
+    bool incrementalWriteSucceeded = incrementalFixturesReady
+        && monolith::detail::writeTextAtomically(
+            incrementalParent / "record.txt",
+            [](std::ostream& out) { out << "first write"; });
+    const std::size_t afterFirstIncrementalPass =
+        incrementalWriteSucceeded ? countRemainingIncrementalWorkspaces() : 0;
+    std::size_t incrementalPasses = 1;
+    while (incrementalWriteSucceeded
+           && incrementalPasses < 16
+           && countRemainingIncrementalWorkspaces() > 0) {
+        incrementalWriteSucceeded = monolith::detail::writeTextAtomically(
+            incrementalParent / ("followup-" + std::to_string(incrementalPasses) + ".txt"),
+            [](std::ostream& out) { out << "follow-up write"; });
+        ++incrementalPasses;
+    }
+    const std::size_t afterIncrementalSweep =
+        incrementalWriteSucceeded ? countRemainingIncrementalWorkspaces() : 0;
+    std::size_t incrementalOrdinaryRemaining = 0;
+    if (incrementalFixturesReady) {
+        for (const auto& entry : fs::directory_iterator(incrementalParent)) {
+            if (monolith::detail::pathBasenameView(entry.path()).starts_with("ordinary-")) {
+                ++incrementalOrdinaryRemaining;
+            }
+        }
+    }
+    check(incrementalWriteSucceeded
+              && afterFirstIncrementalPass > 0
+              && incrementalWorkspaceCount - afterFirstIncrementalPass
+                    <= monolith::detail::atomicTempSweepEntryBudget
+              && afterFirstIncrementalPass < incrementalWorkspaceCount
+              && afterIncrementalSweep == 0
+              && incrementalPasses < 16
+              && incrementalOrdinaryRemaining == incrementalOrdinaryCount,
+          "opportunistic cleanup advances in bounded passes and eventually preserves all user entries");
+
     const fs::path failedSetupPath = parent
         / (std::string(monolith::detail::atomicTempPrefix)
            + "aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa");

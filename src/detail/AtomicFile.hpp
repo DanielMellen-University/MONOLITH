@@ -30,12 +30,20 @@ inline constexpr const char* atomicTempOlderPrefix = ".monolith-tmp-v2-";
 inline constexpr char atomicTempOwnerMarker[] = "monolith atomic workspace v4\n";
 inline constexpr const char* atomicTempOwnerName = "owner";
 inline constexpr unsigned long long atomicTempSweepInterval = 32;
+inline constexpr std::size_t atomicTempSweepEntryBudget = 32;
 inline constexpr std::size_t atomicTempTrackedParents = 16;
+
+struct AtomicTempDirectoryCloser {
+    void operator()(DIR* directory) const noexcept {
+        if (directory) ::closedir(directory);
+    }
+};
 
 struct AtomicTempSweepSlot {
     std::filesystem::path parent;
     std::filesystem::path alias;
     unsigned long long operationsSinceSweep{0};
+    std::unique_ptr<DIR, AtomicTempDirectoryCloser> traversal;
 };
 
 inline std::array<AtomicTempSweepSlot, atomicTempTrackedParents> atomicTempSweepSlots{};
@@ -62,6 +70,7 @@ public:
     ~AtomicTempParentLock() { release(); }
 
     bool locked() const { return fd_ >= 0; }
+    int fd() const { return fd_; }
 
     void release() {
         if (fd_ < 0) return;
@@ -72,12 +81,6 @@ public:
 
 private:
     int fd_{-1};
-};
-
-struct AtomicTempDirectoryCloser {
-    void operator()(DIR* directory) const noexcept {
-        if (directory) ::closedir(directory);
-    }
 };
 
 inline bool shouldSweepAtomicTempParent(const std::filesystem::path& parent) {
@@ -95,6 +98,7 @@ inline bool shouldSweepAtomicTempParent(const std::filesystem::path& parent) {
         std::lock_guard lock(atomicTempSweepMutex);
         for (auto& slot : atomicTempSweepSlots) {
             if (slot.parent == lexicalKey || slot.alias == lexicalKey) {
+                if (slot.traversal) return true;
                 return countOperation(slot);
             }
         }
@@ -109,11 +113,13 @@ inline bool shouldSweepAtomicTempParent(const std::filesystem::path& parent) {
     for (auto& slot : atomicTempSweepSlots) {
         if (slot.parent != key) continue;
         slot.alias = lexicalKey;
+        if (slot.traversal) return true;
         return countOperation(slot);
     }
 
     auto& slot = atomicTempSweepSlots[atomicTempSweepNextSlot];
     atomicTempSweepNextSlot = (atomicTempSweepNextSlot + 1) % atomicTempSweepSlots.size();
+    slot.traversal.reset();
     slot.parent = key;
     slot.alias = key == lexicalKey ? std::filesystem::path{} : lexicalKey;
     slot.operationsSinceSweep = 1;
@@ -149,6 +155,7 @@ inline void scheduleAtomicTempSweepRetry(const std::filesystem::path& parent) {
 
     auto& slot = atomicTempSweepSlots[atomicTempSweepNextSlot];
     atomicTempSweepNextSlot = (atomicTempSweepNextSlot + 1) % atomicTempSweepSlots.size();
+    slot.traversal.reset();
     slot.parent = key;
     slot.alias = key == lexicalKey ? std::filesystem::path{} : lexicalKey;
     slot.operationsSinceSweep = atomicTempSweepInterval;
@@ -411,6 +418,95 @@ inline bool tryScavengeAtomicTempWorkspace(
     return tryReclaimAtomicTempDirectory(directory);
 }
 
+// Keep the directory cursor between operations, but hold the parent lock only
+// while advancing one bounded slice.
+inline bool scavengeAtomicTempDirectoryStepLocked(
+    const std::filesystem::path& parent,
+    const AtomicTempParentLock& parentLock,
+    std::size_t entryBudget = atomicTempSweepEntryBudget) {
+    if (!parentLock.locked()) {
+        scheduleAtomicTempSweepRetry(parent);
+        return false;
+    }
+
+    const auto lexicalKey = parent.lexically_normal();
+    std::error_code pathError;
+    const auto resolvedKey = std::filesystem::weakly_canonical(parent, pathError);
+    const auto key = pathError ? lexicalKey : resolvedKey;
+
+    std::lock_guard lock(atomicTempSweepMutex);
+    AtomicTempSweepSlot* slot = nullptr;
+    for (auto& candidate : atomicTempSweepSlots) {
+        if (candidate.parent == lexicalKey || candidate.alias == lexicalKey) {
+            slot = &candidate;
+            break;
+        }
+    }
+    if (!slot) {
+        for (auto& candidate : atomicTempSweepSlots) {
+            if (candidate.parent != key) continue;
+            candidate.alias = lexicalKey;
+            slot = &candidate;
+            break;
+        }
+    }
+    if (!slot) {
+        slot = &atomicTempSweepSlots[atomicTempSweepNextSlot];
+        atomicTempSweepNextSlot = (atomicTempSweepNextSlot + 1)
+            % atomicTempSweepSlots.size();
+        slot->traversal.reset();
+        slot->parent = key;
+        slot->alias = key == lexicalKey ? std::filesystem::path{} : lexicalKey;
+        slot->operationsSinceSweep = 1;
+    }
+
+    if (!slot->traversal) {
+        slot->traversal.reset(::opendir(parent.c_str()));
+        if (!slot->traversal) {
+            slot->operationsSinceSweep = atomicTempSweepInterval;
+            return false;
+        }
+    }
+
+    struct stat scanStatus {};
+    struct stat lockedStatus {};
+    if (::fstat(::dirfd(slot->traversal.get()), &scanStatus) != 0
+        || ::fstat(parentLock.fd(), &lockedStatus) != 0
+        || scanStatus.st_dev != lockedStatus.st_dev
+        || scanStatus.st_ino != lockedStatus.st_ino) {
+        slot->traversal.reset();
+        slot->operationsSinceSweep = atomicTempSweepInterval;
+        return false;
+    }
+
+    std::size_t entriesRead = 0;
+    while (entriesRead < entryBudget) {
+        errno = 0;
+        const dirent* entry = ::readdir(slot->traversal.get());
+        if (!entry) {
+            if (errno != 0) {
+                slot->traversal.reset();
+                slot->operationsSinceSweep = atomicTempSweepInterval;
+                return false;
+            }
+            slot->traversal.reset();
+            return true;
+        }
+        ++entriesRead;
+
+        const std::string_view name(entry->d_name);
+        const bool isWorkspace = name.starts_with(atomicTempPrefix)
+            || name.starts_with(atomicTempPreviousPrefix)
+            || name.starts_with(atomicTempOlderPrefix);
+        if (!isWorkspace) continue;
+
+        const std::filesystem::path candidate = parent / std::filesystem::path(name);
+        if (tryReclaimIncompleteAtomicTempDirectory(candidate)) continue;
+        tryReclaimAtomicTempDirectory(candidate);
+    }
+    return false;
+}
+
 inline bool scavengeAtomicTempDirectoriesLocked(
     const std::filesystem::path& parent,
     const AtomicTempParentLock& parentLock) {
@@ -455,9 +551,14 @@ inline bool scavengeAtomicTempDirectories(const std::filesystem::path& parent) {
 }
 
 inline void scavengeAtomicTempDirectoriesIfDue(const std::filesystem::path& parent) {
-    if (shouldSweepAtomicTempParent(parent)) {
-        scavengeAtomicTempDirectories(parent);
+    if (!shouldSweepAtomicTempParent(parent)) return;
+
+    const AtomicTempParentLock parentLock(parent);
+    if (!parentLock.locked()) {
+        scheduleAtomicTempSweepRetry(parent);
+        return;
     }
+    scavengeAtomicTempDirectoryStepLocked(parent, parentLock);
 }
 
 inline bool createAtomicTempDirectory(const std::filesystem::path& targetPath,
@@ -474,7 +575,7 @@ inline bool createAtomicTempDirectory(const std::filesystem::path& targetPath,
         if (sweepDue) scheduleAtomicTempSweepRetry(parent);
         return false;
     }
-    if (sweepDue) scavengeAtomicTempDirectoriesLocked(parent, parentLock);
+    if (sweepDue) scavengeAtomicTempDirectoryStepLocked(parent, parentLock);
 
     auto prepareNewDirectory = [&](const std::filesystem::path& candidate) {
         std::error_code permissionError;
