@@ -1900,6 +1900,41 @@ void TextEditorApp::applyCurrentFindMatch() {
     ensureCursorVisible();
 }
 
+void TextEditorApp::pasteSearchField() {
+    if (!SDL_HasClipboardText()) return;
+    char* raw = SDL_GetClipboardText();
+    if (!raw) return;
+
+    std::size_t rawSize = 0;
+    while (rawSize <= kMaxDocumentBytes && raw[rawSize] != '\0') ++rawSize;
+    if (rawSize > kMaxDocumentBytes) {
+        SDL_free(raw);
+        return;
+    }
+
+    std::string inserted;
+    inserted.reserve(rawSize);
+    for (std::size_t i = 0; i < rawSize; ++i) {
+        const unsigned char byte = static_cast<unsigned char>(raw[i]);
+        if (byte >= 32 && byte != 127) inserted.push_back(static_cast<char>(byte));
+    }
+    SDL_free(raw);
+    if (inserted.empty()) return;
+
+    if (m_searchMode == SearchMode::Replace
+        && m_searchField == SearchField::Replacement) {
+        m_replaceCursorPos = std::min(m_replaceCursorPos, m_replaceText.size());
+        m_replaceText.insert(m_replaceCursorPos, inserted);
+        m_replaceCursorPos += inserted.size();
+        return;
+    }
+
+    m_findCursorPos = std::min(m_findCursorPos, m_findQuery.size());
+    m_findQuery.insert(m_findCursorPos, inserted);
+    m_findCursorPos += inserted.size();
+    updateFindMatches();
+}
+
 void TextEditorApp::replaceCurrentMatch() {
     if (m_searchMode != SearchMode::Replace) return;
     if (m_findQuery.empty()) {
@@ -2567,6 +2602,11 @@ void TextEditorApp::handleEvent(const SDL_Event& event) {
         }
 
         if (m_searchMode != SearchMode::None) {
+            if ((key.mod & KMOD_CTRL) && key.sym == SDLK_v) {
+                pasteSearchField();
+                return;
+            }
+
             // Replace-mode shortcuts first (work regardless of field).
             if (m_searchMode == SearchMode::Replace
                 && (key.mod & KMOD_CTRL) && key.sym == SDLK_r) {

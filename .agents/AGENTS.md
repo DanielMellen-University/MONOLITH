@@ -34,6 +34,7 @@ The human funds token budget and lives in the desktop. You:
 
 | When | Kind | Note |
 |------|------|------|
+| 2026-10-04 | text-editor-search-paste | Make Ctrl+V work in the active Find/Replace field while filtering controls and retaining UTF-8 caret positions |
 | 2026-10-04 | text-editor-prefix-measure-buffer | Reuse bounded 4 KiB storage for cursor/selection prefix measurements; long-line fallback remains temporary so retained memory is fixed |
 | 2026-10-04 | atomic-save-entry-basename-views | Borrow each cleanup marker name from its entry path instead of allocating filename strings during workspace validation |
 | 2026-10-04 | atomic-save-basename-views | Borrow workspace basenames from path storage for ownership checks and cleanup instead of materializing repeated filename strings |
@@ -362,6 +363,7 @@ Older recent-work rows: [`SESSION_LOG.md`](SESSION_LOG.md).
 | 7.136 | Borrow atomic workspace basenames | done | Validate workspace names directly from path storage and avoid allocating filename copies in owner checks and cleanup; preserve path edge-case handling |
 | 7.137 | Borrow atomic workspace entry names | done | Inspect marker names from entry-path storage without allocating a filename string while retaining the allowed-entry and unexpected-user-data checks |
 | 7.138 | Reuse Text Editor prefix measurement storage | done | Reuse a bounded 4 KiB scratch buffer for cursor/selection geometry; unusually long prefixes use temporary storage so retained memory remains bounded |
+| 7.139 | Paste into Text Editor search fields | done | Insert clipboard text at the active Find/Replace caret, filter control bytes to keep prompts single-line, and refresh matches when the query changes |
 | fs-browser-filter-cache | Reuse Filesystem Browser filter snapshots | done | Reuse one directory listing for filter edits; refresh it on F5 and Monolith filesystem notifications, including while filtering |
 | terminal-input-editing | Terminal command-line selection | done | Support UTF-8-safe keyboard/mouse selection and Ctrl+A/C/X/V; normalize all clipboard lines and tabs into the single-line prompt |
 | terminal-touch-mtime | Complete Terminal touch semantics | done | Update existing regular-file last-write time without truncation; reject outside-root symlink targets |

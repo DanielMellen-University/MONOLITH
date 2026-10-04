@@ -1024,6 +1024,40 @@ int main() {
     check(!undoEditor.m_dirty && undoEditor.m_lines == std::vector<std::string>{"Xoriginal"},
           "undoing after save compares against the new saved content");
 
+    TestEditor findPasteEditor(nullptr, &fs, "");
+    findPasteEditor.m_lines = {"a\xC3\xA9!b"};
+    findPasteEditor.m_searchMode = TestEditor::SearchMode::Find;
+    findPasteEditor.m_findQuery = "ab";
+    findPasteEditor.m_findCursorPos = 1;
+    SDL_Event searchPasteEvent{};
+    searchPasteEvent.type = SDL_KEYDOWN;
+    searchPasteEvent.key.keysym.mod = KMOD_CTRL;
+    searchPasteEvent.key.keysym.sym = SDLK_v;
+    const bool setFindClipboard = SDL_SetClipboardText("\xC3\xA9\n!") == 0;
+    if (setFindClipboard) findPasteEditor.handleEvent(searchPasteEvent);
+    check(setFindClipboard
+              && findPasteEditor.m_findQuery == "a\xC3\xA9!b"
+              && findPasteEditor.m_findCursorPos == 4
+              && findPasteEditor.m_findMatchCount == 1,
+          "Ctrl+V inserts UTF-8 clipboard text at the Find caret and refreshes matches");
+
+    TestEditor replacementPasteEditor(nullptr, &fs, "");
+    replacementPasteEditor.m_lines = {"needle"};
+    replacementPasteEditor.m_searchMode = TestEditor::SearchMode::Replace;
+    replacementPasteEditor.m_searchField = TestEditor::SearchField::Replacement;
+    replacementPasteEditor.m_findQuery = "needle";
+    replacementPasteEditor.m_replaceText = "xy";
+    replacementPasteEditor.m_replaceCursorPos = 1;
+    replacementPasteEditor.updateFindMatches();
+    const bool setReplacementClipboard = SDL_SetClipboardText("a\r\n\t\xC3\xA9") == 0;
+    if (setReplacementClipboard) replacementPasteEditor.handleEvent(searchPasteEvent);
+    check(setReplacementClipboard
+              && replacementPasteEditor.m_replaceText == "xa\xC3\xA9y"
+              && replacementPasteEditor.m_replaceCursorPos == 4
+              && replacementPasteEditor.m_findQuery == "needle"
+              && replacementPasteEditor.m_findMatchCount == 1,
+          "Ctrl+V pastes into the active replacement field as single-line text");
+
     TestEditor coalescedEditor(nullptr, &fs, "");
     setEditorLines(coalescedEditor, {"base"});
     coalescedEditor.m_cursorCol = 4;

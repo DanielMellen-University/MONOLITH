@@ -1,5 +1,10 @@
 # Changelog
 
+## 2026-10: Paste into Text Editor search fields
+
+- Honor Ctrl+V in Find and Replace's active caret field, filtering control characters so pasted line breaks cannot make the prompt multi-line.
+- Verify UTF-8 insertion, caret movement, and live match refresh.
+
 ## 2026-10: Reuse Text Editor prefix measurement storage
 
 - Reuse a bounded prefix buffer for cursor and selection text measurements, eliminating repeated substring allocations on ordinary lines.

@@ -92,6 +92,7 @@ The editor applies lightweight syntax highlighting:
 | Tab | Switch to replace mode (focus replacement field) |
 | Left / Right / Home / End | Move the active query caret |
 | Backspace / Delete | Remove the previous or next complete UTF-8 character |
+| Ctrl+V | Paste at the query caret; line breaks and other control characters are removed |
 | Esc | Exit find mode |
 
 The status bar shows match count (e.g. `2/5`). The current match is selected in the buffer. Search stores one location checkpoint per 256 non-overlapping matches, resolving navigation from the nearest checkpoint instead of retaining every hit; highlight geometry is built only for matches intersecting the visible text viewport.
@@ -104,6 +105,7 @@ The status bar shows match count (e.g. `2/5`). The current match is selected in 
 | Tab | Toggle between find and replacement fields |
 | Left / Right / Home / End | Move the active field caret |
 | Backspace / Delete | Remove the previous or next complete UTF-8 character |
+| Ctrl+V | Paste at the active field caret; line breaks and other control characters are removed |
 | Enter / Shift+Enter | Next / previous match |
 | Ctrl+R | Replace current match, then jump forward |
 | Ctrl+Shift+R | Replace all matches (one undo step) |
