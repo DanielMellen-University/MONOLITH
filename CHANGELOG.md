@@ -1,5 +1,9 @@
 # Changelog
 
+## 2026-10: Count Text Editor bytes while opening
+
+- Count normalized serialized bytes during the bounded chunk read and seed the editor's size cache directly, avoiding a second full-document scan after opening.
+
 ## 2026-10: Enforce Text Editor document limits while editing
 
 - Reject typing, newline, paste, Replace, and Replace All operations that would grow a document beyond 16 MiB or 65,536 lines, without changing its content or undo history.
