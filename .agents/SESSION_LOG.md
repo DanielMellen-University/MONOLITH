@@ -1,5 +1,7 @@
 # Session log
 
+| 2026-10-04 | cleanup/perf | Shared directory-entry visibility and symlink-containment validation between `list()` and `listEntries()`, and resolve the configured host root once per listing rather than once per directory or symlink. The focused filesystem roadmap suite, full headless matrix, production build, and focused ASan/UBSan suite pass. |
+
 | 2026-10-04 | perf | Keep complete Find/Replace strings while rendering only 64-byte UTF-8-safe context around each caret. Highlights measure visible match slices and start from sparse checkpoints, avoiding giant off-screen measurements, dense-prefix rescans, and overlapping viewport-only false hits. Maximum-size field coverage passes. |
 
 | 2026-10-04 | fix | Bound each Text Editor Find/Replace field to 16 MiB, preserving complete UTF-8 codepoints and reporting rejected overflow. Added exact-fit typing and over-limit typing/paste regressions for Find and Replace. |

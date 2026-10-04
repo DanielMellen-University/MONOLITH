@@ -196,6 +196,37 @@ bool resolveWithinRoot(const stdfs::path& root,
     return !ec && pathHasPrefix(root, resolved);
 }
 
+bool inspectVisibleEntry(const stdfs::path& root,
+                         const stdfs::directory_entry& entry,
+                         bool* outIsDirectory = nullptr) {
+    std::error_code statusError;
+    const auto linkStatus = entry.symlink_status(statusError);
+    if (statusError) return false;
+
+    const bool isSymlink = stdfs::is_symlink(linkStatus);
+    if (isSymlink) {
+        stdfs::path resolved;
+        if (!resolveWithinRoot(root, entry.path(), resolved)) return false;
+    }
+
+    bool isDirectory = stdfs::is_directory(linkStatus);
+    if (isSymlink) {
+        const auto targetStatus = entry.status(statusError);
+        if (statusError) {
+            if (statusError != std::errc::no_such_file_or_directory) return false;
+            statusError.clear();
+            isDirectory = false;
+        } else {
+            isDirectory = stdfs::is_directory(targetStatus);
+        }
+    } else if (isDirectory) {
+        stdfs::path resolved;
+        if (!resolveWithinRoot(root, entry.path(), resolved)) return false;
+    }
+    if (outIsDirectory) *outIsDirectory = isDirectory;
+    return true;
+}
+
 } // namespace
 
 struct Filesystem::CleanupTraversal {
@@ -1096,30 +1127,12 @@ std::vector<std::string> Filesystem::list(const std::string& virtualPath) const 
         if (!stdfs::is_directory(hostPath)) return entries;
         monolith::detail::scavengeAtomicTempDirectoriesIfDue(hostPath);
 
-        for (const auto& entry : stdfs::directory_iterator(hostPath)) {
-            std::error_code statusEc;
-            const auto linkStatus = entry.symlink_status(statusEc);
-            if (statusEc) continue;
-            const bool isSymlink = stdfs::is_symlink(linkStatus);
-            if (isSymlink && !isWithinHostRoot(entry.path().string())) continue;
+        std::error_code rootError;
+        const stdfs::path root = stdfs::weakly_canonical(m_hostRoot, rootError);
+        if (rootError) return entries;
 
-            bool isDirectory = stdfs::is_directory(linkStatus);
-            if (isSymlink) {
-                const auto targetStatus = entry.status(statusEc);
-                if (statusEc) {
-                    if (statusEc != std::errc::no_such_file_or_directory) {
-                        continue;
-                    }
-                    statusEc.clear();
-                    isDirectory = false;
-                } else {
-                    isDirectory = stdfs::is_directory(targetStatus);
-                }
-            }
-            if (isDirectory && !isSymlink
-                && !isWithinHostRoot(entry.path().string())) {
-                continue;
-            }
+        for (const auto& entry : stdfs::directory_iterator(hostPath)) {
+            if (!inspectVisibleEntry(root, entry)) continue;
             entries.push_back(entry.path().filename().string());
         }
     } catch (...) {
@@ -1137,30 +1150,13 @@ std::vector<Filesystem::DirEntry> Filesystem::listEntries(const std::string& vir
         if (!stdfs::is_directory(hostPath)) return {};
         monolith::detail::scavengeAtomicTempDirectoriesIfDue(hostPath);
 
-        for (const auto& entry : stdfs::directory_iterator(hostPath)) {
-            std::error_code statusEc;
-            const auto linkStatus = entry.symlink_status(statusEc);
-            if (statusEc) continue;
-            const bool isSymlink = stdfs::is_symlink(linkStatus);
-            if (isSymlink && !isWithinHostRoot(entry.path().string())) continue;
+        std::error_code rootError;
+        const stdfs::path root = stdfs::weakly_canonical(m_hostRoot, rootError);
+        if (rootError) return {};
 
-            bool isDirectory = stdfs::is_directory(linkStatus);
-            if (isSymlink) {
-                const auto targetStatus = entry.status(statusEc);
-                if (statusEc) {
-                    if (statusEc != std::errc::no_such_file_or_directory) {
-                        continue;
-                    }
-                    statusEc.clear();
-                    isDirectory = false;
-                } else {
-                    isDirectory = stdfs::is_directory(targetStatus);
-                }
-            }
-            if (isDirectory && !isSymlink
-                && !isWithinHostRoot(entry.path().string())) {
-                continue;
-            }
+        for (const auto& entry : stdfs::directory_iterator(hostPath)) {
+            bool isDirectory = false;
+            if (!inspectVisibleEntry(root, entry, &isDirectory)) continue;
 
             DirEntry de;
             de.name = entry.path().filename().string();

@@ -1,5 +1,10 @@
 # Changelog
 
+## 2026-10: Unify filesystem directory-entry validation
+
+- Share one visibility and symlink-containment check between `list()` and `listEntries()`.
+- Resolve the configured host root once per listing instead of once for every directory or symlink entry.
+
 ## 2026-10: Keep long Text Editor searches responsive
 
 - Render bounded UTF-8-safe excerpts around the active Find/Replace caret while preserving the full search text.
