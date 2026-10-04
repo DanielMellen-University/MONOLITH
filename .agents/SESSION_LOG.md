@@ -1,5 +1,7 @@
 # Session log
 
+| 2026-10-04 | perf | Scheduled atomic-save sweeps now reuse the destination-directory lock through the following workspace setup, removing a redundant parent open/flock cycle; bulk sweep coverage verifies the lock remains held. |
+
 | 2026-10-04 | perf | Text Editor rendering now reuses its status-bar string buffer and appends a borrowed display-name view instead of building an owning substring each frame; an unchanged-frame regression verifies stable buffer capacity. |
 
 | 2026-10-04 | perf | Atomic-save sweeps now use `readdir` names directly and build paths only for workspace candidates, avoiding per-entry path materialization for ordinary siblings. Directory-open and enumeration failures still schedule the next-write retry. |

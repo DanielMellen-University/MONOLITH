@@ -156,8 +156,16 @@ int main() {
             sweepBatchParent / ("ordinary-" + std::to_string(index) + ".txt"),
             "user data");
     }
-    const bool sweepBatchCompleted = sweepBatchFixturesReady
-        && monolith::detail::scavengeAtomicTempDirectories(sweepBatchParent);
+    bool sweepBatchCompleted = false;
+    bool sweepBatchLockRetained = false;
+    if (sweepBatchFixturesReady) {
+        monolith::detail::AtomicTempParentLock sweepBatchLock(sweepBatchParent);
+        if (sweepBatchLock.locked()) {
+            sweepBatchCompleted = monolith::detail::scavengeAtomicTempDirectoriesLocked(
+                sweepBatchParent, sweepBatchLock);
+            sweepBatchLockRetained = sweepBatchLock.locked();
+        }
+    }
     std::size_t sweepBatchRemaining = 0;
     std::size_t ordinaryEntriesRemaining = 0;
     if (sweepBatchFixturesReady) {
@@ -170,9 +178,9 @@ int main() {
             }
         }
     }
-    check(sweepBatchCompleted && sweepBatchRemaining == 0
+    check(sweepBatchCompleted && sweepBatchLockRetained && sweepBatchRemaining == 0
               && ordinaryEntriesRemaining == sweepBatchSize,
-          "a sweep reclaims stale workspaces while preserving ordinary siblings");
+          "a sweep reuses the setup lock while reclaiming stale workspaces and preserving siblings");
 
     const fs::path failedSetupPath = parent
         / (std::string(monolith::detail::atomicTempPrefix)

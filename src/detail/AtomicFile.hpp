@@ -381,8 +381,9 @@ inline bool tryReclaimIncompleteAtomicTempDirectory(
     return removeAtomicTempWorkspace(directory, false);
 }
 
-inline bool scavengeAtomicTempDirectories(const std::filesystem::path& parent) {
-    AtomicTempParentLock parentLock(parent);
+inline bool scavengeAtomicTempDirectoriesLocked(
+    const std::filesystem::path& parent,
+    const AtomicTempParentLock& parentLock) {
     if (!parentLock.locked()) {
         scheduleAtomicTempSweepRetry(parent);
         return false;
@@ -418,6 +419,11 @@ inline bool scavengeAtomicTempDirectories(const std::filesystem::path& parent) {
     return complete;
 }
 
+inline bool scavengeAtomicTempDirectories(const std::filesystem::path& parent) {
+    const AtomicTempParentLock parentLock(parent);
+    return scavengeAtomicTempDirectoriesLocked(parent, parentLock);
+}
+
 inline bool createAtomicTempDirectory(const std::filesystem::path& targetPath,
                                       std::filesystem::path& outDirectory,
                                       int& outLeaseFd) {
@@ -425,10 +431,14 @@ inline bool createAtomicTempDirectory(const std::filesystem::path& targetPath,
     const std::filesystem::path parent = targetPath.has_parent_path()
         ? targetPath.parent_path()
         : std::filesystem::path(".");
-    if (shouldSweepAtomicTempParent(parent)) scavengeAtomicTempDirectories(parent);
+    const bool sweepDue = shouldSweepAtomicTempParent(parent);
 
     AtomicTempParentLock parentLock(parent);
-    if (!parentLock.locked()) return false;
+    if (!parentLock.locked()) {
+        if (sweepDue) scheduleAtomicTempSweepRetry(parent);
+        return false;
+    }
+    if (sweepDue) scavengeAtomicTempDirectoriesLocked(parent, parentLock);
 
     auto prepareNewDirectory = [&](const std::filesystem::path& candidate) {
         if (!createAtomicTempOwnerMarker(candidate)) {

@@ -1,5 +1,10 @@
 # Changelog
 
+## 2026-10: Reuse atomic-save parent locks
+
+- Keep the destination-directory lock from a scheduled stale-workspace sweep through new workspace setup, avoiding a second open/flock cycle while preserving the sweep retry behavior.
+- Verify bulk reclamation succeeds while the caller-owned parent lock remains held.
+
 ## 2026-10: Reuse Text Editor status text storage
 
 - Retain the status-bar string buffer across frames and append the display-name view directly, avoiding reconstruction of the steady-state status string.
