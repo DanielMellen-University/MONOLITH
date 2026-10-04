@@ -1,5 +1,6 @@
 # Session log
 
+| 2026-10-04 | fix/ux | Ctrl+V now pastes system clipboard text at the Filesystem Browser filter caret only while the filter is being edited; outside that mode it still pastes files. Typed and pasted query input share control filtering and the 255-byte UTF-8 limit, with coverage for caret insertion and exact/partial multibyte capacity. Production build and full headless suite pass locally; hosted verification pending. |
 | 2026-10-04 | fix/data-safety | Require Ctrl+D to overwrite an externally changed bound file from Text Editor or Drawing; Esc keeps the external version, repeated saves cannot bypass the decision, and save-before-close continues only after the confirmed write succeeds. Updated app, architecture, filesystem, and changelog documentation; production build, full headless suite, and hosted run #446 pass. |
 | 2026-10-04 | fix/ux | Text Editor and Drawing now retain an external-change status marker across routine status updates until reload, successful save, or unbinding. Lifecycle and rendered-status regressions, the full local headless suite, hosted `verify`, and hosted `sanitize` run #444 pass. |
 

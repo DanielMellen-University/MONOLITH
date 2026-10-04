@@ -266,6 +266,30 @@ int main() {
     check(browser.visibleEntryCount() == 1 && browser.visibleEntryAt(0).name == "a.txt",
           "filter can be narrowed again after returning to the unfiltered view");
 
+    check(fs.createDirectory("/clipboard-source")
+              && fs.writeFile("/clipboard-source/filter-paste.txt", "source"),
+          "create a file-clipboard source to keep separate from filter text");
+    browser.m_clipboardPaths = {"/clipboard-source/filter-paste.txt"};
+    browser.m_clipboardIsCut = false;
+    check(SDL_SetClipboardText("x\tb\n") == 0,
+          "set control-bearing text for Browser filter paste");
+    browser.m_filterCursorPos = 0;
+    key(browser, SDLK_v, KMOD_CTRL);
+    check(browser.m_filterQuery == "xba" && browser.m_filterCursorPos == 2
+              && browser.m_appliedFilterQuery == "xba"
+              && browser.m_clipboardPaths.size() == 1
+              && browser.m_clipboardPaths.front() == "/clipboard-source/filter-paste.txt"
+          && !fs.exists("/home/monolith/filter-paste.txt"),
+          "Ctrl+V pastes sanitized system text at the filter caret without pasting files");
+    key(browser, SDLK_RETURN);
+    key(browser, SDLK_v, KMOD_CTRL);
+    check(!browser.m_filtering && fs.isFile("/home/monolith/filter-paste.txt")
+              && browser.m_clipboardPaths.size() == 1,
+          "after Enter exits filter editing, Ctrl+V resumes file paste");
+    check(fs.remove("/home/monolith/filter-paste.txt"),
+          "remove the Browser filter paste-routing fixture");
+    browser.onVirtualPathRemoved("/home/monolith/filter-paste.txt");
+
     key(browser, SDLK_ESCAPE);
     check(browser.visibleEntryCount() == 15, "escape restores the full listing");
 
@@ -310,6 +334,23 @@ int main() {
               && browser.m_statusMessage.find("Filter limited to 255 UTF-8 bytes")
                   != std::string::npos,
           "filter input remains bounded by the maximum filename component length");
+    for (int index = 0; index < 4; ++index) key(browser, SDLK_BACKSPACE);
+    check(SDL_SetClipboardText(filterEmoji.c_str()) == 0,
+          "set a multibyte character for exact-fit filter paste");
+    key(browser, SDLK_v, KMOD_CTRL);
+    check(browser.m_filterQuery.size() == 255
+              && browser.m_filterCursorPos == 255
+              && !browser.m_filterLimitReached,
+          "filter paste accepts a complete UTF-8 character that exactly fills the limit");
+    key(browser, SDLK_BACKSPACE);
+    text(browser, "xx");
+    key(browser, SDLK_v, KMOD_CTRL);
+    check(browser.m_filterQuery.size() == 253
+              && browser.m_filterCursorPos == 253
+              && browser.m_filterLimitReached
+              && browser.m_statusMessage.find("Filter limited to 255 UTF-8 bytes")
+                  != std::string::npos,
+          "filter paste drops a partial UTF-8 character and reports the byte limit");
     key(browser, SDLK_RETURN);
     key(browser, SDLK_f, KMOD_CTRL);
     check(browser.m_filtering

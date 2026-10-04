@@ -61,6 +61,8 @@ private:
     void finishRename(bool commit);  // commit = true for Enter, false for Escape
     void beginFilter();
     void clearFilter();
+    void insertFilterText(const char* text);
+    void pasteFilterText();
     void applyFilterQuery();
     void updateFilterStatus();
     std::size_t visibleEntryCount() const;

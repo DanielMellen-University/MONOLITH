@@ -88,6 +88,7 @@ List rows use the existing cached filename texture dimensions for clipping. Duri
 
 - Type to filter the listing (case-insensitive substring).
 - Filter input is limited to 255 UTF-8 bytes, the Linux filename-component limit; a multibyte character is accepted only when it fits completely.
+- While filter editing is active, **Ctrl+V** inserts single-line system clipboard text at the caret, removes control bytes, and applies the same 255-byte UTF-8 limit. After **Enter** leaves filter editing, **Ctrl+V** resumes its normal file-paste action.
 - Reaching the limit reports it in the status bar; editing the query clears that notice.
 - While filtering, Left/Right/Home/End move the caret, typed text is inserted at the caret, Delete removes the next complete UTF-8 character, and Backspace removes the previous one.
 - Long filter queries stay at native text size and scroll horizontally to keep the caret visible.

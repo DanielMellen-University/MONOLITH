@@ -1,5 +1,10 @@
 # Changelog
 
+## 2026-10: Paste text into the active Browser filter
+
+- Route Ctrl+V to system clipboard text while the Filesystem Browser filter is being edited, preserving its caret and leaving file-copy clipboard operations untouched.
+- Share the filter's single-line control filtering and 255-byte UTF-8 boundary behavior between typed and pasted input; cover sanitized insertion, exact-fit multibyte paste, and rejected partial characters.
+
 ## 2026-10: Confirm overwrites after external file changes
 
 - Pause Text Editor and Drawing saves targeting an externally changed bound file until Ctrl+D explicitly confirms the overwrite; Esc keeps the external disk version.

@@ -34,6 +34,7 @@ The human funds token budget and lives in the desktop. You:
 
 | When | Kind | Note |
 |------|------|------|
+| 2026-10-04 | filesystem-browser-filter-paste | Support system text clipboard paste at the active folder-filter caret without changing Ctrl+V file paste outside filter editing; share control filtering and UTF-8-safe 255-byte limits |
 | 2026-10-04 | external-overwrite-confirmation | Pause Text Editor and Drawing saves to externally changed bound files until Ctrl+D confirms or Esc cancels; preserve save-before-close continuations and document the cross-process limitation; hosted run #446 passed |
 | 2026-10-04 | external-file-change-status | Keep a persistent status-bar marker in Text Editor and Drawing after external writes; clear it on successful reload/save or when the binding is removed; hosted run #444 passed |
 | 2026-10-04 | atomic-save-startup-nonblocking-locks | Probe startup candidate locks without blocking the frame, retain a contended iterator entry for retry, and defer parent paths on descriptor exhaustion |
@@ -407,6 +408,7 @@ Older recent-work rows: [`SESSION_LOG.md`](SESSION_LOG.md).
 | 7.152 | Bound opportunistic atomic-save sweeps | done | Inspect at most 32 directory entries per save/listing sweep step; retain resumable per-parent cursors and reacquire the parent lock for each slice; ensure large mixed directories are eventually reclaimed without deleting ordinary entries |
 | 7.153 | Report fully blocked Browser pastes accurately | done | Distinguish a failed copy from a failed move in status text, preserve fully blocked cut clipboard entries for retry, and verify that conflicting source/destination files remain untouched |
 | 7.154 | Keep startup cleanup nonblocking | done | Probe candidate parent locks nonblocking, resume a contended candidate from the retained directory iterator on a later frame, and defer candidate parents on descriptor exhaustion until active frames unwind; verify both retry paths |
+| 7.155 | Paste into the active Browser filter | done | Route Ctrl+V to sanitized system text only while filter editing is active; preserve file paste afterward and cover caret insertion, control filtering, exact-fit UTF-8, and partial-character rejection |
 | fs-browser-filter-cache | Reuse Filesystem Browser filter snapshots | done | Reuse one directory listing for filter edits; refresh it on F5 and Monolith filesystem notifications, including while filtering |
 | terminal-input-editing | Terminal command-line selection | done | Support UTF-8-safe keyboard/mouse selection and Ctrl+A/C/X/V; normalize all clipboard lines and tabs into the single-line prompt |
 | terminal-touch-mtime | Complete Terminal touch semantics | done | Update existing regular-file last-write time without truncation; reject outside-root symlink targets |

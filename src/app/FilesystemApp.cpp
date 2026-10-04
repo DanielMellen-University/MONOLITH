@@ -4,6 +4,7 @@
 
 #include <algorithm>
 #include <cctype>
+#include <memory>
 #include <sstream>
 #include <utility>
 
@@ -961,6 +962,53 @@ void FilesystemApp::clearFilter() {
     }
 }
 
+void FilesystemApp::insertFilterText(const char* text) {
+    if (!text || !*text) return;
+
+    m_filterCursorPos = utf8ClampToCodepointBoundary(
+        m_filterQuery, m_filterCursorPos);
+    const std::size_t available = m_filterQuery.size() < kMaxFilterQueryBytes
+        ? kMaxFilterQueryBytes - m_filterQuery.size()
+        : 0;
+    std::string inserted;
+    inserted.reserve(std::min(available, std::size_t{256}));
+    bool hitLimit = false;
+    for (const unsigned char* p = reinterpret_cast<const unsigned char*>(text); *p; ++p) {
+        if (*p < 32 || *p == 127) continue;
+        if (inserted.size() == available) {
+            hitLimit = true;
+            break;
+        }
+        inserted.push_back(static_cast<char>(*p));
+    }
+    trimIncompleteUtf8Suffix(inserted);
+
+    if (!inserted.empty()) {
+        m_filterQuery.insert(m_filterCursorPos, inserted);
+        m_filterCursorPos += inserted.size();
+        m_filterLimitReached = hitLimit;
+        applyFilterQuery();
+    } else if (hitLimit) {
+        m_filterLimitReached = true;
+        updateFilterStatus();
+    }
+}
+
+void FilesystemApp::pasteFilterText() {
+    if (!SDL_HasClipboardText()) return;
+    std::unique_ptr<char, decltype(&SDL_free)> raw(SDL_GetClipboardText(), &SDL_free);
+    if (!raw) return;
+
+    constexpr std::size_t kMaxClipboardBytes = 16 * 1024 * 1024;
+    std::size_t rawSize = 0;
+    while (rawSize <= kMaxClipboardBytes && raw.get()[rawSize] != '\0') ++rawSize;
+    if (rawSize > kMaxClipboardBytes) {
+        setStatus("Filter paste rejected: clipboard exceeds 16 MiB");
+        return;
+    }
+    insertFilterText(raw.get());
+}
+
 void FilesystemApp::applyFilterQuery() {
     refreshEntries({}, {}, false, true);
     updateFilterStatus();
@@ -1287,6 +1335,10 @@ void FilesystemApp::handleKeyDown(const SDL_Keysym& keysym) {
     }
 
     if (m_filtering) {
+        if ((keysym.mod & KMOD_CTRL) && keysym.sym == SDLK_v) {
+            pasteFilterText();
+            return;
+        }
         if (keysym.sym == SDLK_F5) {
             refreshEntries();
             if (m_filterLimitReached) {
@@ -1474,27 +1526,7 @@ void FilesystemApp::handleEvent(const SDL_Event& event) {
     }
 
     if (m_filtering && event.type == SDL_TEXTINPUT) {
-        if (event.text.text) {
-            m_filterCursorPos = std::min(m_filterCursorPos, m_filterQuery.size());
-            std::string inserted = event.text.text;
-            const std::size_t available = kMaxFilterQueryBytes
-                - std::min(m_filterQuery.size(), kMaxFilterQueryBytes);
-            if (inserted.size() > available) {
-                inserted.resize(available);
-                trimIncompleteUtf8Suffix(inserted);
-                m_filterLimitReached = true;
-                if (inserted.empty()) {
-                    updateFilterStatus();
-                    return;
-                }
-            } else {
-                m_filterLimitReached = false;
-            }
-            if (inserted.empty()) return;
-            m_filterQuery.insert(m_filterCursorPos, inserted);
-            m_filterCursorPos += inserted.size();
-            applyFilterQuery();
-        }
+        insertFilterText(event.text.text);
         return;
     }
 
