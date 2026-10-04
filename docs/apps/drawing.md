@@ -45,7 +45,7 @@ Drawing is a pixel editor, not a layer or vector editor. The canvas is edited in
 | Draw | Choose a swatch, select **Pen**, **Eraser**, **Fill**, **Line**, or **Rect**, then use the canvas. |
 | Sample a color | Select **Pick**, click a canvas pixel, and continue with Pen. |
 | Save a new sketch | Press **Ctrl+S**, keep or edit the suggested `.modr` path, then press **Enter**. |
-| Save an open sketch | Press **Ctrl+S**. The current bound path is written immediately. |
+| Save an open sketch | Press **Ctrl+S**. If the bound file changed externally, press **Ctrl+D** at the warning to overwrite it, or **Esc** to keep the disk version. |
 | Open another sketch | Press **Ctrl+O**, type or Tab-complete a `.modr` path, then press **Enter**. |
 | Recover from a mistaken stroke | Press **Ctrl+Z**. Use **Ctrl+Y** or **Ctrl+Shift+Z** to redo it. |
 | Rename or move a saved sketch | Use Filesystem Browser Rename or Terminal `mv`, keeping the full `.modr` suffix. |
@@ -157,7 +157,7 @@ Use Filesystem Browser Rename or Terminal `mv`, keeping the complete `.modr` suf
 | Save | **Ctrl+S** | Saves the current file, or opens the Save path prompt for a new sketch. |
 | Open | **Ctrl+O** | Opens the `.modr` path prompt. |
 | New | **Ctrl+N** | Starts a blank sketch; a dirty sketch requires an explicit choice. |
-| Discard | **Ctrl+D** | In a dirty Close, New, or Open decision, explicitly discards the current sketch. |
+| Discard or confirm overwrite | **Ctrl+D** | Confirms an external-file overwrite, or explicitly discards the sketch in a dirty Close, New, or Open decision. |
 | Save and continue | **Ctrl+S** | In a dirty Close or New decision, saves first and continues only after success. In dirty Open, saves the current sketch and cancels Open. |
 | Save As and continue | **Ctrl+Shift+S** | During a dirty Close or New decision, choose another save path; the pending action completes only after success. |
 | Undo | **Ctrl+Z** | Restores the previous canvas state. |
@@ -445,11 +445,11 @@ Use the action that matches your intent:
 
 | Situation | Action |
 |-----------|--------|
-| You want to keep the canvas currently visible | Press **Ctrl+S**. The current canvas becomes the file contents. |
+| You want to keep the canvas currently visible | Press **Ctrl+S**. If the file changed externally, confirm with **Ctrl+D**; **Esc** keeps the disk version. |
 | You want to inspect the version written by another app | Press **Ctrl+O**, select the same `.modr`, then press **Ctrl+D** if the canvas is modified. |
 | You want both versions | Copy the file to a new `.modr` path first, then open the copy or save the current canvas to another path. |
 
-An external overwrite does not change the Drawing title, bound path, dirty marker, or undo history. The status bar says `File changed externally; canvas unchanged. Save to overwrite it.` An `[external change]` marker remains visible through other status updates until the file is reloaded, successfully saved, removed, or replaced with a new sketch. Opening the currently bound path reloads that external version in the same window; if the canvas is dirty, press **Ctrl+D** to explicitly discard local pixels and reload. A successful Save still sends the normal filesystem change notification so other open apps can refresh their views.
+An external overwrite does not change the Drawing title, bound path, dirty marker, or undo history. An `[external change]` marker remains visible through other status updates until the file is reloaded, successfully saved, removed, or replaced with a new sketch. A normal Ctrl+S pauses before replacing the newer disk version; press **Ctrl+D** to confirm the overwrite, or **Esc** to keep the external version. The confirmation applies only to that save attempt. Opening the currently bound path reloads the external version in the same window; if the canvas is dirty, the existing dirty-content decision uses **Ctrl+D** to discard local pixels and reload. A successful Save still sends the normal filesystem change notification so other open apps can refresh their views.
 
 ## Common File Workflows
 

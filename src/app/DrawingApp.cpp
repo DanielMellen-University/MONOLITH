@@ -902,7 +902,8 @@ std::string DrawingApp::defaultSavePath() {
     return baseDir + "/sketch.modr";
 }
 
-bool DrawingApp::saveToPath(const std::string& virtualPath) {
+bool DrawingApp::saveToPath(const std::string& virtualPath,
+                            bool confirmedExternalOverwrite) {
     if (!m_fs) {
         clearDiscardArm();
         setStatus("Save failed: filesystem not available.");
@@ -932,6 +933,16 @@ bool DrawingApp::saveToPath(const std::string& virtualPath) {
         path += ".modr";
     }
 
+    const bool overwritingCurrentPath = path == m_filePath;
+    if (m_externalChangePending && overwritingCurrentPath
+        && !confirmedExternalOverwrite) {
+        if (m_drawing) endActiveStroke();
+        m_overwriteConfirmationPending = true;
+        setStatus("File changed externally; Ctrl+D overwrites it, Esc cancels.");
+        return false;
+    }
+    m_overwriteConfirmationPending = false;
+
     const bool wasExisting = m_fs->exists(path);
 
     std::string parent = path;
@@ -954,6 +965,7 @@ bool DrawingApp::saveToPath(const std::string& virtualPath) {
 
     m_filePath = path;
     m_externalChangePending = false;
+    m_overwriteConfirmationPending = false;
     captureSavedSnapshot();
     m_dirty = false;
     clearDirtyTiles();
@@ -1035,6 +1047,7 @@ bool DrawingApp::loadFromPath(const std::string& virtualPath) {
 
     m_filePath = path;
     m_externalChangePending = false;
+    m_overwriteConfirmationPending = false;
     captureSavedSnapshot();
     m_dirty = false;
     clearDirtyTiles();
@@ -1073,7 +1086,9 @@ void DrawingApp::onBoundFileMoved(const std::string& oldPath,
     if (auto* ctrl = getController()) {
         ctrl->setTitle("Drawing - " + baseName);
     }
-    setStatus("File moved: " + normalizedNewPath);
+    setStatus(m_overwriteConfirmationPending
+        ? "File moved; Ctrl+D confirms overwrite, Esc cancels."
+        : "File moved: " + normalizedNewPath);
 }
 
 void DrawingApp::onVirtualPathMoved(const std::string& oldPath,
@@ -1117,7 +1132,9 @@ void DrawingApp::onVirtualPathChanged(const std::string& changedPath) {
     if (m_fs->normalize(changedPath) != m_fs->normalize(m_filePath)) return;
 
     m_externalChangePending = true;
-    setStatus("File changed externally; canvas unchanged. Save to overwrite it.");
+    setStatus(m_overwriteConfirmationPending
+        ? "File changed again; Ctrl+D overwrites latest version, Esc cancels."
+        : "External file changed; reload or save with confirmation.");
 }
 
 void DrawingApp::onBoundFileRemoved(const std::string& removedPath) {
@@ -1137,6 +1154,9 @@ void DrawingApp::onBoundFileRemoved(const std::string& removedPath) {
 
     m_filePath.clear();
     m_externalChangePending = false;
+    m_overwriteConfirmationPending = false;
+    m_closeAfterSave = false;
+    m_newAfterSave = false;
     clearDiscardArm();
     if (auto* ctrl = getController()) {
         ctrl->clearDrawingFileBinding();
@@ -1168,6 +1188,7 @@ bool DrawingApp::requestDiscard(DiscardKind kind, const char* statusMessage,
 }
 
 bool DrawingApp::allowClose() {
+    if (m_overwriteConfirmationPending) return false;
     const bool explicitlyConfirmed = m_closeDiscardAuthorized;
     m_closeDiscardAuthorized = false;
     return requestDiscard(
@@ -1187,6 +1208,7 @@ void DrawingApp::startNewSketch(bool explicitlyConfirmed) {
     clearCanvas(false);
     m_filePath.clear();
     m_externalChangePending = false;
+    m_overwriteConfirmationPending = false;
     captureSavedSnapshot();
     clearHistory();
     m_dirty = false; // blank new sketch is clean
@@ -1306,7 +1328,7 @@ void DrawingApp::finishPathPrompt(bool commit, bool confirmDiscard) {
                 return;
             }
         }
-        if (saveToPath(buffer)) {
+        if (saveToPath(buffer, true)) {
             completePendingSaveAction();
         } else {
             restorePrompt();
@@ -1903,6 +1925,33 @@ void DrawingApp::render(SDL_Renderer* renderer, const SDL_Rect& contentRect) {
 }
 
 void DrawingApp::handleEvent(const SDL_Event& event) {
+    if (m_overwriteConfirmationPending) {
+        if (event.type == SDL_KEYDOWN) {
+            const SDL_Keysym& key = event.key.keysym;
+            if ((key.mod & KMOD_CTRL) && key.sym == SDLK_d) {
+                if (saveToPath(m_filePath, true)) {
+                    completePendingSaveAction();
+                } else {
+                    m_closeAfterSave = false;
+                    m_newAfterSave = false;
+                }
+                return;
+            }
+            if (key.sym == SDLK_ESCAPE) {
+                if (m_discardKind == DiscardKind::Close
+                    || m_discardKind == DiscardKind::New) {
+                    clearDiscardArm();
+                    m_closeAfterSave = false;
+                    m_newAfterSave = false;
+                }
+                m_overwriteConfirmationPending = false;
+                setStatus("Save cancelled; external version kept.");
+                return;
+            }
+        }
+        return;
+    }
+
     if (m_pathPromptMode != PathPromptMode::None) {
         if (event.type == SDL_KEYDOWN) {
             handlePathPromptKey(event.key.keysym);
@@ -1942,7 +1991,7 @@ void DrawingApp::handleEvent(const SDL_Event& event) {
                     beginPathPrompt(PathPromptMode::Save);
                 } else if (saveToPath(m_filePath)) {
                     completePendingSaveAction();
-                } else {
+                } else if (!m_overwriteConfirmationPending) {
                     m_closeAfterSave = false;
                     m_newAfterSave = false;
                 }

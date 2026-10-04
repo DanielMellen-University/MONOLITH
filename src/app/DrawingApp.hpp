@@ -120,7 +120,8 @@ private:
     uint8_t activeBlue() const;
 
     // === File I/O ===
-    bool saveToPath(const std::string& virtualPath);
+    bool saveToPath(const std::string& virtualPath,
+                    bool confirmedExternalOverwrite = false);
     bool loadFromPath(const std::string& virtualPath);
     std::string defaultSavePath();
 
@@ -205,6 +206,7 @@ private:
     std::string m_filePath;
     bool m_dirty = false;
     bool m_externalChangePending = false;
+    bool m_overwriteConfirmationPending = false;
     bool m_suppressChangedNotification = false;
     DiscardKind m_discardKind = DiscardKind::None;
     std::string m_discardPath;

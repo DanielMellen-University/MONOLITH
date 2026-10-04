@@ -116,7 +116,7 @@ Terminal (`cp -r` / `rm -r`) and the Filesystem Browser (delete, cut/paste) both
 - A failed recursive copy rolls back files and directories changed by that operation; a rollback error is reported to stderr and preserves any remaining backup file for recovery.
 - Rename uses the host's atomic no-replace operation, so concurrent moves cannot overwrite a newly created destination. A host filesystem that does not support atomic no-replace rename causes the move to fail rather than fall back to a racy overwrite.
 - No quotas or versioning; `readFile` has no size cap (apps should refuse huge files if needed).
-- No cross-app file locking (two editors can theoretically race on the same file).
+- No cross-process file locking or version protocol. Text Editor and Drawing require an explicit overwrite confirmation after receiving another Monolith app's change notification, but host-side edits and separate Monolith processes are not coordinated.
 - Empty files are valid and read as an empty string; callers that need to distinguish an empty file from an I/O failure should use the boolean-output `readFile(path, out)` overload.
 - Terminal supports filenames with spaces through quoted or backslash-escaped arguments.
 - The one-argument `readFile` overload returns an empty string for both empty files and some I/O failures; use the boolean-output overload when the distinction matters.

@@ -987,7 +987,7 @@ int main() {
     externalEditor.onVirtualPathChanged("/new.txt");
     check(externalEditor.m_lines == std::vector<std::string>{"original"}
               && externalEditor.m_externalChangePending
-              && externalEditor.m_statusMessage.find("changed externally") != std::string::npos,
+              && externalEditor.m_statusMessage.find("External file changed") != std::string::npos,
           "external overwrite warns without replacing the editor buffer");
     externalEditor.setStatus("Copied selection.");
     check(externalEditor.m_externalChangePending,
@@ -1026,13 +1026,30 @@ int main() {
     selfSaveEditor.onVirtualPathChanged("/new.txt");
     selfSaveEditor.m_lines = {"editor save"};
     selfSaveEditor.m_dirty = true;
-    check(selfSaveEditor.saveCurrentFile(), "editor save succeeds after an external overwrite");
+    check(!selfSaveEditor.saveCurrentFile()
+              && selfSaveEditor.m_overwriteConfirmationPending
+              && fs.readFile("/new.txt") == "newer external change",
+          "the first save preserves an external version and asks before overwriting");
+    check(!selfSaveEditor.saveCurrentFile()
+              && selfSaveEditor.m_overwriteConfirmationPending
+              && fs.readFile("/new.txt") == "newer external change",
+          "repeated direct saves cannot bypass the pending overwrite decision");
+    sendKey(selfSaveEditor, SDLK_ESCAPE);
+    check(!selfSaveEditor.m_overwriteConfirmationPending
+              && selfSaveEditor.m_externalChangePending
+              && fs.readFile("/new.txt") == "newer external change",
+          "Escape cancels an external-overwrite attempt without changing either version");
+    sendKey(selfSaveEditor, SDLK_s, KMOD_CTRL);
+    check(selfSaveEditor.m_overwriteConfirmationPending
+              && fs.readFile("/new.txt") == "newer external change",
+          "a new save attempt requires a fresh overwrite confirmation");
+    sendKey(selfSaveEditor, SDLK_d, KMOD_CTRL);
+    check(fs.readFile("/new.txt") == "editor save",
+          "Ctrl+D explicitly confirms replacing the external file version");
     check(selfSaveEditor.m_statusMessage == "Saved: new.txt"
               && !selfSaveEditor.m_suppressChangedNotification
               && !selfSaveEditor.m_externalChangePending,
           "the editor ignores its own synchronous change notification");
-    check(fs.readFile("/new.txt") == "editor save",
-          "editor save deliberately replaces the external file content");
 
     check(fs.createDirectory("/blocked.txt"), "create blocked direct-save target");
     editor.m_filePath = "/blocked.txt";
@@ -1072,6 +1089,40 @@ int main() {
               && !saveCloseEditor.m_dirty
               && saveCloseController.closeRequests == 1,
           "Ctrl+S saves successfully before requesting the pending close");
+
+    check(fs.writeFile("/save-close-conflict.txt", "disk version"),
+          "create external-change save-and-close target");
+    TestEditor conflictCloseEditor(nullptr, &fs, "/save-close-conflict.txt");
+    TestController conflictCloseController;
+    conflictCloseEditor.setController(&conflictCloseController);
+    conflictCloseEditor.m_lines = {"editor version"};
+    conflictCloseEditor.m_dirty = true;
+    check(fs.writeFile("/save-close-conflict.txt", "external version"),
+          "write external save-and-close version");
+    conflictCloseEditor.onVirtualPathChanged("/save-close-conflict.txt");
+    check(!conflictCloseEditor.allowClose(),
+          "externally changed dirty Editor still asks before close");
+    sendKey(conflictCloseEditor, SDLK_s, KMOD_CTRL);
+    check(conflictCloseEditor.m_overwriteConfirmationPending
+              && conflictCloseController.closeRequests == 0
+              && fs.readFile("/save-close-conflict.txt") == "external version",
+          "save-and-close pauses before overwriting the external version");
+    check(fs.writeFile("/save-close-conflict.txt", "external version 2"),
+          "write a second external save-and-close version");
+    conflictCloseEditor.onVirtualPathChanged("/save-close-conflict.txt");
+    check(conflictCloseEditor.m_overwriteConfirmationPending
+              && fs.readFile("/save-close-conflict.txt") == "external version 2",
+          "a newer external write keeps the overwrite decision attached to the latest disk version");
+    sendKey(conflictCloseEditor, SDLK_o, KMOD_CTRL);
+    check(conflictCloseEditor.m_overwriteConfirmationPending
+              && conflictCloseEditor.m_pathPromptMode == TestEditor::PathPromptMode::None
+              && conflictCloseController.closeRequests == 0,
+          "unrelated shortcuts cannot replace a pending overwrite decision");
+    sendKey(conflictCloseEditor, SDLK_d, KMOD_CTRL);
+    check(!conflictCloseEditor.m_dirty
+              && conflictCloseController.closeRequests == 1
+              && fs.readFile("/save-close-conflict.txt") == "editor version",
+          "explicit overwrite completes the pending Editor close only after save");
 
     TestEditor untitledCloseEditor(nullptr, &fs, "");
     TestController untitledCloseController;

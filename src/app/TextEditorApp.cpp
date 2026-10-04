@@ -516,6 +516,7 @@ bool TextEditorApp::loadInitialFile(const std::string& virtualPath) {
     m_filePath = normalized;
     m_savedLines = m_lines;
     m_externalChangePending = false;
+    m_overwriteConfirmationPending = false;
     m_cursorRow = 0;
     m_cursorCol = 0;
     m_scrollOffset = 0;
@@ -529,6 +530,10 @@ bool TextEditorApp::loadInitialFile(const std::string& virtualPath) {
 }
 
 bool TextEditorApp::saveCurrentFile() {
+    return saveCurrentFile(false);
+}
+
+bool TextEditorApp::saveCurrentFile(bool confirmedExternalOverwrite) {
     if (!m_fs) {
         clearDiscardArm();
         setStatus("Save failed: filesystem not available");
@@ -545,6 +550,14 @@ bool TextEditorApp::saveCurrentFile() {
         return false;
     }
 
+    if (m_externalChangePending && !confirmedExternalOverwrite) {
+        m_selectingWithMouse = false;
+        m_overwriteConfirmationPending = true;
+        setStatus("File changed externally; Ctrl+D overwrites it, Esc cancels.");
+        return false;
+    }
+    m_overwriteConfirmationPending = false;
+
     const bool wasExisting = m_fs->exists(m_filePath);
     const bool ok = m_fs->writeFileWithProducer(m_filePath, [this](std::ostream& output) {
         monolith::detail::BufferedStreamWriter writer(output);
@@ -558,6 +571,7 @@ bool TextEditorApp::saveCurrentFile() {
         m_savedLines = m_lines;
         m_dirty = false;
         m_externalChangePending = false;
+        m_overwriteConfirmationPending = false;
         clearDiscardArm();
         if (auto* ctrl = getController()) {
             // Claim the singleton before broadcasting so a synchronous observer
@@ -609,6 +623,7 @@ bool TextEditorApp::requestDiscard(DiscardKind kind, const char* statusMessage,
 }
 
 bool TextEditorApp::allowClose() {
+    if (m_overwriteConfirmationPending) return false;
     const bool explicitlyConfirmed = m_closeDiscardAuthorized;
     m_closeDiscardAuthorized = false;
     return requestDiscard(
@@ -645,7 +660,9 @@ void TextEditorApp::onBoundFileMoved(const std::string& oldPath,
     refreshSyntaxMode();
     clearDiscardArm();
     updateTitleForPath();
-    setStatus("File moved: " + normalizedNewPath);
+    setStatus(m_overwriteConfirmationPending
+        ? "File moved; Ctrl+D confirms overwrite, Esc cancels."
+        : "File moved: " + normalizedNewPath);
 }
 
 void TextEditorApp::onVirtualPathMoved(const std::string& oldPath,
@@ -689,7 +706,9 @@ void TextEditorApp::onVirtualPathChanged(const std::string& changedPath) {
     if (m_fs->normalize(changedPath) != m_fs->normalize(m_filePath)) return;
 
     m_externalChangePending = true;
-    setStatus("File changed externally; buffer unchanged. Save to overwrite it.");
+    setStatus(m_overwriteConfirmationPending
+        ? "File changed again; Ctrl+D overwrites latest version, Esc cancels."
+        : "External file changed; reload or save with confirmation.");
 }
 
 void TextEditorApp::onBoundFileRemoved(const std::string& removedPath) {
@@ -709,6 +728,8 @@ void TextEditorApp::onBoundFileRemoved(const std::string& removedPath) {
 
     m_filePath.clear();
     m_externalChangePending = false;
+    m_overwriteConfirmationPending = false;
+    m_closeAfterSave = false;
     refreshSyntaxMode();
     clearDiscardArm();
     if (auto* ctrl = getController()) {
@@ -876,7 +897,7 @@ void TextEditorApp::finishPathPrompt(bool commit, bool confirmDiscard) {
 
         m_filePath = path;
         refreshSyntaxMode();
-        if (saveCurrentFile()) {
+        if (saveCurrentFile(true)) {
             updateTitleForPath();
             if (m_closeAfterSave) {
                 m_closeAfterSave = false;
@@ -2625,6 +2646,34 @@ void TextEditorApp::render(SDL_Renderer* renderer, const SDL_Rect& contentRect) 
 }
 
 void TextEditorApp::handleEvent(const SDL_Event& event) {
+    if (m_overwriteConfirmationPending) {
+        if (event.type == SDL_KEYDOWN) {
+            const SDL_Keysym& key = event.key.keysym;
+            if ((key.mod & KMOD_CTRL) && key.sym == SDLK_d) {
+                const bool closeAfterSave = m_closeAfterSave;
+                if (saveCurrentFile(true)) {
+                    m_closeAfterSave = false;
+                    if (closeAfterSave) {
+                        if (auto* ctrl = getController()) ctrl->close();
+                    }
+                } else {
+                    m_closeAfterSave = false;
+                }
+                return;
+            }
+            if (key.sym == SDLK_ESCAPE) {
+                if (m_discardKind == DiscardKind::Close || m_closeAfterSave) {
+                    clearDiscardArm();
+                    m_closeAfterSave = false;
+                }
+                m_overwriteConfirmationPending = false;
+                setStatus("Save cancelled; external version kept.");
+                return;
+            }
+        }
+        return;
+    }
+
     if (m_pathPromptMode != PathPromptMode::None) {
         if (event.type == SDL_KEYDOWN) {
             handlePathPromptKey(event.key.keysym);
@@ -2870,8 +2919,14 @@ void TextEditorApp::handleEvent(const SDL_Event& event) {
                 if (m_filePath.empty()) {
                     m_closeAfterSave = true;
                     beginPathPrompt(PathPromptMode::SaveAs);
-                } else if (saveCurrentFile()) {
-                    if (auto* ctrl = getController()) ctrl->close();
+                } else {
+                    m_closeAfterSave = true;
+                    if (saveCurrentFile()) {
+                        m_closeAfterSave = false;
+                        if (auto* ctrl = getController()) ctrl->close();
+                    } else if (!m_overwriteConfirmationPending) {
+                        m_closeAfterSave = false;
+                    }
                 }
                 return;
             }

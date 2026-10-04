@@ -1,5 +1,11 @@
 # Changelog
 
+## 2026-10: Confirm overwrites after external file changes
+
+- Pause Text Editor and Drawing saves targeting an externally changed bound file until Ctrl+D explicitly confirms the overwrite; Esc keeps the external disk version.
+- Preserve pending save-before-close actions until the confirmed write succeeds, and keep Save As as an explicit target choice.
+- Cover repeated saves, cancellation, external-version preservation, and save-before-close continuations in both app state suites.
+
 ## 2026-10: Keep external file-change warnings visible
 
 - Keep a persistent status-bar marker in Text Editor and Drawing after another app changes their bound files, even when later actions replace the transient status message.

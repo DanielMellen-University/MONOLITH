@@ -100,6 +100,7 @@ private:
     static bool documentFitsFileLimits(const std::vector<std::string>& lines,
                                        size_t* serializedBytes = nullptr);
     bool loadInitialFile(const std::string& virtualPath);
+    bool saveCurrentFile(bool confirmedExternalOverwrite);
     std::string getDisplayName() const;
     void updateTitleForPath();
 
@@ -212,6 +213,7 @@ private:
     std::string m_filePath;   // virtual path in Monolith FS (if set)
     bool m_dirty = false;
     bool m_externalChangePending = false;
+    bool m_overwriteConfirmationPending = false;
     bool m_suppressChangedNotification = false;
     std::string m_statusMessage;  // transient status-bar feedback (save/open errors, etc.)
     std::string m_renderStatusText;

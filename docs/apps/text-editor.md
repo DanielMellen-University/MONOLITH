@@ -48,7 +48,7 @@ If a bound file's parent directory is deleted, the editor keeps the document buf
 - A global Shut Down request also stays blocked while a dirty Editor remains open. Save or explicitly discard and close each dirty Editor, then retry Shut Down.
 - A failed save clears any pending discard confirmation, so closing or opening again always asks before discarding the still-dirty buffer.
 - Canceling a dirty Open prompt also clears its pending confirmation; a later Open requires a fresh confirmation before discarding the buffer.
-- If another app overwrites the bound file, the editor keeps its in-memory buffer unchanged and reports the external change in the status bar. An `[external change]` marker remains visible through other status updates until the file is reloaded, successfully saved, or unbound. Saving afterward deliberately overwrites the file; opening the currently bound path reloads the external version. A dirty buffer still requires explicit Ctrl+D confirmation before it is discarded.
+- If another app overwrites the bound file, the editor keeps its in-memory buffer unchanged and reports the external change in the status bar. An `[external change]` marker remains visible through other status updates until the file is reloaded, successfully saved, or unbound. A normal Ctrl+S pauses before replacing the newer disk version; press Ctrl+D to overwrite it or Esc to keep the external version. Opening the currently bound path reloads the external version. Ctrl+D still discards dirty text only after a Close or Open warning.
 
 ## Syntax Highlighting
 
@@ -73,7 +73,7 @@ The editor applies lightweight syntax highlighting:
 | Ctrl+S | Save (prompts for path if untitled) |
 | Ctrl+Shift+S | Save as (path prompt) |
 | Ctrl+O | Open file by virtual path |
-| Ctrl+D | Explicitly discard dirty text after a Close or Open warning |
+| Ctrl+D | Confirm an external-file overwrite, or discard dirty text after a Close or Open warning |
 | Ctrl+A | Select all |
 | Ctrl+C | Copy selection (system clipboard) |
 | Ctrl+X | Cut selection |

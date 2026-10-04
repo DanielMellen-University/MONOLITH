@@ -884,13 +884,31 @@ int main() {
               && drawing.m_canvasWidth == 2
               && drawing.m_canvasHeight == 2
               && drawing.m_externalChangePending
-              && drawing.m_statusMessage.find("changed externally") != std::string::npos,
+              && drawing.m_statusMessage.find("External file changed") != std::string::npos,
           "external overwrite warns without replacing the Drawing canvas");
     drawing.setStatus("Undo.");
     check(drawing.m_externalChangePending,
           "routine Drawing status updates retain the external-change state");
-    check(drawing.saveToPath("/drawings/resize.modr"),
-          "Drawing save succeeds after an external overwrite");
+    const std::string externalDrawingVersion = fs.readFile("/drawings/resize.modr");
+    check(!drawing.saveToPath("/drawings/resize.modr")
+              && drawing.m_overwriteConfirmationPending
+              && fs.readFile("/drawings/resize.modr") == externalDrawingVersion,
+          "the first Drawing save preserves an external version and asks first");
+    check(!drawing.saveToPath("/drawings/resize.modr")
+              && drawing.m_overwriteConfirmationPending
+              && fs.readFile("/drawings/resize.modr") == externalDrawingVersion,
+          "repeated Drawing saves cannot bypass the pending overwrite decision");
+    sendKey(drawing, SDLK_ESCAPE);
+    check(!drawing.m_overwriteConfirmationPending && drawing.m_externalChangePending
+              && fs.readFile("/drawings/resize.modr") == externalDrawingVersion,
+          "Escape cancels Drawing overwrite without changing either version");
+    check(!drawing.saveToPath("/drawings/resize.modr")
+              && drawing.m_overwriteConfirmationPending,
+          "a new Drawing save attempt requires a fresh overwrite confirmation");
+    sendKey(drawing, SDLK_d, KMOD_CTRL);
+    check(fs.readFile("/drawings/resize.modr")
+              == monolith::drawing::encodeModr(2, 2, loadedPixels),
+          "Ctrl+D explicitly confirms replacing the external Drawing version");
     check(drawing.m_statusMessage == "Saved: /drawings/resize.modr"
               && !drawing.m_suppressChangedNotification
               && !drawing.m_externalChangePending,
@@ -1040,6 +1058,52 @@ int main() {
     check(saveCloseController.closeRequests == 1 && !saveCloseDrawing.m_dirty
               && fs.isFile("/drawings/save-before-close.modr"),
           "Ctrl+S saves a dirty Drawing before closing it");
+
+    const std::string conflictSavePath = "/drawings/save-before-close-conflict.modr";
+    const std::vector<uint8_t> conflictInitialPixels{30, 40, 50, 255};
+    const std::vector<uint8_t> conflictDiskPixels{60, 70, 80, 255};
+    check(fs.writeFile(conflictSavePath,
+                       monolith::drawing::encodeModr(1, 1, conflictInitialPixels)),
+          "create external-change Drawing save-and-close target");
+    TestDrawing conflictSaveCloseDrawing(nullptr, &fs, conflictSavePath);
+    conflictSaveCloseDrawing.onResize(300, 300);
+    const std::vector<uint8_t> conflictEditorPixels{90, 100, 110, 255};
+    recordPixelEdit(conflictSaveCloseDrawing, 0, 0, 90, 100, 110);
+    conflictSaveCloseDrawing.m_dirty = true;
+    TestController conflictSaveCloseController;
+    conflictSaveCloseDrawing.setController(&conflictSaveCloseController);
+    check(fs.writeFile(conflictSavePath,
+                       monolith::drawing::encodeModr(1, 1, conflictDiskPixels)),
+          "write external Drawing save-and-close version");
+    conflictSaveCloseDrawing.onVirtualPathChanged(conflictSavePath);
+    check(!conflictSaveCloseDrawing.allowClose(),
+          "externally changed dirty Drawing still asks before close");
+    sendKey(conflictSaveCloseDrawing, SDLK_s, KMOD_CTRL);
+    check(conflictSaveCloseDrawing.m_overwriteConfirmationPending
+              && conflictSaveCloseController.closeRequests == 0
+              && fs.readFile(conflictSavePath)
+                  == monolith::drawing::encodeModr(1, 1, conflictDiskPixels),
+          "Drawing save-and-close pauses before replacing the external version");
+    check(fs.writeFile(conflictSavePath,
+                       monolith::drawing::encodeModr(1, 1, conflictInitialPixels)),
+          "write a second external Drawing save-and-close version");
+    conflictSaveCloseDrawing.onVirtualPathChanged(conflictSavePath);
+    check(conflictSaveCloseDrawing.m_overwriteConfirmationPending
+              && fs.readFile(conflictSavePath)
+                  == monolith::drawing::encodeModr(1, 1, conflictInitialPixels),
+          "a newer external Drawing write keeps the decision attached to the latest disk version");
+    sendKey(conflictSaveCloseDrawing, SDLK_n, KMOD_CTRL);
+    check(conflictSaveCloseDrawing.m_overwriteConfirmationPending
+              && conflictSaveCloseDrawing.m_dirty
+              && !conflictSaveCloseDrawing.m_newAfterSave
+              && conflictSaveCloseController.closeRequests == 0,
+          "unrelated shortcuts cannot replace a pending Drawing overwrite decision");
+    sendKey(conflictSaveCloseDrawing, SDLK_d, KMOD_CTRL);
+    check(!conflictSaveCloseDrawing.m_dirty
+              && conflictSaveCloseController.closeRequests == 1
+              && fs.readFile(conflictSavePath)
+                  == monolith::drawing::encodeModr(1, 1, conflictEditorPixels),
+          "explicit overwrite completes the pending Drawing close only after save");
 
     TestDrawing saveAsCloseDrawing(nullptr, &fs);
     saveAsCloseDrawing.onResize(300, 300);
