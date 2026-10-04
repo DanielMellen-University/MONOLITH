@@ -1,5 +1,10 @@
 # Changelog
 
+## 2026-10: Make filesystem moves atomic and non-overwriting
+
+- Use Linux `renameat2(RENAME_NOREPLACE)` so an entry created concurrently at the destination is never overwritten by a move.
+- Fail closed when the host cannot provide atomic no-replace semantics; cover regular-file and dangling-symlink conflicts.
+
 ## 2026-10: Move hidden symlink entries safely
 
 - Let Filesystem and Terminal move a final symlink whose target is outside the virtual root, without following or changing that target.

@@ -829,6 +829,15 @@ int main() {
 
     check(fs.writeFile("/rename-source.txt", "keep source"),
           "write rename source for dangling-link coverage");
+    check(fs.writeFile("/rename-existing-destination.txt", "keep destination"),
+          "write existing regular rename destination");
+    check(!fs.rename("/rename-source.txt", "/rename-existing-destination.txt"),
+          "rename rejects an existing regular destination");
+    check(fs.readFile("/rename-source.txt") == "keep source"
+              && fs.readFile("/rename-existing-destination.txt") == "keep destination",
+          "regular destination conflict preserves both files");
+    check(fs.remove("/rename-existing-destination.txt"),
+          "remove regular rename destination fixture");
     const stdfs::path danglingDestination = hostRoot / "dangling-destination";
     stdfs::create_symlink(hostRoot / "missing-target", danglingDestination, ec);
     check(!ec, "create dangling rename destination");

@@ -5,15 +5,20 @@
 #include <algorithm>
 #include <array>
 #include <atomic>
+#include <cerrno>
 #include <cctype>
 #include <cstddef>
 #include <filesystem>
 #include <fstream>
+#include <fcntl.h>
 #include <iostream>
+#include <linux/fs.h>
 #include <stdexcept>
 #include <string_view>
 #include <system_error>
+#include <sys/syscall.h>
 #include <unordered_set>
+#include <unistd.h>
 
 namespace stdfs = std::filesystem;
 
@@ -72,6 +77,19 @@ bool hostEntryExists(const stdfs::path& path) {
     std::error_code ec;
     const auto status = stdfs::symlink_status(path, ec);
     return !ec && status.type() != stdfs::file_type::not_found;
+}
+
+std::error_code renameWithoutReplacing(const stdfs::path& source,
+                                       const stdfs::path& destination) {
+#if defined(SYS_renameat2) && defined(RENAME_NOREPLACE)
+    if (::syscall(SYS_renameat2, AT_FDCWD, source.c_str(), AT_FDCWD,
+                  destination.c_str(), RENAME_NOREPLACE) == 0) {
+        return {};
+    }
+    return {errno, std::generic_category()};
+#else
+    return std::make_error_code(std::errc::operation_not_supported);
+#endif
 }
 
 std::atomic_uint64_t copyRollbackSequence{0};
@@ -797,14 +815,13 @@ bool Filesystem::rename(const std::string& oldVirtualPath, const std::string& ne
             return false;
         }
 
-        // Prevent overwriting any existing directory entry, including a
-        // dangling symlink that std::filesystem::exists would not report.
-        if (hostEntryExists(newHost)) {
+        const std::error_code renameError = renameWithoutReplacing(oldHost, newHost);
+        if (!renameError) return true;
+        if (renameError == std::errc::file_exists
+            || renameError == std::errc::directory_not_empty) {
             return false;
         }
-
-        stdfs::rename(oldHost, newHost);
-        return true;
+        throw std::system_error(renameError);
     } catch (const std::exception& e) {
         std::cerr << "rename failed: " << e.what() << std::endl;
         return false;

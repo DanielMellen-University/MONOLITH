@@ -34,6 +34,7 @@ The human funds token budget and lives in the desktop. You:
 
 | When | Kind | Note |
 |------|------|------|
+| 2026-10-04 | filesystem-atomic-no-replace-rename | Use atomic no-replace host rename so concurrent moves cannot overwrite a new destination |
 | 2026-10-04 | filesystem-move-hidden-symlink | Move final outside-target symlinks as entries after validating both parents; keep outside-parent traversal blocked |
 | 2026-10-04 | terminal-remove-hidden-symlink | Let `rm` unlink a hidden final symlink after safe parent validation; reject outside-parent traversal |
 | 2026-10-04 | filesystem-delete-containment | Validate the resolved parent before unlinking the final entry so an outside-pointing parent symlink cannot delete external entries |
@@ -388,6 +389,7 @@ Older recent-work rows: [`SESSION_LOG.md`](SESSION_LOG.md).
 | 7.146 | Continue atomic cleanup after subtree errors | done | Use an explicit directory stack so permission or iterator failures discard only the affected frame; verify other readable directories still reclaim stale workspaces |
 | 7.147 | Bound Text Editor search fields | done | Cap each Find/Replace input at 16 MiB, preserve complete UTF-8 characters at the limit, and report rejected input; cover typing and paste in both fields |
 | 7.148 | Bound long Find/Replace rendering | done | Render UTF-8-safe 64-byte contexts around Find/Replace carets and measure each match highlight only across its visible viewport slice; start viewport scans from sparse checkpoints to preserve non-overlap without rescanning dense prefixes |
+| 7.149 | Make filesystem moves atomic | done | Use Linux no-replace rename so a racing destination cannot be overwritten; preserve final symlink-entry moves and fail closed when atomic host support is unavailable |
 | fs-browser-filter-cache | Reuse Filesystem Browser filter snapshots | done | Reuse one directory listing for filter edits; refresh it on F5 and Monolith filesystem notifications, including while filtering |
 | terminal-input-editing | Terminal command-line selection | done | Support UTF-8-safe keyboard/mouse selection and Ctrl+A/C/X/V; normalize all clipboard lines and tabs into the single-line prompt |
 | terminal-touch-mtime | Complete Terminal touch semantics | done | Update existing regular-file last-write time without truncation; reject outside-root symlink targets |
