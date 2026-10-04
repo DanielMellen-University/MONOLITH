@@ -61,6 +61,10 @@ bool containsCaseInsensitive(std::string_view name, std::string_view lowercaseQu
     return false;
 }
 
+bool isDescriptorLimitError(const std::error_code& error) {
+    return error.value() == EMFILE || error.value() == ENFILE;
+}
+
 bool entryNameLess(const Filesystem::DirEntry& left, const Filesystem::DirEntry& right) {
     const int foldedOrder = compareCaseInsensitive(left.name, right.name);
     if (foldedOrder != 0) return foldedOrder < 0;
@@ -274,6 +278,7 @@ struct Filesystem::CleanupTraversal {
     };
 
     std::vector<Frame> frames;
+    std::vector<stdfs::path> deferredDirectories;
     bool finished = true;
 };
 
@@ -301,6 +306,9 @@ bool Filesystem::initialize() {
             if (!iteratorError && current != stdfs::directory_iterator{}) {
                 traversal->frames.push_back({std::move(current)});
                 traversal->finished = false;
+            } else if (isDescriptorLimitError(iteratorError)) {
+                traversal->deferredDirectories.push_back(root);
+                traversal->finished = false;
             }
             m_cleanupTraversal = std::move(traversal);
         } catch (...) {
@@ -318,7 +326,30 @@ bool Filesystem::maintenanceStep(std::size_t entryBudget) noexcept {
     if (!traversal || traversal->finished) return false;
 
     try {
-        while (entryBudget > 0 && !traversal->frames.empty()) {
+        const std::size_t directoryOpenBudget = entryBudget;
+        std::size_t deferredDirectoryOpens = 0;
+        while (entryBudget > 0
+               && (!traversal->frames.empty() || !traversal->deferredDirectories.empty())) {
+            if (traversal->frames.empty()) {
+                if (deferredDirectoryOpens >= directoryOpenBudget) break;
+                ++deferredDirectoryOpens;
+                stdfs::path deferredPath = std::move(
+                    traversal->deferredDirectories.back());
+                traversal->deferredDirectories.pop_back();
+
+                std::error_code deferredError;
+                stdfs::directory_iterator deferred(
+                    deferredPath, stdfs::directory_options::skip_permission_denied,
+                    deferredError);
+                if (!deferredError && deferred != stdfs::directory_iterator{}) {
+                    traversal->frames.push_back({std::move(deferred)});
+                } else if (isDescriptorLimitError(deferredError)) {
+                    traversal->deferredDirectories.push_back(std::move(deferredPath));
+                    break;
+                }
+                continue;
+            }
+
             auto& frame = traversal->frames.back();
             if (frame.current == stdfs::directory_iterator{}) {
                 traversal->frames.pop_back();
@@ -361,6 +392,8 @@ bool Filesystem::maintenanceStep(std::size_t entryBudget) noexcept {
                 childPath, stdfs::directory_options::skip_permission_denied, childError);
             if (!childError && child != stdfs::directory_iterator{}) {
                 traversal->frames.push_back({std::move(child)});
+            } else if (isDescriptorLimitError(childError)) {
+                traversal->deferredDirectories.push_back(std::move(childPath));
             }
         }
     } catch (...) {
@@ -368,7 +401,8 @@ bool Filesystem::maintenanceStep(std::size_t entryBudget) noexcept {
         return false;
     }
 
-    traversal->finished = traversal->frames.empty();
+    traversal->finished = traversal->frames.empty()
+        && traversal->deferredDirectories.empty();
     return !traversal->finished;
 }
 

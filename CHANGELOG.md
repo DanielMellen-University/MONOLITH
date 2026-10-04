@@ -1,5 +1,10 @@
 # Changelog
 
+## 2026-10: Resume startup cleanup after descriptor exhaustion
+
+- Defer child directories whose iterator open fails with `EMFILE` or `ENFILE`, then retry after active depth-first frames unwind and release handles.
+- Keep the normal depth-first path and per-frame entry budget; add a deep-branching regression under a saturated descriptor limit.
+
 ## 2026-10: Avoid path copies in startup cleanup
 
 - Borrow ordinary paths from filesystem iterator entries and copy only cleanup candidates or child directories that must outlive the iterator step.

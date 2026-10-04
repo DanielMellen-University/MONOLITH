@@ -6,15 +6,19 @@
 #include "TestTempDir.hpp"
 
 #include <algorithm>
+#include <cerrno>
 #include <chrono>
 #include <cstddef>
 #include <cstdint>
 #include <filesystem>
 #include <fstream>
+#include <fcntl.h>
 #include <iostream>
 #include <sstream>
 #include <string>
 #include <string_view>
+#include <sys/resource.h>
+#include <unistd.h>
 #include <vector>
 
 namespace stdfs = std::filesystem;
@@ -186,6 +190,79 @@ int main() {
     check(maintenanceLookalikeReady && stdfs::exists(maintenanceLookalike / "user-data")
               && outsideLinkReady && stdfs::exists(outsideWorkspace),
           "maintenance preserves unknown workspace data and does not follow directory symlinks");
+
+    const stdfs::path descriptorLimitRoot = hostRoot / "maintenance-descriptor-limit";
+    stdfs::path descriptorLimitDeep = descriptorLimitRoot;
+    ec.clear();
+    bool descriptorLimitFixturesReady = stdfs::create_directory(descriptorLimitRoot, ec)
+        && !ec;
+    for (std::size_t depth = 0; descriptorLimitFixturesReady && depth < 96; ++depth) {
+        const stdfs::path firstBranch = descriptorLimitDeep / "branch-a";
+        const stdfs::path secondBranch = descriptorLimitDeep / "branch-b";
+        ec.clear();
+        descriptorLimitFixturesReady = stdfs::create_directory(firstBranch, ec) && !ec;
+        ec.clear();
+        descriptorLimitFixturesReady = descriptorLimitFixturesReady
+            && stdfs::create_directory(secondBranch, ec) && !ec;
+        ec.clear();
+        stdfs::directory_iterator firstChild(descriptorLimitDeep, ec);
+        descriptorLimitFixturesReady = descriptorLimitFixturesReady && !ec
+            && firstChild != stdfs::directory_iterator{};
+        if (descriptorLimitFixturesReady) descriptorLimitDeep = firstChild->path();
+    }
+    std::string descriptorWorkspaceName;
+    descriptorLimitFixturesReady = descriptorLimitFixturesReady
+        && monolith::detail::createAtomicTempTokenName(descriptorWorkspaceName);
+    const stdfs::path descriptorStaleWorkspace = descriptorLimitDeep
+        / descriptorWorkspaceName;
+    ec.clear();
+    descriptorLimitFixturesReady = descriptorLimitFixturesReady
+        && stdfs::create_directory(descriptorStaleWorkspace, ec) && !ec
+        && monolith::detail::createAtomicTempOwnerMarker(descriptorStaleWorkspace);
+
+    Filesystem descriptorLimitFs(hostRoot.string());
+    const bool descriptorLimitFsReady = descriptorLimitFixturesReady
+        && descriptorLimitFs.initialize();
+    struct rlimit originalFileLimit {};
+    const bool originalFileLimitRead = ::getrlimit(RLIMIT_NOFILE, &originalFileLimit) == 0;
+    bool fileLimitApplied = false;
+    if (descriptorLimitFsReady && originalFileLimitRead && originalFileLimit.rlim_cur > 16) {
+        struct rlimit restrictedFileLimit = originalFileLimit;
+        restrictedFileLimit.rlim_cur = std::min<rlim_t>(32, originalFileLimit.rlim_cur);
+        fileLimitApplied = ::setrlimit(RLIMIT_NOFILE, &restrictedFileLimit) == 0;
+    }
+    std::vector<int> fileDescriptorPressure;
+    bool fileDescriptorLimitReached = false;
+    if (fileLimitApplied) {
+        while (true) {
+            const int descriptor = ::open("/dev/null", O_RDONLY | O_CLOEXEC);
+            if (descriptor < 0) {
+                fileDescriptorLimitReached = errno == EMFILE;
+                break;
+            }
+            fileDescriptorPressure.push_back(descriptor);
+        }
+    }
+    bool descriptorMaintenancePending = false;
+    std::size_t descriptorMaintenanceSteps = 0;
+    if (fileLimitApplied) {
+        descriptorMaintenancePending = descriptorLimitFs.maintenanceStep(32);
+    }
+    for (const int descriptor : fileDescriptorPressure) ::close(descriptor);
+    if (fileLimitApplied) {
+        while (descriptorMaintenancePending && descriptorMaintenanceSteps < 4000) {
+            descriptorMaintenancePending = descriptorLimitFs.maintenanceStep(32);
+            ++descriptorMaintenanceSteps;
+        }
+    }
+    const bool fileLimitRestored = fileLimitApplied
+        && ::setrlimit(RLIMIT_NOFILE, &originalFileLimit) == 0;
+    check(descriptorLimitFsReady && fileLimitApplied && fileDescriptorLimitReached
+              && fileLimitRestored
+              && !descriptorMaintenancePending && descriptorMaintenanceSteps < 4000
+              && !stdfs::exists(descriptorStaleWorkspace),
+          "startup cleanup resumes child directories after descriptor exhaustion clears");
+
     check(!fs.remove("/"), "non-recursive remove rejects the virtual root");
     check(fs.isDirectory("/"), "virtual root remains after a rejected remove");
     check(!fs.updateModifiedTime("/") && !fs.updateModifiedTime("/missing.txt"),
