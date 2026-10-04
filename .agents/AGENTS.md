@@ -34,6 +34,7 @@ The human funds token budget and lives in the desktop. You:
 
 | When | Kind | Note |
 |------|------|------|
+| 2026-10-03 | atomic-save-scavenging | Hold a nonblocking OS lease lock for v2 atomic-save workspaces; periodically reclaim only ready-marked workspaces whose lock is free; workflow #327 passed normal and sanitized jobs |
 | 2026-10-03 | terminal-quoted-backslashes | Preserve unknown backslashes inside double-quoted arguments and Tab-completion prefixes; only `\\` and `\"` are escapes; normal and sanitized hosted workflow #323 passed |
 | 2026-10-03 | atomic-save-collision | Stage writes in uniquely reserved hidden sibling workspaces so a user-owned `<target>.tmp` file or symlink is never opened or removed; normal and sanitized hosted workflow #319 passed |
 | 2026-10-03 | filesystem-copy-rollback | Journal existing destination files, created entries, and directory times so a failed recursive merge restores prior state; normal and sanitized hosted workflow #315 passed |
@@ -153,7 +154,7 @@ Older recent-work rows: [`SESSION_LOG.md`](SESSION_LOG.md).
 
 ## Known debts
 
-- A hard termination during an atomic save can leave a hidden `.monolith-tmp-*` sibling workspace. Later saves skip occupied names; automatic scavenging is deferred so one process cannot remove another process's active workspace.
+- Atomic-save cleanup is opportunistic: each writer periodically scans only its destination's parent and removes v2 workspaces with a ready marker and a free lease lock. Directories interrupted before the marker and legacy `.monolith-tmp-*` workspaces are left untouched because active old writers cannot be identified safely.
 
 ## Priority order for "next / continue"
 
@@ -299,6 +300,7 @@ Older recent-work rows: [`SESSION_LOG.md`](SESSION_LOG.md).
 | 7.108 | Roll back failed recursive copy merges | done | Journal overwritten files, newly created entries, and destination-directory times; restore pre-copy state after a later child failure; verify regular-file and in-root symlink targets, new files/directories, unrelated entries, timestamps, and backup cleanup; normal and sanitized hosted workflow #315 passed |
 | 7.109 | Isolate atomic-save workspaces | done | Reserve a unique hidden sibling directory for each staged write so ordinary `<target>.tmp` files/symlinks remain untouched; verify success, producer rollback, permission retention, and workspace cleanup; normal and sanitized hosted workflow #319 passed |
 | 7.110 | Preserve backslashes in quoted Terminal paths | done | Decode only `\\` and `\"` inside double quotes in both command parsing and completion-prefix scanning; verify literal and escaped backslashes in arguments and quoted paths; normal and sanitized hosted workflow #323 passed |
+| 7.111 | Reclaim interrupted atomic-save workspaces | done | Lock each active v2 workspace, sweep the current destination parent on the first save and every 32 writes thereafter, and reclaim only ready-marked workspaces with a free lock; cover stale recovery, active locks, unmarked paths, and legacy paths; normal and sanitized hosted workflow #327 passed |
 | fs-browser-filter-cache | Reuse Filesystem Browser filter snapshots | done | Reuse one directory listing for filter edits; refresh it on F5 and Monolith filesystem notifications, including while filtering |
 | terminal-input-editing | Terminal command-line selection | done | Support UTF-8-safe keyboard/mouse selection and Ctrl+A/C/X/V; normalize all clipboard lines and tabs into the single-line prompt |
 | terminal-touch-mtime | Complete Terminal touch semantics | done | Update existing regular-file last-write time without truncation; reject outside-root symlink targets |
