@@ -26,8 +26,9 @@ struct TestController final : monolith::app::IWindowController {
     monolith::app::DrawingApp* drawing = nullptr;
     std::string occupiedDrawingPath;
     std::vector<std::string> lifecycleEvents;
+    int closeRequests = 0;
 
-    void close() override {}
+    void close() override { ++closeRequests; }
     void setTitle(const std::string&) override {}
 
     void bindDrawingFile(const std::string& path) override {
@@ -63,6 +64,15 @@ bool recordPixelEdit(TestDrawing& drawing, int x, int y,
     if (changed) drawing.recordSparseHistoryChange();
     drawing.finishSparseHistory();
     return changed;
+}
+
+void sendKey(TestDrawing& drawing, SDL_Keycode key,
+             SDL_Keymod modifiers = KMOD_NONE) {
+    SDL_Event event{};
+    event.type = SDL_KEYDOWN;
+    event.key.keysym.sym = key;
+    event.key.keysym.mod = modifiers;
+    drawing.handleEvent(event);
 }
 
 } // namespace
@@ -887,6 +897,7 @@ int main() {
           "write another external Drawing version");
     drawing.onVirtualPathChanged("/drawings/resize.modr");
     recordPixelEdit(drawing, 0, 0, 1, 2, 3);
+    const std::vector<uint8_t> localPixelsBeforeReload = drawing.m_pixels;
     drawing.beginPathPrompt(monolith::app::DrawingApp::PathPromptMode::Open);
     drawing.m_pathPromptBuffer = "/drawings/resize.modr";
     drawing.m_pathPromptCursorPos = drawing.m_pathPromptBuffer.size();
@@ -896,9 +907,14 @@ int main() {
           "opening the current Drawing path asks before discarding local pixels");
     drawing.finishPathPrompt(true);
     check(drawing.m_filePath == "/drawings/resize.modr"
+              && drawing.m_canvasWidth == 2 && drawing.m_canvasHeight == 2
+              && drawing.m_pixels == localPixelsBeforeReload && drawing.m_dirty,
+          "repeating dirty same-file Open does not discard Drawing pixels");
+    sendKey(drawing, SDLK_d, KMOD_CTRL);
+    check(drawing.m_filePath == "/drawings/resize.modr"
               && drawing.m_canvasWidth == 1 && drawing.m_canvasHeight == 1
               && drawing.m_pixels == externalPixels && !drawing.m_dirty,
-          "confirmed same-file Open reloads the external Drawing version");
+          "Ctrl+D explicitly reloads the external same-file Drawing version");
     controller.occupiedDrawingPath.clear();
     check(fs.writeFile("/drawings/resize.modr",
                        monolith::drawing::encodeModr(2, 2, loadedPixels)),
@@ -978,9 +994,118 @@ int main() {
               && drawing.m_pathPromptMode == monolith::app::DrawingApp::PathPromptMode::Open
               && drawing.m_filePath == "/blocked.modr",
           "changing a dirty drawing target requires a fresh confirmation");
-    drawing.finishPathPrompt(true);
+    sendKey(drawing, SDLK_d, KMOD_CTRL);
     check(drawing.m_filePath == "/drawings/alternate.modr" && !drawing.m_dirty,
-          "confirming the changed dirty drawing target loads it");
+          "Ctrl+D confirms and loads the changed dirty drawing target");
+
+    TestDrawing closeDrawing(nullptr, &fs);
+    closeDrawing.onResize(300, 300);
+    recordPixelEdit(closeDrawing, 0, 0, 4, 5, 6);
+    TestController closeController;
+    closeDrawing.setController(&closeController);
+    check(!closeDrawing.allowClose()
+              && closeDrawing.m_statusMessage.find("Ctrl+D") != std::string::npos,
+          "dirty Drawing close presents an explicit discard choice");
+    sendKey(closeDrawing, SDLK_d, KMOD_CTRL);
+    check(closeController.closeRequests == 1 && closeDrawing.m_dirty
+              && closeDrawing.allowClose(),
+          "Ctrl+D authorizes the deferred close without silently saving or mutating pixels");
+
+    TestDrawing cancelCloseDrawing(nullptr, &fs);
+    cancelCloseDrawing.onResize(300, 300);
+    recordPixelEdit(cancelCloseDrawing, 0, 0, 7, 8, 9);
+    TestController cancelCloseController;
+    cancelCloseDrawing.setController(&cancelCloseController);
+    check(!cancelCloseDrawing.allowClose(), "dirty close can be canceled after warning");
+    sendKey(cancelCloseDrawing, SDLK_ESCAPE);
+    check(cancelCloseDrawing.m_dirty
+              && cancelCloseDrawing.m_discardKind
+                    == TestDrawing::DiscardKind::None
+              && cancelCloseController.closeRequests == 0,
+          "Esc cancels dirty Drawing close and keeps the canvas");
+
+    TestDrawing saveCloseDrawing(nullptr, &fs);
+    saveCloseDrawing.onResize(300, 300);
+    recordPixelEdit(saveCloseDrawing, 0, 0, 10, 11, 12);
+    saveCloseDrawing.m_filePath = "/drawings/save-before-close.modr";
+    TestController saveCloseController;
+    saveCloseDrawing.setController(&saveCloseController);
+    check(!saveCloseDrawing.allowClose(), "dirty named Drawing asks before close");
+    sendKey(saveCloseDrawing, SDLK_s, KMOD_CTRL);
+    check(saveCloseController.closeRequests == 1 && !saveCloseDrawing.m_dirty
+              && fs.isFile("/drawings/save-before-close.modr"),
+          "Ctrl+S saves a dirty Drawing before closing it");
+
+    TestDrawing saveAsCloseDrawing(nullptr, &fs);
+    saveAsCloseDrawing.onResize(300, 300);
+    recordPixelEdit(saveAsCloseDrawing, 0, 0, 13, 14, 15);
+    TestController saveAsCloseController;
+    saveAsCloseDrawing.setController(&saveAsCloseController);
+    check(!saveAsCloseDrawing.allowClose(), "untitled dirty Drawing asks before close");
+    sendKey(saveAsCloseDrawing, SDLK_s, KMOD_CTRL);
+    check(saveAsCloseDrawing.m_pathPromptMode == TestDrawing::PathPromptMode::Save,
+          "Ctrl+S on untitled close opens Save As");
+    saveAsCloseDrawing.m_pathPromptBuffer = "/drawings/save-as-before-close";
+    saveAsCloseDrawing.m_pathPromptCursorPos =
+        saveAsCloseDrawing.m_pathPromptBuffer.size();
+    saveAsCloseDrawing.finishPathPrompt(true);
+    check(saveAsCloseController.closeRequests == 1
+              && saveAsCloseDrawing.m_filePath
+                    == "/drawings/save-as-before-close.modr"
+              && fs.isFile("/drawings/save-as-before-close.modr"),
+          "successful Save As completes the pending Drawing close");
+
+    TestDrawing failedCloseSaveDrawing(nullptr, &fs);
+    failedCloseSaveDrawing.onResize(300, 300);
+    recordPixelEdit(failedCloseSaveDrawing, 0, 0, 16, 17, 18);
+    failedCloseSaveDrawing.m_filePath = "/blocked.modr";
+    TestController failedCloseController;
+    failedCloseSaveDrawing.setController(&failedCloseController);
+    check(!failedCloseSaveDrawing.allowClose(), "dirty Drawing close arms save choice");
+    sendKey(failedCloseSaveDrawing, SDLK_s, KMOD_CTRL);
+    check(failedCloseController.closeRequests == 0 && failedCloseSaveDrawing.m_dirty,
+          "failed Drawing save does not close or clear the dirty canvas");
+
+    TestDrawing newDiscardDrawing(nullptr, &fs);
+    newDiscardDrawing.onResize(300, 300);
+    recordPixelEdit(newDiscardDrawing, 0, 0, 19, 20, 21);
+    const auto pixelsBeforeNew = newDiscardDrawing.m_pixels;
+    newDiscardDrawing.startNewSketch();
+    newDiscardDrawing.startNewSketch();
+    check(newDiscardDrawing.m_discardKind == TestDrawing::DiscardKind::New
+              && newDiscardDrawing.m_dirty
+              && newDiscardDrawing.m_pixels == pixelsBeforeNew,
+          "repeating New does not discard a dirty Drawing");
+    sendKey(newDiscardDrawing, SDLK_d, KMOD_CTRL);
+    check(!newDiscardDrawing.m_dirty && newDiscardDrawing.m_filePath.empty()
+              && newDiscardDrawing.m_pixels != pixelsBeforeNew,
+          "Ctrl+D explicitly discards the dirty canvas and starts a blank sketch");
+
+    TestDrawing saveNewDrawing(nullptr, &fs);
+    saveNewDrawing.onResize(300, 300);
+    recordPixelEdit(saveNewDrawing, 0, 0, 22, 23, 24);
+    saveNewDrawing.m_filePath = "/drawings/save-before-new.modr";
+    saveNewDrawing.startNewSketch();
+    sendKey(saveNewDrawing, SDLK_s, KMOD_CTRL);
+    check(!saveNewDrawing.m_dirty && saveNewDrawing.m_filePath.empty()
+              && fs.isFile("/drawings/save-before-new.modr"),
+          "Ctrl+S saves a dirty Drawing before starting New");
+
+    TestDrawing openSaveFirstDrawing(nullptr, &fs);
+    openSaveFirstDrawing.onResize(300, 300);
+    recordPixelEdit(openSaveFirstDrawing, 0, 0, 25, 26, 27);
+    openSaveFirstDrawing.m_filePath = "/drawings/save-before-open.modr";
+    openSaveFirstDrawing.beginPathPrompt(TestDrawing::PathPromptMode::Open);
+    openSaveFirstDrawing.m_pathPromptBuffer = "/drawings/alternate.modr";
+    openSaveFirstDrawing.m_pathPromptCursorPos =
+        openSaveFirstDrawing.m_pathPromptBuffer.size();
+    openSaveFirstDrawing.finishPathPrompt(true);
+    sendKey(openSaveFirstDrawing, SDLK_s, KMOD_CTRL);
+    check(openSaveFirstDrawing.m_pathPromptMode == TestDrawing::PathPromptMode::None
+              && openSaveFirstDrawing.m_filePath == "/drawings/save-before-open.modr"
+              && !openSaveFirstDrawing.m_dirty
+              && openSaveFirstDrawing.m_canvasWidth == 300,
+          "Ctrl+S during dirty Open saves the current file and cancels that Open");
 
     TestDrawing retryDrawing(nullptr, &fs, "/drawings/resize.modr");
     retryDrawing.onResize(300, 300);

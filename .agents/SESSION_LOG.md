@@ -1,5 +1,7 @@
 # Session log
 
+| 2026-10-04 | fix | Replaced Drawing's dirty Close/New/Open double-confirm with explicit Ctrl+D discard, Ctrl+S save-before-Close/New, and Esc cancel choices. Untitled Close supports Save As; pending actions finish only after success; Ctrl+S during dirty Open saves the current sketch and cancels that Open. Added regressions for same-file reload, changed targets, repeated actions, cancellation, save failures, and save continuations; updated the Drawing guide and architecture contract. |
+
 | 2026-10-04 | fix | Replaced Text Editor dirty Close/Open double-confirm with explicit Ctrl+D discard, Ctrl+S save, and Esc cancel choices. Close-save now closes only after a successful write, including Save As for untitled text; global shutdown stays blocked until dirty Editors are explicitly resolved. Repeating Close/Enter cannot discard; Open target changes require a fresh decision. Added controller, Escape, save failure, same-file reload, repeated-action, and changed-target regressions; updated the Text Editor guide and changelog. |
 
 | 2026-10-04 | fix | Replace the check-then-rename sequence with Linux `renameat2(RENAME_NOREPLACE)`, closing the race that could overwrite a destination created concurrently. Regular and dangling-symlink conflicts preserve both entries; unsupported host filesystems fail closed. Production build, full headless suite, final focused Filesystem test, and focused Filesystem/Terminal ASan/UBSan tests pass. |

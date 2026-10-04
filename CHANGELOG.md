@@ -1,5 +1,11 @@
 # Changelog
 
+## 2026-10: Make dirty Drawing decisions explicit
+
+- Require Ctrl+D to discard dirty sketches on Close, New, and Open; Esc cancels, and repeating the original action no longer discards content.
+- Support Ctrl+S save-and-close or save-then-New only after a successful save, including Save As for untitled sketches. During dirty Open, Ctrl+S saves the current sketch and cancels Open.
+- Keep global shutdown blocked until dirty Drawing windows are explicitly resolved; cover explicit choices and save failures in headless tests.
+
 ## 2026-10: Make dirty Editor decisions explicit
 
 - Require Ctrl+D to discard dirty text on Close or Open; Esc cancels, Ctrl+S saves and closes after success, and repeating the original action no longer discards content.

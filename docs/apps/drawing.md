@@ -31,7 +31,7 @@ If a bound sketch's parent directory is deleted, Drawing keeps the current canva
 
 Drawing is a pixel editor, not a layer or vector editor. The canvas is edited in memory and is not written to the internal filesystem until **Save** succeeds.
 
-- Save the sketch before closing, choosing **New**, or opening another file when the status bar shows `[modified]`.
+- When `[modified]` is shown, choose **Ctrl+D** to discard for Close, New, or Open; **Ctrl+S** to save before Close or New; or **Esc** to keep the sketch.
 - Drawing files must end in `.modr`. The suffix is matched case-insensitively when opening.
 - `.mod` is intentionally treated as a normal text file. Saving a path such as `picture.mod` produces `picture.mod.modr` rather than changing the requested name.
 - A saved file contains only the opaque RGB canvas and its dimensions. The active tool, colors, brush size, undo history, and window state are not part of the file.
@@ -156,7 +156,10 @@ Use Filesystem Browser Rename or Terminal `mv`, keeping the complete `.modr` suf
 |--------|----------|--------|
 | Save | **Ctrl+S** | Saves the current file, or opens the Save path prompt for a new sketch. |
 | Open | **Ctrl+O** | Opens the `.modr` path prompt. |
-| New | **Ctrl+N** | Starts a blank sketch after the dirty-sketch confirmation, if needed. |
+| New | **Ctrl+N** | Starts a blank sketch; a dirty sketch requires an explicit choice. |
+| Discard | **Ctrl+D** | In a dirty Close, New, or Open decision, explicitly discards the current sketch. |
+| Save and continue | **Ctrl+S** | In a dirty Close or New decision, saves first and continues only after success. In dirty Open, saves the current sketch and cancels Open. |
+| Save As and continue | **Ctrl+Shift+S** | During a dirty Close or New decision, choose another save path; the pending action completes only after success. |
 | Undo | **Ctrl+Z** | Restores the previous canvas state. |
 | Redo | **Ctrl+Y** or **Ctrl+Shift+Z** | Restores the next canvas state. |
 | Complete a path | **Tab** | Completes a directory or `.modr` filename while Save or Open is active. |
@@ -207,12 +210,12 @@ Drawing keeps the live canvas separate from the file path and from editor-sessio
 | Paint, fill, clear, or resize a loaded sketch | The canvas becomes `[modified]`. The change exists only in memory until Save succeeds; undoing back to the last saved pixels clears the marker. **New** starts a clean blank canvas with its own undo/redo baseline. |
 | Press **Save** on a new sketch | The status bar opens a path prompt with the next free `/home/monolith/drawings/sketch*.modr` name. |
 | Press **Save** on a loaded sketch | The current `.modr` path is written immediately; Drawing has no separate Save As command. |
-| Save fails | The current canvas and file binding stay open, the failure is shown in the status bar, and any pending discard confirmation is cleared. |
+| Save fails | The current canvas and file binding stay open; a pending Close or New does not complete. A Save path prompt stays available for correction and retry. |
 | Open fails | The current canvas remains open and unchanged. Correct the path or save the current sketch elsewhere. |
 | Open succeeds | The canvas dimensions and pixels are replaced, the file becomes clean, and undo/redo history is cleared. Tools, brush size, and color stay as session settings. |
 | Resize a loaded sketch | Pixels keep their top-left alignment, the canvas may crop or grow, history is cleared, and the file becomes modified until saved again. |
-| Another app overwrites the bound `.modr` | The open canvas stays in memory and is not silently replaced. Open the currently bound path to load the external version, or Save to deliberately write the current canvas back. A dirty canvas still requires the normal repeated Open confirmation before it is discarded. |
-| Close, choose **New**, or open while modified | The first action shows a status-bar warning. Repeat the same action to discard, or save first. |
+| Another app overwrites the bound `.modr` | The open canvas stays in memory and is not silently replaced. Open the currently bound path to load the external version, or Save to deliberately write the current canvas back. A dirty canvas requires **Ctrl+D** to discard before reloading. |
+| Close, choose **New**, or open while modified | The status bar offers explicit choices. **Ctrl+D** discards; **Ctrl+S** saves before Close/New or saves and cancels Open; **Esc** keeps the sketch. |
 
 There is no automatic recovery file. If the process exits before Save succeeds, unsaved pixels and in-memory undo history are lost. A successful first save claims the new `.modr` singleton before notifying other apps that the file was created.
 
@@ -248,9 +251,9 @@ All other file types continue to open in Text Editor through the shell's default
 Drawing uses the same desktop lifecycle as Text Editor, including the dirty-document guard:
 
 - Closing a clean Drawing window closes it immediately.
-- Closing a modified Drawing window once shows a status-bar warning. Close it again to discard, or save first with **Ctrl+S**.
+- Closing a modified Drawing window shows a status-bar choice. **Ctrl+D** discards and closes, **Ctrl+S** saves then closes, and **Esc** cancels. Repeating Close never discards.
 - Start menu **Shut Down** and the host window close request use the same guard. Unsaved sketches are not silently discarded by either exit path.
-- A failed save, failed open, or canceled prompt leaves the current canvas available and clears any stale discard confirmation.
+- A failed save, failed open, or canceled prompt leaves the current canvas available. Shutdown remains blocked until every dirty Drawing is explicitly resolved.
 - Starting **New** clears the file binding and restores the shell-managed instance title, such as `Drawing 2`.
 
 Session restore records a Drawing window's geometry, minimized or maximized state, and bound virtual path. A successfully restored `.modr` file reopens in Drawing with its saved pixels and dimensions. A missing, invalid, or rejected initial path does not reserve that path, so the file can be corrected and opened again normally.
@@ -399,9 +402,8 @@ While a prompt is active, Drawing routes keyboard input to that prompt and ignor
 - Ambiguous completions stop at a complete UTF-8 codepoint, so filenames that share only leading bytes cannot insert an invalid partial character.
 - If a bound file or directory in the active Save or Open path moves, the prompt follows the canonical path and keeps the caret at the same suffix position on a UTF-8 boundary.
 - Enter accepts the active prompt and Escape cancels it. Save adds `.modr` when the entered path does not already end in `.modr`; entering `picture.mod` therefore saves as `picture.mod.modr`.
-- If a dirty sketch blocks Open, the first confirmation keeps the path prompt active. Confirming the same open action again discards the unsaved canvas and loads the file.
+- If a dirty sketch blocks Open, the path prompt stays active. **Ctrl+D** discards and loads the current path; **Ctrl+S** saves the current sketch and cancels Open; **Esc** cancels. Changing the path requires a fresh decision.
 - Recoverable Save, Open, and RGB validation or I/O failures keep the prompt active with its text, caret, and horizontal position, so the input can be corrected and retried. Escape cancels it; opening a file already owned by another Drawing focuses that window instead.
-- Editing the Open path after that warning resets the confirmation, so the new target requires its own second confirmation.
 
 ## Saving
 
@@ -433,7 +435,7 @@ The RGB payload is written in bounded 16 KiB chunks through the filesystem's ato
 
 After a successful save, Drawing copies the current pixels into its saved comparison image, reusing the existing allocation when it has enough capacity. Same-size saves avoid allocating a temporary full-canvas RGBA snapshot.
 
-Drawing has no separate **Save As** command. To make a copy, copy the `.modr` file in Filesystem Browser or with Terminal, then open the copy and continue editing it. Saving an already-open sketch always writes its current bound path.
+Drawing has no general **Save As** command; **Ctrl+Shift+S** opens a Save path prompt only while a dirty Close or New decision is active. Otherwise, to make a copy, copy the `.modr` file in Filesystem Browser or with Terminal, then open the copy and continue editing it. Saving an already-open sketch normally writes its current bound path.
 
 ## External File Changes
 
@@ -444,10 +446,10 @@ Use the action that matches your intent:
 | Situation | Action |
 |-----------|--------|
 | You want to keep the canvas currently visible | Press **Ctrl+S**. The current canvas becomes the file contents. |
-| You want to inspect the version written by another app | Press **Ctrl+O**, select the same `.modr`, and confirm the second Open action if the canvas is modified. |
+| You want to inspect the version written by another app | Press **Ctrl+O**, select the same `.modr`, then press **Ctrl+D** if the canvas is modified. |
 | You want both versions | Copy the file to a new `.modr` path first, then open the copy or save the current canvas to another path. |
 
-An external overwrite does not change the Drawing title, bound path, dirty marker, or undo history. The status bar says `File changed externally; canvas unchanged. Save to overwrite it.` Opening the currently bound path reloads that external version in the same window; if the canvas is dirty, repeat Open to confirm discarding it. A successful Save still sends the normal filesystem change notification so other open apps can refresh their views.
+An external overwrite does not change the Drawing title, bound path, dirty marker, or undo history. The status bar says `File changed externally; canvas unchanged. Save to overwrite it.` Opening the currently bound path reloads that external version in the same window; if the canvas is dirty, press **Ctrl+D** to explicitly discard local pixels and reload. A successful Save still sends the normal filesystem change notification so other open apps can refresh their views.
 
 ## Common File Workflows
 
@@ -555,15 +557,17 @@ The format is intentionally small and strict. A file with a wrong magic header, 
 
 ## Unsaved Changes
 
-A dirty sketch (status bar `[modified]`) guards destructive actions:
+A dirty sketch (status bar `[modified]`) blocks destructive actions until you choose:
 
-| Action | First time (dirty) | Confirm |
-|--------|--------------------|---------|
-| Close window (X / shell close) | Status warning | Close again to discard, or Ctrl+S to save |
-| New / Ctrl+N | Status warning | New again to discard |
-| Open path | Status warning | Confirm open again to discard |
+| Action | Explicit choices |
+|--------|------------------|
+| Close window (X / shell close) | **Ctrl+D** discards and closes; **Ctrl+S** saves then closes; **Esc** cancels and keeps the sketch. |
+| New / Ctrl+N | **Ctrl+D** discards and starts a blank sketch; **Ctrl+S** saves then starts New; **Esc** cancels and keeps the sketch. |
+| Open path | Press **Enter** to validate the path and show the dirty decision. **Ctrl+D** discards and opens that path; **Ctrl+S** saves the current sketch and cancels Open; **Esc** cancels and keeps the sketch. |
 
 Clear (toolbar) remains undoable and does not use this guard.
+
+Repeating Close, New, or Enter does not discard the sketch. For Close or New on an untitled sketch, **Ctrl+S** opens Save As; use **Ctrl+Shift+S** to choose another path for a saved sketch. The pending action completes only after the save succeeds. A failed save keeps the sketch and does not close or start New. For Open, saving first deliberately cancels the current Open prompt; start Open again after saving if you still want to switch files. The same choices apply when reopening the currently bound path to reload an external change.
 
 ## Status Bar Messages
 
@@ -575,18 +579,15 @@ The status bar is both the command hint area and the app's lightweight feedback 
 | `Save as (...)` | A Save path prompt is active. Edit the path, then press Enter or Escape. |
 | `Open path (...)` | An Open path prompt is active. Tab-complete a directory or `.modr` file, then press Enter. |
 | `Custom RGB ...` | The RGB prompt is active. Enter three channels from 0 through 255. |
+| `Unsaved changes ... Ctrl+D ...` | A destructive action is waiting for a choice. Use the displayed **Ctrl+D**, **Ctrl+S**, or **Esc** action; repeating the original action never confirms discard. |
 | `Path completed...` | Tab found a completion. Review the path before confirming it. |
 | `No path matches.` | Tab found no eligible directory or file at the caret. Keep editing the path. |
 | `Saved: ...` / `Opened: ...` | The operation completed and includes the normalized internal path. |
-| `Save failed: ...` / `Open failed: ...` | The operation was rejected. The current canvas remains open and the path prompt stays active so its input can be corrected or saved elsewhere. |
+| `Save failed: ...` / `Open failed: ...` | The operation was rejected and the current canvas remains. A path prompt stays active when its input can be corrected or saved elsewhere. |
 | `RGB failed: ...` | The color was not changed. Enter exactly three integer channels in the accepted range. |
 | `New sketch.` or `Cancelled.` | The requested reset or prompt cancellation completed. |
 
-When the canvas has unsaved edits, `[modified]` is appended to the status bar. Save before closing, creating a new sketch, or opening another file. A failed save or open does not discard the current canvas.
-
-A failed save also clears any pending discard confirmation. Closing, choosing **New**, or opening another sketch afterward requires a fresh confirmation before the still-modified canvas can be discarded.
-
-Canceling a dirty Open prompt also clears its pending confirmation, so a later Open requires a fresh confirmation before discarding the canvas.
+When the canvas has unsaved edits, `[modified]` is appended to the status bar. Dirty Close and New offer explicit discard, save-and-continue, and cancel choices. Dirty Open stays in its path prompt until you explicitly discard, save first (which cancels Open), or cancel. Changing the Open path requires a fresh decision. Failed saves and opens keep the current canvas; a failed save never completes a pending Close or New.
 
 ## Troubleshooting
 
@@ -598,7 +599,7 @@ Canceling a dirty Open prompt also clears its pending confirmation, so a later O
 | `Open failed: could not read file.` | The virtual path is missing or could not be read. The current canvas remains open; correct the path or save the current sketch elsewhere. |
 | `Open failed: .modr file exceeds the size limit.` | The file is larger than the maximum valid `.modr` payload. Drawing rejects it before buffering the contents; the current canvas and Open prompt remain available. |
 | `Open failed: not a valid .modr drawing file.` | The file header, dimensions, or pixel payload is invalid. Drawing does not partially load corrupt data. |
-| The status bar shows `[modified]` | The canvas has edits that are not saved. Press **Ctrl+S** before closing, choosing **New**, or opening another sketch. |
+| The status bar shows `[modified]` | The canvas has edits that are not saved. Close, New, and Open will offer explicit choices; **Ctrl+S** saves without discarding. |
 | Undo is no longer available after resizing | Resizing changes the canvas dimensions, so Drawing clears history rather than applying edits to a different-sized canvas. |
 
 ## Current Limitations
@@ -606,7 +607,7 @@ Canceling a dirty Open prompt also clears its pending confirmation, so a later O
 - Custom RGB can be entered through the status-bar `r,g,b` prompt or sampled with Pick; there is no palette editor yet.
 - The editor is raster-only: there are no layers, selections, transforms, zoom controls, or vector objects.
 - No clipboard import/export yet.
-- Dirty guards use status-bar double-confirm, not a modal dialog.
+- Dirty decisions use status-bar keyboard choices rather than a modal dialog.
 - Undo history is in memory only, shares a 64 MiB budget across undo and redo, and resets when a drawing file is opened, the canvas is resized, or the app exits.
 
 ## Developer Notes

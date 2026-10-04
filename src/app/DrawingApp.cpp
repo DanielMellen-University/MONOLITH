@@ -1144,14 +1144,17 @@ void DrawingApp::onBoundFileRemoved(const std::string& removedPath) {
 void DrawingApp::clearDiscardArm() {
     m_discardKind = DiscardKind::None;
     m_discardPath.clear();
+    m_closeDiscardAuthorized = false;
 }
 
-bool DrawingApp::requestDiscard(DiscardKind kind, const char* statusMessage) {
+bool DrawingApp::requestDiscard(DiscardKind kind, const char* statusMessage,
+                                bool explicitlyConfirmed) {
     if (!m_dirty) {
         clearDiscardArm();
         return true;
     }
-    if (m_discardKind == kind) {
+    if (explicitlyConfirmed
+        && (kind == DiscardKind::Open || m_discardKind == kind)) {
         clearDiscardArm();
         return true;
     }
@@ -1161,16 +1164,20 @@ bool DrawingApp::requestDiscard(DiscardKind kind, const char* statusMessage) {
 }
 
 bool DrawingApp::allowClose() {
+    const bool explicitlyConfirmed = m_closeDiscardAuthorized;
+    m_closeDiscardAuthorized = false;
     return requestDiscard(
         DiscardKind::Close,
-        "Unsaved changes — close again to discard, or Ctrl+S to save"
+        "Unsaved: Ctrl+D discard, Ctrl+S save/close, Ctrl+Shift+S Save As, Esc cancel",
+        explicitlyConfirmed
     );
 }
 
-void DrawingApp::startNewSketch() {
+void DrawingApp::startNewSketch(bool explicitlyConfirmed) {
     if (!requestDiscard(
             DiscardKind::New,
-            "Unsaved changes — New again to discard, or save first")) {
+            "Unsaved: Ctrl+D discard/New, Ctrl+S save/New, Ctrl+Shift+S Save As, Esc cancel",
+            explicitlyConfirmed)) {
         return;
     }
     clearCanvas(false);
@@ -1185,6 +1192,18 @@ void DrawingApp::startNewSketch() {
         ctrl->restoreTrackedInstanceTitle();
     }
     setStatus("New sketch.");
+}
+
+void DrawingApp::completePendingSaveAction() {
+    if (m_closeAfterSave) {
+        m_closeAfterSave = false;
+        if (auto* ctrl = getController()) ctrl->close();
+        return;
+    }
+    if (m_newAfterSave) {
+        m_newAfterSave = false;
+        startNewSketch();
+    }
 }
 
 void DrawingApp::beginPathPrompt(PathPromptMode mode) {
@@ -1213,7 +1232,7 @@ void DrawingApp::beginPathPrompt(PathPromptMode mode) {
     m_pathPromptScrollPx = 0;
 }
 
-void DrawingApp::finishPathPrompt(bool commit) {
+void DrawingApp::finishPathPrompt(bool commit, bool confirmDiscard) {
     const PathPromptMode mode = m_pathPromptMode;
     const std::string buffer = m_pathPromptBuffer;
     const size_t promptCursorPos = m_pathPromptCursorPos;
@@ -1231,6 +1250,10 @@ void DrawingApp::finishPathPrompt(bool commit) {
 
     if (!commit) {
         clearDiscardArm();
+        if (mode == PathPromptMode::Save) {
+            m_closeAfterSave = false;
+            m_newAfterSave = false;
+        }
         setStatus("Cancelled.");
         return;
     }
@@ -1273,10 +1296,14 @@ void DrawingApp::finishPathPrompt(bool commit) {
         if (path != m_filePath) {
             if (auto* ctrl = getController(); ctrl && ctrl->focusDrawingForFile(path)) {
                 setStatus("Save failed: file already open");
+                m_closeAfterSave = false;
+                m_newAfterSave = false;
                 return;
             }
         }
-        if (!saveToPath(buffer)) {
+        if (saveToPath(buffer)) {
+            completePendingSaveAction();
+        } else {
             restorePrompt();
         }
     } else if (mode == PathPromptMode::Open) {
@@ -1291,7 +1318,8 @@ void DrawingApp::finishPathPrompt(bool commit) {
         }
         if (!requestDiscard(
                 DiscardKind::Open,
-                "Unsaved changes — open again to discard, or save first")) {
+                "Unsaved: Ctrl+D discard/open, Ctrl+S save first, Esc cancel",
+                confirmDiscard)) {
             m_discardPath = path;
             restorePrompt();
             return;
@@ -1379,6 +1407,23 @@ void DrawingApp::completePathPrompt() {
 }
 
 void DrawingApp::handlePathPromptKey(const SDL_Keysym& keysym) {
+    const bool control = (keysym.mod & KMOD_CTRL) != 0;
+    if (m_pathPromptMode == PathPromptMode::Open && m_dirty && control
+        && keysym.sym == SDLK_d) {
+        finishPathPrompt(true, true);
+        return;
+    }
+    if (m_pathPromptMode == PathPromptMode::Open && m_dirty && control
+        && keysym.sym == SDLK_s) {
+        finishPathPrompt(false);
+        if (m_filePath.empty()) {
+            beginPathPrompt(PathPromptMode::Save);
+        } else {
+            saveToPath(m_filePath);
+        }
+        return;
+    }
+
     switch (keysym.sym) {
         case SDLK_RETURN:
         case SDLK_KP_ENTER:
@@ -1856,6 +1901,49 @@ void DrawingApp::handleEvent(const SDL_Event& event) {
 
     if (event.type == SDL_KEYDOWN) {
         const SDL_Keysym& key = event.key.keysym;
+
+        if (m_dirty && (m_discardKind == DiscardKind::Close
+                        || m_discardKind == DiscardKind::New)) {
+            const bool closing = m_discardKind == DiscardKind::Close;
+            if ((key.mod & KMOD_CTRL) && key.sym == SDLK_d) {
+                if (closing) {
+                    if (auto* ctrl = getController()) {
+                        m_closeDiscardAuthorized = true;
+                        ctrl->close();
+                    }
+                } else {
+                    startNewSketch(true);
+                }
+                return;
+            }
+            if (key.sym == SDLK_ESCAPE) {
+                clearDiscardArm();
+                setStatus("Cancelled; unsaved sketch kept.");
+                return;
+            }
+            if ((key.mod & KMOD_CTRL) && key.sym == SDLK_s
+                && !(key.mod & KMOD_SHIFT)) {
+                m_closeAfterSave = closing;
+                m_newAfterSave = !closing;
+                if (m_filePath.empty()) {
+                    beginPathPrompt(PathPromptMode::Save);
+                } else if (saveToPath(m_filePath)) {
+                    completePendingSaveAction();
+                } else {
+                    m_closeAfterSave = false;
+                    m_newAfterSave = false;
+                }
+                return;
+            }
+            if ((key.mod & KMOD_CTRL) && key.sym == SDLK_s
+                && (key.mod & KMOD_SHIFT)) {
+                m_closeAfterSave = closing;
+                m_newAfterSave = !closing;
+                beginPathPrompt(PathPromptMode::Save);
+                return;
+            }
+        }
+
         if ((key.mod & KMOD_CTRL) && key.sym == SDLK_s) {
             if (m_filePath.empty()) {
                 beginPathPrompt(PathPromptMode::Save);

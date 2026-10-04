@@ -45,9 +45,11 @@ private:
     enum class PathPromptMode { None, Save, Open, Rgb };
     enum class DiscardKind { None, Close, New, Open };
 
-    bool requestDiscard(DiscardKind kind, const char* statusMessage);
+    bool requestDiscard(DiscardKind kind, const char* statusMessage,
+                        bool explicitlyConfirmed = false);
     void clearDiscardArm();
-    void startNewSketch();
+    void startNewSketch(bool explicitlyConfirmed = false);
+    void completePendingSaveAction();
 
     struct ColorSwatch {
         const char* name;
@@ -139,7 +141,7 @@ private:
     void beginPathPrompt(PathPromptMode mode);
     void remapPathPrompt(const std::string& oldPath,
                          const std::string& newPath);
-    void finishPathPrompt(bool commit);
+    void finishPathPrompt(bool commit, bool confirmDiscard = false);
     void completePathPrompt();
     void handlePathPromptKey(const SDL_Keysym& keysym);
     void handlePathPromptText(const char* text);
@@ -205,6 +207,9 @@ private:
     bool m_suppressChangedNotification = false;
     DiscardKind m_discardKind = DiscardKind::None;
     std::string m_discardPath;
+    bool m_closeDiscardAuthorized = false;
+    bool m_closeAfterSave = false;
+    bool m_newAfterSave = false;
 
     int m_clientWidth = 0;
     int m_clientHeight = 0;
