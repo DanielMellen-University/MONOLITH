@@ -7,6 +7,7 @@
 #include <cctype>
 #include <iterator>
 #include <limits>
+#include <memory>
 #include <ostream>
 #include <string_view>
 #include <unordered_set>
@@ -1900,25 +1901,13 @@ void TextEditorApp::applyCurrentFindMatch() {
     ensureCursorVisible();
 }
 
-void TextEditorApp::pasteSearchField() {
-    if (!SDL_HasClipboardText()) return;
-    char* raw = SDL_GetClipboardText();
-    if (!raw) return;
-
-    std::size_t rawSize = 0;
-    while (rawSize <= kMaxDocumentBytes && raw[rawSize] != '\0') ++rawSize;
-    if (rawSize > kMaxDocumentBytes) {
-        SDL_free(raw);
-        return;
-    }
-
+void TextEditorApp::insertSearchFieldText(const char* text) {
+    if (!text || !*text) return;
     std::string inserted;
-    inserted.reserve(rawSize);
-    for (std::size_t i = 0; i < rawSize; ++i) {
-        const unsigned char byte = static_cast<unsigned char>(raw[i]);
+    for (const char* p = text; *p; ++p) {
+        const unsigned char byte = static_cast<unsigned char>(*p);
         if (byte >= 32 && byte != 127) inserted.push_back(static_cast<char>(byte));
     }
-    SDL_free(raw);
     if (inserted.empty()) return;
 
     if (m_searchMode == SearchMode::Replace
@@ -1933,6 +1922,16 @@ void TextEditorApp::pasteSearchField() {
     m_findQuery.insert(m_findCursorPos, inserted);
     m_findCursorPos += inserted.size();
     updateFindMatches();
+}
+
+void TextEditorApp::pasteSearchField() {
+    if (!SDL_HasClipboardText()) return;
+    std::unique_ptr<char, decltype(&SDL_free)> raw(SDL_GetClipboardText(), &SDL_free);
+    if (!raw) return;
+
+    std::size_t rawSize = 0;
+    while (rawSize <= kMaxDocumentBytes && raw.get()[rawSize] != '\0') ++rawSize;
+    if (rawSize <= kMaxDocumentBytes) insertSearchFieldText(raw.get());
 }
 
 void TextEditorApp::replaceCurrentMatch() {
@@ -2546,35 +2545,7 @@ void TextEditorApp::handleEvent(const SDL_Event& event) {
 
     if (event.type == SDL_TEXTINPUT) {
         if (m_searchMode != SearchMode::None) {
-            const char* t = event.text.text;
-            if (!t || !*t) return;
-            if (m_searchField == SearchField::Replacement
-                && m_searchMode == SearchMode::Replace) {
-                m_replaceCursorPos = std::min(m_replaceCursorPos, m_replaceText.size());
-                std::string inserted;
-                for (const char* p = t; *p; ++p) {
-                    const unsigned char c = static_cast<unsigned char>(*p);
-                    if (c < 32 || c == 127) continue;
-                    inserted.push_back(static_cast<char>(c));
-                }
-                if (!inserted.empty()) {
-                    m_replaceText.insert(m_replaceCursorPos, inserted);
-                    m_replaceCursorPos += inserted.size();
-                }
-            } else {
-                m_findCursorPos = std::min(m_findCursorPos, m_findQuery.size());
-                std::string inserted;
-                for (const char* p = t; *p; ++p) {
-                    const unsigned char c = static_cast<unsigned char>(*p);
-                    if (c < 32 || c == 127) continue;
-                    inserted.push_back(static_cast<char>(c));
-                }
-                if (!inserted.empty()) {
-                    m_findQuery.insert(m_findCursorPos, inserted);
-                    m_findCursorPos += inserted.size();
-                }
-                updateFindMatches();
-            }
+            insertSearchFieldText(event.text.text);
             return;
         }
 

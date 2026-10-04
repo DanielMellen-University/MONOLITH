@@ -1041,6 +1041,20 @@ int main() {
               && findPasteEditor.m_findMatchCount == 1,
           "Ctrl+V inserts UTF-8 clipboard text at the Find caret and refreshes matches");
 
+    findPasteEditor.m_lines = {"axyb"};
+    findPasteEditor.m_findQuery = "ab";
+    findPasteEditor.m_findCursorPos = 1;
+    SDL_Event searchTextEvent{};
+    searchTextEvent.type = SDL_TEXTINPUT;
+    searchTextEvent.text.text[0] = 'x';
+    searchTextEvent.text.text[1] = '\n';
+    searchTextEvent.text.text[2] = 'y';
+    findPasteEditor.handleEvent(searchTextEvent);
+    check(findPasteEditor.m_findQuery == "axyb"
+              && findPasteEditor.m_findCursorPos == 3
+              && findPasteEditor.m_findMatchCount == 1,
+          "typed Find input shares clipboard filtering and match refresh behavior");
+
     TestEditor replacementPasteEditor(nullptr, &fs, "");
     replacementPasteEditor.m_lines = {"needle"};
     replacementPasteEditor.m_searchMode = TestEditor::SearchMode::Replace;

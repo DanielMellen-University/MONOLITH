@@ -143,6 +143,7 @@ private:
     std::pair<int, int> findMatchAtIndex(std::size_t index) const;
     void moveFindMatch(int direction);
     void applyCurrentFindMatch();
+    void insertSearchFieldText(const char* text);
     void pasteSearchField();
     void replaceCurrentMatch();
     void replaceAllMatches();

@@ -1,5 +1,7 @@
 # Session log
 
+| 2026-10-04 | cleanup | Unified typed and clipboard input for Find/Replace fields behind one sanitizer/insertion routine; clipboard allocations now release through RAII, and tests exercise both input routes. |
+
 | 2026-10-04 | fix | Ctrl+V now inserts clipboard text at the active Find or Replace caret, filters controls to preserve single-line prompts, and refreshes matches after query pastes. Headless regressions cover UTF-8, caret placement, and both fields. |
 
 | 2026-10-04 | perf | Reused a bounded 4 KiB Text Editor prefix scratch buffer for cursor/selection width measurement, avoiding per-frame prefix string allocations on ordinary lines without retaining storage proportional to extreme line lengths. Added exact-width, capacity-reuse, and oversized-prefix regressions. |

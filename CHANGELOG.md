@@ -1,5 +1,10 @@
 # Changelog
 
+## 2026-10: Unify Text Editor search input
+
+- Route typed and clipboard text through one Find/Replace insertion path so control filtering, caret movement, and query refresh remain consistent.
+- Keep clipboard ownership scoped with RAII through the bounded-size check and insertion.
+
 ## 2026-10: Paste into Text Editor search fields
 
 - Honor Ctrl+V in Find and Replace's active caret field, filtering control characters so pasted line breaks cannot make the prompt multi-line.
