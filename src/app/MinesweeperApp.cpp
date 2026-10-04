@@ -126,12 +126,26 @@ void MinesweeperApp::newGame(Difficulty d) {
     if (m_bestTimesSaveFailed) {
         saveBestTimes();
     }
+    const bool difficultyChanged = m_difficulty != d;
     m_difficulty = d;
     const auto& s = specFor(d);
     m_width = s.width;
     m_height = s.height;
     m_mineCount = s.mines;
     resetBoard();
+    if (difficultyChanged) requestPreferredWindowSize();
+}
+
+void MinesweeperApp::requestPreferredWindowSize() {
+    auto* controller = getController();
+    if (!controller) return;
+
+    const int clientWidth = std::max(
+        kPreferredClientWidth, m_width * kPreferredCellPx + 24);
+    const int clientHeight = std::max(
+        kPreferredClientHeight,
+        hudHeight() + m_height * kPreferredCellPx + footerHeight());
+    controller->requestClientSize(clientWidth, clientHeight);
 }
 
 void MinesweeperApp::resetBoard() {

@@ -59,6 +59,10 @@ struct WindowController : public monolith::app::IWindowController {
         if (wm && targetWindow) wm->setWindowTitle(targetWindow, title);
     }
 
+    void requestClientSize(int width, int height) override {
+        if (wm && targetWindow) wm->requestClientSize(targetWindow, width, height);
+    }
+
     void restoreTrackedInstanceTitle() override {
         if (!targetWindow) return;
         const std::string title = formatTrackedInstanceTitle(targetWindow);
@@ -123,4 +127,3 @@ struct WindowController : public monolith::app::IWindowController {
             wm->notifyVirtualPathCreated(virtualPath);
         }
     }
-

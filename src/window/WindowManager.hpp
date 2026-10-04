@@ -94,6 +94,9 @@ public:
     // Update a window title through the shell bridge and invalidate cached taskbar geometry.
     void setWindowTitle(Window* window, const std::string& title);
 
+    // Apply an app-requested client size while retaining the window's center.
+    void requestClientSize(Window* window, int clientWidth, int clientHeight);
+
     // Handle button clicks in title bar
     bool handleTitleBarButtons(Window* window, int mouseX, int mouseY);
 

@@ -27,6 +27,10 @@ struct IWindowController {
     virtual void close() = 0;
     virtual void setTitle(const std::string& title) = 0;
 
+    // Request a client-area size in logical pixels. The shell may clamp the
+    // request to the usable desktop; maximized windows retain it for restore.
+    virtual void requestClientSize(int /*width*/, int /*height*/) {}
+
     // Restore the shell-managed instance title for this window (e.g. "Drawing 2").
     // No-op when the window is not tracked with appBaseTitle / appInstanceNumber.
     virtual void restoreTrackedInstanceTitle() {}

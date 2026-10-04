@@ -129,6 +129,7 @@ compile_window_manager test_window_file_open scripts/test_window_file_open.cpp
 compile_window_manager test_window_coordinates scripts/test_window_coordinates.cpp
 compile_window_manager test_window_mouse_capture scripts/test_window_mouse_capture.cpp
 compile_window_manager test_window_focus scripts/test_window_focus.cpp
+compile_window_manager test_minesweeper_window_size scripts/test_minesweeper_window_size.cpp
 compile_window_manager test_window_lifecycle scripts/test_window_lifecycle.cpp
 compile_window_manager test_window_quit scripts/test_window_quit.cpp
 
@@ -162,6 +163,7 @@ run_sdl test_window_file_open
 run_sdl test_window_coordinates
 run_sdl test_window_mouse_capture
 run_sdl test_window_focus
+run_sdl test_minesweeper_window_size
 run_sdl test_window_lifecycle
 run_sdl test_window_quit
 

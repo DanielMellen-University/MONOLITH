@@ -53,9 +53,13 @@ private:
     static constexpr int kDifficultyButtonY = 30;
     static constexpr int kDifficultyButtonMinHeight = 18;
     static constexpr int kMinCellPx = 1;
+    static constexpr int kPreferredCellPx = 24;
+    static constexpr int kPreferredClientWidth = 360;
+    static constexpr int kPreferredClientHeight = 388;
 
     static const DifficultySpec& specFor(Difficulty d);
     void newGame(Difficulty d);
+    void requestPreferredWindowSize();
     void resetBoard();
     void placeMines(int safeX, int safeY);
     void computeAdjacents();

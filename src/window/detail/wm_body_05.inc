@@ -541,6 +541,47 @@ void WindowManager::setWindowTitle(Window* window, const std::string& title) {
     invalidateShellHitTargets();
 }
 
+void WindowManager::requestClientSize(Window* window, int clientWidth, int clientHeight) {
+    if (!isLiveWindow(window) || window->minimized) return;
+
+    const SDL_Rect before = window->rect;
+    const int maxWidth = std::max(1, m_logicalWidth);
+    const int maxHeight = std::max(1, getUsableDesktopRect().h);
+    const int minWidth = std::min(Window::MIN_WIDTH, maxWidth);
+    const int minHeight = std::min(
+        Window::MIN_HEIGHT + Window::TITLE_BAR_HEIGHT, maxHeight);
+
+    const int requestedWidth = std::clamp(clientWidth, minWidth, maxWidth);
+    int requestedHeight = minHeight;
+    if (clientHeight >= maxHeight - Window::TITLE_BAR_HEIGHT) {
+        requestedHeight = maxHeight;
+    } else if (clientHeight > 0) {
+        requestedHeight = std::max(
+            requestedHeight, clientHeight + Window::TITLE_BAR_HEIGHT);
+    }
+    requestedHeight = std::min(requestedHeight, maxHeight);
+
+    SDL_Rect& target = window->maximized ? window->previousRect : window->rect;
+    const int oldWidth = target.w > 0 ? target.w : before.w;
+    const int oldHeight = target.h > 0 ? target.h : before.h;
+    target.x += (oldWidth - requestedWidth) / 2;
+    target.y += (oldHeight - requestedHeight) / 2;
+    target.w = requestedWidth;
+    target.h = requestedHeight;
+
+    if (window->maximized) {
+        const SDL_Rect maximizedRect = window->rect;
+        window->rect = target;
+        clampSingleWindow(*window);
+        window->previousRect = window->rect;
+        window->rect = maximizedRect;
+        return;
+    }
+
+    clampSingleWindow(*window);
+    notifyAppResizeIfGeometryChanged(*window, before);
+}
+
 void WindowManager::setLogicalDesktopSize(int width, int height) {
     m_logicalWidth = std::max(1, width);
     m_logicalHeight = std::max(1, height);
