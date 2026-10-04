@@ -93,7 +93,7 @@ TextEditorApp::TextEditorApp(TTF_Font* font, monolith::fs::Filesystem* fs, const
         m_lines.emplace_back("  - Ctrl+Shift+S to save as");
         m_lines.emplace_back("  - Ctrl+Z / Ctrl+Y to undo / redo");
         m_lines.emplace_back("");
-        m_lines.emplace_back("This editor is very early. More features coming.");
+        m_lines.emplace_back("Use Ctrl+F to find text or Ctrl+H to replace it.");
         m_cursorRow = 0;
         m_cursorCol = 0;
         documentFitsFileLimits(m_lines, &m_documentSerializedBytes);

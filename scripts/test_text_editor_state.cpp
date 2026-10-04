@@ -105,6 +105,16 @@ int main() {
     check(videoReady, "editor state SDL initialize");
     const bool ttfReady = TTF_Init() == 0;
     check(ttfReady, "editor state SDL_ttf initialize");
+    TestEditor welcomeEditor(nullptr, &fs, "");
+    size_t welcomeSerializedBytes = 0;
+    const bool welcomeFits = TestEditor::documentFitsFileLimits(
+        welcomeEditor.m_lines, &welcomeSerializedBytes);
+    check(welcomeEditor.m_lines.back()
+                  == "Use Ctrl+F to find text or Ctrl+H to replace it."
+              && welcomeFits
+              && welcomeEditor.m_documentSerializedBytes == welcomeSerializedBytes
+              && !welcomeEditor.m_dirty,
+          "welcome text advertises current Find/Replace shortcuts and keeps a clean size baseline");
     TTF_Font* scaleFont = ttfReady
         ? TTF_OpenFont("assets/fonts/DejaVuSans.ttf", 14)
         : nullptr;
