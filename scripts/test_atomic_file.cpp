@@ -115,6 +115,7 @@ int main() {
     ec.clear();
     const bool markerParentReady = fs::create_directory(markerParent, ec) && !ec;
     bool markerObservedDuringSave = false;
+    bool markerPublishedAtomically = false;
     const bool markerWrite = markerParentReady
         && monolith::detail::writeTextAtomically(
             markerParent / "record.txt",
@@ -124,8 +125,18 @@ int main() {
                             monolith::detail::atomicTempPrefix)) {
                         continue;
                     }
+                    const fs::path ownerPath = entry.path()
+                        / monolith::detail::atomicTempOwnerName;
+                    std::error_code ownerError;
+                    const auto ownerStatus = fs::symlink_status(ownerPath, ownerError);
+                    if (!ownerError && fs::is_symlink(ownerStatus)) {
+                        const auto ownerTarget = fs::read_symlink(ownerPath, ownerError);
+                        markerPublishedAtomically = !ownerError
+                            && ownerTarget == monolith::detail::atomicTempOwnerMarker;
+                    }
                     markerObservedDuringSave = monolith::detail::hasAtomicTempOwnerMarker(
                         entry.path())
+                        && markerPublishedAtomically
                         && fs::is_regular_file(entry.path() / "ready")
                         && fs::is_regular_file(entry.path() / "lease");
                     break;
@@ -133,7 +144,7 @@ int main() {
                 out << "owned";
             });
     check(markerWrite && markerObservedDuringSave,
-          "new v4 workspaces carry a valid owner marker before writing content");
+          "new v4 workspaces atomically publish a validated owner marker before writing content");
 
     const fs::path target = parent / "settings.txt";
     const auto stalePath = workspacePath(parent, target, 7);

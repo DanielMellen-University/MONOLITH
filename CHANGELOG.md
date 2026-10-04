@@ -1,5 +1,10 @@
 # Changelog
 
+## 2026-10: Publish atomic-save ownership markers atomically
+
+- Publish new workspace ownership tokens as symlinks in one filesystem operation instead of opening and filling a marker file.
+- Continue accepting validated regular-file markers from older v4 workspaces; incomplete markers and FIFO lookalikes remain nonblocking and untrusted.
+
 ## 2026-10: Reload wallpaper supplied by a move
 
 - Invalidate the cached failed-load path when a successful move supplies a configured wallpaper image that was previously missing.

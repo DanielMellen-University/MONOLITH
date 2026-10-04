@@ -115,7 +115,24 @@ inline bool shouldSweepAtomicTempParent(const std::filesystem::path& parent) {
 }
 
 inline bool hasAtomicTempOwnerMarker(const std::filesystem::path& directory) {
-    const int markerFd = ::open((directory / atomicTempOwnerName).c_str(),
+    const auto markerPath = directory / atomicTempOwnerName;
+    struct stat pathStatus {};
+    if (::lstat(markerPath.c_str(), &pathStatus) != 0) return false;
+
+    if (S_ISLNK(pathStatus.st_mode)) {
+        std::array<char, sizeof(atomicTempOwnerMarker)> target{};
+        ssize_t targetSize;
+        do {
+            targetSize = ::readlink(markerPath.c_str(), target.data(), target.size());
+        } while (targetSize < 0 && errno == EINTR);
+        const std::size_t markerSize = std::strlen(atomicTempOwnerMarker);
+        return targetSize == static_cast<ssize_t>(markerSize)
+            && std::memcmp(target.data(), atomicTempOwnerMarker, markerSize) == 0;
+    }
+    if (!S_ISREG(pathStatus.st_mode)) return false;
+
+    // Accept older regular-file markers while rejecting non-regular lookalikes.
+    const int markerFd = ::open(markerPath.c_str(),
                                 O_RDONLY | O_CLOEXEC | O_NOFOLLOW | O_NONBLOCK);
     if (markerFd < 0) return false;
 
@@ -144,26 +161,8 @@ inline bool hasAtomicTempOwnerMarker(const std::filesystem::path& directory) {
 }
 
 inline bool createAtomicTempOwnerMarker(const std::filesystem::path& directory) {
-    const int markerFd = ::open((directory / atomicTempOwnerName).c_str(),
-                                O_CREAT | O_EXCL | O_WRONLY | O_CLOEXEC | O_NOFOLLOW,
-                                S_IRUSR | S_IWUSR);
-    if (markerFd < 0) return false;
-
-    std::size_t bytesWritten = 0;
-    const std::size_t markerSize = std::strlen(atomicTempOwnerMarker);
-    bool written = true;
-    while (bytesWritten < markerSize) {
-        const ssize_t result = ::write(markerFd, atomicTempOwnerMarker + bytesWritten,
-                                       markerSize - bytesWritten);
-        if (result < 0 && errno == EINTR) continue;
-        if (result <= 0) {
-            written = false;
-            break;
-        }
-        bytesWritten += static_cast<std::size_t>(result);
-    }
-    if (::close(markerFd) != 0) written = false;
-    return written;
+    return ::symlink(atomicTempOwnerMarker,
+                     (directory / atomicTempOwnerName).c_str()) == 0;
 }
 
 // A ready marker exists only after the writer owns the lease lock.
