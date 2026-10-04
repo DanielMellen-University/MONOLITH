@@ -1,5 +1,11 @@
 # Changelog
 
+## 2026-10: Roll back failed recursive copy merges
+
+- Journal overwritten destination files before each atomic replacement, using a same-volume hard link when possible and a bounded-memory copy fallback.
+- On a later traversal failure, restore replaced files and directory timestamps and remove entries created by the failed copy; keep a backup file if recovery itself fails.
+- Cover failed merges with checks for restored content, removed new files, preserved unrelated entries, timestamps, and backup cleanup.
+
 ## 2026-10: Batch Text Editor multiline paste rows
 
 - Assemble normalized clipboard rows before editing and insert them with one vector range operation instead of shifting the document tail once per pasted line.

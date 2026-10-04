@@ -121,9 +121,10 @@ public:
     bool fileSize(const std::string& virtualPath, std::uint64_t& outBytes) const;
 
     /**
-     * Copies a file or directory tree to a new path.
+     * Copies a file or directory tree to a destination path.
      * Destination parent directories are created as needed.
-     * A newly created destination is removed again if a child copy fails.
+     * A failed copy removes new entries and restores overwritten files and
+     * destination-directory modification times.
      * Returns false if the resolved destination aliases the source or is inside its tree.
      */
     bool copyRecursive(const std::string& srcVirtualPath, const std::string& dstVirtualPath);
@@ -210,8 +211,7 @@ private:
                                const HostPath& source,
                                const HostPath& destination,
                                const std::string& canonicalRoot,
-                               bool sourceIsDirectory,
-                               bool destinationExisted);
+                               bool sourceIsDirectory);
     bool writeFileWithProducerAtHostPath(
         const std::string& hostPath,
         const FileContentProducer& produceContent);

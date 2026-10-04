@@ -4,6 +4,7 @@
 
 #include <algorithm>
 #include <array>
+#include <atomic>
 #include <cctype>
 #include <cstddef>
 #include <filesystem>
@@ -12,6 +13,7 @@
 #include <stdexcept>
 #include <string_view>
 #include <system_error>
+#include <unordered_set>
 
 namespace stdfs = std::filesystem;
 
@@ -70,6 +72,84 @@ bool hostEntryExists(const stdfs::path& path) {
     std::error_code ec;
     const auto status = stdfs::symlink_status(path, ec);
     return !ec && status.type() != stdfs::file_type::not_found;
+}
+
+std::atomic_uint64_t copyRollbackSequence{0};
+
+struct CopyRollbackBackup {
+    stdfs::path target;
+    stdfs::path backup;
+    stdfs::file_time_type modifiedTime{};
+    stdfs::perms permissions = stdfs::perms::unknown;
+    bool isHardLink = false;
+    bool active = true;
+};
+
+bool createCopyRollbackBackup(const stdfs::path& target, CopyRollbackBackup& outBackup) {
+    std::error_code statusError;
+    const auto targetStatus = stdfs::status(target, statusError);
+    if (statusError || !stdfs::is_regular_file(targetStatus)) return false;
+
+    std::error_code timeError;
+    const auto modifiedTime = stdfs::last_write_time(target, timeError);
+    if (timeError) return false;
+
+    for (int attempt = 0; attempt < 128; ++attempt) {
+        stdfs::path backup = target;
+        backup += ".monolith-copy-rollback-"
+            + std::to_string(copyRollbackSequence.fetch_add(1, std::memory_order_relaxed));
+
+        std::error_code linkError;
+        stdfs::create_hard_link(target, backup, linkError);
+        if (!linkError) {
+            outBackup = {target, std::move(backup), modifiedTime,
+                         targetStatus.permissions(), true, true};
+            return true;
+        }
+        if (linkError == std::errc::file_exists) continue;
+
+        std::error_code copyError;
+        const bool copied = stdfs::copy_file(
+            target, backup, stdfs::copy_options::none, copyError);
+        if (copyError == std::errc::file_exists) continue;
+        if (!copied || copyError) return false;
+
+        std::error_code permissionError;
+        stdfs::permissions(backup, targetStatus.permissions(),
+                           stdfs::perm_options::replace, permissionError);
+        if (permissionError) {
+            std::error_code cleanupError;
+            stdfs::remove(backup, cleanupError);
+            return false;
+        }
+        std::error_code backupTimeError;
+        stdfs::last_write_time(backup, modifiedTime, backupTimeError);
+        if (backupTimeError) {
+            std::error_code cleanupError;
+            stdfs::remove(backup, cleanupError);
+            return false;
+        }
+
+        outBackup = {target, std::move(backup), modifiedTime,
+                     targetStatus.permissions(), false, true};
+        return true;
+    }
+    return false;
+}
+
+bool restoreCopyRollbackBackup(CopyRollbackBackup& backup) {
+    std::error_code renameError;
+    stdfs::rename(backup.backup, backup.target, renameError);
+    if (renameError) return false;
+    backup.active = false;
+    if (backup.isHardLink) return true;
+
+    std::error_code permissionError;
+    stdfs::permissions(backup.target, backup.permissions,
+                       stdfs::perm_options::replace, permissionError);
+    std::error_code timeError;
+    stdfs::last_write_time(backup.target, backup.modifiedTime, timeError);
+    return !permissionError && !timeError;
 }
 
 void appendNormalizedPathComponents(std::string& result, std::string_view path) {
@@ -296,18 +376,16 @@ bool Filesystem::copyRecursive(const std::string& srcVirtualPath, const std::str
     const bool sourceIsDirectory = stdfs::is_directory(sourceStatus);
     if (!sourceIsDirectory && !stdfs::is_regular_file(sourceStatus)) return false;
 
-    const bool destinationExisted = hostEntryExists(destination.raw);
     return copyRecursiveResolved(
         dst, source, destination, canonicalRoot.string(),
-        sourceIsDirectory, destinationExisted);
+        sourceIsDirectory);
 }
 
 bool Filesystem::copyRecursiveResolved(const std::string& dstVirtualPath,
                                        const HostPath& source,
                                        const HostPath& destination,
                                        const std::string& canonicalRootString,
-                                       bool sourceIsDirectory,
-                                       bool destinationExisted) {
+                                       bool sourceIsDirectory) {
     const stdfs::path sourceResolved(source.resolved);
     const stdfs::path destinationResolved(destination.resolved);
 
@@ -343,48 +421,158 @@ bool Filesystem::copyRecursiveResolved(const std::string& dstVirtualPath,
         });
     };
 
-    if (!sourceIsDirectory) {
-        return copyFileResolved(sourceResolved, destination.resolved);
-    }
-
-    const stdfs::path canonicalRoot(canonicalRootString);
+    struct DirectoryTimestamp {
+        stdfs::path directory;
+        stdfs::file_time_type modifiedTime;
+    };
     struct DirectoryFrame {
         std::string destinationVirtualPath;
         stdfs::path destinationRaw;
         stdfs::path destinationResolved;
-        bool destinationExisted = false;
         stdfs::directory_iterator iterator;
         std::error_code iteratorError;
         bool advanceIterator = false;
     };
 
-    std::vector<DirectoryFrame> frames;
-    auto failCopy = [&](const std::string& failingPath, bool failingPathExisted) {
-        for (const auto& frame : frames) {
-            if (!frame.destinationExisted) {
-                removeRecursive(frame.destinationVirtualPath);
+    std::vector<CopyRollbackBackup> backups;
+    std::vector<stdfs::path> createdFiles;
+    std::vector<stdfs::path> createdDirectories;
+    std::vector<DirectoryTimestamp> directoryTimestamps;
+    std::unordered_set<std::string> createdDirectoryKeys;
+    std::unordered_set<std::string> timestampedDirectoryKeys;
+
+    auto ensureDestinationDirectory = [&](const stdfs::path& directory) {
+        std::vector<stdfs::path> missing;
+        stdfs::path existing = directory;
+        while (!existing.empty() && !hostEntryExists(existing)) {
+            missing.push_back(existing);
+            const stdfs::path parent = existing.parent_path();
+            if (parent == existing) return false;
+            existing = parent;
+        }
+        if (existing.empty()) return false;
+
+        std::error_code statusError;
+        const auto existingStatus = stdfs::status(existing, statusError);
+        if (statusError) return false;
+        if (!stdfs::is_directory(existingStatus)) return false;
+
+        const std::string existingKey = existing.string();
+        if (!createdDirectoryKeys.contains(existingKey)
+            && timestampedDirectoryKeys.insert(existingKey).second) {
+            std::error_code timeError;
+            const auto modifiedTime = stdfs::last_write_time(existing, timeError);
+            if (timeError) {
+                timestampedDirectoryKeys.erase(existingKey);
                 return false;
             }
+            directoryTimestamps.push_back({existing, modifiedTime});
         }
-        if (!failingPathExisted) removeRecursive(failingPath);
+
+        for (auto it = missing.rbegin(); it != missing.rend(); ++it) {
+            std::error_code createError;
+            const bool created = stdfs::create_directory(*it, createError);
+            if (createError) return false;
+            if (created) {
+                createdDirectories.push_back(*it);
+                createdDirectoryKeys.insert(it->string());
+            } else {
+                std::error_code verifyError;
+                if (!stdfs::is_directory(*it, verifyError) || verifyError) return false;
+            }
+        }
+
+        std::error_code directoryError;
+        return stdfs::is_directory(directory, directoryError) && !directoryError;
+    };
+
+    auto copyFileWithRollback = [&](const stdfs::path& sourcePath,
+                                    const stdfs::path& destinationPath) {
+        if (hostEntryExists(destinationPath)) {
+            std::error_code statusError;
+            const auto status = stdfs::status(destinationPath, statusError);
+            if (statusError) return false;
+            if (stdfs::is_regular_file(status)) {
+                CopyRollbackBackup backup;
+                if (!createCopyRollbackBackup(destinationPath, backup)) return false;
+                backups.push_back(std::move(backup));
+            }
+        } else if (!createdDirectoryKeys.contains(destinationPath.parent_path().string())) {
+            createdFiles.push_back(destinationPath);
+        }
+
+        return copyFileResolved(sourcePath, destinationPath.string());
+    };
+
+    auto rollback = [&] {
+        for (auto it = createdFiles.rbegin(); it != createdFiles.rend(); ++it) {
+            std::error_code removeError;
+            stdfs::remove(*it, removeError);
+            if (removeError) {
+                std::cerr << "copy rollback could not remove " << it->string()
+                          << ": " << removeError.message() << '\n';
+            }
+        }
+        for (auto it = backups.rbegin(); it != backups.rend(); ++it) {
+            if (!restoreCopyRollbackBackup(*it)) {
+                std::cerr << "copy rollback could not restore " << it->target.string()
+                          << " from " << it->backup.string() << '\n';
+            }
+        }
+        for (auto it = createdDirectories.rbegin(); it != createdDirectories.rend(); ++it) {
+            std::error_code removeError;
+            stdfs::remove_all(*it, removeError);
+            if (removeError) {
+                std::cerr << "copy rollback could not remove " << it->string()
+                          << ": " << removeError.message() << '\n';
+            }
+        }
+        for (auto it = directoryTimestamps.rbegin(); it != directoryTimestamps.rend(); ++it) {
+            std::error_code timeError;
+            stdfs::last_write_time(it->directory, it->modifiedTime, timeError);
+            if (timeError) {
+                std::cerr << "copy rollback could not restore directory time for "
+                          << it->directory.string() << ": " << timeError.message() << '\n';
+            }
+        }
+    };
+
+    auto discardBackups = [&] {
+        for (const auto& backup : backups) {
+            if (!backup.active) continue;
+            std::error_code removeError;
+            stdfs::remove(backup.backup, removeError);
+            if (removeError) {
+                std::cerr << "copy could not remove rollback file "
+                          << backup.backup.string() << ": " << removeError.message() << '\n';
+            }
+        }
+    };
+
+    auto failCopy = [&] {
+        rollback();
         return false;
     };
 
-    stdfs::directory_iterator rootIterator;
-    std::error_code createError;
-    stdfs::create_directories(destinationResolved, createError);
-    if (createError) return failCopy(dstVirtualPath, destinationExisted);
-    std::error_code directoryError;
-    if (!stdfs::is_directory(destinationResolved, directoryError) || directoryError) {
-        return failCopy(dstVirtualPath, destinationExisted);
+    if (!sourceIsDirectory) {
+        if (!ensureDestinationDirectory(destinationResolved.parent_path())
+            || !copyFileWithRollback(sourceResolved, destinationResolved)) {
+            return failCopy();
+        }
+        discardBackups();
+        return true;
     }
-    std::error_code rootIteratorError;
-    rootIterator = stdfs::directory_iterator(sourceResolved, rootIteratorError);
-    if (rootIteratorError) return failCopy(dstVirtualPath, destinationExisted);
 
+    const stdfs::path canonicalRoot(canonicalRootString);
+    std::vector<DirectoryFrame> frames;
+    if (!ensureDestinationDirectory(destinationResolved)) return failCopy();
+
+    std::error_code rootIteratorError;
+    stdfs::directory_iterator rootIterator(sourceResolved, rootIteratorError);
+    if (rootIteratorError) return failCopy();
     frames.push_back({
         dstVirtualPath, stdfs::path(destination.raw), destinationResolved,
-        destinationExisted, std::move(rootIterator), {}, false});
+        std::move(rootIterator), {}, false});
 
     const stdfs::directory_iterator end;
     while (!frames.empty()) {
@@ -393,9 +581,7 @@ bool Filesystem::copyRecursiveResolved(const std::string& dstVirtualPath,
             frame.advanceIterator = false;
             frame.iterator.increment(frame.iteratorError);
         }
-        if (frame.iteratorError) {
-            return failCopy(frame.destinationVirtualPath, frame.destinationExisted);
-        }
+        if (frame.iteratorError) return failCopy();
         if (frame.iterator == end) {
             frames.pop_back();
             continue;
@@ -404,9 +590,7 @@ bool Filesystem::copyRecursiveResolved(const std::string& dstVirtualPath,
         const stdfs::path entryPath = frame.iterator->path();
         std::error_code statusEc;
         const auto entryStatus = frame.iterator->symlink_status(statusEc);
-        if (statusEc) {
-            return failCopy(frame.destinationVirtualPath, frame.destinationExisted);
-        }
+        if (statusEc) return failCopy();
 
         const std::string childName = entryPath.filename().string();
         const std::string childDestinationVirtual =
@@ -419,73 +603,53 @@ bool Filesystem::copyRecursiveResolved(const std::string& dstVirtualPath,
                 frame.advanceIterator = true;
                 continue;
             }
-            return failCopy(frame.destinationVirtualPath, frame.destinationExisted);
+            return failCopy();
         }
 
         const bool childIsDirectory = stdfs::is_directory(entryStatus);
-        if (!childIsDirectory && !stdfs::is_regular_file(entryStatus)) {
-            return failCopy(frame.destinationVirtualPath, frame.destinationExisted);
-        }
+        if (!childIsDirectory && !stdfs::is_regular_file(entryStatus)) return failCopy();
 
         const stdfs::path rawDestinationChild = frame.destinationRaw / childName;
-
         std::error_code destinationStatusError;
         const auto destinationStatus =
             stdfs::symlink_status(rawDestinationChild, destinationStatusError);
         if (destinationStatusError
             && destinationStatusError != std::errc::no_such_file_or_directory) {
-            return failCopy(frame.destinationVirtualPath, frame.destinationExisted);
+            return failCopy();
         }
-        const bool childDestinationExisted = !destinationStatusError
+        const bool childDestinationExists = !destinationStatusError
             && destinationStatus.type() != stdfs::file_type::not_found;
 
         stdfs::path resolvedDestinationChild;
-        if (childDestinationExisted && stdfs::is_symlink(destinationStatus)) {
+        if (childDestinationExists && stdfs::is_symlink(destinationStatus)) {
             if (!resolveWithinRoot(
                     canonicalRoot, rawDestinationChild, resolvedDestinationChild)) {
-                return failCopy(frame.destinationVirtualPath, frame.destinationExisted);
+                return failCopy();
             }
         } else {
             resolvedDestinationChild = frame.destinationResolved / childName;
-            if (!pathHasPrefix(canonicalRoot, resolvedDestinationChild)) {
-                return failCopy(frame.destinationVirtualPath, frame.destinationExisted);
-            }
+            if (!pathHasPrefix(canonicalRoot, resolvedDestinationChild)) return failCopy();
         }
-        if (pathHasPrefix(entryPath, resolvedDestinationChild)) {
-            return failCopy(frame.destinationVirtualPath, frame.destinationExisted);
-        }
+        if (pathHasPrefix(entryPath, resolvedDestinationChild)) return failCopy();
 
         if (childIsDirectory) {
-            std::error_code childCreateError;
-            stdfs::create_directories(resolvedDestinationChild, childCreateError);
-            if (childCreateError) {
-                return failCopy(childDestinationVirtual, childDestinationExisted);
-            }
-            std::error_code childDirectoryError;
-            if (!stdfs::is_directory(resolvedDestinationChild, childDirectoryError)
-                || childDirectoryError) {
-                return failCopy(childDestinationVirtual, childDestinationExisted);
-            }
+            if (!ensureDestinationDirectory(resolvedDestinationChild)) return failCopy();
 
             std::error_code childIteratorError;
             stdfs::directory_iterator childIterator(entryPath, childIteratorError);
-            if (childIteratorError) {
-                return failCopy(childDestinationVirtual, childDestinationExisted);
-            }
+            if (childIteratorError) return failCopy();
 
             frame.advanceIterator = true;
             frames.push_back({
                 childDestinationVirtual, rawDestinationChild, resolvedDestinationChild,
-                childDestinationExisted, std::move(childIterator), {}, false});
+                std::move(childIterator), {}, false});
         } else {
-            const std::string resolvedDestinationChildString =
-                resolvedDestinationChild.string();
-            if (!copyFileResolved(entryPath, resolvedDestinationChildString)) {
-                return failCopy(frame.destinationVirtualPath, frame.destinationExisted);
-            }
+            if (!copyFileWithRollback(entryPath, resolvedDestinationChild)) return failCopy();
             frame.advanceIterator = true;
         }
     }
+
+    discardBackups();
     return true;
 }
 
