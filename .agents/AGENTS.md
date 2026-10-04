@@ -34,6 +34,7 @@ The human funds token budget and lives in the desktop. You:
 
 | When | Kind | Note |
 |------|------|------|
+| 2026-10-03 | text-editor-snapshot-clone | Measure undo snapshot line storage during cloning after the existing pre-copy budget check; normal and sanitized hosted workflow #307 passed |
 | 2026-10-02 | drawing-format | Keep `.modr` encoder/decoder bounds identical while preserving larger live canvases; oversized saves fail instead of creating files the decoder cannot reopen |
 | 2026-10-02 | wallpaper-decode | Load PNG/JPEG directly from file after checking dimensions; reject inputs above 16,777,216 pixels before decoded allocations while preserving BMP loading |
 | 2026-10-02 | drawing-input-bound | Check `.modr` file size before reading, stream within the format's encoded-size cap, and preserve canvas/prompt state on rejection |
@@ -285,6 +286,7 @@ Older recent-work rows: [`SESSION_LOG.md`](SESSION_LOG.md).
 | 7.103 | Iterate recursive-copy notifications | done | Preserve directory-first depth-first changed-path delivery while replacing recursive calls and redundant per-child directory probes; normal and sanitized hosted workflow #295 passed |
 | 7.104 | Iterate filesystem tree copies | done | Use explicit directory frames instead of recursive calls; preserve direct iteration, symlink containment, atomic file writes, and rollback semantics; normal and sanitized hosted workflow #299 passed |
 | 7.105 | Trim Terminal command history in one pass | done | Preserve the newest valid commands within existing count and byte limits while scanning once and erasing the discarded prefix once; normal and sanitized hosted workflow #303 passed |
+| 7.106 | Account Text Editor snapshots while cloning | done | Keep the active-document budget precheck, but account each copied line during snapshot creation instead of walking the completed snapshot again; normal and sanitized hosted workflow #307 passed |
 | fs-browser-filter-cache | Reuse Filesystem Browser filter snapshots | done | Reuse one directory listing for filter edits; refresh it on F5 and Monolith filesystem notifications, including while filtering |
 | terminal-input-editing | Terminal command-line selection | done | Support UTF-8-safe keyboard/mouse selection and Ctrl+A/C/X/V; normalize all clipboard lines and tabs into the single-line prompt |
 | terminal-touch-mtime | Complete Terminal touch semantics | done | Update existing regular-file last-write time without truncation; reject outside-root symlink targets |
