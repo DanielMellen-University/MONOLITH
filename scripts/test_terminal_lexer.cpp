@@ -55,6 +55,11 @@ int main() {
     expectArgs("echo \"hello \\\"world\\\"\"",
                {"echo", "hello \"world\""},
                "escaped quotes inside double quotes");
+    expectArgs(R"(cat "folder\notes.txt")",
+               {"cat", "folder\\notes.txt"},
+               "unknown double-quoted escape preserves its backslash");
+    expectArgs(R"(echo "a\\b")", {"echo", "a\\b"},
+               "escaped backslash inside double quotes");
     expectArgs("cp -r \"src dir\" \"dst dir\"",
                {"cp", "-r", "src dir", "dst dir"},
                "flags plus two quoted operands");
@@ -96,6 +101,21 @@ int main() {
         const CompletionContext context = completionContextAt(line, line.size());
         check(!context.hasToken,
               "completion after a closed quoted token does not reopen it");
+    }
+
+    {
+        const std::string line = "open \"/home/monolith/folder\\notes";
+        const CompletionContext context = completionContextAt(line, line.size());
+        check(context.prefix == "/home/monolith/folder\\notes",
+              "quoted path completion preserves a literal backslash");
+        check(context.quote == '"', "quoted backslash completion keeps quote mode");
+    }
+
+    {
+        const std::string line = R"(open "/home/monolith/folder\\notes")";
+        const CompletionContext context = completionContextAt(line, line.size());
+        check(context.prefix == "/home/monolith/folder\\notes",
+              "quoted path completion decodes an escaped backslash");
     }
 
     {
