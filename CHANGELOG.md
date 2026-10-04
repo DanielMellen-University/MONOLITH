@@ -1,5 +1,9 @@
 # Changelog
 
+## 2026-10: Preserve entries in unpublished save workspaces
+
+- Roll back a workspace whose ownership marker could not be published with directory-only removal; concurrent or unexpected entries prevent deletion instead of being recursively removed.
+
 ## 2026-10: Count Text Editor bytes while opening
 
 - Count normalized serialized bytes during the bounded chunk read and seed the editor's size cache directly, avoiding a second full-document scan after opening.
