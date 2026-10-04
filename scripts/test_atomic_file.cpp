@@ -52,6 +52,11 @@ int main() {
     }
     const fs::path parent = temp.path();
     std::error_code ec;
+    check(monolith::detail::pathBasenameView(fs::path("relative/workspace")) == "workspace"
+              && monolith::detail::pathBasenameView(fs::path("relative/workspace/"))
+                  == "workspace"
+              && monolith::detail::pathBasenameView(fs::path("/")).empty(),
+          "atomic workspace basename views handle relative, trailing-separator, and root paths");
 
     {
         monolith::detail::AtomicTempParentLock heldLock(parent);

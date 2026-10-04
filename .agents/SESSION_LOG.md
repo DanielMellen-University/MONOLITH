@@ -1,5 +1,7 @@
 # Session log
 
+| 2026-10-04 | perf | Atomic workspace validation and cleanup now inspect borrowed basenames from each path's native storage, avoiding repeated `filename().string()` allocations; tests cover relative, trailing-separator, and root paths. |
+
 | 2026-10-04 | perf | Text Editor Find/Replace and path prompts now assemble display and caret text in retained buffers, avoiding per-frame substring and concatenation temporaries; unchanged Find/Open prompt tests verify text and capacity stability. |
 
 | 2026-10-04 | perf | Scheduled atomic-save sweeps now reuse the destination-directory lock through the following workspace setup, removing a redundant parent open/flock cycle; bulk sweep coverage verifies the lock remains held. |

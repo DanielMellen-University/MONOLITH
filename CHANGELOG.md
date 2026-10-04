@@ -1,5 +1,10 @@
 # Changelog
 
+## 2026-10: Borrow atomic workspace basenames
+
+- Read workspace names from the existing path storage during owner-token checks and cleanup, avoiding repeated allocated filename copies.
+- Cover relative paths, trailing separators, and root paths in basename-view tests.
+
 ## 2026-10: Reuse Text Editor prompt render buffers
 
 - Assemble Find, Replace, Open, Save As, and Go to Line status text directly into retained buffers instead of building per-frame substrings and concatenation temporaries.

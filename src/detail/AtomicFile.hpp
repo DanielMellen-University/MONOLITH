@@ -120,6 +120,18 @@ inline bool shouldSweepAtomicTempParent(const std::filesystem::path& parent) {
     return true;
 }
 
+inline std::string_view pathBasenameView(const std::filesystem::path& path) {
+    const auto& native = path.native();
+    std::size_t end = native.size();
+    while (end > 0 && native[end - 1] == std::filesystem::path::preferred_separator) {
+        --end;
+    }
+    if (end == 0) return {};
+    const auto separator = native.rfind(std::filesystem::path::preferred_separator, end - 1);
+    const std::size_t begin = separator == std::string::npos ? 0 : separator + 1;
+    return std::string_view(native).substr(begin, end - begin);
+}
+
 inline void scheduleAtomicTempSweepRetry(const std::filesystem::path& parent) {
     const auto lexicalKey = parent.lexically_normal();
     std::error_code pathError;
@@ -142,6 +154,7 @@ inline void scheduleAtomicTempSweepRetry(const std::filesystem::path& parent) {
     slot.writesSinceSweep = atomicTempSweepInterval;
 }
 
+inline bool hasAtomicTempTokenName(std::string_view name);
 inline bool hasAtomicTempTokenName(const std::filesystem::path& directory);
 
 inline bool hasAtomicTempOwnerMarker(const std::filesystem::path& directory) {
@@ -191,11 +204,10 @@ inline bool hasAtomicTempOwnerMarker(const std::filesystem::path& directory) {
     return matches;
 }
 
-inline bool hasAtomicTempTokenName(const std::filesystem::path& directory) {
-    const std::string name = directory.filename().string();
-    if (!name.starts_with(atomicTempPrefix)) return false;
-    const std::string_view token(name.data() + std::strlen(atomicTempPrefix),
-                                 name.size() - std::strlen(atomicTempPrefix));
+inline bool hasAtomicTempTokenName(std::string_view name) {
+    constexpr std::string_view prefix = atomicTempPrefix;
+    if (!name.starts_with(prefix)) return false;
+    const std::string_view token = name.substr(prefix.size());
     if (token.size() != 32) return false;
     for (const char digit : token) {
         if (!((digit >= '0' && digit <= '9') || (digit >= 'a' && digit <= 'f'))) {
@@ -203,6 +215,10 @@ inline bool hasAtomicTempTokenName(const std::filesystem::path& directory) {
         }
     }
     return true;
+}
+
+inline bool hasAtomicTempTokenName(const std::filesystem::path& directory) {
+    return hasAtomicTempTokenName(pathBasenameView(directory));
 }
 
 inline bool createAtomicTempTokenName(std::string& name) {
@@ -239,8 +255,7 @@ inline bool removeAtomicTempDirectoryIfEmpty(
 inline bool removeAtomicTempWorkspace(
     const std::filesystem::path& directory,
     bool requireReady) {
-    const bool requireOwner =
-        directory.filename().string().starts_with(atomicTempPrefix);
+    const bool requireOwner = pathBasenameView(directory).starts_with(atomicTempPrefix);
     std::error_code directoryError;
     const auto directoryStatus = std::filesystem::symlink_status(directory, directoryError);
     if (directoryError || !std::filesystem::is_directory(directoryStatus)) return false;
@@ -302,7 +317,7 @@ inline bool removeAtomicTempWorkspace(
 
 // A ready marker exists only after the writer owns the lease lock.
 inline bool tryReclaimAtomicTempDirectory(const std::filesystem::path& directory) {
-    if (directory.filename().string().starts_with(atomicTempPrefix)
+    if (pathBasenameView(directory).starts_with(atomicTempPrefix)
         && !hasAtomicTempOwnerMarker(directory)) {
         return false;
     }
@@ -355,11 +370,12 @@ inline bool tryReclaimAtomicTempDirectory(const std::filesystem::path& directory
 // so an incomplete owned directory cannot belong to an active writer while locked.
 inline bool tryReclaimIncompleteAtomicTempDirectory(
     const std::filesystem::path& directory) {
-    if (!directory.filename().string().starts_with(atomicTempPrefix)) {
+    const std::string_view name = pathBasenameView(directory);
+    if (!name.starts_with(atomicTempPrefix)) {
         return false;
     }
     const bool hasOwnerMarker = hasAtomicTempOwnerMarker(directory);
-    if (!hasOwnerMarker && !hasAtomicTempTokenName(directory)) return false;
+    if (!hasOwnerMarker && !hasAtomicTempTokenName(name)) return false;
 
     std::error_code statusError;
     const auto directoryStatus = std::filesystem::symlink_status(directory, statusError);
