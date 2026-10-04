@@ -1,6 +1,7 @@
 // Headless test of shipped Filesystem multi-item copy/paste, rename, and listing filter.
 // Compiles against src/fs/Filesystem.cpp (no SDL).
 
+#include "../src/detail/AtomicFile.hpp"
 #include "../src/fs/Filesystem.hpp"
 #include "TestTempDir.hpp"
 
@@ -13,6 +14,7 @@
 #include <iostream>
 #include <sstream>
 #include <string>
+#include <string_view>
 #include <vector>
 
 namespace stdfs = std::filesystem;
@@ -63,6 +65,12 @@ static bool hasAtomicTempWorkspace(const stdfs::path& directory) {
     return false;
 }
 
+static bool writeFixture(const stdfs::path& path, std::string_view contents) {
+    std::ofstream file(path, std::ios::binary);
+    file.write(contents.data(), static_cast<std::streamsize>(contents.size()));
+    return static_cast<bool>(file);
+}
+
 static bool referenceIsSameOrDescendant(const std::string& ancestor,
                                         const std::string& path) {
     const std::string normalizedAncestor = referenceNormalize(ancestor);
@@ -101,6 +109,80 @@ int main() {
     check(fs.isDirectory("/"), "virtual root remains after a rejected remove");
     check(!fs.updateModifiedTime("/") && !fs.updateModifiedTime("/missing.txt"),
           "modified-time updates reject directories and missing paths");
+
+    const stdfs::path entriesSweepParent = hostRoot / "entries-sweep";
+    std::string entriesWorkspaceName;
+    const bool entriesWorkspaceNameReady =
+        monolith::detail::createAtomicTempTokenName(entriesWorkspaceName);
+    const stdfs::path entriesStaleWorkspace = entriesSweepParent / entriesWorkspaceName;
+    ec.clear();
+    const bool entriesParentReady = stdfs::create_directory(entriesSweepParent, ec) && !ec;
+    ec.clear();
+    const bool entriesSweepFixturesReady = entriesParentReady && entriesWorkspaceNameReady
+        && stdfs::create_directory(entriesStaleWorkspace, ec) && !ec
+        && monolith::detail::createAtomicTempOwnerMarker(entriesStaleWorkspace)
+        && writeFixture(entriesStaleWorkspace / "lease", "")
+        && writeFixture(entriesStaleWorkspace / "ready", "")
+        && writeFixture(entriesStaleWorkspace / "content", "abandoned");
+    const auto entriesAfterSweep = fs.listEntries("/entries-sweep");
+    check(entriesSweepFixturesReady && entriesAfterSweep.empty()
+              && !stdfs::exists(entriesStaleWorkspace),
+          "visiting a directory through typed listing reclaims abandoned save workspaces");
+
+    const stdfs::path namesSweepParent = hostRoot / "names-sweep";
+    const stdfs::path namesStaleWorkspace = namesSweepParent
+        / (std::string(monolith::detail::atomicTempPreviousPrefix) + "listing");
+    ec.clear();
+    const bool namesParentReady = stdfs::create_directory(namesSweepParent, ec) && !ec;
+    ec.clear();
+    const bool namesSweepFixturesReady = namesParentReady
+        && stdfs::create_directory(namesStaleWorkspace, ec) && !ec
+        && writeFixture(namesStaleWorkspace / "lease", "")
+        && writeFixture(namesStaleWorkspace / "ready", "")
+        && writeFixture(namesStaleWorkspace / "content", "abandoned");
+    const auto namesAfterSweep = fs.list("/names-sweep");
+    check(namesSweepFixturesReady && namesAfterSweep.empty()
+              && !stdfs::exists(namesStaleWorkspace),
+          "visiting a directory through name listing reclaims abandoned save workspaces");
+
+    const stdfs::path sharedCadenceParent = hostRoot / "shared-cadence";
+    const stdfs::path firstSharedStaleWorkspace = sharedCadenceParent
+        / (std::string(monolith::detail::atomicTempPreviousPrefix) + "first");
+    const stdfs::path secondSharedStaleWorkspace = sharedCadenceParent
+        / (std::string(monolith::detail::atomicTempPreviousPrefix) + "second");
+    ec.clear();
+    const bool sharedCadenceParentReady =
+        stdfs::create_directory(sharedCadenceParent, ec) && !ec;
+    ec.clear();
+    const bool firstSharedStaleReady = sharedCadenceParentReady
+        && stdfs::create_directory(firstSharedStaleWorkspace, ec) && !ec
+        && writeFixture(firstSharedStaleWorkspace / "lease", "")
+        && writeFixture(firstSharedStaleWorkspace / "ready", "")
+        && writeFixture(firstSharedStaleWorkspace / "content", "first");
+    const auto firstSharedListing = fs.listEntries("/shared-cadence");
+    ec.clear();
+    const bool secondSharedStaleReady = firstSharedStaleReady
+        && stdfs::create_directory(secondSharedStaleWorkspace, ec) && !ec
+        && writeFixture(secondSharedStaleWorkspace / "lease", "")
+        && writeFixture(secondSharedStaleWorkspace / "ready", "")
+        && writeFixture(secondSharedStaleWorkspace / "content", "second");
+    const bool sharedCadenceWrite = secondSharedStaleReady
+        && fs.writeFile("/shared-cadence/touch.txt", "saved");
+    bool sharedCadenceRemainderSucceeded = sharedCadenceWrite;
+    for (unsigned operation = 0;
+         sharedCadenceRemainderSucceeded && operation < 30;
+         ++operation) {
+        fs.listEntries("/shared-cadence");
+    }
+    const bool heldBeforeCombinedInterval =
+        stdfs::exists(secondSharedStaleWorkspace / "content");
+    const auto sharedCadenceFinalListing = fs.list("/shared-cadence");
+    check(firstSharedStaleReady && firstSharedListing.empty()
+              && !stdfs::exists(firstSharedStaleWorkspace)
+              && sharedCadenceRemainderSucceeded && heldBeforeCombinedInterval
+              && !stdfs::exists(secondSharedStaleWorkspace)
+              && sharedCadenceFinalListing.size() == 1,
+          "directory listings and saves share one 32-operation cleanup cadence");
 
     check(fs.normalize("") == "/" && fs.normalize("////") == "/"
               && fs.normalize("../../alpha/../beta/") == "/beta",

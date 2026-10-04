@@ -1,5 +1,7 @@
 # Session log
 
+| 2026-10-04 | fix | Directory listings now share the bounded atomic-save sweep tracker with writes. Revisited directories reclaim abandoned workspaces without requiring another save; `list()` and `listEntries()` are both covered. |
+
 | 2026-10-04 | fix | Atomic-save scavenging now locks older read-only or write-only lease files using whichever owner access mode remains available. Regressions cover both stale access modes and confirm an active read-only lease lock prevents reclamation. |
 
 | 2026-10-04 | fix | Normalize atomic-save workspace permissions before publishing the owner token, and force lease files to owner read/write so cleanup can reopen them after a crash. A full save now passes under `umask(0777)` with private directory and lease modes; removed the resolved private-creation note from active debts. |

@@ -165,7 +165,7 @@ Headless atomic-writer regression for per-directory first-touch and interval swe
 g++ -std=c++23 scripts/test_atomic_file.cpp -o build/test_atomic_file && ./build/test_atomic_file
 ```
 
-Headless test of shipped `Filesystem` initialization, safe last-write-time updates, atomic streaming-writer success and rollback, preservation of neighboring `.tmp` files/symlinks, multi-item copy/paste, `/`-rejecting rename, and listing filter:
+Headless test of shipped `Filesystem` initialization, stale atomic-save recovery on both directory-listing APIs, shared listing/write sweep cadence, safe last-write-time updates, atomic streaming-writer success and rollback, preservation of neighboring `.tmp` files/symlinks, multi-item copy/paste, `/`-rejecting rename, and listing filter:
 
 ```bash
 g++ -std=c++23 scripts/test_fs_roadmap.cpp src/fs/Filesystem.cpp -o build/test_fs_roadmap && ./build/test_fs_roadmap

@@ -1,5 +1,11 @@
 # Changelog
 
+## 2026-10: Reclaim abandoned saves while browsing
+
+- Run the bounded atomic-save cleanup when directories are listed as well as when files are written, reclaiming crash leftovers when a user revisits a directory without saving.
+- Share the existing per-directory cadence between writes and listings to avoid duplicate cleanup scans.
+- Cover both typed and name-only filesystem listing APIs.
+
 ## 2026-10: Handle restrictive umasks in atomic saves
 
 - Normalize workspace permissions before publishing ownership, and make lease files owner-readable so crash cleanup still works under restrictive umasks.

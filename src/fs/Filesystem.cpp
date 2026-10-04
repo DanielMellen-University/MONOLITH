@@ -1013,6 +1013,7 @@ std::vector<std::string> Filesystem::list(const std::string& virtualPath) const 
     try {
         stdfs::path hostPath = toHostPath(virtualPath);
         if (!stdfs::is_directory(hostPath)) return entries;
+        monolith::detail::scavengeAtomicTempDirectoriesIfDue(hostPath);
 
         for (const auto& entry : stdfs::directory_iterator(hostPath)) {
             std::error_code statusEc;
@@ -1053,6 +1054,7 @@ std::vector<Filesystem::DirEntry> Filesystem::listEntries(const std::string& vir
     try {
         stdfs::path hostPath = toHostPath(virtualPath);
         if (!stdfs::is_directory(hostPath)) return {};
+        monolith::detail::scavengeAtomicTempDirectoriesIfDue(hostPath);
 
         for (const auto& entry : stdfs::directory_iterator(hostPath)) {
             std::error_code statusEc;
