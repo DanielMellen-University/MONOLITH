@@ -4,6 +4,7 @@
 #include <array>
 #include <cerrno>
 #include <cstddef>
+#include <cstring>
 #include <filesystem>
 #include <fstream>
 #include <functional>
@@ -23,8 +24,11 @@ namespace monolith::detail {
 
 inline std::atomic<unsigned long long> atomicTempSequence{0};
 
-inline constexpr const char* atomicTempPrefix = ".monolith-tmp-v3-";
-inline constexpr const char* atomicTempPreviousPrefix = ".monolith-tmp-v2-";
+inline constexpr const char* atomicTempPrefix = ".monolith-tmp-v4-";
+inline constexpr const char* atomicTempPreviousPrefix = ".monolith-tmp-v3-";
+inline constexpr const char* atomicTempOlderPrefix = ".monolith-tmp-v2-";
+inline constexpr char atomicTempOwnerMarker[] = "monolith atomic workspace v4\n";
+inline constexpr const char* atomicTempOwnerName = "owner";
 inline constexpr unsigned long long atomicTempSweepInterval = 32;
 inline constexpr std::size_t atomicTempTrackedParents = 16;
 
@@ -89,8 +93,65 @@ inline bool shouldSweepAtomicTempParent(const std::filesystem::path& parent) {
     return true;
 }
 
+inline bool hasAtomicTempOwnerMarker(const std::filesystem::path& directory) {
+    const int markerFd = ::open((directory / atomicTempOwnerName).c_str(),
+                                O_RDONLY | O_CLOEXEC | O_NOFOLLOW);
+    if (markerFd < 0) return false;
+
+    struct stat markerStatus {};
+    bool matches = ::fstat(markerFd, &markerStatus) == 0
+        && S_ISREG(markerStatus.st_mode)
+        && markerStatus.st_size == static_cast<off_t>(std::strlen(atomicTempOwnerMarker));
+    std::array<char, sizeof(atomicTempOwnerMarker) - 1> contents{};
+    std::size_t bytesRead = 0;
+    while (matches && bytesRead < contents.size()) {
+        const ssize_t result = ::read(markerFd, contents.data() + bytesRead,
+                                     contents.size() - bytesRead);
+        if (result < 0 && errno == EINTR) continue;
+        if (result <= 0) {
+            matches = false;
+            break;
+        }
+        bytesRead += static_cast<std::size_t>(result);
+    }
+    if (matches) {
+        matches = std::memcmp(contents.data(), atomicTempOwnerMarker,
+                              contents.size()) == 0;
+    }
+    ::close(markerFd);
+    return matches;
+}
+
+inline bool createAtomicTempOwnerMarker(const std::filesystem::path& directory) {
+    const int markerFd = ::open((directory / atomicTempOwnerName).c_str(),
+                                O_CREAT | O_EXCL | O_WRONLY | O_CLOEXEC | O_NOFOLLOW,
+                                S_IRUSR | S_IWUSR);
+    if (markerFd < 0) return false;
+
+    std::size_t bytesWritten = 0;
+    const std::size_t markerSize = std::strlen(atomicTempOwnerMarker);
+    bool written = true;
+    while (bytesWritten < markerSize) {
+        const ssize_t result = ::write(markerFd, atomicTempOwnerMarker + bytesWritten,
+                                       markerSize - bytesWritten);
+        if (result < 0 && errno == EINTR) continue;
+        if (result <= 0) {
+            written = false;
+            break;
+        }
+        bytesWritten += static_cast<std::size_t>(result);
+    }
+    if (::close(markerFd) != 0) written = false;
+    return written;
+}
+
 // A ready marker exists only after the writer owns the lease lock.
 inline bool tryReclaimAtomicTempDirectory(const std::filesystem::path& directory) {
+    if (directory.filename().string().starts_with(atomicTempPrefix)
+        && !hasAtomicTempOwnerMarker(directory)) {
+        return false;
+    }
+
     std::error_code statusError;
     const auto directoryStatus = std::filesystem::symlink_status(directory, statusError);
     if (statusError || !std::filesystem::is_directory(directoryStatus)) return false;
@@ -131,11 +192,14 @@ inline bool tryReclaimAtomicTempDirectory(const std::filesystem::path& directory
     return !statusError;
 }
 
-// V3 setup holds the parent lock until lease and ready are established, so an
-// unmarked v3 directory cannot belong to an active writer while the lock is held.
+// V4 setup holds the parent lock until ownership, lease, and ready markers exist,
+// so an incomplete owned directory cannot belong to an active writer while locked.
 inline bool tryReclaimIncompleteAtomicTempDirectory(
     const std::filesystem::path& directory) {
-    if (!directory.filename().string().starts_with(atomicTempPrefix)) return false;
+    if (!directory.filename().string().starts_with(atomicTempPrefix)
+        || !hasAtomicTempOwnerMarker(directory)) {
+        return false;
+    }
 
     std::error_code statusError;
     const auto directoryStatus = std::filesystem::symlink_status(directory, statusError);
@@ -164,7 +228,8 @@ inline void scavengeAtomicTempDirectories(const std::filesystem::path& parent) {
     while (!iteratorError && entry != end) {
         const std::string name = entry->path().filename().string();
         if (name.starts_with(atomicTempPrefix)
-            || name.starts_with(atomicTempPreviousPrefix)) {
+            || name.starts_with(atomicTempPreviousPrefix)
+            || name.starts_with(atomicTempOlderPrefix)) {
             candidates.push_back(entry->path());
         }
         entry.increment(iteratorError);
@@ -190,6 +255,12 @@ inline bool createAtomicTempDirectory(const std::filesystem::path& targetPath,
     if (!parentLock.locked()) return false;
 
     auto prepareNewDirectory = [&](const std::filesystem::path& candidate) {
+        if (!createAtomicTempOwnerMarker(candidate)) {
+            std::error_code cleanupError;
+            std::filesystem::remove_all(candidate, cleanupError);
+            return false;
+        }
+
         std::error_code permissionError;
         std::filesystem::permissions(candidate, std::filesystem::perms::owner_all,
                                      std::filesystem::perm_options::replace,

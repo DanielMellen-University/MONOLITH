@@ -1,5 +1,10 @@
 # Changelog
 
+## 2026-10: Protect user directories during atomic-save cleanup
+
+- Stamp new v4 atomic-save workspaces with an ownership marker and reclaim incomplete workspaces only when that marker is valid.
+- Preserve user-created directories that resemble temporary workspaces; continue recovering ready-marked v3/v2 workspaces with free lease locks.
+
 ## 2026-10: Share virtual-home path shorthand
 
 - Use one `~` / `~/` expansion rule across Terminal, Text Editor, Drawing, and Settings wallpaper paths without changing Filesystem normalization semantics.
