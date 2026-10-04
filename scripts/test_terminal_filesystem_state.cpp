@@ -445,26 +445,46 @@ int main() {
               && controller.changedPaths.back() == "/home/monolith/copied.txt",
           "cp notifies the shell about an overwritten file");
 
-    check(fs.createDirectory("/home/monolith/tree-source/nested"),
+    check(fs.createDirectory("/home/monolith/tree-source/nested/deep"),
           "create recursive copy source tree");
-    check(fs.writeFile("/home/monolith/tree-source/nested/file.txt", "new content"),
+    check(fs.writeFile("/home/monolith/tree-source/nested/deep/file.txt", "new content"),
           "write recursive copy source child");
-    check(fs.createDirectory("/home/monolith/tree-dest/tree-source/nested"),
+    check(fs.createDirectory("/home/monolith/tree-source/side"),
+          "create recursive copy sibling directory");
+    check(fs.writeFile("/home/monolith/tree-source/side/side.txt", "side content"),
+          "write recursive copy sibling file");
+    check(fs.writeFile("/home/monolith/tree-source/root.txt", "root content"),
+          "write recursive copy root file");
+    check(fs.createDirectory("/home/monolith/tree-dest/tree-source/nested/deep"),
           "create recursive copy destination tree");
-    check(fs.writeFile("/home/monolith/tree-dest/tree-source/nested/file.txt", "old content"),
+    check(fs.writeFile(
+              "/home/monolith/tree-dest/tree-source/nested/deep/file.txt", "old content"),
           "write recursive copy destination child");
+    check(fs.createDirectory("/home/monolith/tree-dest/tree-source/side"),
+          "create recursive copy destination sibling directory");
+    check(fs.writeFile("/home/monolith/tree-dest/tree-source/side/side.txt", "old side"),
+          "write recursive copy destination sibling file");
+    check(fs.writeFile("/home/monolith/tree-dest/tree-source/root.txt", "old root"),
+          "write recursive copy destination root file");
     controller.changedPaths.clear();
     terminal.executeCommand(
         "cp -r /home/monolith/tree-source /home/monolith/tree-dest");
-    check(fs.readFile("/home/monolith/tree-dest/tree-source/nested/file.txt")
+    check(fs.readFile("/home/monolith/tree-dest/tree-source/nested/deep/file.txt")
               == "new content",
           "recursive cp overwrites the nested destination file");
+    check(fs.readFile("/home/monolith/tree-dest/tree-source/side/side.txt") == "side content"
+              && fs.readFile("/home/monolith/tree-dest/tree-source/root.txt") == "root content",
+          "recursive cp overwrites sibling and root-level files");
     check(controller.changedPaths
               == std::vector<std::string>{
                   "/home/monolith/tree-dest/tree-source",
                   "/home/monolith/tree-dest/tree-source/nested",
-                  "/home/monolith/tree-dest/tree-source/nested/file.txt"},
-          "recursive cp notifies every changed path in an existing tree");
+                  "/home/monolith/tree-dest/tree-source/nested/deep",
+                  "/home/monolith/tree-dest/tree-source/nested/deep/file.txt",
+                  "/home/monolith/tree-dest/tree-source/side",
+                  "/home/monolith/tree-dest/tree-source/side/side.txt",
+                  "/home/monolith/tree-dest/tree-source/root.txt"},
+          "recursive cp preserves directory-first depth-first notification order");
 
     terminal.m_history.clear();
     terminal.m_historyBytes = 0;
