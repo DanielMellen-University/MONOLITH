@@ -871,10 +871,7 @@ void TerminalApp::handleKeyDown(const SDL_Keysym& keysym) {
             return;
         }
         if (keysym.sym == SDLK_DELETE) {
-            m_searchCursorPos = std::min(m_searchCursorPos, m_searchBuffer.size());
-            const std::size_t next = utf8NextCodepointStart(m_searchBuffer, m_searchCursorPos);
-            if (next > m_searchCursorPos) {
-                m_searchBuffer.erase(m_searchCursorPos, next - m_searchCursorPos);
+            if (eraseNextUtf8Codepoint(m_searchBuffer, m_searchCursorPos)) {
                 updateReverseSearchMatch();
             }
             return;
@@ -957,10 +954,10 @@ void TerminalApp::handleKeyDown(const SDL_Keysym& keysym) {
             }
             const std::size_t cursor = static_cast<std::size_t>(
                 std::clamp(m_inputCursorPos, 0, static_cast<int>(m_inputBuffer.size())));
-            const std::size_t next = utf8NextCodepointStart(m_inputBuffer, cursor);
-            if (next > cursor) {
+            if (cursor < m_inputBuffer.size()) {
                 leaveHistoryNavigationOnEdit();
-                m_inputBuffer.erase(cursor, next - cursor);
+                std::size_t eraseCursor = cursor;
+                eraseNextUtf8Codepoint(m_inputBuffer, eraseCursor);
                 clearInputSelection();
             }
             break;

@@ -1236,10 +1236,7 @@ void FilesystemApp::handleKeyDown(const SDL_Keysym& keysym) {
             return;
         }
         if (keysym.sym == SDLK_DELETE) {
-            const std::size_t next = utf8NextCodepointStart(m_renameBuffer, m_renameCursorPos);
-            if (next > m_renameCursorPos) {
-                m_renameBuffer.erase(m_renameCursorPos, next - m_renameCursorPos);
-            }
+            eraseNextUtf8Codepoint(m_renameBuffer, m_renameCursorPos);
             return;
         }
         if (keysym.sym == SDLK_LEFT) {
@@ -1282,10 +1279,7 @@ void FilesystemApp::handleKeyDown(const SDL_Keysym& keysym) {
             return;
         }
         if (keysym.sym == SDLK_DELETE) {
-            m_filterCursorPos = std::min(m_filterCursorPos, m_filterQuery.size());
-            const std::size_t next = utf8NextCodepointStart(m_filterQuery, m_filterCursorPos);
-            if (next > m_filterCursorPos) {
-                m_filterQuery.erase(m_filterCursorPos, next - m_filterCursorPos);
+            if (eraseNextUtf8Codepoint(m_filterQuery, m_filterCursorPos)) {
                 applyFilterQuery();
             }
             return;

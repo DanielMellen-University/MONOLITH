@@ -905,10 +905,7 @@ void TextEditorApp::handlePathPromptKey(const SDL_Keysym& keysym) {
             erasePreviousUtf8Codepoint(m_pathPromptBuffer, m_pathPromptCursorPos);
             break;
         case SDLK_DELETE: {
-            const std::size_t next = utf8NextCodepointStart(m_pathPromptBuffer, m_pathPromptCursorPos);
-            if (next > m_pathPromptCursorPos) {
-                m_pathPromptBuffer.erase(m_pathPromptCursorPos, next - m_pathPromptCursorPos);
-            }
+            eraseNextUtf8Codepoint(m_pathPromptBuffer, m_pathPromptCursorPos);
             break;
         }
         case SDLK_LEFT:
@@ -2582,20 +2579,9 @@ void TextEditorApp::handleEvent(const SDL_Event& event) {
                 case SDLK_DELETE: {
                     if (m_searchField == SearchField::Replacement
                         && m_searchMode == SearchMode::Replace) {
-                        m_replaceCursorPos = std::min(m_replaceCursorPos, m_replaceText.size());
-                        const std::size_t next = utf8NextCodepointStart(
-                            m_replaceText, m_replaceCursorPos);
-                        if (next > m_replaceCursorPos) {
-                            m_replaceText.erase(m_replaceCursorPos, next - m_replaceCursorPos);
-                        }
-                    } else {
-                        m_findCursorPos = std::min(m_findCursorPos, m_findQuery.size());
-                        const std::size_t next = utf8NextCodepointStart(
-                            m_findQuery, m_findCursorPos);
-                        if (next > m_findCursorPos) {
-                            m_findQuery.erase(m_findCursorPos, next - m_findCursorPos);
-                            updateFindMatches();
-                        }
+                        eraseNextUtf8Codepoint(m_replaceText, m_replaceCursorPos);
+                    } else if (eraseNextUtf8Codepoint(m_findQuery, m_findCursorPos)) {
+                        updateFindMatches();
                     }
                     break;
                 }

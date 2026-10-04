@@ -5,6 +5,7 @@
 
 using monolith::app::popLastUtf8Codepoint;
 using monolith::app::erasePreviousUtf8Codepoint;
+using monolith::app::eraseNextUtf8Codepoint;
 using monolith::app::utf8CodepointByteLen;
 using monolith::app::utf8ClampToCodepointBoundary;
 using monolith::app::utf8NextCodepointStart;
@@ -72,11 +73,16 @@ int main() {
           "cursor erase removes one complete codepoint");
 
     std::string forwardEdited = mixed;
-    const std::size_t forwardCursor = 1;
-    const std::size_t forwardNext = utf8NextCodepointStart(forwardEdited, forwardCursor);
-    forwardEdited.erase(forwardCursor, forwardNext - forwardCursor);
-    check(forwardEdited == "A\xF0\x9F\x98\x80" "B",
+    std::size_t forwardCursor = 1;
+    const bool forwardErased = eraseNextUtf8Codepoint(forwardEdited, forwardCursor);
+    check(forwardErased && forwardCursor == 1
+              && forwardEdited == "A\xF0\x9F\x98\x80" "B",
           "forward delete removes one complete codepoint");
+    std::string endEdited = "x";
+    std::size_t endCursor = 5;
+    check(!eraseNextUtf8Codepoint(endEdited, endCursor)
+              && endEdited == "x" && endCursor == endEdited.size(),
+          "forward delete clamps an out-of-range cursor without changing text");
 
     if (failures == 0) {
         std::cout << "ALL UTF8 TESTS PASSED\n";

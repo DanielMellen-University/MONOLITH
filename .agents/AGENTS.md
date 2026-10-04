@@ -34,6 +34,7 @@ The human funds token budget and lives in the desktop. You:
 
 | When | Kind | Note |
 |------|------|------|
+| 2026-10-04 | utf8-forward-delete | Share the UTF-8-aware forward-delete primitive across Terminal, Text Editor, Drawing, and Filesystem Browser editing prompts; no-op edits keep existing update behavior |
 | 2026-10-04 | atomic-save-incremental-sweep | Process stale workspace candidates during parent traversal rather than building an unbounded path vector; one sweep reclaims a 128-workspace regression batch |
 | 2026-10-04 | atomic-save-marker-name-check | Require symlink owner markers to use the strict random workspace-name format while retaining legacy regular-file markers; hosted run #378 passed both jobs |
 | 2026-10-04 | atomic-save-sweep-retry | Treat parent-lock or directory-iteration failure as an incomplete sweep and retry on the next write; also cover recovery of a current-format symlink-owned workspace; hosted run #376 passed both jobs |
@@ -340,6 +341,7 @@ Older recent-work rows: [`SESSION_LOG.md`](SESSION_LOG.md).
 | 7.127 | Retry failed atomic-save sweeps promptly | done | Return sweep completion status and reschedule parent-lock/enumeration failures for the next write; cover immediate retry cadence and current-format stale workspace recovery; hosted run #376 passed both jobs |
 | 7.128 | Require random names for symlink owner markers | done | Validate the strict token-name format for symlink owner markers while preserving validated regular-file marker compatibility; protect a fully populated non-token lookalike workspace; hosted run #378 passed both jobs |
 | 7.129 | Bound atomic-save sweep memory | done | Process stale candidates incrementally during parent traversal instead of retaining every candidate path; cover one sweep over a large batch of stale workspaces |
+| 7.130 | Share UTF-8 forward deletion | done | Centralize codepoint-safe Delete behavior across Terminal, Text Editor, Drawing, and Filesystem Browser prompts; clamp stale cursors and preserve no-op update semantics |
 | fs-browser-filter-cache | Reuse Filesystem Browser filter snapshots | done | Reuse one directory listing for filter edits; refresh it on F5 and Monolith filesystem notifications, including while filtering |
 | terminal-input-editing | Terminal command-line selection | done | Support UTF-8-safe keyboard/mouse selection and Ctrl+A/C/X/V; normalize all clipboard lines and tabs into the single-line prompt |
 | terminal-touch-mtime | Complete Terminal touch semantics | done | Update existing regular-file last-write time without truncation; reject outside-root symlink targets |

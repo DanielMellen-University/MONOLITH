@@ -1391,12 +1391,7 @@ void DrawingApp::handlePathPromptKey(const SDL_Keysym& keysym) {
             erasePreviousUtf8Codepoint(m_pathPromptBuffer, m_pathPromptCursorPos);
             break;
         case SDLK_DELETE: {
-            m_pathPromptCursorPos = std::min(m_pathPromptCursorPos, m_pathPromptBuffer.size());
-            const std::size_t next = utf8NextCodepointStart(
-                m_pathPromptBuffer, m_pathPromptCursorPos);
-            if (next > m_pathPromptCursorPos) {
-                m_pathPromptBuffer.erase(m_pathPromptCursorPos, next - m_pathPromptCursorPos);
-            }
+            eraseNextUtf8Codepoint(m_pathPromptBuffer, m_pathPromptCursorPos);
             break;
         }
         case SDLK_LEFT:

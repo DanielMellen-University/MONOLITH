@@ -1,5 +1,10 @@
 # Changelog
 
+## 2026-10: Share UTF-8 forward deletion
+
+- Route forward Delete in Terminal, Text Editor, Drawing, and Filesystem Browser prompts through one codepoint-safe helper with consistent cursor clamping.
+- Keep search and filter refreshes conditional on an actual deletion.
+
 ## 2026-10: Bound atomic-save sweep memory
 
 - Process stale workspace candidates as the parent directory is traversed instead of retaining a vector proportional to the number of candidates.

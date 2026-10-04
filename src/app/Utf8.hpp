@@ -107,4 +107,12 @@ inline void erasePreviousUtf8Codepoint(std::string& value, std::size_t& cursor) 
     cursor = start;
 }
 
+inline bool eraseNextUtf8Codepoint(std::string& value, std::size_t& cursor) {
+    cursor = std::min(cursor, value.size());
+    const std::size_t next = utf8NextCodepointStart(value, cursor);
+    if (next == cursor) return false;
+    value.erase(cursor, next - cursor);
+    return true;
+}
+
 } // namespace monolith::app

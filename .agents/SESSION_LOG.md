@@ -1,5 +1,7 @@
 # Session log
 
+| 2026-10-04 | cleanup | Consolidated duplicated forward-Delete byte slicing into `eraseNextUtf8Codepoint`, used by the Terminal input/reverse-search and the Text Editor, Drawing, and Filesystem Browser prompts. Added unit coverage for multi-byte deletion and an out-of-range cursor no-op. |
+
 | 2026-10-04 | perf | Atomic-save sweeps now process matching directories incrementally instead of allocating a vector sized to every stale workspace. A focused batch of 128 interrupted workspaces and the full headless suite passed. |
 
 | 2026-10-04 | fix | Require the current symlink owner marker to live inside a strict random-token workspace name, so a prefixed lookalike cannot copy the fixed marker and have its fully populated contents scavenged; retain validated regular-file markers for legacy workspaces. Full local headless suite and Release build passed, the focused ASan/UBSan test passed, and hosted run #378 passed both jobs. |
