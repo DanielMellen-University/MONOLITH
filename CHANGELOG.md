@@ -1,5 +1,10 @@
 # Changelog
 
+## 2026-10: Track atomic-save cleanup per directory
+
+- Sweep each newly used destination directory immediately, then every 32 saves there; retain bounded bookkeeping for 16 recent directories and sweep again when an evicted directory is revisited.
+- Cover first-touch recovery in a second directory and the periodic sweep boundary.
+
 ## 2026-10: Reclaim interrupted atomic-save workspaces
 
 - Hold an OS lock for each active atomic-save workspace and periodically reclaim only completed workspaces whose lock is available.

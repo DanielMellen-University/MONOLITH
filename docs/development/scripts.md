@@ -152,7 +152,7 @@ g++ -std=c++23 scripts/test_minesweeper_state.cpp src/app/MinesweeperApp.cpp $(p
 
 ## Filesystem Roadmap Checks
 
-Headless atomic-writer regression for reclaiming interrupted workspaces without touching active locks or unmarked directories:
+Headless atomic-writer regression for per-directory first-touch and interval sweeps, reclaiming interrupted workspaces without touching active locks, unmarked directories, or legacy paths:
 
 ```bash
 g++ -std=c++23 scripts/test_atomic_file.cpp -o build/test_atomic_file && ./build/test_atomic_file

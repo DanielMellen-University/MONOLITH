@@ -1,10 +1,12 @@
 #pragma once
 
 #include <atomic>
+#include <array>
 #include <cstddef>
 #include <filesystem>
 #include <fstream>
 #include <functional>
+#include <mutex>
 #include <ostream>
 #include <string>
 #include <system_error>
@@ -19,10 +21,39 @@
 namespace monolith::detail {
 
 inline std::atomic<unsigned long long> atomicTempSequence{0};
-inline std::atomic<unsigned long long> atomicTempSweepSequence{0};
 
 inline constexpr const char* atomicTempPrefix = ".monolith-tmp-v2-";
 inline constexpr unsigned long long atomicTempSweepInterval = 32;
+inline constexpr std::size_t atomicTempTrackedParents = 16;
+
+struct AtomicTempSweepSlot {
+    std::filesystem::path parent;
+    unsigned long long writesSinceSweep{0};
+};
+
+inline std::array<AtomicTempSweepSlot, atomicTempTrackedParents> atomicTempSweepSlots{};
+inline std::mutex atomicTempSweepMutex;
+inline std::size_t atomicTempSweepNextSlot{0};
+
+inline bool shouldSweepAtomicTempParent(const std::filesystem::path& parent) {
+    const auto key = parent.lexically_normal();
+    std::lock_guard lock(atomicTempSweepMutex);
+    for (auto& slot : atomicTempSweepSlots) {
+        if (slot.parent != key) continue;
+        if (slot.writesSinceSweep >= atomicTempSweepInterval) {
+            slot.writesSinceSweep = 1;
+            return true;
+        }
+        ++slot.writesSinceSweep;
+        return false;
+    }
+
+    auto& slot = atomicTempSweepSlots[atomicTempSweepNextSlot];
+    atomicTempSweepNextSlot = (atomicTempSweepNextSlot + 1) % atomicTempSweepSlots.size();
+    slot.parent = key;
+    slot.writesSinceSweep = 1;
+    return true;
+}
 
 // A ready marker exists only after the writer owns the lease lock.
 inline bool tryReclaimAtomicTempDirectory(const std::filesystem::path& directory) {
@@ -91,10 +122,7 @@ inline bool createAtomicTempDirectory(const std::filesystem::path& targetPath,
         : std::filesystem::path(".");
     const std::size_t nameHash = std::hash<std::string>{}(targetPath.filename().string());
 
-    if (atomicTempSweepSequence.fetch_add(1, std::memory_order_relaxed)
-        % atomicTempSweepInterval == 0) {
-        scavengeAtomicTempDirectories(parent);
-    }
+    if (shouldSweepAtomicTempParent(parent)) scavengeAtomicTempDirectories(parent);
 
     auto prepareNewDirectory = [&](const std::filesystem::path& candidate) {
         std::error_code permissionError;
