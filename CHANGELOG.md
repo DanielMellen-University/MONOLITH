@@ -1,5 +1,11 @@
 # Changelog
 
+## 2026-10: Preserve neighboring files during atomic saves
+
+- Stage atomic writes in uniquely reserved hidden sibling workspaces instead of truncating the fixed `<target>.tmp` path.
+- Preserve ordinary neighboring `.tmp` files and symlinks while keeping failed-write cleanup, permission retention, and atomic replacement.
+- Cover filesystem writes and desktop settings persistence with regular-file and symlink collision regressions.
+
 ## 2026-10: Roll back failed recursive copy merges
 
 - Journal overwritten destination files before each atomic replacement, using a same-volume hard link when possible and a bounded-memory copy fallback.

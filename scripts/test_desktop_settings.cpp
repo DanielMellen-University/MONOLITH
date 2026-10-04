@@ -72,15 +72,15 @@ int main() {
     check(!ec, "create settings temp symlink");
     if (!ec) {
         saved.setUiScalePercent(100);
-        check(!saved.saveToHostPath(path.string()),
-              "settings save rejects a symlink temporary sibling");
+        check(saved.saveToHostPath(path.string()),
+              "settings save succeeds beside a neighboring symlink");
         std::ifstream outsideTempCheck(outsideTempTarget);
         std::string outsideTempContent;
         std::getline(outsideTempCheck, outsideTempContent);
         check(outsideTempContent == "outside-before",
-              "settings temp symlink target remains untouched");
+              "neighboring symlink target remains untouched");
         check(std::filesystem::is_symlink(std::filesystem::symlink_status(tempLink)),
-              "settings temp symlink remains an entry");
+              "neighboring symlink remains an entry");
         std::filesystem::remove(tempLink, ec);
     }
     std::filesystem::remove(outsideTempTarget, ec);
