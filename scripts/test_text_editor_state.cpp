@@ -29,8 +29,9 @@ struct TestController final : monolith::app::IWindowController {
     std::string boundPath;
     std::vector<std::string> lifecycleEvents;
     monolith::app::TextEditorApp* editor = nullptr;
+    int closeRequests = 0;
 
-    void close() override {}
+    void close() override { ++closeRequests; }
     void setTitle(const std::string&) override {}
 
     bool focusEditorForFile(const std::string& path) override {
@@ -70,6 +71,14 @@ void prepareOpen(TestEditor& editor, const std::string& path) {
     editor.m_pathPromptMode = TestEditor::PathPromptMode::Open;
     editor.m_pathPromptBuffer = path;
     editor.m_pathPromptCursorPos = path.size();
+}
+
+void sendKey(TestEditor& editor, SDL_Keycode key, SDL_Keymod modifiers = KMOD_NONE) {
+    SDL_Event event{};
+    event.type = SDL_KEYDOWN;
+    event.key.keysym.sym = key;
+    event.key.keysym.mod = modifiers;
+    editor.handleEvent(event);
 }
 
 void setEditorLines(TestEditor& editor, std::vector<std::string> lines) {
@@ -990,9 +999,13 @@ int main() {
               && externalEditor.m_lines == std::vector<std::string>{"local edit"},
           "reloading the same file still confirms before discarding dirty editor text");
     externalEditor.finishPathPrompt(true);
+    check(externalEditor.m_discardKind == TestEditor::DiscardKind::Open
+              && externalEditor.m_lines == std::vector<std::string>{"local edit"},
+          "repeating Enter does not discard a dirty editor buffer");
+    sendKey(externalEditor, SDLK_d, KMOD_CTRL);
     check(externalEditor.m_lines == std::vector<std::string>{"newer external change"}
               && !externalEditor.m_dirty,
-          "confirmed same-file reload loads the external editor version");
+          "Ctrl+D explicitly confirms a same-file reload");
 
     TestEditor selfSaveEditor(nullptr, &fs, "/new.txt");
     TestController selfSaveController;
@@ -1011,8 +1024,70 @@ int main() {
     editor.m_filePath = "/blocked.txt";
     editor.m_dirty = true;
     check(!editor.allowClose(), "first close arms the dirty editor guard");
+    check(editor.m_statusMessage.find("Ctrl+D discard") != std::string::npos,
+          "dirty close explains its explicit discard and cancel keys");
     check(!editor.saveCurrentFile(), "direct save failure is reported");
     check(!editor.allowClose(), "failed save clears the stale dirty guard arm");
+
+    TestEditor closeEditor(nullptr, &fs, "/old.txt");
+    TestController closeController;
+    closeEditor.setController(&closeController);
+    closeEditor.m_dirty = true;
+    check(!closeEditor.allowClose(), "dirty close first asks for a decision");
+    sendKey(closeEditor, SDLK_d, KMOD_CTRL);
+    check(closeController.closeRequests == 1 && closeEditor.m_closeDiscardAuthorized,
+          "Ctrl+D requests close with one-shot discard authorization");
+    check(closeEditor.allowClose() && !closeEditor.m_closeDiscardAuthorized,
+          "the window manager's close check consumes the explicit authorization");
+    closeEditor.m_dirty = true;
+    check(!closeEditor.allowClose(), "a later close asks again after the buffer changes");
+    sendKey(closeEditor, SDLK_ESCAPE);
+    check(closeEditor.m_dirty
+              && closeEditor.m_discardKind == TestEditor::DiscardKind::None,
+          "Escape cancels dirty close without changing the buffer");
+
+    check(fs.writeFile("/save-close.txt", "before"), "create save-and-close target");
+    TestEditor saveCloseEditor(nullptr, &fs, "/save-close.txt");
+    TestController saveCloseController;
+    saveCloseEditor.setController(&saveCloseController);
+    saveCloseEditor.m_lines = {"after"};
+    saveCloseEditor.m_dirty = true;
+    check(!saveCloseEditor.allowClose(), "dirty save-and-close asks for a decision");
+    sendKey(saveCloseEditor, SDLK_s, KMOD_CTRL);
+    check(fs.readFile("/save-close.txt") == "after"
+              && !saveCloseEditor.m_dirty
+              && saveCloseController.closeRequests == 1,
+          "Ctrl+S saves successfully before requesting the pending close");
+
+    TestEditor untitledCloseEditor(nullptr, &fs, "");
+    TestController untitledCloseController;
+    untitledCloseEditor.setController(&untitledCloseController);
+    untitledCloseEditor.m_lines = {"untitled saved"};
+    untitledCloseEditor.m_dirty = true;
+    check(!untitledCloseEditor.allowClose(), "untitled dirty close asks for a decision");
+    sendKey(untitledCloseEditor, SDLK_s, KMOD_CTRL);
+    check(untitledCloseEditor.m_pathPromptMode == TestEditor::PathPromptMode::SaveAs
+              && untitledCloseEditor.m_closeAfterSave,
+          "saving an untitled document during close starts Save As");
+    prepareSaveAs(untitledCloseEditor, "/save-close-as.txt");
+    untitledCloseEditor.finishPathPrompt(true);
+    check(fs.readFile("/save-close-as.txt") == "untitled saved"
+              && !untitledCloseEditor.m_dirty
+              && !untitledCloseEditor.m_closeAfterSave
+              && untitledCloseController.closeRequests == 1,
+          "successful Save As completes an explicitly requested close");
+
+    TestEditor failedSaveCloseEditor(nullptr, &fs, "/blocked.txt");
+    TestController failedSaveCloseController;
+    failedSaveCloseEditor.setController(&failedSaveCloseController);
+    failedSaveCloseEditor.m_filePath = "/blocked.txt";
+    failedSaveCloseEditor.m_lines = {"cannot save"};
+    failedSaveCloseEditor.m_dirty = true;
+    check(!failedSaveCloseEditor.allowClose(), "failed save close asks for a decision");
+    sendKey(failedSaveCloseEditor, SDLK_s, KMOD_CTRL);
+    check(failedSaveCloseController.closeRequests == 0
+              && failedSaveCloseEditor.m_dirty,
+          "a failed save never closes or clears the dirty buffer");
 
     check(fs.writeFile("/other.txt", "other"), "write alternate open target");
     editor.m_dirty = true;
@@ -1021,6 +1096,10 @@ int main() {
     check(editor.m_discardKind == TestEditor::DiscardKind::Open
               && editor.m_pathPromptMode == TestEditor::PathPromptMode::Open,
           "dirty open arms a discard confirmation and keeps the prompt active");
+    editor.finishPathPrompt(true);
+    check(editor.m_dirty && editor.m_filePath == "/blocked.txt"
+              && editor.m_pathPromptMode == TestEditor::PathPromptMode::Open,
+          "repeating Enter does not discard the dirty document");
     editor.finishPathPrompt(false);
     check(editor.m_discardKind == TestEditor::DiscardKind::None
               && editor.m_pathPromptMode == TestEditor::PathPromptMode::None,
@@ -1047,10 +1126,38 @@ int main() {
               && editor.m_filePath == "/blocked.txt"
               && editor.m_lines == std::vector<std::string>{"original"},
           "changing a dirty open target requires a fresh confirmation");
-    editor.finishPathPrompt(true);
+    sendKey(editor, SDLK_d, KMOD_CTRL);
     check(editor.m_filePath == "/third.txt" && !editor.m_dirty
               && editor.m_lines == std::vector<std::string>{"third"},
-          "confirming the changed dirty open target loads it");
+          "Ctrl+D explicitly opens the newly confirmed dirty-open target");
+
+    check(fs.writeFile("/fourth.txt", "fourth"), "write directly confirmed dirty-open target");
+    editor.m_dirty = true;
+    editor.beginPathPrompt(TestEditor::PathPromptMode::Open);
+    editor.m_pathPromptBuffer = "/other.txt";
+    editor.m_pathPromptCursorPos = editor.m_pathPromptBuffer.size();
+    editor.finishPathPrompt(true);
+    editor.m_pathPromptBuffer = "/fourth.txt";
+    editor.m_pathPromptCursorPos = editor.m_pathPromptBuffer.size();
+    sendKey(editor, SDLK_d, KMOD_CTRL);
+    check(editor.m_filePath == "/fourth.txt" && !editor.m_dirty
+              && editor.m_lines == std::vector<std::string>{"fourth"},
+          "Ctrl+D explicitly confirms the currently edited Open target");
+
+    check(fs.writeFile("/open-save.txt", "before save"), "create save-before-open target");
+    TestEditor openSaveEditor(nullptr, &fs, "/open-save.txt");
+    TestController openSaveController;
+    openSaveEditor.setController(&openSaveController);
+    openSaveController.editor = &openSaveEditor;
+    openSaveEditor.m_lines = {"saved before open"};
+    openSaveEditor.m_dirty = true;
+    prepareOpen(openSaveEditor, "/other.txt");
+    sendKey(openSaveEditor, SDLK_s, KMOD_CTRL);
+    check(fs.readFile("/open-save.txt") == "saved before open"
+              && openSaveEditor.m_filePath == "/open-save.txt"
+              && openSaveEditor.m_pathPromptMode == TestEditor::PathPromptMode::None
+              && !openSaveEditor.m_dirty,
+          "Ctrl+S in dirty Open saves the current file and cancels that prompt");
 
     TestEditor undoEditor(nullptr, &fs, "/old.txt");
     undoEditor.m_cursorRow = 0;

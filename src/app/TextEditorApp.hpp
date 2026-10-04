@@ -45,8 +45,9 @@ public:
 private:
     enum class DiscardKind { None, Close, Open };
 
-    // Returns true if the destructive action may proceed (clean buffer, or second confirm).
-    bool requestDiscard(DiscardKind kind, const char* statusMessage);
+    // Returns true if the destructive action may proceed (clean buffer or explicit confirmation).
+    bool requestDiscard(DiscardKind kind, const char* statusMessage,
+                        bool explicitlyConfirmed = false);
     void clearDiscardArm();
     struct EditorState {
         std::vector<std::string> lines;
@@ -106,7 +107,7 @@ private:
     void beginPathPrompt(PathPromptMode mode);
     void remapPathPrompt(const std::string& oldPath,
                          const std::string& newPath);
-    void finishPathPrompt(bool commit);
+    void finishPathPrompt(bool commit, bool confirmDiscard = false);
     void completePathPrompt();
     void handlePathPromptKey(const SDL_Keysym& keysym);
     void handlePathPromptText(const char* text);
@@ -218,6 +219,8 @@ private:
     std::string m_textPrefixMeasureScratch;
     DiscardKind m_discardKind = DiscardKind::None;
     std::string m_discardPath;
+    bool m_closeDiscardAuthorized = false;
+    bool m_closeAfterSave = false;
 
     std::vector<EditorState> m_undoStack;
     std::vector<EditorState> m_redoStack;

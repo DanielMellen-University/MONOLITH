@@ -34,6 +34,7 @@ The human funds token budget and lives in the desktop. You:
 
 | When | Kind | Note |
 |------|------|------|
+| 2026-10-04 | text-editor-explicit-discard | Require Ctrl+D to discard dirty Editor text on Close/Open; Esc cancels and repeating the original action cannot silently discard |
 | 2026-10-04 | filesystem-atomic-no-replace-rename | Use atomic no-replace host rename so concurrent moves cannot overwrite a new destination |
 | 2026-10-04 | filesystem-move-hidden-symlink | Move final outside-target symlinks as entries after validating both parents; keep outside-parent traversal blocked |
 | 2026-10-04 | terminal-remove-hidden-symlink | Let `rm` unlink a hidden final symlink after safe parent validation; reject outside-parent traversal |
@@ -390,6 +391,7 @@ Older recent-work rows: [`SESSION_LOG.md`](SESSION_LOG.md).
 | 7.147 | Bound Text Editor search fields | done | Cap each Find/Replace input at 16 MiB, preserve complete UTF-8 characters at the limit, and report rejected input; cover typing and paste in both fields |
 | 7.148 | Bound long Find/Replace rendering | done | Render UTF-8-safe 64-byte contexts around Find/Replace carets and measure each match highlight only across its visible viewport slice; start viewport scans from sparse checkpoints to preserve non-overlap without rescanning dense prefixes |
 | 7.149 | Make filesystem moves atomic | done | Use Linux no-replace rename so a racing destination cannot be overwritten; preserve final symlink-entry moves and fail closed when atomic host support is unavailable |
+| 7.150 | Make dirty Editor decisions explicit | done | Require Ctrl+D for dirty Close/Open discard, preserve dirty text on repeated actions, support Esc cancellation and save-and-close, and re-confirm if the Open target changes; global shutdown remains blocked until the dirty Editor is explicitly resolved |
 | fs-browser-filter-cache | Reuse Filesystem Browser filter snapshots | done | Reuse one directory listing for filter edits; refresh it on F5 and Monolith filesystem notifications, including while filtering |
 | terminal-input-editing | Terminal command-line selection | done | Support UTF-8-safe keyboard/mouse selection and Ctrl+A/C/X/V; normalize all clipboard lines and tabs into the single-line prompt |
 | terminal-touch-mtime | Complete Terminal touch semantics | done | Update existing regular-file last-write time without truncation; reject outside-root symlink targets |

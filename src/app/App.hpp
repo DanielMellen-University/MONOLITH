@@ -187,7 +187,7 @@ public:
     virtual void onFocusLost() {}
 
     // Called before the shell closes this window (title-bar X, controller close, etc.).
-    // Return false to cancel the close (e.g. unsaved changes — arm a second close to discard).
+    // Return false to cancel the close until the app's pending decision is resolved.
     // Default: always allow close.
     virtual bool allowClose() { return true; }
 

@@ -587,14 +587,17 @@ void TextEditorApp::setStatus(const std::string& message) {
 void TextEditorApp::clearDiscardArm() {
     m_discardKind = DiscardKind::None;
     m_discardPath.clear();
+    m_closeDiscardAuthorized = false;
 }
 
-bool TextEditorApp::requestDiscard(DiscardKind kind, const char* statusMessage) {
+bool TextEditorApp::requestDiscard(DiscardKind kind, const char* statusMessage,
+                                   bool explicitlyConfirmed) {
     if (!m_dirty) {
         clearDiscardArm();
         return true;
     }
-    if (m_discardKind == kind) {
+    if (explicitlyConfirmed
+        && (kind == DiscardKind::Open || m_discardKind == kind)) {
         clearDiscardArm();
         return true;
     }
@@ -604,9 +607,12 @@ bool TextEditorApp::requestDiscard(DiscardKind kind, const char* statusMessage) 
 }
 
 bool TextEditorApp::allowClose() {
+    const bool explicitlyConfirmed = m_closeDiscardAuthorized;
+    m_closeDiscardAuthorized = false;
     return requestDiscard(
         DiscardKind::Close,
-        "Unsaved changes — close again to discard, or Ctrl+S to save"
+        "Unsaved changes — Ctrl+D discard, Ctrl+S save and close, Esc cancel",
+        explicitlyConfirmed
     );
 }
 
@@ -747,7 +753,7 @@ void TextEditorApp::goToLine(int lineNumber1Based) {
     setStatus("Line " + std::to_string(m_cursorRow + 1) + " / " + std::to_string(m_lines.size()));
 }
 
-void TextEditorApp::finishPathPrompt(bool commit) {
+void TextEditorApp::finishPathPrompt(bool commit, bool confirmDiscard) {
     const PathPromptMode mode = m_pathPromptMode;
     const std::string buffer = m_pathPromptBuffer;
     const size_t promptCursorPos = m_pathPromptCursorPos;
@@ -789,6 +795,7 @@ void TextEditorApp::finishPathPrompt(bool commit) {
 
     if (!commit) {
         clearDiscardArm();
+        if (mode == PathPromptMode::SaveAs) m_closeAfterSave = false;
         setStatus("Cancelled.");
         return;
     }
@@ -829,7 +836,8 @@ void TextEditorApp::finishPathPrompt(bool commit) {
 
         if (!requestDiscard(
                 DiscardKind::Open,
-                "Unsaved changes — open again to discard, or save first")) {
+                "Unsaved changes — Ctrl+D discard, Ctrl+S save first, Esc cancel",
+                confirmDiscard)) {
             m_discardPath = path;
             restorePrompt();
             return;
@@ -852,6 +860,7 @@ void TextEditorApp::finishPathPrompt(bool commit) {
         if (path != previousPath) {
             if (auto* ctrl = getController(); ctrl && ctrl->focusEditorForFile(path)) {
                 setStatus("Save as failed: file already open");
+                m_closeAfterSave = false;
                 return;
             }
         }
@@ -865,6 +874,10 @@ void TextEditorApp::finishPathPrompt(bool commit) {
         refreshSyntaxMode();
         if (saveCurrentFile()) {
             updateTitleForPath();
+            if (m_closeAfterSave) {
+                m_closeAfterSave = false;
+                if (auto* ctrl = getController()) ctrl->close();
+            }
         } else {
             // Keep the current document identity when the destination could not
             // be written. The attempted path remains in the status message.
@@ -927,6 +940,23 @@ void TextEditorApp::completePathPrompt() {
 }
 
 void TextEditorApp::handlePathPromptKey(const SDL_Keysym& keysym) {
+    const bool control = (keysym.mod & KMOD_CTRL) != 0;
+    if (m_pathPromptMode == PathPromptMode::Open && m_dirty && control
+        && keysym.sym == SDLK_d) {
+        finishPathPrompt(true, true);
+        return;
+    }
+    if (m_pathPromptMode == PathPromptMode::Open && m_dirty && control
+        && keysym.sym == SDLK_s) {
+        finishPathPrompt(false);
+        if (m_filePath.empty()) {
+            beginPathPrompt(PathPromptMode::SaveAs);
+        } else {
+            saveCurrentFile();
+        }
+        return;
+    }
+
     switch (keysym.sym) {
         case SDLK_RETURN:
         case SDLK_KP_ENTER:
@@ -2526,9 +2556,13 @@ void TextEditorApp::render(SDL_Renderer* renderer, const SDL_Rect& contentRect) 
             cursorText.push_back('_');
             searchCursorPx = measureStatusCursorWidth(cursorText);
 
-            status.append(goToLine
-                ? "   |  Enter jump, Esc cancel"
-                : "   |  Tab complete, Enter confirm, Esc cancel");
+            if (goToLine) {
+                status.append("   |  Enter jump, Esc cancel");
+            } else if (m_pathPromptMode == PathPromptMode::Open && m_dirty) {
+                status.append("   |  Tab complete, Enter check, Ctrl+D discard, Ctrl+S save, Esc cancel");
+            } else {
+                status.append("   |  Tab complete, Enter confirm, Esc cancel");
+            }
             searchPromptActive = true;
         } else {
             m_statusHorizontalScrollPx = 0;
@@ -2658,6 +2692,21 @@ void TextEditorApp::handleEvent(const SDL_Event& event) {
     if (event.type == SDL_KEYDOWN) {
         const SDL_Keysym& key = event.key.keysym;
         const bool extend = (key.mod & KMOD_SHIFT) != 0;
+
+        if (m_dirty && m_discardKind == DiscardKind::Close) {
+            if ((key.mod & KMOD_CTRL) && key.sym == SDLK_d) {
+                if (auto* ctrl = getController()) {
+                    m_closeDiscardAuthorized = true;
+                    ctrl->close();
+                }
+                return;
+            }
+            if (key.sym == SDLK_ESCAPE) {
+                clearDiscardArm();
+                setStatus("Close cancelled; unsaved changes kept");
+                return;
+            }
+        }
 
         // Ctrl+F find / Ctrl+H replace
         if ((key.mod & KMOD_CTRL) && key.sym == SDLK_f) {
@@ -2799,7 +2848,7 @@ void TextEditorApp::handleEvent(const SDL_Event& event) {
             return;
         }
 
-        // Ctrl+O open (dirty buffer requires a second confirm via finishPathPrompt)
+        // Ctrl+O open (dirty buffers require an explicit Ctrl+D decision)
         if ((key.mod & KMOD_CTRL) && key.sym == SDLK_o) {
             beginPathPrompt(PathPromptMode::Open);
             return;
@@ -2807,6 +2856,15 @@ void TextEditorApp::handleEvent(const SDL_Event& event) {
 
         // Ctrl+S save (prompts for path when untitled)
         if ((key.mod & KMOD_CTRL) && key.sym == SDLK_s && !(key.mod & KMOD_SHIFT)) {
+            if (m_dirty && m_discardKind == DiscardKind::Close) {
+                if (m_filePath.empty()) {
+                    m_closeAfterSave = true;
+                    beginPathPrompt(PathPromptMode::SaveAs);
+                } else if (saveCurrentFile()) {
+                    if (auto* ctrl = getController()) ctrl->close();
+                }
+                return;
+            }
             if (m_filePath.empty()) {
                 beginPathPrompt(PathPromptMode::SaveAs);
             } else {
@@ -2817,6 +2875,9 @@ void TextEditorApp::handleEvent(const SDL_Event& event) {
 
         // Ctrl+Shift+S save as
         if ((key.mod & KMOD_CTRL) && key.sym == SDLK_s && (key.mod & KMOD_SHIFT)) {
+            if (m_dirty && m_discardKind == DiscardKind::Close) {
+                m_closeAfterSave = true;
+            }
             beginPathPrompt(PathPromptMode::SaveAs);
             return;
         }

@@ -1,5 +1,11 @@
 # Changelog
 
+## 2026-10: Make dirty Editor decisions explicit
+
+- Require Ctrl+D to discard dirty text on Close or Open; Esc cancels, Ctrl+S saves and closes after success, and repeating the original action no longer discards content.
+- Keep dirty Open prompts active until an explicit choice and require a fresh decision if the target path changes.
+- Keep global Shut Down blocked until dirty Editors are explicitly resolved.
+
 ## 2026-10: Make filesystem moves atomic and non-overwriting
 
 - Use Linux `renameat2(RENAME_NOREPLACE)` so an entry created concurrently at the destination is never overwritten by a move.

@@ -43,10 +43,12 @@ If a bound file's parent directory is deleted, the editor keeps the document buf
 - Find, Replace, Go to Line, Open, and Save As prompts reuse the caret-prefix width until the caret text or shared font changes.
 - Failed reads are reported as open errors instead of being treated as empty documents.
 - Recoverable Go to Line, Open, and Save As validation or I/O failures keep the prompt active with its text, caret, and horizontal position, so the input can be corrected and retried. Escape cancels it.
-- Closing the window or opening another file while dirty asks once via the status bar; confirm the same action again to discard, or save first (Ctrl+S).
+- Closing the window or opening another file while dirty shows explicit status-bar choices: **Ctrl+D** discards, **Ctrl+S** saves, and **Esc** cancels. Save on a Close warning closes the window after a successful save; repeating Close or Enter never discards by itself.
+- For a dirty Open, Enter validates the target and shows the decision; Ctrl+D opens it and discards the current buffer. Changing the target requires a fresh Ctrl+D decision. Ctrl+S saves the current document and cancels the Open prompt so it can be reopened afterward.
+- A global Shut Down request also stays blocked while a dirty Editor remains open. Save or explicitly discard and close each dirty Editor, then retry Shut Down.
 - A failed save clears any pending discard confirmation, so closing or opening again always asks before discarding the still-dirty buffer.
 - Canceling a dirty Open prompt also clears its pending confirmation; a later Open requires a fresh confirmation before discarding the buffer.
-- If another app overwrites the bound file, the editor keeps its in-memory buffer unchanged and reports the external change in the status bar. Saving afterward deliberately overwrites the file; opening the currently bound path reloads the external version. A dirty buffer still requires the normal repeated Open confirmation before it is discarded.
+- If another app overwrites the bound file, the editor keeps its in-memory buffer unchanged and reports the external change in the status bar. Saving afterward deliberately overwrites the file; opening the currently bound path reloads the external version. A dirty buffer still requires explicit Ctrl+D confirmation before it is discarded.
 
 ## Syntax Highlighting
 
@@ -71,6 +73,7 @@ The editor applies lightweight syntax highlighting:
 | Ctrl+S | Save (prompts for path if untitled) |
 | Ctrl+Shift+S | Save as (path prompt) |
 | Ctrl+O | Open file by virtual path |
+| Ctrl+D | Explicitly discard dirty text after a Close or Open warning |
 | Ctrl+A | Select all |
 | Ctrl+C | Copy selection (system clipboard) |
 | Ctrl+X | Cut selection |
@@ -132,7 +135,7 @@ Path prompts support Left/Right/Home/End, UTF-8-safe Backspace/Delete, and inser
 ## Current Limitations
 
 - Open/save-as use inline path prompts, not graphical file-picker dialogs (not a multi-button dialog).
-- Dirty close/open uses a second press of the same action to discard; there is no separate "Save / Discard / Cancel" modal. Changing the Open path after the warning requires a fresh confirmation.
+- Dirty close/open decisions use status-bar keyboard choices rather than a modal dialog; Close/Open can still be canceled with Esc, and changing the Open target requires a fresh explicit discard decision.
 - Undo/redo share a limit of 50 full-buffer states and an estimated 64 MiB of snapshot memory. Oldest undo states are evicted first; snapshots larger than the budget are not retained, and the status bar explains when history is unavailable for that reason. Consecutive typing or in-line backspace within ~1s remains one undo step; Enter, paste, and other edits start a new step.
 - Multiline string literals and language-specific syntax edge cases are not parsed; highlighting is a lightweight token scan, not a full language parser.
 - No multiple buffers/tabs.
@@ -160,7 +163,7 @@ Main implementation files:
 - `src/window/detail/wm_body_07.inc` — `launchTextEditor()` and editor window creation
 - `src/window/detail/wm_body_08.inc` / `wm_body_09.inc` — open routing, session restore, and file singleton bindings
 
-Shell integration: open via `openInTextEditor` / `openPath` (default for non-`.modr` files). Dirty buffers use `allowClose` and status-bar double-confirm for close/open.
+Shell integration: open via `openInTextEditor` / `openPath` (default for non-`.modr` files). Dirty buffers use `allowClose` and explicit status-bar Ctrl+D decisions for close/open.
 
 When the bound file is renamed in Filesystem Browser, moved with Filesystem Browser cut/paste, or moved with Terminal `mv`, the open editor follows the normalized virtual path. Its title, Save target, session record, singleton focus binding, and active Save/Open prompt update with it. Moving a directory also remaps open files below that directory.
 

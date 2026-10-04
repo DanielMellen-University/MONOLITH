@@ -1,5 +1,7 @@
 # Session log
 
+| 2026-10-04 | fix | Replaced Text Editor dirty Close/Open double-confirm with explicit Ctrl+D discard, Ctrl+S save, and Esc cancel choices. Close-save now closes only after a successful write, including Save As for untitled text; global shutdown stays blocked until dirty Editors are explicitly resolved. Repeating Close/Enter cannot discard; Open target changes require a fresh decision. Added controller, Escape, save failure, same-file reload, repeated-action, and changed-target regressions; updated the Text Editor guide and changelog. |
+
 | 2026-10-04 | fix | Replace the check-then-rename sequence with Linux `renameat2(RENAME_NOREPLACE)`, closing the race that could overwrite a destination created concurrently. Regular and dangling-symlink conflicts preserve both entries; unsupported host filesystems fail closed. Production build, full headless suite, final focused Filesystem test, and focused Filesystem/Terminal ASan/UBSan tests pass. |
 
 | 2026-10-04 | fix | Filesystem rename, batch move, and Terminal `mv` now operate on a final outside-target symlink as an entry after validating both parents, while paths through outside-pointing parent symlinks remain rejected. Filesystem and Terminal regressions cover target preservation, containment, and destination/missing-source behavior. |

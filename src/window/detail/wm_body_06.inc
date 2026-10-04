@@ -174,7 +174,7 @@ void WindowManager::closeWindow(Window* window) {
         return;
     }
 
-    // Let apps veto close once (dirty document guards). A second close after arming succeeds.
+    // Let apps veto close while a dirty-document decision is unresolved.
     bool allowed = true;
     invokeAppCallback([&]() {
         if (window->app && !window->app->allowClose()) {

@@ -244,8 +244,28 @@ int main() {
                   "new dirty editor remains registered after shutdown is blocked");
 
             wm.requestQuit();
+            check(!wm.shouldQuit()
+                      && wm.focusEditorForFile("/docs/shutdown-opened.txt"),
+                  "repeating shutdown cannot implicitly discard the callback-created editor");
+
+            auto editor = std::find_if(
+                wm.m_windows.begin(), wm.m_windows.end(),
+                [](const auto& window) {
+                    return window && window->editedFilePath == "/docs/shutdown-opened.txt";
+                });
+            SDL_Event discard{};
+            discard.type = SDL_KEYDOWN;
+            discard.key.keysym.sym = SDLK_d;
+            discard.key.keysym.mod = KMOD_CTRL;
+            if (editor != wm.m_windows.end() && (*editor)->app) {
+                (*editor)->app->handleEvent(discard);
+            }
+            check(wm.m_windows.size() == 1,
+                  "Ctrl+D explicitly discards and closes the dirty editor before shutdown");
+
+            wm.requestQuit();
             check(wm.shouldQuit(),
-                  "confirmed shutdown accepts the callback-created dirty editor");
+                  "shutdown succeeds after the explicitly discarded editor is closed");
             TTF_CloseFont(font);
         }
         TTF_Quit();
