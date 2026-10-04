@@ -1,5 +1,10 @@
 # Changelog
 
+## 2026-10: Trim Terminal command history in one pass
+
+- Preserve the newest valid commands within the existing 500-entry and 2 MiB limits while scanning backward once and erasing the discarded prefix once.
+- Avoid repeated byte-total rescans and repeated front shifts when normalizing large legacy history files.
+
 ## 2026-10: Iterate filesystem tree copies
 
 - Replace recursive directory-copy calls with an explicit frame stack while retaining direct iterator traversal and bounded atomic file streaming.
