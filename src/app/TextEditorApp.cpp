@@ -4,6 +4,7 @@
 #include "../detail/RendererClip.hpp"
 #include <algorithm>
 #include <cctype>
+#include <iterator>
 #include <limits>
 #include <ostream>
 #include <unordered_set>
@@ -1099,14 +1100,19 @@ void TextEditorApp::pasteClipboard() {
     // Normalize CRLF / lone CR to LF; drop other controls except tab/newline.
     std::string cleaned;
     cleaned.reserve(text.size());
+    size_t lineBreakCount = 0;
     for (size_t i = 0; i < text.size(); ++i) {
         const unsigned char c = static_cast<unsigned char>(text[i]);
         if (c == '\r') {
             if (i + 1 < text.size() && text[i + 1] == '\n') continue;
             cleaned.push_back('\n');
+            ++lineBreakCount;
             continue;
         }
-        if (c == '\n' || c == '\t' || c >= 32) {
+        if (c == '\n') {
+            cleaned.push_back('\n');
+            ++lineBreakCount;
+        } else if (c == '\t' || c >= 32) {
             cleaned.push_back(static_cast<char>(c));
         }
     }
@@ -1134,30 +1140,54 @@ void TextEditorApp::pasteClipboard() {
         deleteSelectionRange();
     }
     const int editedRow = m_cursorRow;
+    if (m_cursorRow < 0 || m_cursorRow >= static_cast<int>(m_lines.size())) {
+        invalidateSyntaxFrom(editedRow);
+        m_dirty = true;
+        clearDiscardArm();
+        clearSelection();
+        setStatus("Pasted");
+        ensureCursorVisible();
+        return;
+    }
 
-    // Insert multi-line clipboard at cursor.
+    std::string& line = m_lines[static_cast<size_t>(editedRow)];
+    const size_t insertionCol = static_cast<size_t>(std::clamp(
+        m_cursorCol, 0, static_cast<int>(line.size())));
+    const std::string suffix = line.substr(insertionCol);
+    std::string prefix = std::move(line);
+    prefix.erase(insertionCol);
+    std::vector<std::string> pastedLines;
+    pastedLines.reserve(lineBreakCount + 1);
+
     size_t start = 0;
+    size_t finalCursorCol = 0;
+    bool firstLine = true;
     while (start <= cleaned.size()) {
-        size_t nl = cleaned.find('\n', start);
-        const std::string piece = (nl == std::string::npos)
-            ? cleaned.substr(start)
-            : cleaned.substr(start, nl - start);
+        const size_t nl = cleaned.find('\n', start);
+        const size_t pieceEnd = (nl == std::string::npos) ? cleaned.size() : nl;
+        std::string piece;
+        if (firstLine) piece = std::move(prefix);
+        piece.append(cleaned, start, pieceEnd - start);
 
-        if (m_cursorRow < 0 || m_cursorRow >= static_cast<int>(m_lines.size())) break;
-        std::string& line = m_lines[static_cast<size_t>(m_cursorRow)];
-        m_cursorCol = std::clamp(m_cursorCol, 0, static_cast<int>(line.size()));
-        line.insert(static_cast<size_t>(m_cursorCol), piece);
-        m_cursorCol += static_cast<int>(piece.size());
-
+        if (nl == std::string::npos) {
+            finalCursorCol = piece.size();
+            piece += suffix;
+        }
+        pastedLines.emplace_back(std::move(piece));
         if (nl == std::string::npos) break;
-
-        // Split line at cursor (newline from paste)
-        std::string remainder = line.substr(static_cast<size_t>(m_cursorCol));
-        line.erase(static_cast<size_t>(m_cursorCol));
-        m_lines.insert(m_lines.begin() + m_cursorRow + 1, remainder);
-        m_cursorRow++;
-        m_cursorCol = 0;
         start = nl + 1;
+        firstLine = false;
+    }
+
+    if (!pastedLines.empty()) {
+        line = std::move(pastedLines.front());
+        if (pastedLines.size() > 1) {
+            m_lines.insert(m_lines.begin() + editedRow + 1,
+                           std::make_move_iterator(pastedLines.begin() + 1),
+                           std::make_move_iterator(pastedLines.end()));
+        }
+        m_cursorRow = editedRow + static_cast<int>(pastedLines.size()) - 1;
+        m_cursorCol = static_cast<int>(finalCursorCol);
     }
 
     invalidateSyntaxFrom(editedRow);
