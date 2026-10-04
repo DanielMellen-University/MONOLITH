@@ -29,7 +29,7 @@ struct CompletionContext {
  * Split a command line with shell-style quoting.
  *
  * - Unquoted whitespace separates tokens.
- * - Double quotes keep spaces; \\ and \" are escapes inside them.
+ * - Double quotes keep spaces; only \\ and \" are escapes (other backslashes are literal).
  * - Single quotes keep everything literal until the closing quote.
  * - Outside quotes, a backslash escapes the next character (including space).
  */

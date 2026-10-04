@@ -69,7 +69,7 @@ CommandTokens tokenizeCommandLine(const std::string& line) {
                 if (next == '"' || next == '\\') {
                     cur.push_back(next);
                 } else {
-                    // Keep unknown escapes as the escaped character only.
+                    cur.push_back('\\');
                     cur.push_back(next);
                 }
                 continue;
@@ -129,7 +129,8 @@ CompletionContext completionContextAt(const std::string& line, std::size_t curso
             if (c == '"') {
                 quote = '\0';
                 closedQuoteAtCursor = i + 1 == cursor;
-            } else if (c == '\\' && i + 1 < cursor) {
+            } else if (c == '\\' && i + 1 < cursor
+                       && (line[i + 1] == '"' || line[i + 1] == '\\')) {
                 decoded.push_back(line[++i]);
             } else {
                 decoded.push_back(c);

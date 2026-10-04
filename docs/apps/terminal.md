@@ -140,7 +140,7 @@ Whitespace splits arguments unless you quote them:
 
 | Form | Behavior |
 |------|----------|
-| `"path with spaces"` | Keeps spaces. Inside, `\\` and `\"` are escapes. |
+| `"path with spaces"` | Keeps spaces. Inside, `\\` and `\"` escape a backslash or double quote; other backslashes remain literal. |
 | `'path with spaces'` | Keeps spaces. Contents are literal (no escapes). |
 | `one\ two` | Outside quotes, a backslash escapes the next character. |
 

@@ -95,7 +95,7 @@ Verifies launchers, Start menu actions (including Breakout), `App::update()` dis
 
 ## Terminal Lexer Check
 
-Headless test of Terminal quoting, UTF-8-safe command inputs, and quoted or escaped path completion context:
+Headless test of Terminal quoting and escapes, literal backslashes in quoted paths, UTF-8-safe command inputs, and quoted or escaped path completion context:
 
 ```bash
 g++ -std=c++23 scripts/test_terminal_lexer.cpp src/app/TerminalLexer.cpp -o build/test_terminal_lexer && ./build/test_terminal_lexer

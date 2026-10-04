@@ -1,5 +1,10 @@
 # Changelog
 
+## 2026-10: Preserve unknown backslashes in Terminal quotes
+
+- Inside double quotes, unescape only `\\` and `\"`; keep other backslashes literal when parsing commands and deriving Tab-completion prefixes.
+- Cover literal backslashes in quoted arguments and completion paths while retaining escaped quote/backslash behavior.
+
 ## 2026-10: Preserve neighboring files during atomic saves
 
 - Stage atomic writes in uniquely reserved hidden sibling workspaces instead of truncating the fixed `<target>.tmp` path.

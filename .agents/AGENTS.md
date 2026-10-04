@@ -34,6 +34,7 @@ The human funds token budget and lives in the desktop. You:
 
 | When | Kind | Note |
 |------|------|------|
+| 2026-10-03 | terminal-quoted-backslashes | Preserve unknown backslashes inside double-quoted arguments and Tab-completion prefixes; only `\\` and `\"` are escapes; normal and sanitized hosted workflow #323 passed |
 | 2026-10-03 | atomic-save-collision | Stage writes in uniquely reserved hidden sibling workspaces so a user-owned `<target>.tmp` file or symlink is never opened or removed; normal and sanitized hosted workflow #319 passed |
 | 2026-10-03 | filesystem-copy-rollback | Journal existing destination files, created entries, and directory times so a failed recursive merge restores prior state; normal and sanitized hosted workflow #315 passed |
 | 2026-10-03 | text-editor-paste-batch | Normalize clipboard line breaks while counting rows, reuse the existing line prefix, then insert all pasted rows in one range; normal and sanitized hosted workflow #311 passed |
@@ -297,6 +298,7 @@ Older recent-work rows: [`SESSION_LOG.md`](SESSION_LOG.md).
 | 7.107 | Batch Text Editor multiline paste rows | done | Normalize mixed line endings, retain the current row's prefix/suffix and final caret, and insert the assembled replacement rows as one vector range; cover selection replacement, trailing newlines, undo, and redo; normal and sanitized hosted workflow #311 passed |
 | 7.108 | Roll back failed recursive copy merges | done | Journal overwritten files, newly created entries, and destination-directory times; restore pre-copy state after a later child failure; verify regular-file and in-root symlink targets, new files/directories, unrelated entries, timestamps, and backup cleanup; normal and sanitized hosted workflow #315 passed |
 | 7.109 | Isolate atomic-save workspaces | done | Reserve a unique hidden sibling directory for each staged write so ordinary `<target>.tmp` files/symlinks remain untouched; verify success, producer rollback, permission retention, and workspace cleanup; normal and sanitized hosted workflow #319 passed |
+| 7.110 | Preserve backslashes in quoted Terminal paths | done | Decode only `\\` and `\"` inside double quotes in both command parsing and completion-prefix scanning; verify literal and escaped backslashes in arguments and quoted paths; normal and sanitized hosted workflow #323 passed |
 | fs-browser-filter-cache | Reuse Filesystem Browser filter snapshots | done | Reuse one directory listing for filter edits; refresh it on F5 and Monolith filesystem notifications, including while filtering |
 | terminal-input-editing | Terminal command-line selection | done | Support UTF-8-safe keyboard/mouse selection and Ctrl+A/C/X/V; normalize all clipboard lines and tabs into the single-line prompt |
 | terminal-touch-mtime | Complete Terminal touch semantics | done | Update existing regular-file last-write time without truncation; reject outside-root symlink targets |
