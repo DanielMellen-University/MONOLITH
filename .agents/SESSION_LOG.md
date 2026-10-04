@@ -1,5 +1,7 @@
 # Session log
 
+| 2026-10-03 | perf | Terminal scrollback now stores output rows and their viewport measurements in deques, avoiding a full retained-history shift when capped output evicts the oldest rows. The regression checks bounded newest-row behavior and stable identity/alignment for retained rows and measures; normal and sanitized hosted workflow #291 passed. |
+
 | 2026-10-03 | perf | Taskbar layout now walks the focused window and remaining z-order directly, using cached title widths rather than allocating per-pass order and width vectors. Rendering and hit-target construction share the traversal; the coordinate test asserts focused-first ordering and statically rejects an owning TaskbarLayout. |
 
 | 2026-10-03 | perf | WindowManager now reuses per-depth window identity snapshots across update and render passes and validates entries through a live pointer/ID index instead of repeated linear scans. Lifecycle and render tests cover nested callbacks, self-close, map consistency, and stable snapshot capacity after warm-up; normal and sanitized hosted workflow #283 passed. |

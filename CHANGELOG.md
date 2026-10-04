@@ -1,5 +1,10 @@
 # Changelog
 
+## 2026-10: Avoid Terminal scrollback shifts
+
+- Store scrollback rows and their viewport measurements in deques, so trimming the oldest output does not shift every retained row.
+- Preserve the existing 2,000-row and 8 MiB limits, newest-output behavior, and row-to-measure alignment.
+
 ## 2026-10: Remove taskbar layout vectors
 
 - Walk taskbar windows in focus-first order directly, calculating widths from cached title metrics instead of allocating temporary order and width vectors on each layout pass.

@@ -7,7 +7,6 @@
 #include <algorithm>
 #include <cctype>
 #include <ctime>
-#include <deque>
 #include <iomanip>
 #include <ostream>
 #include <sstream>
@@ -117,13 +116,10 @@ void TerminalApp::addOutput(const std::string& line, bool lineWasTruncated) {
         ++excess;
     }
     if (excess > 0) {
-        m_history.erase(
-            m_history.begin(),
-            m_history.begin() + static_cast<std::vector<std::string>::difference_type>(excess));
-        m_historyViewportMeasures.erase(
-            m_historyViewportMeasures.begin(),
-            m_historyViewportMeasures.begin()
-                + static_cast<std::vector<HistoryViewportMeasure>::difference_type>(excess));
+        for (size_t i = 0; i < excess; ++i) {
+            m_history.pop_front();
+            m_historyViewportMeasures.pop_front();
+        }
     }
     m_scrollOffset = 0;   // auto-scroll to bottom on new output
     m_historyHorizontalScrollPx = 0;
