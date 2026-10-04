@@ -204,6 +204,70 @@ inline bool removeAtomicTempDirectoryIfEmpty(
     return ::rmdir(directory.c_str()) == 0;
 }
 
+inline bool removeAtomicTempWorkspace(
+    const std::filesystem::path& directory,
+    bool requireReady) {
+    const bool requireOwner =
+        directory.filename().string().starts_with(atomicTempPrefix);
+    std::error_code directoryError;
+    const auto directoryStatus = std::filesystem::symlink_status(directory, directoryError);
+    if (directoryError || !std::filesystem::is_directory(directoryStatus)) return false;
+
+    std::filesystem::path ownerPath;
+    std::filesystem::path leasePath;
+    std::filesystem::path readyPath;
+    std::filesystem::path contentPath;
+    bool ownerPresent = false;
+    bool leasePresent = false;
+    bool readyPresent = false;
+    bool contentPresent = false;
+
+    std::error_code iteratorError;
+    std::filesystem::directory_iterator entry(directory, iteratorError);
+    const std::filesystem::directory_iterator end;
+    while (!iteratorError && entry != end) {
+        const auto entryPath = entry->path();
+        const std::string name = entryPath.filename().string();
+        if (name == atomicTempOwnerName) {
+            if (!hasAtomicTempOwnerMarker(directory)) return false;
+            ownerPath = entryPath;
+            ownerPresent = true;
+        } else if (name == "lease" || name == "ready" || name == "content") {
+            std::error_code entryError;
+            const auto entryStatus = std::filesystem::symlink_status(entryPath, entryError);
+            if (entryError || !std::filesystem::is_regular_file(entryStatus)) return false;
+            if (name == "lease") {
+                leasePath = entryPath;
+                leasePresent = true;
+            } else if (name == "ready") {
+                readyPath = entryPath;
+                readyPresent = true;
+            } else {
+                contentPath = entryPath;
+                contentPresent = true;
+            }
+        } else {
+            return false;
+        }
+        entry.increment(iteratorError);
+    }
+    if (iteratorError || (requireOwner && !ownerPresent)) return false;
+    if (requireReady) {
+        if (!leasePresent || !readyPresent) return false;
+    } else if (readyPresent || contentPresent) {
+        return false;
+    }
+
+    const std::array<std::filesystem::path, 4> knownEntries{
+        contentPath, readyPath, leasePath, ownerPath};
+    for (const auto& path : knownEntries) {
+        if (path.empty()) continue;
+        std::error_code removeError;
+        if (!std::filesystem::remove(path, removeError) || removeError) return false;
+    }
+    return removeAtomicTempDirectoryIfEmpty(directory);
+}
+
 // A ready marker exists only after the writer owns the lease lock.
 inline bool tryReclaimAtomicTempDirectory(const std::filesystem::path& directory) {
     if (directory.filename().string().starts_with(atomicTempPrefix)
@@ -220,7 +284,13 @@ inline bool tryReclaimAtomicTempDirectory(const std::filesystem::path& directory
     if (statusError || !std::filesystem::is_regular_file(readyStatus)) return false;
 
     const std::filesystem::path leasePath = directory / "lease";
-    const int leaseFd = ::open(leasePath.c_str(), O_RDWR | O_CLOEXEC | O_NOFOLLOW);
+    struct stat leasePathStatus {};
+    if (::lstat(leasePath.c_str(), &leasePathStatus) != 0
+        || !S_ISREG(leasePathStatus.st_mode)) {
+        return false;
+    }
+    const int leaseFd = ::open(
+        leasePath.c_str(), O_RDWR | O_CLOEXEC | O_NOFOLLOW | O_NONBLOCK);
     if (leaseFd < 0) return false;
     if (::flock(leaseFd, LOCK_EX | LOCK_NB) != 0) {
         ::close(leaseFd);
@@ -230,6 +300,7 @@ inline bool tryReclaimAtomicTempDirectory(const std::filesystem::path& directory
     struct stat openedLeaseStatus {};
     struct stat currentLeaseStatus {};
     const bool sameLease = ::fstat(leaseFd, &openedLeaseStatus) == 0
+        && S_ISREG(openedLeaseStatus.st_mode)
         && ::lstat(leasePath.c_str(), &currentLeaseStatus) == 0
         && S_ISREG(currentLeaseStatus.st_mode)
         && openedLeaseStatus.st_dev == currentLeaseStatus.st_dev
@@ -240,15 +311,12 @@ inline bool tryReclaimAtomicTempDirectory(const std::filesystem::path& directory
         return false;
     }
 
-    statusError.clear();
-    const auto currentDirectoryStatus = std::filesystem::symlink_status(directory, statusError);
-    if (!statusError && std::filesystem::is_directory(currentDirectoryStatus)) {
-        std::filesystem::remove_all(directory, statusError);
-    }
+    const bool reclaimed = removeAtomicTempWorkspace(
+        directory, true);
 
     ::flock(leaseFd, LOCK_UN);
     ::close(leaseFd);
-    return !statusError;
+    return reclaimed;
 }
 
 // V4 setup holds the parent lock until ownership, lease, and ready markers exist,
@@ -278,9 +346,7 @@ inline bool tryReclaimIncompleteAtomicTempDirectory(
         return removeAtomicTempDirectoryIfEmpty(directory);
     }
 
-    statusError.clear();
-    std::filesystem::remove_all(directory, statusError);
-    return !statusError;
+    return removeAtomicTempWorkspace(directory, false);
 }
 
 inline void scavengeAtomicTempDirectories(const std::filesystem::path& parent) {
@@ -329,8 +395,7 @@ inline bool createAtomicTempDirectory(const std::filesystem::path& targetPath,
                                      std::filesystem::perm_options::replace,
                                      permissionError);
         if (permissionError) {
-            std::error_code cleanupError;
-            std::filesystem::remove_all(candidate, cleanupError);
+            removeAtomicTempWorkspace(candidate, false);
             return false;
         }
 
@@ -340,8 +405,7 @@ inline bool createAtomicTempDirectory(const std::filesystem::path& targetPath,
                                    S_IRUSR | S_IWUSR);
         if (leaseFd < 0 || ::flock(leaseFd, LOCK_EX | LOCK_NB) != 0) {
             if (leaseFd >= 0) ::close(leaseFd);
-            std::error_code cleanupError;
-            std::filesystem::remove_all(candidate, cleanupError);
+            removeAtomicTempWorkspace(candidate, false);
             return false;
         }
 
@@ -352,15 +416,13 @@ inline bool createAtomicTempDirectory(const std::filesystem::path& targetPath,
         if (readyFd < 0) {
             ::flock(leaseFd, LOCK_UN);
             ::close(leaseFd);
-            std::error_code cleanupError;
-            std::filesystem::remove_all(candidate, cleanupError);
+            removeAtomicTempWorkspace(candidate, false);
             return false;
         }
         if (::close(readyFd) != 0) {
             ::flock(leaseFd, LOCK_UN);
             ::close(leaseFd);
-            std::error_code cleanupError;
-            std::filesystem::remove_all(candidate, cleanupError);
+            removeAtomicTempWorkspace(candidate, true);
             return false;
         }
 
@@ -395,8 +457,11 @@ struct AtomicTempCleanup {
     AtomicTempCleanup& operator=(const AtomicTempCleanup&) = delete;
 
     ~AtomicTempCleanup() {
-        std::error_code ignored;
-        std::filesystem::remove_all(directory, ignored);
+        try {
+            removeAtomicTempWorkspace(directory, true);
+        } catch (...) {
+            // Cleanup is best-effort; a destructor must not throw.
+        }
         if (leaseFd >= 0) {
             ::flock(leaseFd, LOCK_UN);
             ::close(leaseFd);

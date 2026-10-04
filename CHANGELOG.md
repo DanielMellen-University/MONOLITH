@@ -1,5 +1,10 @@
 # Changelog
 
+## 2026-10: Preserve unexpected data in atomic-save workspaces
+
+- Reclaim stale workspaces by removing only recognized owner, lease, ready, and content entries; any unexpected child keeps the workspace intact.
+- Require a regular lease file before opening it for recovery, while retaining v3/v2 recovery.
+
 ## 2026-10: Refresh Text Editor welcome guidance
 
 - Replace the obsolete early-development disclaimer with the existing Find/Replace shortcuts.

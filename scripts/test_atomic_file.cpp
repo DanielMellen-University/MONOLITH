@@ -86,12 +86,22 @@ int main() {
 
     const fs::path fifoMarkerDirectory = parent
         / (std::string(monolith::detail::atomicTempPrefix) + "fifo-owner");
+    const fs::path fifoLeaseDirectory = parent
+        / (std::string(monolith::detail::atomicTempPrefix) + "fifo-lease");
     ec.clear();
     const bool fifoDirectoryReady = fs::create_directory(fifoMarkerDirectory, ec) && !ec;
     const fs::path fifoOwnerPath = fifoMarkerDirectory / monolith::detail::atomicTempOwnerName;
+    ec.clear();
+    const bool fifoLeaseDirectoryReady = fs::create_directory(fifoLeaseDirectory, ec) && !ec;
+    const fs::path fifoLeasePath = fifoLeaseDirectory / "lease";
     const bool fifoFixturesReady = fifoDirectoryReady
         && ::mkfifo(fifoOwnerPath.c_str(), S_IRUSR | S_IWUSR) == 0
-        && writeFixture(fifoMarkerDirectory / "notes.txt", "keep this directory");
+        && writeFixture(fifoMarkerDirectory / "notes.txt", "keep this directory")
+        && fifoLeaseDirectoryReady
+        && writeOwnerMarker(fifoLeaseDirectory)
+        && ::mkfifo(fifoLeasePath.c_str(), S_IRUSR | S_IWUSR) == 0
+        && writeFixture(fifoLeaseDirectory / "ready", "")
+        && writeFixture(fifoLeaseDirectory / "notes.txt", "keep this lease lookalike");
     bool fifoSweepFinished = false;
     if (fifoFixturesReady) {
         const pid_t child = ::fork();
@@ -99,7 +109,9 @@ int main() {
             ::alarm(2);
             monolith::detail::scavengeAtomicTempDirectories(parent);
             const bool preserved = fs::exists(fifoOwnerPath)
-                && fs::exists(fifoMarkerDirectory / "notes.txt");
+                && fs::exists(fifoMarkerDirectory / "notes.txt")
+                && fs::exists(fifoLeasePath)
+                && fs::exists(fifoLeaseDirectory / "notes.txt");
             _exit(preserved ? 0 : 1);
         }
         int childStatus = 0;
@@ -108,7 +120,7 @@ int main() {
             && WEXITSTATUS(childStatus) == 0;
     }
     check(fifoFixturesReady && fifoSweepFinished,
-          "a FIFO owner lookalike cannot block cleanup or lose user data");
+          "FIFO owner and lease lookalikes cannot block cleanup or lose user data");
 
     const fs::path orphanPath = parent
         / (std::string(monolith::detail::atomicTempPrefix)
@@ -284,7 +296,7 @@ int main() {
     const bool incompleteFixturesReady = incompleteParentReady
         && fs::create_directory(incompletePath, ec) && !ec
         && writeOwnerMarker(incompletePath)
-        && writeFixture(incompletePath / "content", "crashed during setup")
+        && writeFixture(incompletePath / "lease", "")
         && fs::create_directory(previousStalePath, ec) && !ec
         && writeFixture(previousStalePath / "lease", "")
         && writeFixture(previousStalePath / "ready", "")
@@ -303,6 +315,73 @@ int main() {
               && !fs::exists(previousStalePath) && !fs::exists(olderStalePath)
               && fs::exists(previousIncompletePath / "content"),
           "a first-touch sweep reclaims owned incomplete and marked legacy workspaces");
+
+    const fs::path incompleteWithUserData = parent
+        / (std::string(monolith::detail::atomicTempPrefix) + "incomplete-with-user-data");
+    const fs::path readyWithUserData = parent
+        / (std::string(monolith::detail::atomicTempPrefix) + "ready-with-user-data");
+    ec.clear();
+    const bool markedUserDataFixturesReady =
+        fs::create_directory(incompleteWithUserData, ec) && !ec
+        && writeOwnerMarker(incompleteWithUserData)
+        && writeFixture(incompleteWithUserData / "lease", "")
+        && writeFixture(incompleteWithUserData / "notes.txt", "keep incomplete notes")
+        && fs::create_directory(readyWithUserData, ec) && !ec
+        && writeOwnerMarker(readyWithUserData)
+        && writeFixture(readyWithUserData / "lease", "")
+        && writeFixture(readyWithUserData / "ready", "")
+        && writeFixture(readyWithUserData / "content", "partial snapshot")
+        && writeFixture(readyWithUserData / "notes.txt", "keep ready notes");
+    if (markedUserDataFixturesReady) {
+        monolith::detail::scavengeAtomicTempDirectories(parent);
+    }
+    check(markedUserDataFixturesReady
+              && fs::exists(incompleteWithUserData / "notes.txt")
+              && fs::exists(incompleteWithUserData / "owner")
+              && fs::exists(incompleteWithUserData / "lease")
+              && fs::exists(readyWithUserData / "notes.txt")
+              && fs::exists(readyWithUserData / "owner")
+              && fs::exists(readyWithUserData / "lease")
+              && fs::exists(readyWithUserData / "ready")
+              && fs::exists(readyWithUserData / "content"),
+          "marked interrupted workspaces with unexpected entries are preserved");
+
+    const fs::path activeUnexpectedParent = parent / "active-unexpected";
+    ec.clear();
+    const bool activeUnexpectedParentReady =
+        fs::create_directory(activeUnexpectedParent, ec) && !ec;
+    const fs::path activeUnexpectedTarget = activeUnexpectedParent / "record.txt";
+    fs::path activeUnexpectedWorkspace;
+    bool activeUnexpectedEntryCreated = false;
+    const bool activeUnexpectedWrite = activeUnexpectedParentReady
+        && monolith::detail::writeTextAtomically(
+            activeUnexpectedTarget,
+            [&](std::ostream& out) {
+                for (const auto& candidate : fs::directory_iterator(activeUnexpectedParent)) {
+                    if (candidate.path().filename().string().starts_with(
+                            monolith::detail::atomicTempPrefix)) {
+                        activeUnexpectedWorkspace = candidate.path();
+                        break;
+                    }
+                }
+                activeUnexpectedEntryCreated = !activeUnexpectedWorkspace.empty()
+                    && writeFixture(activeUnexpectedWorkspace / "notes.txt", "keep active notes");
+                out << "saved";
+            });
+    if (activeUnexpectedParentReady) {
+        monolith::detail::scavengeAtomicTempDirectories(activeUnexpectedParent);
+    }
+    check(activeUnexpectedWrite, "atomic save succeeds with an extra workspace entry");
+    check(activeUnexpectedEntryCreated,
+          "write callback can place a user entry in the owned workspace");
+    check(fs::exists(activeUnexpectedTarget), "atomic save publishes content with extra entry");
+    check(!activeUnexpectedWorkspace.empty()
+              && fs::exists(activeUnexpectedWorkspace / "notes.txt"),
+          "active-save cleanup and later sweeps preserve unexpected entries");
+    check(monolith::detail::hasAtomicTempOwnerMarker(activeUnexpectedWorkspace)
+              && fs::exists(activeUnexpectedWorkspace / "lease")
+              && fs::exists(activeUnexpectedWorkspace / "ready"),
+          "preserved active workspace retains its ownership and recovery markers");
 
     const fs::path secondParent = parent / "second";
     ec.clear();

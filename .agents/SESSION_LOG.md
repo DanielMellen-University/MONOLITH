@@ -1,5 +1,7 @@
 # Session log
 
+| 2026-10-04 | fix | Atomic-save teardown and scavenging now remove only validated workspace entries and use `rmdir` for final cleanup, preserving unexpected user data in both marked-ready and marked-incomplete workspaces. Require regular lease files before opening; add regressions for stale recovery, active-save cleanup, and retained v3/v2 recovery. |
+
 | 2026-10-04 | polish | Replaced the Text Editor's outdated welcome disclaimer with current Find/Replace shortcut guidance and covered the unchanged clean baseline. |
 
 | 2026-10-04 | fix | Switched unpublished atomic-workspace rollback to `rmdir` semantics and shared that rule with pre-marker scavenging; unexpected entries now survive while empty setup remnants are reclaimed. |
