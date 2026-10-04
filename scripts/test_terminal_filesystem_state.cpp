@@ -250,6 +250,30 @@ int main() {
               && savedHistoryBytes <= monolith::app::TerminalApp::kMaxCommandHistoryBytes,
           "command history trims oldest entries to its byte budget before persisting");
 
+    terminal.m_commandHistory.clear();
+    for (size_t index = 0; index < 256; ++index) {
+        const std::string marker = "recovery-" + std::to_string(index) + ":";
+        std::string command(
+            monolith::app::TerminalApp::kMaxCommandHistoryEntryBytes, 'x');
+        command.replace(0, marker.size(), marker);
+        terminal.m_commandHistory.push_back(std::move(command));
+    }
+    terminal.trimCommandHistory();
+    size_t largeHistoryBytes = 0;
+    for (const auto& command : terminal.m_commandHistory) {
+        largeHistoryBytes += command.size() + 1;
+    }
+    const std::string expectedFirstRecovery = "recovery-225:";
+    const std::string expectedLastRecovery = "recovery-255:";
+    check(terminal.m_commandHistory.size() == 31
+              && terminal.m_commandHistory.front().compare(
+                     0, expectedFirstRecovery.size(), expectedFirstRecovery) == 0
+              && terminal.m_commandHistory.back().compare(
+                     0, expectedLastRecovery.size(), expectedLastRecovery) == 0
+              && largeHistoryBytes
+                  <= monolith::app::TerminalApp::kMaxCommandHistoryBytes,
+          "large command history keeps the newest bounded suffix in order");
+
     TestTerminal streamedHistoryTerminal(font, &fs);
     streamedHistoryTerminal.m_commandHistory.clear();
     for (int index = 0; index < 32; ++index) {

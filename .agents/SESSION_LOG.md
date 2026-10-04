@@ -1,5 +1,7 @@
 # Session log
 
+| 2026-10-03 | perf | Terminal command-history trimming now filters invalid entries, scans backward once to retain the newest suffix within count and byte caps, and erases the discarded prefix once. Added a 256-entry boundary regression; normal and sanitized hosted workflow #303 passed. |
+
 | 2026-10-03 | perf | Filesystem tree copying now keeps directory traversal state in an explicit frame stack instead of recursive calls, while preserving direct native iteration, atomic 16 KiB file streaming, symlink checks, and cleanup of newly created subtrees on failure. Added deep-copy and nested rollback coverage; normal and sanitized hosted workflow #299 passed. |
 
 | 2026-10-03 | perf | Recursive Terminal copy notifications now use an explicit depth-first stack and `DirEntry` type data instead of recursive calls and an extra `isDirectory` query for every child. Expanded coverage checks exact directory-first notification order across nested, sibling, and root-level entries; normal and sanitized hosted workflow #295 passed. |

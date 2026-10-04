@@ -271,22 +271,19 @@ void TerminalApp::trimCommandHistory() {
         }),
         m_commandHistory.end());
 
-    while (!m_commandHistory.empty()) {
-        size_t bytes = 0;
-        for (const auto& command : m_commandHistory) {
-            const size_t entryBytes = command.size() + 1;
-            if (entryBytes > kMaxCommandHistoryBytes - bytes) {
-                bytes = kMaxCommandHistoryBytes + 1;
-                break;
-            }
-            bytes += entryBytes;
-        }
-        if (m_commandHistory.size() <= kMaxCommandHistory
-            && bytes <= kMaxCommandHistoryBytes) {
-            break;
-        }
-        m_commandHistory.erase(m_commandHistory.begin());
+    size_t firstRetained = m_commandHistory.size();
+    size_t retainedCount = 0;
+    size_t retainedBytes = 0;
+    while (firstRetained > 0 && retainedCount < kMaxCommandHistory) {
+        const size_t entryBytes = m_commandHistory[firstRetained - 1].size() + 1;
+        if (entryBytes > kMaxCommandHistoryBytes - retainedBytes) break;
+        retainedBytes += entryBytes;
+        --firstRetained;
+        ++retainedCount;
     }
+
+    m_commandHistory.erase(m_commandHistory.begin(),
+                           m_commandHistory.begin() + firstRetained);
 }
 
 void TerminalApp::handleTabCompletion() {
