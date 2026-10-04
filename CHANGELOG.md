@@ -1,5 +1,10 @@
 # Changelog
 
+## 2026-10: Bound Text Editor Find and Replace inputs
+
+- Limit each search field to 16 MiB and report when more input is rejected.
+- Keep UTF-8 characters intact when an insertion reaches the limit.
+
 ## 2026-10: Continue cleanup past inaccessible folders
 
 - Traverse the host tree with an explicit directory stack, dropping only a failed folder frame so readable siblings still receive startup cleanup.

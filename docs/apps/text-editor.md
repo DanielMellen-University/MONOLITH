@@ -118,6 +118,7 @@ When started from the editor with a single-line selection, Ctrl+H uses that text
 Replacement is case-sensitive, non-overlapping substring match (same as find). Each original match is replaced once, even when the replacement text contains the search text. Multi-line find is not supported.
 Replacing with the same text is a no-op: it leaves the buffer clean and does not add an undo step.
 Both search fields insert text at the caret, and long prompts scroll horizontally to keep the active caret visible.
+Each field is bounded to 16 MiB; input that would exceed the limit is rejected, and a UTF-8 character is never split at the boundary.
 
 ## Saving
 

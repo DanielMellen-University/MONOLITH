@@ -1,5 +1,7 @@
 # Session log
 
+| 2026-10-04 | fix | Bound each Text Editor Find/Replace field to 16 MiB, preserving complete UTF-8 codepoints and reporting rejected overflow. Added exact-fit typing and over-limit typing/paste regressions for Find and Replace. |
+
 | 2026-10-04 | fix | Startup atomic-save traversal now uses explicit directory frames; an unreadable or failed subtree no longer aborts cleanup for readable siblings. The 32-entry per-frame budget, ownership checks, and no-follow behavior remain intact. Added inaccessible-subtree and sibling-recovery coverage. |
 
 | 2026-10-04 | fix | Atomic-save recovery now continues across the host filesystem after launch in 32-entry Window Manager maintenance steps, so a crash workspace in an untouched nested directory no longer waits for the user to revisit that path. Candidate removal still uses parent locking and strict workspace validation; symlink targets and unknown workspace contents are preserved. Added bounded-progress, nested-recovery, and symlink regressions. |

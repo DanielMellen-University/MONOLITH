@@ -1942,25 +1942,38 @@ void TextEditorApp::applyCurrentFindMatch() {
 
 void TextEditorApp::insertSearchFieldText(const char* text) {
     if (!text || !*text) return;
+    const bool replacementField = m_searchMode == SearchMode::Replace
+        && m_searchField == SearchField::Replacement;
+    std::string& field = replacementField ? m_replaceText : m_findQuery;
+    std::size_t& cursor = replacementField ? m_replaceCursorPos : m_findCursorPos;
+    cursor = utf8ClampToCodepointBoundary(field, cursor);
+
+    const std::size_t available = field.size() < kMaxDocumentBytes
+        ? kMaxDocumentBytes - field.size() : 0;
     std::string inserted;
+    inserted.reserve(std::min(available, std::size_t{256}));
+    bool hitLimit = false;
     for (const char* p = text; *p; ++p) {
         const unsigned char byte = static_cast<unsigned char>(*p);
-        if (byte >= 32 && byte != 127) inserted.push_back(static_cast<char>(byte));
+        if (byte < 32 || byte == 127) continue;
+        if (inserted.size() == available) {
+            hitLimit = true;
+            break;
+        }
+        inserted.push_back(static_cast<char>(byte));
     }
-    if (inserted.empty()) return;
-
-    if (m_searchMode == SearchMode::Replace
-        && m_searchField == SearchField::Replacement) {
-        m_replaceCursorPos = std::min(m_replaceCursorPos, m_replaceText.size());
-        m_replaceText.insert(m_replaceCursorPos, inserted);
-        m_replaceCursorPos += inserted.size();
-        return;
+    trimIncompleteUtf8Suffix(inserted);
+    if (!inserted.empty()) {
+        field.insert(cursor, inserted);
+        cursor += inserted.size();
     }
 
-    m_findCursorPos = std::min(m_findCursorPos, m_findQuery.size());
-    m_findQuery.insert(m_findCursorPos, inserted);
-    m_findCursorPos += inserted.size();
-    updateFindMatches();
+    if (!replacementField && !inserted.empty()) updateFindMatches();
+    if (hitLimit) {
+        setStatus(replacementField
+            ? "Replacement limit reached (16 MiB)"
+            : "Find query limit reached (16 MiB)");
+    }
 }
 
 void TextEditorApp::pasteSearchField() {

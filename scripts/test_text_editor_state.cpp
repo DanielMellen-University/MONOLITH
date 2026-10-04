@@ -1055,6 +1055,67 @@ int main() {
               && findPasteEditor.m_findMatchCount == 1,
           "typed Find input shares clipboard filtering and match refresh behavior");
 
+    TestEditor boundedSearchEditor(nullptr, &fs, "");
+    boundedSearchEditor.m_searchMode = TestEditor::SearchMode::Find;
+    boundedSearchEditor.m_findQuery.assign(TestEditor::kMaxDocumentBytes - 2, 'q');
+    boundedSearchEditor.m_findCursorPos = boundedSearchEditor.m_findQuery.size();
+    SDL_Event utf8SearchTextEvent{};
+    utf8SearchTextEvent.type = SDL_TEXTINPUT;
+    utf8SearchTextEvent.text.text[0] = static_cast<char>(0xC3);
+    utf8SearchTextEvent.text.text[1] = static_cast<char>(0xA9);
+    boundedSearchEditor.handleEvent(utf8SearchTextEvent);
+    check(boundedSearchEditor.m_findQuery.size() == TestEditor::kMaxDocumentBytes
+              && boundedSearchEditor.m_findQuery.ends_with("\xC3\xA9")
+              && boundedSearchEditor.m_findCursorPos == TestEditor::kMaxDocumentBytes,
+          "Find accepts a complete UTF-8 character that exactly fills its byte limit");
+    SDL_Event excessFindTextEvent{};
+    excessFindTextEvent.type = SDL_TEXTINPUT;
+    excessFindTextEvent.text.text[0] = 'x';
+    boundedSearchEditor.handleEvent(excessFindTextEvent);
+    check(boundedSearchEditor.m_findQuery.size() == TestEditor::kMaxDocumentBytes
+              && boundedSearchEditor.m_statusMessage
+                  == "Find query limit reached (16 MiB)",
+          "typing beyond the Find query limit is rejected with status feedback");
+
+    boundedSearchEditor.m_findQuery.assign(TestEditor::kMaxDocumentBytes - 1, 'q');
+    boundedSearchEditor.m_findCursorPos = boundedSearchEditor.m_findQuery.size();
+    const bool setPartialFindClipboard = SDL_SetClipboardText("\xC3\xA9") == 0;
+    check(setPartialFindClipboard,
+          "set UTF-8 clipboard text for a partial-capacity Find query");
+    if (setPartialFindClipboard) boundedSearchEditor.handleEvent(searchPasteEvent);
+    check(boundedSearchEditor.m_findQuery.size() == TestEditor::kMaxDocumentBytes - 1
+              && boundedSearchEditor.m_findQuery.back() == 'q'
+              && boundedSearchEditor.m_statusMessage
+                  == "Find query limit reached (16 MiB)",
+          "pasting across the Find query limit drops the whole UTF-8 character");
+
+    boundedSearchEditor.m_searchMode = TestEditor::SearchMode::Replace;
+    boundedSearchEditor.m_searchField = TestEditor::SearchField::Replacement;
+    boundedSearchEditor.m_replaceText.assign(TestEditor::kMaxDocumentBytes - 1, 'r');
+    boundedSearchEditor.m_replaceCursorPos = boundedSearchEditor.m_replaceText.size();
+    const bool setPartialReplaceClipboard = SDL_SetClipboardText("\xC3\xA9") == 0;
+    check(setPartialReplaceClipboard,
+          "set UTF-8 clipboard text for a partial-capacity replacement field");
+    if (setPartialReplaceClipboard) boundedSearchEditor.handleEvent(searchPasteEvent);
+    check(boundedSearchEditor.m_replaceText.size() == TestEditor::kMaxDocumentBytes - 1
+              && boundedSearchEditor.m_replaceText.back() == 'r'
+              && boundedSearchEditor.m_statusMessage
+                  == "Replacement limit reached (16 MiB)",
+          "pasting across the replacement limit drops the whole UTF-8 character");
+    SDL_Event exactReplaceTextEvent{};
+    exactReplaceTextEvent.type = SDL_TEXTINPUT;
+    exactReplaceTextEvent.text.text[0] = 'z';
+    boundedSearchEditor.handleEvent(exactReplaceTextEvent);
+    const bool replacementAcceptsExactFit =
+        boundedSearchEditor.m_replaceText.size() == TestEditor::kMaxDocumentBytes
+        && boundedSearchEditor.m_replaceCursorPos == TestEditor::kMaxDocumentBytes;
+    boundedSearchEditor.handleEvent(exactReplaceTextEvent);
+    check(replacementAcceptsExactFit
+              && boundedSearchEditor.m_replaceText.size() == TestEditor::kMaxDocumentBytes
+              && boundedSearchEditor.m_statusMessage
+                  == "Replacement limit reached (16 MiB)",
+          "typed replacement input reaches but cannot exceed its byte limit");
+
     SDL_Event ctrlFindEvent{};
     ctrlFindEvent.type = SDL_KEYDOWN;
     ctrlFindEvent.key.keysym.mod = KMOD_CTRL;
