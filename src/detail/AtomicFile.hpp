@@ -1,6 +1,5 @@
 #pragma once
 
-#include <atomic>
 #include <array>
 #include <cerrno>
 #include <cstddef>
@@ -11,18 +10,18 @@
 #include <mutex>
 #include <ostream>
 #include <string>
+#include <string_view>
 #include <system_error>
 #include <utility>
 #include <vector>
 
 #include <fcntl.h>
 #include <sys/file.h>
+#include <sys/random.h>
 #include <sys/stat.h>
 #include <unistd.h>
 
 namespace monolith::detail {
-
-inline std::atomic<unsigned long long> atomicTempSequence{0};
 
 inline constexpr const char* atomicTempPrefix = ".monolith-tmp-v4-";
 inline constexpr const char* atomicTempPreviousPrefix = ".monolith-tmp-v3-";
@@ -160,6 +159,41 @@ inline bool hasAtomicTempOwnerMarker(const std::filesystem::path& directory) {
     return matches;
 }
 
+inline bool hasAtomicTempTokenName(const std::filesystem::path& directory) {
+    const std::string name = directory.filename().string();
+    if (!name.starts_with(atomicTempPrefix)) return false;
+    const std::string_view token(name.data() + std::strlen(atomicTempPrefix),
+                                 name.size() - std::strlen(atomicTempPrefix));
+    if (token.size() != 32) return false;
+    for (const char digit : token) {
+        if (!((digit >= '0' && digit <= '9') || (digit >= 'a' && digit <= 'f'))) {
+            return false;
+        }
+    }
+    return true;
+}
+
+inline bool createAtomicTempTokenName(std::string& name) {
+    std::array<unsigned char, 16> token{};
+    std::size_t bytesRead = 0;
+    while (bytesRead < token.size()) {
+        const ssize_t result = ::getrandom(token.data() + bytesRead,
+                                           token.size() - bytesRead, 0);
+        if (result < 0 && errno == EINTR) continue;
+        if (result <= 0) return false;
+        bytesRead += static_cast<std::size_t>(result);
+    }
+
+    static constexpr char digits[] = "0123456789abcdef";
+    name = atomicTempPrefix;
+    name.reserve(name.size() + token.size() * 2);
+    for (const unsigned char byte : token) {
+        name.push_back(digits[byte >> 4]);
+        name.push_back(digits[byte & 0x0f]);
+    }
+    return true;
+}
+
 inline bool createAtomicTempOwnerMarker(const std::filesystem::path& directory) {
     return ::symlink(atomicTempOwnerMarker,
                      (directory / atomicTempOwnerName).c_str()) == 0;
@@ -216,10 +250,11 @@ inline bool tryReclaimAtomicTempDirectory(const std::filesystem::path& directory
 // so an incomplete owned directory cannot belong to an active writer while locked.
 inline bool tryReclaimIncompleteAtomicTempDirectory(
     const std::filesystem::path& directory) {
-    if (!directory.filename().string().starts_with(atomicTempPrefix)
-        || !hasAtomicTempOwnerMarker(directory)) {
+    if (!directory.filename().string().starts_with(atomicTempPrefix)) {
         return false;
     }
+    const bool hasOwnerMarker = hasAtomicTempOwnerMarker(directory);
+    if (!hasOwnerMarker && !hasAtomicTempTokenName(directory)) return false;
 
     std::error_code statusError;
     const auto directoryStatus = std::filesystem::symlink_status(directory, statusError);
@@ -230,6 +265,13 @@ inline bool tryReclaimIncompleteAtomicTempDirectory(
     if ((!statusError && readyStatus.type() != std::filesystem::file_type::not_found)
         || (statusError && statusError != std::errc::no_such_file_or_directory)) {
         return false;
+    }
+
+    if (!hasOwnerMarker) {
+        // Before the owner symlink is published, the directory is still empty.
+        // rmdir semantics make a concurrent/user-added entry fail closed.
+        statusError.clear();
+        return std::filesystem::remove(directory, statusError) && !statusError;
     }
 
     statusError.clear();
@@ -267,8 +309,6 @@ inline bool createAtomicTempDirectory(const std::filesystem::path& targetPath,
     const std::filesystem::path parent = targetPath.has_parent_path()
         ? targetPath.parent_path()
         : std::filesystem::path(".");
-    const std::size_t nameHash = std::hash<std::string>{}(targetPath.filename().string());
-
     if (shouldSweepAtomicTempParent(parent)) scavengeAtomicTempDirectories(parent);
 
     AtomicTempParentLock parentLock(parent);
@@ -328,20 +368,10 @@ inline bool createAtomicTempDirectory(const std::filesystem::path& targetPath,
     };
 
     for (unsigned attempt = 0; attempt < 128; ++attempt) {
-        const auto sequence = atomicTempSequence.fetch_add(1, std::memory_order_relaxed);
-        const auto candidate = parent / (std::string(atomicTempPrefix) + std::to_string(nameHash)
-            + "-" + std::to_string(sequence));
+        std::string candidateName;
+        if (!createAtomicTempTokenName(candidateName)) return false;
+        const auto candidate = parent / candidateName;
         std::error_code createError;
-        if (std::filesystem::create_directory(candidate, createError)) {
-            return prepareNewDirectory(candidate);
-        }
-        if (createError && createError != std::errc::file_exists) return false;
-        if (!tryReclaimAtomicTempDirectory(candidate)
-            && !tryReclaimIncompleteAtomicTempDirectory(candidate)) {
-            continue;
-        }
-
-        createError.clear();
         if (std::filesystem::create_directory(candidate, createError)) {
             return prepareNewDirectory(candidate);
         }

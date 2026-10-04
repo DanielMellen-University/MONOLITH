@@ -111,11 +111,27 @@ int main() {
     check(fifoFixturesReady && fifoSweepFinished,
           "a FIFO owner lookalike cannot block cleanup or lose user data");
 
+    const fs::path orphanPath = parent
+        / (std::string(monolith::detail::atomicTempPrefix)
+           + "0123456789abcdef0123456789abcdef");
+    const fs::path tokenLookalikePath = parent
+        / (std::string(monolith::detail::atomicTempPrefix)
+           + "fedcba9876543210fedcba9876543210");
+    ec.clear();
+    const bool orphanFixturesReady = fs::create_directory(orphanPath, ec) && !ec
+        && fs::create_directory(tokenLookalikePath, ec) && !ec
+        && writeFixture(tokenLookalikePath / "notes.txt", "keep this directory");
+    if (orphanFixturesReady) monolith::detail::scavengeAtomicTempDirectories(parent);
+    check(orphanFixturesReady && !fs::exists(orphanPath)
+              && fs::exists(tokenLookalikePath / "notes.txt"),
+          "cleanup reclaims empty pre-marker orphans but preserves nonempty token lookalikes");
+
     const fs::path markerParent = parent / "marker-check";
     ec.clear();
     const bool markerParentReady = fs::create_directory(markerParent, ec) && !ec;
     bool markerObservedDuringSave = false;
     bool markerPublishedAtomically = false;
+    bool workspaceNameValidated = false;
     const bool markerWrite = markerParentReady
         && monolith::detail::writeTextAtomically(
             markerParent / "record.txt",
@@ -134,6 +150,8 @@ int main() {
                         markerPublishedAtomically = !ownerError
                             && ownerTarget == monolith::detail::atomicTempOwnerMarker;
                     }
+                    workspaceNameValidated = monolith::detail::hasAtomicTempTokenName(
+                        entry.path());
                     markerObservedDuringSave = monolith::detail::hasAtomicTempOwnerMarker(
                         entry.path())
                         && markerPublishedAtomically
@@ -143,8 +161,8 @@ int main() {
                 }
                 out << "owned";
             });
-    check(markerWrite && markerObservedDuringSave,
-          "new v4 workspaces atomically publish a validated owner marker before writing content");
+    check(markerWrite && markerObservedDuringSave && workspaceNameValidated,
+          "new workspaces use validated random names and atomically publish ownership before content");
 
     const fs::path target = parent / "settings.txt";
     const auto stalePath = workspacePath(parent, target, 7);
@@ -168,7 +186,6 @@ int main() {
         && writeFixture(userMarkedPath / monolith::detail::atomicTempOwnerName,
                         "not Monolith's marker")
         && writeFixture(userMarkedPath / "notes.txt", "keep this too");
-    monolith::detail::atomicTempSequence.store(7, std::memory_order_relaxed);
     const bool staleWrite = staleFixturesReady && userIncompleteReady && userMarkedReady
         && monolith::detail::writeTextAtomically(
             target, [](std::ostream& out) { out << "recovered"; });
@@ -193,14 +210,11 @@ int main() {
         : -1;
     const bool activeLockHeld = activeLeaseFd >= 0
         && ::flock(activeLeaseFd, LOCK_EX | LOCK_NB) == 0;
-    monolith::detail::atomicTempSequence.store(activeSequence, std::memory_order_relaxed);
-    const bool activeWrite = activeFixtureReady && activeLockHeld
-        && monolith::detail::writeTextAtomically(
-            target, [](std::ostream& out) { out << "concurrent writer"; });
-    std::string activeContent;
-    std::ifstream activeInput(activePath / "content", std::ios::binary);
-    std::getline(activeInput, activeContent);
-    check(activeWrite && activeContent == "active partial snapshot"
+    if (activeFixtureReady && activeLockHeld) {
+        monolith::detail::scavengeAtomicTempDirectories(parent);
+    }
+    check(activeFixtureReady && activeLockHeld
+              && fs::exists(activePath / "content")
               && fs::exists(activePath / "ready"),
           "an active writer's locked workspace is never scavenged");
     if (activeLeaseFd >= 0) {
@@ -208,11 +222,9 @@ int main() {
         ::close(activeLeaseFd);
     }
 
-    monolith::detail::atomicTempSequence.store(activeSequence, std::memory_order_relaxed);
-    const bool retryWrite = monolith::detail::writeTextAtomically(
-        target, [](std::ostream& out) { out << "after recovery"; });
-    check(retryWrite && !fs::exists(activePath),
-          "a later write reclaims an unlocked interrupted candidate");
+    monolith::detail::scavengeAtomicTempDirectories(parent);
+    check(!fs::exists(activePath),
+          "cleanup reclaims an unlocked interrupted workspace");
 
     constexpr unsigned long long unmarkedSequence = 20;
     const fs::path unmarkedPath = workspacePath(
@@ -221,7 +233,6 @@ int main() {
     ec.clear();
     const bool unmarkedFixtureReady = fs::create_directory(unmarkedPath, ec) && !ec
         && writeFixture(unmarkedPath / "content", "possibly active");
-    monolith::detail::atomicTempSequence.store(unmarkedSequence, std::memory_order_relaxed);
     const bool unmarkedWrite = unmarkedFixtureReady
         && monolith::detail::writeTextAtomically(
             target, [](std::ostream& out) { out << "leave unmarked"; });
@@ -232,7 +243,6 @@ int main() {
     ec.clear();
     const bool legacyFixtureReady = fs::create_directory(legacyPath, ec) && !ec
         && writeFixture(legacyPath / "content", "legacy workspace");
-    monolith::detail::atomicTempSequence.store(40, std::memory_order_relaxed);
     const bool legacyWrite = legacyFixtureReady
         && monolith::detail::writeTextAtomically(
             target, [](std::ostream& out) { out << "preserve legacy"; });
@@ -287,7 +297,6 @@ int main() {
         && writeFixture(secondStalePath / "lease", "")
         && writeFixture(secondStalePath / "ready", "")
         && writeFixture(secondStalePath / "content", "second-parent remnant");
-    monolith::detail::atomicTempSequence.store(0, std::memory_order_relaxed);
     const bool secondParentWrite = secondStaleReady
         && monolith::detail::writeTextAtomically(
             secondTarget, [](std::ostream& out) { out << "fresh"; });
@@ -338,7 +347,6 @@ int main() {
         && writeFixture(evictedStalePath / "lease", "")
         && writeFixture(evictedStalePath / "ready", "")
         && writeFixture(evictedStalePath / "content", "evicted-parent remnant");
-    monolith::detail::atomicTempSequence.store(0, std::memory_order_relaxed);
     const bool evictedParentWrite = evictedFixtureReady
         && monolith::detail::writeTextAtomically(
             secondTarget, [](std::ostream& out) { out << "after eviction"; });
