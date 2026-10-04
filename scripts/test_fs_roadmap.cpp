@@ -13,6 +13,7 @@
 #include <filesystem>
 #include <fstream>
 #include <fcntl.h>
+#include <future>
 #include <iostream>
 #include <sstream>
 #include <string>
@@ -236,6 +237,47 @@ int main() {
               && outsideLinkReady && stdfs::exists(outsideWorkspace),
           "maintenance preserves unknown workspace data and does not follow directory symlinks");
 
+    const stdfs::path lockContentionRoot = hostRoot / "maintenance-lock-contention";
+    std::string lockContentionWorkspaceName;
+    ec.clear();
+    const bool lockContentionFixturesReady =
+        monolith::detail::createAtomicTempTokenName(lockContentionWorkspaceName)
+        && stdfs::create_directory(lockContentionRoot, ec) && !ec;
+    const stdfs::path lockContentionWorkspace = lockContentionRoot
+        / lockContentionWorkspaceName;
+    ec.clear();
+    const bool lockContentionWorkspaceReady = lockContentionFixturesReady
+        && stdfs::create_directory(lockContentionWorkspace, ec) && !ec
+        && monolith::detail::createAtomicTempOwnerMarker(lockContentionWorkspace);
+    Filesystem lockContentionFs(lockContentionRoot.string());
+    const bool lockContentionFsReady = lockContentionWorkspaceReady
+        && lockContentionFs.initialize();
+    monolith::detail::AtomicTempParentLock heldParentLock(lockContentionRoot);
+    std::promise<void> cleanupStarted;
+    auto cleanupStartedFuture = cleanupStarted.get_future();
+    auto cleanupFuture = std::async(std::launch::async, [&]() {
+        cleanupStarted.set_value();
+        return lockContentionFs.maintenanceStep(32);
+    });
+    cleanupStartedFuture.wait();
+    const bool returnedWithoutParentLock = cleanupFuture.wait_for(
+        std::chrono::milliseconds(500)) == std::future_status::ready;
+    heldParentLock.release();
+    const bool remainedPendingWhileContended = cleanupFuture.get();
+    const bool workspacePreservedWhileContended =
+        stdfs::exists(lockContentionWorkspace);
+    bool lockContentionPending = remainedPendingWhileContended;
+    std::size_t lockContentionSteps = 0;
+    while (lockContentionPending && lockContentionSteps < 1000) {
+        lockContentionPending = lockContentionFs.maintenanceStep(32);
+        ++lockContentionSteps;
+    }
+    check(lockContentionFsReady && returnedWithoutParentLock
+              && remainedPendingWhileContended && workspacePreservedWhileContended
+              && !lockContentionPending && lockContentionSteps < 1000
+              && !stdfs::exists(lockContentionWorkspace),
+          "startup cleanup avoids blocking on a busy parent and retries after release");
+
     const stdfs::path descriptorRoot = hostRoot / "maintenance-root-descriptor-limit";
     std::string rootDescriptorWorkspaceName;
     ec.clear();
@@ -269,6 +311,43 @@ int main() {
               && rootDescriptorMaintenanceSteps < 1000
               && !stdfs::exists(rootDescriptorWorkspace),
           "startup cleanup retries its root after initialization hits descriptor exhaustion");
+
+    const stdfs::path candidateLockDescriptorRoot =
+        hostRoot / "maintenance-candidate-lock-descriptor-limit";
+    std::string candidateLockWorkspaceName;
+    ec.clear();
+    const bool candidateLockFixturesReady =
+        monolith::detail::createAtomicTempTokenName(candidateLockWorkspaceName)
+        && stdfs::create_directory(candidateLockDescriptorRoot, ec) && !ec;
+    const stdfs::path candidateLockWorkspace = candidateLockDescriptorRoot
+        / candidateLockWorkspaceName;
+    ec.clear();
+    const bool candidateLockWorkspaceReady = candidateLockFixturesReady
+        && stdfs::create_directory(candidateLockWorkspace, ec) && !ec
+        && monolith::detail::createAtomicTempOwnerMarker(candidateLockWorkspace);
+    Filesystem candidateLockFs(candidateLockDescriptorRoot.string());
+    const bool candidateLockFsReady = candidateLockWorkspaceReady
+        && candidateLockFs.initialize();
+    ScopedDescriptorPressure candidateLockPressure;
+    const bool candidateLockLimitApplied = candidateLockFsReady
+        && candidateLockPressure.apply();
+    const bool candidateLockLimitReached = candidateLockPressure.reachedLimit();
+    bool candidateLockPending = candidateLockLimitApplied
+        && candidateLockFs.maintenanceStep(32);
+    const bool candidateLockWorkspacePreserved =
+        stdfs::exists(candidateLockWorkspace);
+    const bool candidateLockLimitRestored = candidateLockPressure.restore();
+    std::size_t candidateLockMaintenanceSteps = 0;
+    while (candidateLockPending && candidateLockMaintenanceSteps < 1000) {
+        candidateLockPending = candidateLockFs.maintenanceStep(32);
+        ++candidateLockMaintenanceSteps;
+    }
+    check(candidateLockWorkspaceReady && candidateLockFsReady
+              && candidateLockLimitApplied && candidateLockLimitReached
+              && candidateLockWorkspacePreserved && candidateLockLimitRestored
+              && !candidateLockPending && candidateLockMaintenanceSteps < 1000
+              && !stdfs::exists(candidateLockWorkspace),
+          "startup cleanup retries a candidate after its parent lock hits descriptor exhaustion");
 
     const stdfs::path descriptorLimitRoot = hostRoot / "maintenance-descriptor-limit";
     stdfs::path descriptorLimitDeep = descriptorLimitRoot;

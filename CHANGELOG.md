@@ -1,5 +1,11 @@
 # Changelog
 
+## 2026-10: Keep startup cleanup nonblocking
+
+- Probe candidate parent locks without blocking the UI frame; resume at the same candidate after lock contention.
+- Defer candidate parents on descriptor exhaustion and retry after traversal handles unwind.
+- Verify nonblocking recovery after parent-lock contention and after candidate-parent descriptor exhaustion.
+
 ## 2026-10: Report fully blocked paste actions accurately
 
 - Distinguish a copy that copies nothing from a cut that moves nothing.

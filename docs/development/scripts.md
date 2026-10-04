@@ -78,7 +78,7 @@ destroyed before renderer and SDL shutdown:
 ./scripts/verify_main_lifecycle.sh
 ```
 
-Filesystem roadmap coverage advances startup maintenance one host entry at a time, verifies stale workspaces in untouched nested directories are reclaimed, confirms unreadable directories do not block readable siblings, and preserves unknown workspace contents and directory symlink targets.
+Filesystem roadmap coverage advances startup maintenance one host entry at a time, verifies stale workspaces in untouched nested directories are reclaimed, confirms parent-lock contention does not block and is retried, confirms candidate-parent descriptor exhaustion is retried, confirms unreadable directories do not block readable siblings, and preserves unknown workspace contents and directory symlink targets.
 
 ## Drawing Integration Check
 

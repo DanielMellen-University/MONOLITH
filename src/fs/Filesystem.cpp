@@ -373,18 +373,49 @@ bool Filesystem::maintenanceStep(std::size_t entryBudget) noexcept {
                 if (!statusError && stdfs::is_directory(status)) childPath = entryPath;
             }
 
+            if (isWorkspace) {
+                monolith::detail::AtomicTempParentLock parentLock(
+                    workspacePath.parent_path(), true);
+                if (!parentLock.locked()) {
+                    const int lockError = parentLock.error();
+                    if (lockError == EWOULDBLOCK || lockError == EAGAIN
+                        || lockError == EINTR) {
+                        monolith::detail::scheduleAtomicTempSweepRetry(
+                            workspacePath.parent_path());
+                        return true;
+                    }
+                    if (isDescriptorLimitError(
+                            std::error_code(lockError, std::generic_category()))) {
+                        const auto parentPath = workspacePath.parent_path();
+                        const bool alreadyDeferred = std::find(
+                            traversal->deferredDirectories.begin(),
+                            traversal->deferredDirectories.end(), parentPath)
+                            != traversal->deferredDirectories.end();
+                        if (!alreadyDeferred) {
+                            traversal->deferredDirectories.push_back(parentPath);
+                        }
+                        monolith::detail::scheduleAtomicTempSweepRetry(parentPath);
+                    }
+                }
+
+                std::error_code iteratorError;
+                frame.current.increment(iteratorError);
+                --entryBudget;
+                if (parentLock.locked()) {
+                    monolith::detail::tryScavengeAtomicTempWorkspace(
+                        workspacePath, parentLock);
+                }
+                if (iteratorError) traversal->frames.pop_back();
+                continue;
+            }
+
             std::error_code iteratorError;
             frame.current.increment(iteratorError);
             --entryBudget;
-
-            if (isWorkspace) {
-                monolith::detail::tryScavengeAtomicTempWorkspace(workspacePath);
-            }
             if (iteratorError) {
                 traversal->frames.pop_back();
                 continue;
             }
-            if (isWorkspace) continue;
             if (childPath.empty()) continue;
 
             std::error_code childError;

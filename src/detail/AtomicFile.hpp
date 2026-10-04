@@ -82,14 +82,20 @@ public:
     explicit AtomicTempParentLock(const std::filesystem::path& parent,
                                   bool nonBlocking = false) {
         fd_ = ::open(parent.c_str(), O_RDONLY | O_CLOEXEC | O_DIRECTORY);
-        if (fd_ < 0) return;
+        if (fd_ < 0) {
+            error_ = errno;
+            return;
+        }
 
         const int flags = LOCK_EX | (nonBlocking ? LOCK_NB : 0);
         int result;
         do {
             result = ::flock(fd_, flags);
-        } while (result != 0 && errno == EINTR && !nonBlocking);
-        if (result != 0) release();
+        } while (result != 0 && errno == EINTR);
+        if (result != 0) {
+            error_ = errno;
+            release();
+        }
     }
 
     AtomicTempParentLock(const AtomicTempParentLock&) = delete;
@@ -98,6 +104,7 @@ public:
 
     bool locked() const { return fd_ >= 0; }
     int fd() const { return fd_; }
+    int error() const { return error_; }
 
     void release() {
         if (fd_ < 0) return;
@@ -108,6 +115,7 @@ public:
 
 private:
     int fd_{-1};
+    int error_ = 0;
 };
 
 inline bool shouldSweepAtomicTempParent(const std::filesystem::path& parent) {
@@ -439,12 +447,9 @@ inline bool tryReclaimIncompleteAtomicTempDirectory(
 }
 
 inline bool tryScavengeAtomicTempWorkspace(
-    const std::filesystem::path& directory) {
-    const AtomicTempParentLock parentLock(directory.parent_path());
-    if (!parentLock.locked()) {
-        scheduleAtomicTempSweepRetry(directory.parent_path());
-        return false;
-    }
+    const std::filesystem::path& directory,
+    const AtomicTempParentLock& parentLock) {
+    if (!parentLock.locked()) return false;
     if (tryReclaimIncompleteAtomicTempDirectory(directory)) return true;
     return tryReclaimAtomicTempDirectory(directory);
 }
