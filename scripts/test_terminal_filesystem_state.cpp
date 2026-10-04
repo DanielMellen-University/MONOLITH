@@ -8,6 +8,7 @@
 #include <cstddef>
 #include <deque>
 #include <filesystem>
+#include <fstream>
 #include <iostream>
 #include <iterator>
 #include <ostream>
@@ -618,6 +619,73 @@ int main() {
     check(std::filesystem::symlink_status(danglingPath, ec).type()
               == std::filesystem::file_type::not_found,
           "rm removes an in-root dangling symlink entry");
+
+    monolith::test::ScopedTempDirectory outsideTargetTemp("monolith-terminal-outside");
+    if (!outsideTargetTemp) {
+        std::cerr << "FAIL: could not create Terminal outside-target fixture\n";
+        return 1;
+    }
+    const std::filesystem::path outsideTargetFile =
+        outsideTargetTemp.path() / "outside.txt";
+    {
+        std::ofstream outsideFile(outsideTargetFile);
+        outsideFile << "outside target";
+    }
+    const std::filesystem::path outsideFileLink =
+        hostRoot / "home/monolith/hidden-outside-file-link";
+    ec.clear();
+    std::filesystem::create_symlink(outsideTargetFile, outsideFileLink, ec);
+    const bool outsideFileLinkReady = outsideTargetTemp && !ec;
+    if (outsideFileLinkReady) {
+        terminal.executeCommand("rm /home/monolith/hidden-outside-file-link");
+    }
+    ec.clear();
+    const bool outsideFileLinkRemoved = outsideFileLinkReady
+        && std::filesystem::symlink_status(outsideFileLink, ec).type()
+            == std::filesystem::file_type::not_found;
+    check(outsideFileLinkRemoved && std::filesystem::is_regular_file(outsideTargetFile),
+          "rm unlinks a hidden final symlink without deleting its outside target");
+
+    const std::filesystem::path outsideDirectoryLink =
+        hostRoot / "home/monolith/hidden-outside-directory-link";
+    ec.clear();
+    std::filesystem::create_directory_symlink(outsideTargetTemp.path(),
+                                               outsideDirectoryLink, ec);
+    const bool outsideDirectoryLinkReady = outsideTargetTemp && !ec;
+    if (outsideDirectoryLinkReady) {
+        terminal.executeCommand("rm -r /home/monolith/hidden-outside-directory-link");
+    }
+    ec.clear();
+    const bool outsideDirectoryLinkRemoved = outsideDirectoryLinkReady
+        && std::filesystem::symlink_status(outsideDirectoryLink, ec).type()
+            == std::filesystem::file_type::not_found;
+    check(outsideDirectoryLinkRemoved && std::filesystem::is_regular_file(outsideTargetFile),
+          "rm -r unlinks a hidden outside directory link without traversing it");
+
+    const std::filesystem::path nestedOutsideFileLink =
+        outsideTargetTemp.path() / "nested-file-link";
+    ec.clear();
+    std::filesystem::create_symlink(outsideTargetFile, nestedOutsideFileLink, ec);
+    const bool nestedOutsideFileLinkReady = outsideTargetTemp && !ec;
+    const std::filesystem::path outsideParentLink =
+        hostRoot / "home/monolith/outside-parent-link";
+    ec.clear();
+    std::filesystem::create_directory_symlink(outsideTargetTemp.path(),
+                                               outsideParentLink, ec);
+    const bool outsideParentLinkReady = outsideTargetTemp && !ec;
+    terminal.m_history.clear();
+    terminal.m_historyBytes = 0;
+    if (nestedOutsideFileLinkReady && outsideParentLinkReady) {
+        terminal.executeCommand("rm /home/monolith/outside-parent-link/nested-file-link");
+    }
+    ec.clear();
+    const bool nestedOutsideFileLinkPreserved = nestedOutsideFileLinkReady
+        && std::filesystem::is_symlink(
+            std::filesystem::symlink_status(nestedOutsideFileLink, ec)) && !ec;
+    check(nestedOutsideFileLinkPreserved && outsideParentLinkReady
+              && terminal.m_history.back()
+                  == "rm: cannot remove '/home/monolith/outside-parent-link/nested-file-link': No such file or directory",
+          "rm refuses to traverse an outside parent symlink");
 
     terminal.m_inputBuffer = "ls /";
     terminal.m_inputCursorPos = static_cast<int>(terminal.m_inputBuffer.size());

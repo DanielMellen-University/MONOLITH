@@ -720,24 +720,25 @@ void TerminalApp::executeCommand(const std::string& commandLine) {
                 addOutput("rm: missing operand");
             } else {
                 std::string path = resolvePath(target);
-                if (!m_fs->exists(path)) {
-                    addOutput("rm: cannot remove '" + target + "': No such file or directory");
-                } else if (m_fs->normalize(path) == "/") {
+                if (m_fs->normalize(path) == "/") {
                     addOutput("rm: cannot remove '/'");
-                } else if (recursive) {
-                    if (m_fs->removeRecursive(path)) {
+                } else {
+                    const bool removed = recursive
+                        ? m_fs->removeRecursive(path)
+                        : m_fs->remove(path);
+                    if (removed) {
                         if (auto* ctrl = getController()) {
                             ctrl->notifyVirtualPathRemoved(path);
                         }
-                    } else {
+                    } else if (!m_fs->exists(path)) {
+                        addOutput("rm: cannot remove '" + target
+                                  + "': No such file or directory");
+                    } else if (recursive) {
                         addOutput("rm: failed to remove '" + target + "'");
+                    } else {
+                        addOutput("rm: cannot remove '" + target
+                                  + "' (use -r for directories)");
                     }
-                } else if (m_fs->remove(path)) {
-                    if (auto* ctrl = getController()) {
-                        ctrl->notifyVirtualPathRemoved(path);
-                    }
-                } else {
-                    addOutput("rm: cannot remove '" + target + "' (use -r for directories)");
                 }
             }
         }

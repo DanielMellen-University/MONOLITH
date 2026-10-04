@@ -1,5 +1,10 @@
 # Changelog
 
+## 2026-10: Let Terminal remove hidden symlink entries
+
+- Make `rm` try the filesystem's parent-validated deletion before checking target visibility, so final symlinks to outside targets can be unlinked safely.
+- Keep paths through outside-pointing parent symlinks rejected; verify both cases through Terminal commands.
+
 ## 2026-10: Contain recursive and ordinary deletion
 
 - Resolve and validate a virtual entry's parent before deletion, preventing paths through outside-pointing directory symlinks from unlinking host entries beyond the virtual root.
