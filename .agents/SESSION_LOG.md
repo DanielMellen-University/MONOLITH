@@ -1,5 +1,7 @@
 # Session log
 
+| 2026-10-04 | fix | Enforced Text Editor's 16 MiB / 65,536-line limits on typing, Enter, paste, Replace, and Replace All; maintained serialized-byte accounting incrementally, bounded clipboard normalization, and added exact-boundary/rejection tests. |
+
 | 2026-10-04 | fix | Minesweeper difficulty changes now request a board-sized window through `IWindowController`; WindowManager centers and clamps it, retains the preferred restore rectangle while maximized, and reports applied geometry back to the app. Same-difficulty restarts preserve manual sizing. Added headless shell integration coverage for difficulty switches, maximize/restore, and tiny desktops. |
 
 | 2026-10-04 | test safety | Replace fixed and PID-derived headless fixture roots with scoped `mkdtemp` directories; stale paths can no longer be deleted after PID reuse, and parallel test runs cannot collide. Harden the Drawing smoke script to use the app's actual `$HOME/.monolith/fs` without clearing shared paths. Add focused lifecycle coverage and document the convention. Full headless suite and production build pass locally. |
