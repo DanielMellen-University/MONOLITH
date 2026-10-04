@@ -72,6 +72,13 @@ void prepareOpen(TestEditor& editor, const std::string& path) {
     editor.m_pathPromptCursorPos = path.size();
 }
 
+void setEditorLines(TestEditor& editor, std::vector<std::string> lines) {
+    editor.m_lines = std::move(lines);
+    size_t bytes = editor.m_lines.empty() ? 0 : editor.m_lines.size() - 1;
+    for (const auto& line : editor.m_lines) bytes += line.size();
+    editor.m_documentSerializedBytes = bytes;
+}
+
 } // namespace
 
 int main() {
@@ -476,7 +483,7 @@ int main() {
 
             TestEditor syntaxCacheEditor(scaleFont, &fs, "");
             syntaxCacheEditor.m_syntaxMode = TestEditor::SyntaxMode::Code;
-            syntaxCacheEditor.m_lines = {"int x; /* open", "return 4; */"};
+            setEditorLines(syntaxCacheEditor, {"int x; /* open", "return 4; */"});
             syntaxCacheEditor.onResize(240, 200);
             syntaxCacheEditor.render(renderer, {0, 0, 240, 200});
             const bool cachedVisibleSyntax =
@@ -945,17 +952,19 @@ int main() {
           "undoing after save compares against the new saved content");
 
     TestEditor coalescedEditor(nullptr, &fs, "");
-    coalescedEditor.m_lines = {"base"};
+    setEditorLines(coalescedEditor, {"base"});
     coalescedEditor.m_cursorCol = 4;
     coalescedEditor.insertText("a");
     coalescedEditor.insertText("b");
     check(coalescedEditor.m_lines == std::vector<std::string>{"baseab"}
-              && coalescedEditor.m_undoStack.size() == 1,
+              && coalescedEditor.m_undoStack.size() == 1
+              && coalescedEditor.m_documentSerializedBytes == 6,
           "typing bursts still coalesce into one bounded undo state");
     coalescedEditor.undo();
     coalescedEditor.redo();
-    check(coalescedEditor.m_lines == std::vector<std::string>{"baseab"},
-          "coalesced typing survives move-based undo and redo");
+    check(coalescedEditor.m_lines == std::vector<std::string>{"baseab"}
+              && coalescedEditor.m_documentSerializedBytes == 6,
+          "coalesced typing preserves document size through move-based undo and redo");
 
     TestEditor noOpReplaceEditor(nullptr, &fs, "/old.txt");
     noOpReplaceEditor.m_searchMode = TestEditor::SearchMode::Replace;
@@ -1007,7 +1016,7 @@ int main() {
           "pasting the selected text preserves clean state and undo history");
 
     TestEditor batchPasteEditor(nullptr, &fs, "");
-    batchPasteEditor.m_lines = {"abMIDCD", "tail"};
+    setEditorLines(batchPasteEditor, {"abMIDCD", "tail"});
     batchPasteEditor.m_selAnchorRow = 0;
     batchPasteEditor.m_selAnchorCol = 2;
     batchPasteEditor.m_cursorRow = 0;
@@ -1024,16 +1033,18 @@ int main() {
     batchPasteEditor.undo();
     check(batchPasteEditor.m_lines == std::vector<std::string>{"abMIDCD", "tail"}
               && batchPasteEditor.m_cursorRow == 0
-              && batchPasteEditor.m_cursorCol == 5,
+              && batchPasteEditor.m_cursorCol == 5
+              && batchPasteEditor.m_documentSerializedBytes == 12,
           "undo restores the document and cursor from before multiline paste");
     batchPasteEditor.redo();
     check(batchPasteEditor.m_lines == batchPasteLines
               && batchPasteEditor.m_cursorRow == 2
-              && batchPasteEditor.m_cursorCol == 1,
+              && batchPasteEditor.m_cursorCol == 1
+              && batchPasteEditor.m_documentSerializedBytes == 14,
           "redo restores the complete multiline paste");
 
     TestEditor trailingPasteEditor(nullptr, &fs, "");
-    trailingPasteEditor.m_lines = {"prepost"};
+    setEditorLines(trailingPasteEditor, {"prepost"});
     trailingPasteEditor.m_cursorCol = 3;
     check(SDL_SetClipboardText("A\nB\n") == 0,
           "set trailing-newline multiline paste fixture");
@@ -1043,7 +1054,66 @@ int main() {
               && trailingPasteEditor.m_cursorCol == 0,
           "multiline paste preserves a trailing newline before the original line suffix");
 
-    editor.m_lines = {"aa"};
+    TestEditor byteLimitEditor(nullptr, &fs, "");
+    setEditorLines(byteLimitEditor,
+                   {std::string(TestEditor::kMaxDocumentBytes - 1, 'x')});
+    byteLimitEditor.m_cursorCol = static_cast<int>(TestEditor::kMaxDocumentBytes - 1);
+    byteLimitEditor.insertText("x");
+    const size_t exactLimitUndoCount = byteLimitEditor.m_undoStack.size();
+    byteLimitEditor.insertText("y");
+    check(byteLimitEditor.m_lines[0].size() == TestEditor::kMaxDocumentBytes
+              && byteLimitEditor.m_lines[0].back() == 'x'
+              && byteLimitEditor.m_documentSerializedBytes == TestEditor::kMaxDocumentBytes
+              && byteLimitEditor.m_undoStack.size() == exactLimitUndoCount
+              && byteLimitEditor.m_statusMessage
+                  == "Edit rejected: exceeds 16 MiB or 65,536 lines",
+          "typing reaches the exact byte limit and rejects further growth without undo state");
+
+    TestEditor selectedLimitPasteEditor(nullptr, &fs, "");
+    setEditorLines(selectedLimitPasteEditor,
+                   {std::string(TestEditor::kMaxDocumentBytes, 'x')});
+    selectedLimitPasteEditor.m_selAnchorCol = 0;
+    selectedLimitPasteEditor.m_cursorCol = static_cast<int>(TestEditor::kMaxDocumentBytes);
+    selectedLimitPasteEditor.m_hasSelection = true;
+    check(SDL_SetClipboardText("ok") == 0,
+          "set small replacement clipboard for a maximum-size document");
+    selectedLimitPasteEditor.pasteClipboard();
+    check(selectedLimitPasteEditor.m_lines == std::vector<std::string>{"ok"}
+              && selectedLimitPasteEditor.m_documentSerializedBytes == 2,
+          "paste accounts for selected bytes before enforcing the document limit");
+
+    TestEditor lineLimitEditor(nullptr, &fs, "");
+    setEditorLines(lineLimitEditor,
+                   std::vector<std::string>(TestEditor::kMaxDocumentLines - 1));
+    check(SDL_SetClipboardText("\n") == 0,
+          "set newline clipboard for the exact line limit");
+    lineLimitEditor.pasteClipboard();
+    const size_t exactLimitLineCount = lineLimitEditor.m_lines.size();
+    const size_t exactLimitLineUndoCount = lineLimitEditor.m_undoStack.size();
+    lineLimitEditor.insertNewline();
+    check(exactLimitLineCount == TestEditor::kMaxDocumentLines
+              && lineLimitEditor.m_lines.size() == exactLimitLineCount
+              && lineLimitEditor.m_undoStack.size() == exactLimitLineUndoCount
+              && lineLimitEditor.m_statusMessage
+                  == "Edit rejected: exceeds 16 MiB or 65,536 lines",
+          "multiline paste reaches the exact line limit and Enter rejects further growth");
+
+    TestEditor replaceLimitEditor(nullptr, &fs, "");
+    setEditorLines(replaceLimitEditor,
+                   {std::string(8 * 1024 * 1024 + 1, 'x')});
+    replaceLimitEditor.m_searchMode = TestEditor::SearchMode::Replace;
+    replaceLimitEditor.m_findQuery = "x";
+    replaceLimitEditor.m_replaceText = "xx";
+    replaceLimitEditor.updateFindMatches();
+    replaceLimitEditor.replaceAllMatches();
+    check(replaceLimitEditor.m_lines[0].size() == 8 * 1024 * 1024 + 1
+              && replaceLimitEditor.m_documentSerializedBytes == 8 * 1024 * 1024 + 1
+              && replaceLimitEditor.m_undoStack.empty()
+              && replaceLimitEditor.m_statusMessage
+                  == "Replace all rejected: exceeds 16 MiB or 65,536 lines",
+          "Replace All rejects a result above the byte limit without changing text or history");
+
+    setEditorLines(editor, {"aa"});
     editor.m_cursorRow = 0;
     editor.m_cursorCol = 0;
     editor.m_searchMode = TestEditor::SearchMode::Replace;
@@ -1053,7 +1123,7 @@ int main() {
     check(editor.m_lines == std::vector<std::string>{"aaaa"},
           "replace all does not reprocess replacement text");
 
-    editor.m_lines = {"aaa"};
+    setEditorLines(editor, {"aaa"});
     editor.m_cursorRow = 0;
     editor.m_cursorCol = 0;
     editor.m_searchMode = TestEditor::SearchMode::Replace;
@@ -1107,7 +1177,7 @@ int main() {
               && denseFindEditor.m_currentFindMatch == denseFindCount - 1,
           "Find uses sparse checkpoints for million-hit navigation and bounded memory");
 
-    editor.m_lines = {"ab", "\xF0\x9F\x98\x80"};
+    setEditorLines(editor, {"ab", "\xF0\x9F\x98\x80"});
     editor.m_cursorRow = 0;
     editor.m_cursorCol = 2;
     editor.moveDown(false);
@@ -1144,7 +1214,7 @@ int main() {
               && continuedCommentSpans[2].color.b == 225,
           "syntax highlighting carries block comments across lines and resumes tokens after closing");
 
-    editor.m_lines = {"/* open", "inside", "*/ return"};
+    setEditorLines(editor, {"/* open", "inside", "*/ return"});
     editor.m_syntaxLineStates.clear();
     editor.ensureSyntaxStateThrough(2);
     check(editor.m_syntaxLineStates.size() == 3

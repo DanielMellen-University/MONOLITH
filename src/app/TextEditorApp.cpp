@@ -99,6 +99,7 @@ TextEditorApp::TextEditorApp(TTF_Font* font, monolith::fs::Filesystem* fs, const
     }
 
     m_savedLines = m_lines;
+    documentFitsFileLimits(m_lines, &m_documentSerializedBytes);
 
     refreshSyntaxMode();
 }
@@ -384,7 +385,8 @@ void TextEditorApp::drawColoredLine(SDL_Renderer* renderer, const std::string& l
     }
 }
 
-bool TextEditorApp::documentFitsFileLimits(const std::vector<std::string>& lines) {
+bool TextEditorApp::documentFitsFileLimits(const std::vector<std::string>& lines,
+                                          size_t* serializedBytes) {
     if (lines.size() > kMaxDocumentLines) return false;
 
     size_t bytes = lines.empty() ? 0 : lines.size() - 1;
@@ -393,6 +395,7 @@ bool TextEditorApp::documentFitsFileLimits(const std::vector<std::string>& lines
         if (line.size() > kMaxDocumentBytes - bytes) return false;
         bytes += line.size();
     }
+    if (serializedBytes) *serializedBytes = bytes;
     return true;
 }
 
@@ -470,12 +473,14 @@ bool TextEditorApp::loadInitialFile(const std::string& virtualPath) {
         setStatus("Open failed: exceeds 65,536-line limit.");
         return false;
     }
-    if (!documentFitsFileLimits(loadedLines)) {
+    size_t loadedSerializedBytes = 0;
+    if (!documentFitsFileLimits(loadedLines, &loadedSerializedBytes)) {
         setStatus("Open failed: exceeds document limits.");
         return false;
     }
 
     m_lines = std::move(loadedLines);
+    m_documentSerializedBytes = loadedSerializedBytes;
     m_filePath = normalized;
     m_savedLines = m_lines;
     m_cursorRow = 0;
@@ -1016,8 +1021,73 @@ std::string TextEditorApp::selectedText() const {
     return out;
 }
 
+bool TextEditorApp::selectedSerializedSize(size_t& bytes, size_t& lineBreaks) const {
+    bytes = 0;
+    lineBreaks = 0;
+    if (!hasSelection()) return true;
+
+    int r0 = 0, c0 = 0, r1 = 0, c1 = 0;
+    getOrderedSelection(r0, c0, r1, c1);
+    if (r0 < 0 || r1 >= static_cast<int>(m_lines.size())) return false;
+
+    lineBreaks = static_cast<size_t>(r1 - r0);
+    for (int row = r0; row <= r1; ++row) {
+        const std::string& line = m_lines[static_cast<size_t>(row)];
+        const int start = row == r0
+            ? std::clamp(c0, 0, static_cast<int>(line.size()))
+            : 0;
+        const int end = row == r1
+            ? std::clamp(c1, 0, static_cast<int>(line.size()))
+            : static_cast<int>(line.size());
+        if (end < start || static_cast<size_t>(end - start)
+                > std::numeric_limits<size_t>::max() - bytes) {
+            return false;
+        }
+        bytes += static_cast<size_t>(end - start);
+    }
+    if (lineBreaks > std::numeric_limits<size_t>::max() - bytes) return false;
+    bytes += lineBreaks;
+    return true;
+}
+
+bool TextEditorApp::editFitsFileLimits(size_t insertedBytes,
+                                      size_t insertedLineBreaks,
+                                      size_t removedBytes,
+                                      size_t removedLineBreaks) const {
+    const size_t currentBytes = m_documentSerializedBytes;
+    if (removedBytes > currentBytes) return false;
+
+    const size_t currentLines = std::max<size_t>(1, m_lines.size());
+    const size_t currentLineBreaks = currentLines - 1;
+    if (removedLineBreaks > currentLineBreaks) return false;
+    const size_t retainedLines = currentLines - removedLineBreaks;
+    if (retainedLines > kMaxDocumentLines
+        || insertedLineBreaks > kMaxDocumentLines - retainedLines) {
+        return false;
+    }
+
+    const size_t retainedBytes = currentBytes - removedBytes;
+    return retainedBytes <= kMaxDocumentBytes
+        && insertedBytes <= kMaxDocumentBytes - retainedBytes;
+}
+
+bool TextEditorApp::selectionReplacementFits(size_t insertedBytes,
+                                             size_t insertedLineBreaks) const {
+    size_t removedBytes = 0;
+    size_t removedLineBreaks = 0;
+    return selectedSerializedSize(removedBytes, removedLineBreaks)
+        && editFitsFileLimits(insertedBytes, insertedLineBreaks,
+                              removedBytes, removedLineBreaks);
+}
+
 void TextEditorApp::deleteSelectionRange() {
     if (!hasSelection()) return;
+    size_t removedBytes = 0;
+    size_t removedLineBreaks = 0;
+    if (!selectedSerializedSize(removedBytes, removedLineBreaks)
+        || removedBytes > m_documentSerializedBytes) {
+        return;
+    }
     int r0 = 0, c0 = 0, r1 = 0, c1 = 0;
     getOrderedSelection(r0, c0, r1, c1);
     clampCursor();
@@ -1045,6 +1115,7 @@ void TextEditorApp::deleteSelectionRange() {
     }
     clearSelection();
     if (m_lines.empty()) m_lines = {""};
+    m_documentSerializedBytes -= removedBytes;
     invalidateSyntaxFrom(r0);
 }
 
@@ -1099,17 +1170,23 @@ void TextEditorApp::pasteClipboard() {
         setStatus("Paste failed");
         return;
     }
-    std::string text = raw;
-    SDL_free(raw);
+
+    size_t rawSize = 0;
+    while (rawSize <= kMaxDocumentBytes && raw[rawSize] != '\0') ++rawSize;
+    if (rawSize > kMaxDocumentBytes) {
+        SDL_free(raw);
+        setStatus("Paste rejected: clipboard exceeds 16 MiB");
+        return;
+    }
 
     // Normalize CRLF / lone CR to LF; drop other controls except tab/newline.
     std::string cleaned;
-    cleaned.reserve(text.size());
+    cleaned.reserve(rawSize);
     size_t lineBreakCount = 0;
-    for (size_t i = 0; i < text.size(); ++i) {
-        const unsigned char c = static_cast<unsigned char>(text[i]);
+    for (size_t i = 0; i < rawSize; ++i) {
+        const unsigned char c = static_cast<unsigned char>(raw[i]);
         if (c == '\r') {
-            if (i + 1 < text.size() && text[i + 1] == '\n') continue;
+            if (i + 1 < rawSize && raw[i + 1] == '\n') continue;
             cleaned.push_back('\n');
             ++lineBreakCount;
             continue;
@@ -1121,6 +1198,7 @@ void TextEditorApp::pasteClipboard() {
             cleaned.push_back(static_cast<char>(c));
         }
     }
+    SDL_free(raw);
     if (cleaned.empty()) {
         setStatus("Paste: nothing to insert");
         return;
@@ -1137,6 +1215,11 @@ void TextEditorApp::pasteClipboard() {
         clearSelection();
         setStatus("Pasted");
         ensureCursorVisible();
+        return;
+    }
+
+    if (!selectionReplacementFits(cleaned.size(), lineBreakCount)) {
+        setStatus("Paste rejected: exceeds 16 MiB or 65,536 lines");
         return;
     }
 
@@ -1195,6 +1278,7 @@ void TextEditorApp::pasteClipboard() {
         m_cursorCol = static_cast<int>(finalCursorCol);
     }
 
+    m_documentSerializedBytes += cleaned.size();
     invalidateSyntaxFrom(editedRow);
     m_dirty = true;
     clearDiscardArm();
@@ -1308,6 +1392,11 @@ void TextEditorApp::insertText(const char* text) {
         return;
     }
 
+    if (!selectionReplacementFits(filtered.size(), 0)) {
+        setStatus("Edit rejected: exceeds 16 MiB or 65,536 lines");
+        return;
+    }
+
     pushUndoState(hasSelection() ? UndoCoalesce::None : UndoCoalesce::Insert);
     if (hasSelection()) {
         deleteSelectionRange();
@@ -1321,6 +1410,7 @@ void TextEditorApp::insertText(const char* text) {
     if (m_cursorCol > static_cast<int>(line.size())) m_cursorCol = static_cast<int>(line.size());
 
     line.insert(static_cast<size_t>(m_cursorCol), filtered);
+    m_documentSerializedBytes += filtered.size();
     m_cursorCol += static_cast<int>(filtered.size());
     invalidateSyntaxFrom(editedRow);
     m_dirty = true;
@@ -1331,6 +1421,11 @@ void TextEditorApp::insertText(const char* text) {
 }
 
 void TextEditorApp::insertNewline() {
+    if (!selectionReplacementFits(1, 1)) {
+        setStatus("Edit rejected: exceeds 16 MiB or 65,536 lines");
+        return;
+    }
+
     pushUndoState();
     if (hasSelection()) {
         deleteSelectionRange();
@@ -1344,6 +1439,7 @@ void TextEditorApp::insertNewline() {
     line.erase(m_cursorCol);
 
     m_lines.insert(m_lines.begin() + m_cursorRow + 1, remainder);
+    ++m_documentSerializedBytes;
 
     invalidateSyntaxFrom(editedRow);
     m_cursorRow++;
@@ -1376,6 +1472,7 @@ void TextEditorApp::deleteChar() {
         const size_t start = utf8PrevCodepointStart(line, static_cast<size_t>(m_cursorCol));
         const size_t count = static_cast<size_t>(m_cursorCol) - start;
         line.erase(start, count);
+        m_documentSerializedBytes -= count;
         m_cursorCol = static_cast<int>(start);
     } else {
         // Join with previous line
@@ -1384,6 +1481,7 @@ void TextEditorApp::deleteChar() {
         int newCol = static_cast<int>(prev.size());
         prev += current;
         m_lines.erase(m_lines.begin() + m_cursorRow);
+        --m_documentSerializedBytes;
         m_cursorRow--;
         m_cursorCol = newCol;
     }
@@ -1418,10 +1516,12 @@ void TextEditorApp::deleteForward() {
         const size_t start = static_cast<size_t>(m_cursorCol);
         const size_t count = utf8CodepointByteLen(line, start);
         line.erase(start, count);
+        m_documentSerializedBytes -= count;
     } else if (m_cursorRow + 1 < static_cast<int>(m_lines.size())) {
         // Join next line into this one
         line += m_lines[m_cursorRow + 1];
         m_lines.erase(m_lines.begin() + m_cursorRow + 1);
+        --m_documentSerializedBytes;
     }
     invalidateSyntaxFrom(syntaxDirtyRow);
     m_dirty = true;
@@ -1829,8 +1929,18 @@ void TextEditorApp::replaceCurrentMatch() {
         return;
     }
 
+    if (!editFitsFileLimits(m_replaceText.size(), 0, m_findQuery.size(), 0)) {
+        setStatus("Replace rejected: exceeds 16 MiB or 65,536 lines");
+        return;
+    }
+
     pushUndoState();
     line.replace(static_cast<size_t>(match.second), m_findQuery.size(), m_replaceText);
+    if (m_replaceText.size() >= m_findQuery.size()) {
+        m_documentSerializedBytes += m_replaceText.size() - m_findQuery.size();
+    } else {
+        m_documentSerializedBytes -= m_findQuery.size() - m_replaceText.size();
+    }
     invalidateSyntaxFrom(match.first);
     m_dirty = true;
     clearDiscardArm();
@@ -1868,6 +1978,23 @@ void TextEditorApp::replaceAllMatches() {
         return;
     }
 
+    const size_t replacementCount = m_findMatchCount;
+    if (m_findQuery.size() > 0
+        && replacementCount > std::numeric_limits<size_t>::max() / m_findQuery.size()) {
+        setStatus("Replace all rejected: exceeds 16 MiB or 65,536 lines");
+        return;
+    }
+    if (m_replaceText.size() > 0
+        && replacementCount > std::numeric_limits<size_t>::max() / m_replaceText.size()) {
+        setStatus("Replace all rejected: exceeds 16 MiB or 65,536 lines");
+        return;
+    }
+    if (!editFitsFileLimits(replacementCount * m_replaceText.size(), 0,
+                            replacementCount * m_findQuery.size(), 0)) {
+        setStatus("Replace all rejected: exceeds 16 MiB or 65,536 lines");
+        return;
+    }
+
     pushUndoState();
     std::size_t count = 0;
     int firstChangedRow = static_cast<int>(m_lines.size());
@@ -1893,6 +2020,13 @@ void TextEditorApp::replaceAllMatches() {
         line.swap(replaced);
     }
 
+    const size_t insertedBytes = replacementCount * m_replaceText.size();
+    const size_t removedBytes = replacementCount * m_findQuery.size();
+    if (insertedBytes >= removedBytes) {
+        m_documentSerializedBytes += insertedBytes - removedBytes;
+    } else {
+        m_documentSerializedBytes -= removedBytes - insertedBytes;
+    }
     if (count > 0) invalidateSyntaxFrom(firstChangedRow);
     m_dirty = true;
     clearDiscardArm();
@@ -2765,6 +2899,7 @@ void TextEditorApp::pushUndoState(UndoCoalesce kind) {
 
 void TextEditorApp::applyEditorState(EditorState&& state) {
     m_lines = std::move(state.lines);
+    documentFitsFileLimits(m_lines, &m_documentSerializedBytes);
     invalidateSyntaxFrom(0);
     m_cursorRow = state.cursorRow;
     m_cursorCol = state.cursorCol;

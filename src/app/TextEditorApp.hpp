@@ -77,6 +77,11 @@ private:
     void prepareMove(bool extendSelection);
     void getOrderedSelection(int& r0, int& c0, int& r1, int& c1) const;
     std::string selectedText() const;
+    bool selectedSerializedSize(size_t& bytes, size_t& lineBreaks) const;
+    bool editFitsFileLimits(size_t insertedBytes, size_t insertedLineBreaks,
+                            size_t removedBytes, size_t removedLineBreaks) const;
+    bool selectionReplacementFits(size_t insertedBytes,
+                                  size_t insertedLineBreaks) const;
     void deleteSelectionRange();  // no undo push; caller pushes if needed
     void selectAll();
     void copySelection();
@@ -90,7 +95,8 @@ private:
     // === File I/O ===
     static constexpr size_t kMaxDocumentBytes = 16 * 1024 * 1024;
     static constexpr size_t kMaxDocumentLines = 65'536;
-    static bool documentFitsFileLimits(const std::vector<std::string>& lines);
+    static bool documentFitsFileLimits(const std::vector<std::string>& lines,
+                                       size_t* serializedBytes = nullptr);
     bool loadInitialFile(const std::string& virtualPath);
     std::string getDisplayName() const;
     void updateTitleForPath();
@@ -187,6 +193,7 @@ private:
 
     std::vector<std::string> m_lines;
     std::vector<std::string> m_savedLines;
+    size_t m_documentSerializedBytes = 0;
     int m_cursorRow = 0;
     int m_cursorCol = 0;
     int m_scrollOffset = 0;   // index of the first visible line
