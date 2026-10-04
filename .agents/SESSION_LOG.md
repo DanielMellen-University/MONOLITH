@@ -1,5 +1,7 @@
 # Session log
 
+| 2026-10-03 | perf | Text Editor multiline paste now normalizes line endings while counting rows, moves the retained prefix into the first replacement row, and performs one range insertion instead of shifting all following rows for each newline. Regression covers selection replacement, CRLF/lone-CR normalization, suffix and caret placement, trailing newlines, undo, and redo; focused editor test and production build passed; hosted workflow #311 passed both normal and sanitized jobs. |
+
 | 2026-10-03 | perf | Text Editor undo snapshots now account copied line storage during cloning, removing the post-copy measurement pass while preserving the active-document budget precheck. Snapshot content/cursor/accounting regression, full headless suite, and production build passed; hosted workflow #307 passed both normal and sanitized jobs. |
 
 | 2026-10-03 | perf | Terminal command-history trimming now filters invalid entries, scans backward once to retain the newest suffix within count and byte caps, and erases the discarded prefix once. Added a 256-entry boundary regression; normal and sanitized hosted workflow #303 passed. |
