@@ -1,5 +1,7 @@
 # Session log
 
+| 2026-10-04 | polish | Replaced the Text Editor's outdated welcome disclaimer with current Find/Replace shortcut guidance and covered the unchanged clean baseline. |
+
 | 2026-10-04 | fix | Switched unpublished atomic-workspace rollback to `rmdir` semantics and shared that rule with pre-marker scavenging; unexpected entries now survive while empty setup remnants are reclaimed. |
 
 | 2026-10-04 | perf | Counted normalized Text Editor bytes while parsing streamed input, removing the post-open and constructor rescans; covered empty, CRLF, lone-CR, chunk-boundary, and maximum-line documents. |
