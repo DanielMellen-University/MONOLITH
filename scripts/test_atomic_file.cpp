@@ -151,19 +151,28 @@ int main() {
             && writeFixture(workspace / "ready", "")
             && writeFixture(workspace / "content", "stale snapshot");
     }
+    for (std::size_t index = 0; sweepBatchFixturesReady && index < sweepBatchSize; ++index) {
+        sweepBatchFixturesReady = writeFixture(
+            sweepBatchParent / ("ordinary-" + std::to_string(index) + ".txt"),
+            "user data");
+    }
     const bool sweepBatchCompleted = sweepBatchFixturesReady
         && monolith::detail::scavengeAtomicTempDirectories(sweepBatchParent);
     std::size_t sweepBatchRemaining = 0;
+    std::size_t ordinaryEntriesRemaining = 0;
     if (sweepBatchFixturesReady) {
         for (const auto& entry : fs::directory_iterator(sweepBatchParent)) {
-            if (entry.path().filename().string().starts_with(
-                    monolith::detail::atomicTempPreviousPrefix)) {
+            const std::string name = entry.path().filename().string();
+            if (name.starts_with(monolith::detail::atomicTempPreviousPrefix)) {
                 ++sweepBatchRemaining;
+            } else if (name.starts_with("ordinary-")) {
+                ++ordinaryEntriesRemaining;
             }
         }
     }
-    check(sweepBatchCompleted && sweepBatchRemaining == 0,
-          "a single incremental sweep reclaims a large batch of stale workspaces");
+    check(sweepBatchCompleted && sweepBatchRemaining == 0
+              && ordinaryEntriesRemaining == sweepBatchSize,
+          "a sweep reclaims stale workspaces while preserving ordinary siblings");
 
     const fs::path failedSetupPath = parent
         / (std::string(monolith::detail::atomicTempPrefix)

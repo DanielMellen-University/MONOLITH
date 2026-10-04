@@ -1,5 +1,7 @@
 # Session log
 
+| 2026-10-04 | perf | Atomic-save parent sweeps now inspect basenames through borrowed views and copy a path only for workspace candidates, avoiding path and name allocations for ordinary siblings. Mixed-directory recovery retains 128 ordinary files while reclaiming 128 stale workspaces. |
+
 | 2026-10-04 | polish | When Browser filter input hits its UTF-8 byte cap, the status bar now explains the limit and match count; the notice survives Enter/re-entry and F5, and clears on query edits. Added focused state regressions. |
 
 | 2026-10-04 | fix/perf | Bounded the Filesystem Browser's horizontally scrolled filter text to 255 UTF-8 bytes, matching the standard Linux filename-component limit so user input cannot produce unbounded cached text textures. Added boundary coverage for a four-byte codepoint at the limit. |

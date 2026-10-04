@@ -1,5 +1,10 @@
 # Changelog
 
+## 2026-10: Avoid ordinary-entry allocations during save cleanup
+
+- Inspect destination entry names through borrowed views and copy paths only for recognized workspaces, avoiding per-entry allocations for ordinary siblings.
+- Extend the large-sweep regression to verify ordinary files remain untouched.
+
 ## 2026-10: Explain the Browser filter limit
 
 - Report the 255-byte filter cap in the status bar when further input would be dropped, retaining the notice while the query is unchanged.

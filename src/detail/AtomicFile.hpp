@@ -389,11 +389,21 @@ inline bool scavengeAtomicTempDirectories(const std::filesystem::path& parent) {
     }
 
     while (!iteratorError && entry != end) {
-        const auto candidate = entry->path();
-        const std::string name = candidate.filename().string();
+        const auto& entryPath = entry->path();
+        const auto& nativePath = entryPath.native();
+        const auto separator = nativePath.find_last_of(
+            std::filesystem::path::preferred_separator);
+        const std::size_t nameOffset = separator == std::string::npos
+            ? 0
+            : separator + 1;
+        const std::string_view name(nativePath.data() + nameOffset,
+                                    nativePath.size() - nameOffset);
         const bool isWorkspace = name.starts_with(atomicTempPrefix)
             || name.starts_with(atomicTempPreviousPrefix)
             || name.starts_with(atomicTempOlderPrefix);
+        // Copy candidate paths before advancing; ordinary siblings need no owned strings.
+        const std::filesystem::path candidate = isWorkspace ? entryPath
+                                                              : std::filesystem::path{};
         entry.increment(iteratorError);
         if (!isWorkspace) continue;
         if (tryReclaimIncompleteAtomicTempDirectory(candidate)) continue;
