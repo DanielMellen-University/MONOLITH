@@ -2627,10 +2627,27 @@ void TextEditorApp::onUiScaleChanged() {
 
 TextEditorApp::EditorState TextEditorApp::captureEditorState() const {
     EditorState state;
-    state.lines = m_lines;
+    state.lines.reserve(m_lines.size());
+    const size_t maxBytes = std::numeric_limits<size_t>::max();
+    size_t bytes = sizeof(EditorState);
+    if (state.lines.capacity() > (maxBytes - bytes) / sizeof(std::string)) {
+        bytes = maxBytes;
+    } else {
+        bytes += state.lines.capacity() * sizeof(std::string);
+    }
+    for (const auto& line : m_lines) {
+        state.lines.emplace_back(line);
+        if (bytes == maxBytes) continue;
+        const size_t lineCapacity = state.lines.back().capacity();
+        if (lineCapacity >= maxBytes - bytes) {
+            bytes = maxBytes;
+        } else {
+            bytes += lineCapacity + 1;
+        }
+    }
     state.cursorRow = m_cursorRow;
     state.cursorCol = m_cursorCol;
-    state.memoryBytes = measureEditorStateBytes(state.lines);
+    state.memoryBytes = bytes;
     return state;
 }
 
