@@ -282,6 +282,11 @@ int main() {
                 promptMetricEditor.m_findCursorPos = 3;
                 promptMetricEditor.render(renderer, {0, 0, 240, 200});
                 const std::string findCursorText = "Find: nee_";
+                const std::size_t findStatusCapacity =
+                    promptMetricEditor.m_renderStatusText.capacity();
+                const std::size_t findCursorCapacity =
+                    promptMetricEditor.m_renderCursorText.capacity();
+                const std::string findStatusText = promptMetricEditor.m_renderStatusText;
                 int expectedCursorWidth = 0;
                 int expectedCursorHeight = 0;
                 const bool findWidthMeasured = TTF_SizeUTF8(
@@ -295,6 +300,11 @@ int main() {
                 const bool findPromptRetained = findPromptCached
                     && promptMetricEditor.m_statusCursorMeasureText == findCursorText
                     && promptMetricEditor.m_statusCursorPixelWidth == expectedCursorWidth;
+                check(findPromptRetained
+                          && promptMetricEditor.m_renderStatusText == findStatusText
+                          && promptMetricEditor.m_renderStatusText.capacity() == findStatusCapacity
+                          && promptMetricEditor.m_renderCursorText.capacity() == findCursorCapacity,
+                      "Text Editor reuses Find prompt and caret buffers between unchanged frames");
                 promptMetricEditor.m_findCursorPos = promptMetricEditor.m_findQuery.size();
                 promptMetricEditor.render(renderer, {0, 0, 240, 200});
                 const std::string movedFindCursorText = "Find: needle_";
@@ -340,6 +350,11 @@ int main() {
                     promptMetricEditor.m_pathPromptBuffer.size();
                 promptMetricEditor.render(renderer, {0, 0, 240, 200});
                 const std::string openCursorText = "Open: /home/monolith/_";
+                const std::size_t openStatusCapacity =
+                    promptMetricEditor.m_renderStatusText.capacity();
+                const std::size_t openCursorCapacity =
+                    promptMetricEditor.m_renderCursorText.capacity();
+                const std::string openStatusText = promptMetricEditor.m_renderStatusText;
                 expectedCursorWidth = 0;
                 const bool openWidthMeasured = TTF_SizeUTF8(
                     promptFont, openCursorText.c_str(), &expectedCursorWidth,
@@ -347,6 +362,12 @@ int main() {
                 const bool openPromptCached = openWidthMeasured
                     && promptMetricEditor.m_statusCursorMeasureText == openCursorText
                     && promptMetricEditor.m_statusCursorPixelWidth == expectedCursorWidth;
+                promptMetricEditor.render(renderer, {0, 0, 240, 200});
+                check(openPromptCached
+                          && promptMetricEditor.m_renderStatusText == openStatusText
+                          && promptMetricEditor.m_renderStatusText.capacity() == openStatusCapacity
+                          && promptMetricEditor.m_renderCursorText.capacity() == openCursorCapacity,
+                      "Text Editor reuses Open prompt and caret buffers between unchanged frames");
 
                 promptMetricEditor.m_pathPromptMode = TestEditor::PathPromptMode::SaveAs;
                 promptMetricEditor.render(renderer, {0, 0, 240, 200});

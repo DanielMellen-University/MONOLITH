@@ -2317,25 +2317,41 @@ void TextEditorApp::render(SDL_Renderer* renderer, const SDL_Rect& contentRect) 
         if (m_searchMode != SearchMode::None) {
             const bool onQuery = (m_searchField == SearchField::Query);
             const bool onRepl = (m_searchField == SearchField::Replacement);
+            std::string& cursorText = m_renderCursorText;
+            cursorText.clear();
+            cursorText.append("Find: ");
             if (m_searchMode == SearchMode::Replace) {
                 m_findCursorPos = std::min(m_findCursorPos, m_findQuery.size());
                 m_replaceCursorPos = std::min(m_replaceCursorPos, m_replaceText.size());
-                const std::string findBefore = m_findQuery.substr(0, m_findCursorPos);
-                const std::string findAfter = m_findQuery.substr(m_findCursorPos);
-                const std::string replaceBefore = m_replaceText.substr(0, m_replaceCursorPos);
-                const std::string replaceAfter = m_replaceText.substr(m_replaceCursorPos);
-                status = "Find: " + findBefore + (onQuery ? "_" : "") + findAfter;
-                status += "  Repl: " + replaceBefore + (onRepl ? "_" : "") + replaceAfter;
-                const std::string cursorText = onQuery
-                    ? "Find: " + findBefore + "_"
-                    : "Find: " + m_findQuery + "  Repl: " + replaceBefore + "_";
+                status.clear();
+                status.append("Find: ");
+                status.append(m_findQuery, 0, m_findCursorPos);
+                if (onQuery) status.push_back('_');
+                status.append(m_findQuery, m_findCursorPos, std::string::npos);
+                status.append("  Repl: ");
+                status.append(m_replaceText, 0, m_replaceCursorPos);
+                if (onRepl) status.push_back('_');
+                status.append(m_replaceText, m_replaceCursorPos, std::string::npos);
+
+                if (onQuery) {
+                    cursorText.append(m_findQuery, 0, m_findCursorPos);
+                } else {
+                    cursorText.append(m_findQuery);
+                    cursorText.append("  Repl: ");
+                    cursorText.append(m_replaceText, 0, m_replaceCursorPos);
+                }
+                cursorText.push_back('_');
                 searchCursorPx = measureStatusCursorWidth(cursorText);
             } else {
                 m_findCursorPos = std::min(m_findCursorPos, m_findQuery.size());
-                const std::string findBefore = m_findQuery.substr(0, m_findCursorPos);
-                const std::string findAfter = m_findQuery.substr(m_findCursorPos);
-                status = "Find: " + findBefore + "_" + findAfter;
-                const std::string cursorText = "Find: " + findBefore + "_";
+                status.clear();
+                status.append("Find: ");
+                status.append(m_findQuery, 0, m_findCursorPos);
+                status.push_back('_');
+                status.append(m_findQuery, m_findCursorPos, std::string::npos);
+
+                cursorText.append(m_findQuery, 0, m_findCursorPos);
+                cursorText.push_back('_');
                 searchCursorPx = measureStatusCursorWidth(cursorText);
             }
             searchPromptActive = true;
@@ -2354,23 +2370,25 @@ void TextEditorApp::render(SDL_Renderer* renderer, const SDL_Rect& contentRect) 
             }
         } else if (m_pathPromptMode != PathPromptMode::None) {
             const std::size_t cursor = std::min(m_pathPromptCursorPos, m_pathPromptBuffer.size());
-            const std::string beforeCursor = m_pathPromptBuffer.substr(0, cursor);
-            const std::string promptBuffer = m_pathPromptBuffer.substr(0, cursor)
-                + "_" + m_pathPromptBuffer.substr(cursor);
-            if (m_pathPromptMode == PathPromptMode::GoToLine) {
-                status = "Go to line: " + promptBuffer;
-                const std::string cursorText = "Go to line: " + beforeCursor + "_";
-                searchCursorPx = measureStatusCursorWidth(cursorText);
-                status += "   |  Enter jump, Esc cancel";
-            } else {
-                status = (m_pathPromptMode == PathPromptMode::Open) ? "Open: " : "Save as: ";
-                status += promptBuffer;
-                const std::string cursorText =
-                    ((m_pathPromptMode == PathPromptMode::Open) ? "Open: " : "Save as: ")
-                    + beforeCursor + "_";
-                searchCursorPx = measureStatusCursorWidth(cursorText);
-                status += "   |  Tab complete, Enter confirm, Esc cancel";
-            }
+            const bool goToLine = m_pathPromptMode == PathPromptMode::GoToLine;
+            const char* promptLabel = goToLine ? "Go to line: "
+                : m_pathPromptMode == PathPromptMode::Open ? "Open: " : "Save as: ";
+            status.clear();
+            status.append(promptLabel);
+            status.append(m_pathPromptBuffer, 0, cursor);
+            status.push_back('_');
+            status.append(m_pathPromptBuffer, cursor, std::string::npos);
+
+            std::string& cursorText = m_renderCursorText;
+            cursorText.clear();
+            cursorText.append(promptLabel);
+            cursorText.append(m_pathPromptBuffer, 0, cursor);
+            cursorText.push_back('_');
+            searchCursorPx = measureStatusCursorWidth(cursorText);
+
+            status.append(goToLine
+                ? "   |  Enter jump, Esc cancel"
+                : "   |  Tab complete, Enter confirm, Esc cancel");
             searchPromptActive = true;
         } else {
             m_statusHorizontalScrollPx = 0;

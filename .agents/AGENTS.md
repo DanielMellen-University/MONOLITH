@@ -34,6 +34,7 @@ The human funds token budget and lives in the desktop. You:
 
 | When | Kind | Note |
 |------|------|------|
+| 2026-10-04 | editor-prompt-render-buffers | Assemble search and path prompt status/caret strings in retained buffers, eliminating per-frame substring and concatenation temporaries |
 | 2026-10-04 | atomic-save-parent-lock-reuse | Reuse the scheduled sweep's exclusive destination-directory lock for subsequent workspace setup, avoiding a second open/flock cycle |
 | 2026-10-04 | editor-status-buffer | Reuse the Text Editor status string between frames and append a display-name view; verify unchanged-frame capacity stability |
 | 2026-10-04 | atomic-save-readdir | Read borrowed directory names directly and construct paths only for workspace candidates, retaining immediate retry on open/enumeration failure |
@@ -354,6 +355,7 @@ Older recent-work rows: [`SESSION_LOG.md`](SESSION_LOG.md).
 | 7.132 | Read atomic-save sweep names directly | done | Enumerate through a POSIX directory stream so ordinary siblings require no entry-path construction; only workspace candidates become paths, with retry preserved on open/read failures |
 | 7.133 | Reuse Text Editor status render storage | done | Retain status-bar text capacity between frames and avoid an owning display-name substring in the steady-state render path; verify unchanged frames keep capacity stable |
 | 7.134 | Reuse atomic-save parent lock | done | Keep the scheduled cleanup lock through workspace creation rather than reopening and relocking the same directory; preserve immediate retry after failed sweeps |
+| 7.135 | Reuse Text Editor prompt render buffers | done | Append Find, Replace, Open, Save As, and Go to Line text directly from source buffers; preserve exact caret measurement while keeping unchanged prompt-buffer capacity stable |
 | fs-browser-filter-cache | Reuse Filesystem Browser filter snapshots | done | Reuse one directory listing for filter edits; refresh it on F5 and Monolith filesystem notifications, including while filtering |
 | terminal-input-editing | Terminal command-line selection | done | Support UTF-8-safe keyboard/mouse selection and Ctrl+A/C/X/V; normalize all clipboard lines and tabs into the single-line prompt |
 | terminal-touch-mtime | Complete Terminal touch semantics | done | Update existing regular-file last-write time without truncation; reject outside-root symlink targets |

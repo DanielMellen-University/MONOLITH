@@ -210,6 +210,7 @@ private:
     bool m_suppressChangedNotification = false;
     std::string m_statusMessage;  // transient status-bar feedback (save/open errors, etc.)
     std::string m_renderStatusText;
+    std::string m_renderCursorText;
     DiscardKind m_discardKind = DiscardKind::None;
     std::string m_discardPath;
 
