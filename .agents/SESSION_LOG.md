@@ -1,5 +1,7 @@
 # Session log
 
+| 2026-10-04 | fix | Successful moves now invalidate the wallpaper failed-load cache when they supply the configured image path (or a containing directory), so the next render retries it. Added a WindowManager regression for moving into a previously missing configured path, clarified Terminal behavior, and updated architecture/changelog docs. Full headless suite and production build pass locally. |
+
 | 2026-10-04 | fix | Atomic-save cleanup now opens owner markers with `O_NONBLOCK`; a FIFO in a user-created lookalike directory previously stalled the scanner before its regular-file check. The timeout-guarded sweep regression reproduces the hang and verifies cleanup preserves the directory. Full headless suite, production build, focused ASan/UBSan run, and both hosted workflow #353 jobs passed. |
 
 | 2026-10-04 | perf/fix | Atomic-save cleanup now keys its bounded parent cadence by resolved directory, so symlink aliases share first-touch and 32-write sweeps. Lexical tracker hits skip resolution; misses resolve before cadence lookup. Regression alternates both spellings through the interval boundary. Full headless suite, production build, focused ASan/UBSan test, and both hosted workflow #350 jobs passed. |

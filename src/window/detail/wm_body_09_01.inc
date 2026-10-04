@@ -18,6 +18,12 @@
         persistDesktopSettings();
     }
 
+    const std::string wallpaperPath = m_fs->normalize(m_desktopSettings.wallpaperPath());
+    if (!wallpaperPath.empty() && m_fs->isSameOrDescendant(newNormalized, wallpaperPath)) {
+        destroyWallpaperTexture();
+        m_wallpaperLoadedPath.clear();
+    }
+
     std::vector<std::string> remappedClipboardPaths;
     remappedClipboardPaths.reserve(m_filesystemClipboardPaths.size());
     bool clipboardChanged = false;

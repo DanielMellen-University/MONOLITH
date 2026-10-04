@@ -82,7 +82,7 @@ Run `help` for the full list. Current commands:
 | `edit <file>` | Open a text file in the Text Editor |
 | `open <path>` | Open via shell routing (case-insensitive `.modr` → Drawing, else Text Editor) |
 | `cp [-r] <src> <dst>` | Copy file or directory tree (`Filesystem::copyRecursive`; verifies file reads and refuses copy into self) |
-| `mv <src> <dst>` | Move or rename (destination directory supported; open Editor and Drawing bindings follow the move) |
+| `mv <src> <dst>` | Move or rename to an unused destination (destination directory supported; open Editor and Drawing bindings follow the move) |
 | `rm [-r] <path>` | Remove file or directory tree (`Filesystem::removeRecursive` with `-r`; cannot remove `/`) |
 | `history` | Show command history |
 | `help` | Show command list |
@@ -102,7 +102,7 @@ When the cursor is immediately after a closed quoted token, Tab does nothing. Th
 
 `cat` reads in bounded 16 KiB chunks instead of copying the entire file before displaying it. CRLF and lone-CR separators are normalized as they are read, including when CRLF crosses a chunk boundary. It stops at 5,000 output lines, keeps at most 64 KiB of an in-progress row, and reports read failure separately from an empty file.
 
-After a successful `mv`, any open Text Editor or Drawing window bound to the source path follows the normalized destination path. Moving a directory also updates bindings for open files beneath it, and any Terminal or Filesystem Browser currently inside that directory follows the new location.
+After a successful `mv`, any open Text Editor or Drawing window bound to the source path follows the normalized destination path. Existing destination entries are never overwritten. Moving a directory also updates bindings for open files beneath it, and any Terminal or Filesystem Browser currently inside that directory follows the new location. If the destination supplies a configured wallpaper image that was previously missing, the desktop retries loading it on the next render.
 
 `touch` creates a missing empty file or updates the last-write time of an existing regular file without changing its contents. Existing-file touches do not send a content-change notification; timestamps are not displayed by Monolith.
 

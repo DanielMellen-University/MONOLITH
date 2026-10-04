@@ -243,6 +243,18 @@ int main() {
                   && (*renamedEditor)->title == "Editor - renamed.txt",
               "renamed editor file updates its title and path");
 
+        check(fs.writeFile("/docs/moved-wallpaper-source.bmp", "placeholder"),
+              "write source for previously missing wallpaper path");
+        wm.setWallpaperPath("/docs/moved-wallpaper.bmp");
+        wm.m_wallpaperLoadedPath = "/docs/moved-wallpaper.bmp";
+        check(fs.rename("/docs/moved-wallpaper-source.bmp", "/docs/moved-wallpaper.bmp"),
+              "move file into configured but previously missing wallpaper path");
+        wm.notifyVirtualPathMoved(
+            "/docs/moved-wallpaper-source.bmp", "/docs/moved-wallpaper.bmp");
+        check(wm.getWallpaperPath() == "/docs/moved-wallpaper.bmp"
+                  && wm.m_wallpaperLoadedPath.empty(),
+              "moving a file into the configured wallpaper path invalidates its failed-load cache");
+
         check(fs.isDirectory("/archive"), "directory move destination remains available");
         check(fs.createDirectory("/docs/nested"), "create nested editor directory");
         check(fs.writeFile("/docs/nested/child.txt", "nested"),

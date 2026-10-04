@@ -1,5 +1,10 @@
 # Changelog
 
+## 2026-10: Reload wallpaper supplied by a move
+
+- Invalidate the cached failed-load path when a successful move supplies a configured wallpaper image that was previously missing.
+- Cover the missing-destination move in the WindowManager integration test.
+
 ## 2026-10: Keep atomic-save cleanup nonblocking on lookalikes
 
 - Probe ownership markers with nonblocking opens and reject non-regular files, preventing a user-created FIFO from hanging a save-time cleanup sweep.
