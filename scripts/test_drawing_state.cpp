@@ -113,6 +113,9 @@ int main() {
     check(fs.writeFile("/home/monolith/drawings/home.modr",
                        monolith::drawing::encodeModr(2, 2, pixels)),
           "write virtual-home Drawing prompt target");
+    check(fs.writeFile("/home/monolith/drawings/tab-route.modr",
+                       monolith::drawing::encodeModr(2, 2, pixels)),
+          "write Drawing keyboard-completion target");
     check(fs.writeFile("/drawings/corrupt.modr", "not a drawing"),
           "write corrupt drawing retry target");
     check(fs.writeFile("/drawings/oversized.modr", ""),
@@ -156,6 +159,38 @@ int main() {
               && oversizedSave.m_statusMessage
                   == "Save failed: canvas exceeds the .modr dimension limit.",
           "Drawing rejects an oversized save before creating a directory or unreadable file");
+
+    TestDrawing keyboardCompletionDrawing(font, &fs);
+    keyboardCompletionDrawing.onResize(300, 300);
+    SDL_Event openDrawingKey{};
+    openDrawingKey.type = SDL_KEYDOWN;
+    openDrawingKey.key.keysym.mod = KMOD_CTRL;
+    openDrawingKey.key.keysym.sym = SDLK_o;
+    keyboardCompletionDrawing.handleEvent(openDrawingKey);
+    SDL_Event drawingPathText{};
+    drawingPathText.type = SDL_TEXTINPUT;
+    SDL_strlcpy(drawingPathText.text.text, "tab-route",
+                sizeof(drawingPathText.text.text));
+    keyboardCompletionDrawing.handleEvent(drawingPathText);
+    SDL_Event drawingTabKey{};
+    drawingTabKey.type = SDL_KEYDOWN;
+    drawingTabKey.key.keysym.sym = SDLK_TAB;
+    keyboardCompletionDrawing.handleEvent(drawingTabKey);
+    const bool keyboardPathCompleted =
+        keyboardCompletionDrawing.m_pathPromptBuffer
+            == "/home/monolith/drawings/tab-route.modr";
+    SDL_Event drawingEnterKey{};
+    drawingEnterKey.type = SDL_KEYDOWN;
+    drawingEnterKey.key.keysym.sym = SDLK_RETURN;
+    keyboardCompletionDrawing.handleEvent(drawingEnterKey);
+    check(keyboardPathCompleted
+              && keyboardCompletionDrawing.m_pathPromptMode
+                  == TestDrawing::PathPromptMode::None
+              && keyboardCompletionDrawing.m_filePath
+                  == "/home/monolith/drawings/tab-route.modr"
+              && keyboardCompletionDrawing.m_canvasWidth == 2
+              && keyboardCompletionDrawing.m_canvasHeight == 2,
+          "Ctrl+O, typed prefix, Tab, and Enter open a Drawing through keyboard completion");
 
     bool occupiedSketchNames = true;
     for (int i = 1; i <= 999; ++i) {

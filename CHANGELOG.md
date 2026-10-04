@@ -1,5 +1,9 @@
 # Changelog
 
+## 2026-10: Cover Drawing keyboard path completion
+
+- Exercise Ctrl+O, typed filename input, Tab completion, and Enter through Drawing's real event handler in headless tests.
+
 ## 2026-10: Search selected Text Editor text
 
 - Start Ctrl+F and Ctrl+H with a single-line selection as the query and keep the corresponding occurrence selected.

@@ -67,6 +67,9 @@ The main loop uses the same format. After editing `build/generated/main/main_bod
 python3 src/compress_main_bodies.py build/generated/main src
 ```
 
+Drawing state coverage drives the full Ctrl+O, typed-prefix, Tab, and Enter path
+through `DrawingApp::handleEvent`, in addition to the completion helper cases.
+
 The complete headless runner also checks that session-save failures are reported
 while SDL is still live, and that the Window Manager and its SDL-backed apps are
 destroyed before renderer and SDL shutdown:

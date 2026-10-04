@@ -34,6 +34,7 @@ The human funds token budget and lives in the desktop. You:
 
 | When | Kind | Note |
 |------|------|------|
+| 2026-10-04 | drawing-keyboard-completion-coverage | Drive Ctrl+O, typed prefix, Tab, and Enter through DrawingApp::handleEvent so regressions in the actual shortcut route are covered |
 | 2026-10-04 | text-editor-selection-search | Seed Ctrl+F/Ctrl+H from a single-line selection and select that occurrence; leave multi-line or control-bearing selections out of the single-line query |
 | 2026-10-04 | text-editor-search-input-unify | Share one control-filtering insertion path between typed and clipboard Find/Replace input; own clipboard memory through RAII |
 | 2026-10-04 | text-editor-search-paste | Make Ctrl+V work in the active Find/Replace field while filtering controls and retaining UTF-8 caret positions |
@@ -368,6 +369,7 @@ Older recent-work rows: [`SESSION_LOG.md`](SESSION_LOG.md).
 | 7.139 | Paste into Text Editor search fields | done | Insert clipboard text at the active Find/Replace caret, filter control bytes to keep prompts single-line, and refresh matches when the query changes |
 | 7.140 | Unify Text Editor search input | done | Reuse one sanitizer/insertion path for typed and pasted Find/Replace text; release SDL clipboard storage with RAII and verify both input routes |
 | 7.141 | Search selected Text Editor text | done | Seed Ctrl+F/Ctrl+H from a selected single-line query and start on that occurrence; leave multi-line or control-bearing selections out of the inline field |
+| 7.142 | Cover Drawing keyboard path completion | done | Exercise Ctrl+O, typed filename input, Tab completion, and Enter through Drawing's real event handler, confirming the `.modr` file opens |
 | fs-browser-filter-cache | Reuse Filesystem Browser filter snapshots | done | Reuse one directory listing for filter edits; refresh it on F5 and Monolith filesystem notifications, including while filtering |
 | terminal-input-editing | Terminal command-line selection | done | Support UTF-8-safe keyboard/mouse selection and Ctrl+A/C/X/V; normalize all clipboard lines and tabs into the single-line prompt |
 | terminal-touch-mtime | Complete Terminal touch semantics | done | Update existing regular-file last-write time without truncation; reject outside-root symlink targets |

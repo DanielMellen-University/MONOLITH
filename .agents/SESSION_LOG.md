@@ -1,5 +1,7 @@
 # Session log
 
+| 2026-10-04 | test | Added an end-to-end Drawing state regression for Ctrl+O, typed filename prefix, Tab completion, and Enter through `handleEvent`; this protects the actual workflow rather than only testing the completion helper. Updated the developer verification guide. |
+
 | 2026-10-04 | fix | Ctrl+F and Ctrl+H now use a selected single-line term as the query and begin on that occurrence, including reversed selections; multi-line and control-bearing selections stay out of the single-line field. Added headless event-path regressions and updated the Text Editor guide. |
 
 | 2026-10-04 | cleanup | Unified typed and clipboard input for Find/Replace fields behind one sanitizer/insertion routine; clipboard allocations now release through RAII, and tests exercise both input routes. |
