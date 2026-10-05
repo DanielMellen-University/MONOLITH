@@ -1,5 +1,10 @@
 # Changelog
 
+## 2026-10: Keep text texture caches within budget
+
+- Measure cache misses before rasterizing and reject a single label whose estimated RGBA texture exceeds the 16 MiB LRU budget.
+- Preserve the byte bound even when one unusually wide string would otherwise be kept as the cache's only entry.
+
 ## 2026-10: Commit final window drag and resize positions
 
 - Apply mouse-up coordinates and the last known pointer position on host-focus loss to active window drags and frame resizes before clearing gesture state, preserving the last movement when an ending event arrives before the frame update.
