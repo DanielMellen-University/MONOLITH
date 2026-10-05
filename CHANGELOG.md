@@ -1,5 +1,10 @@
 # Changelog
 
+## 2026-10: Isolate atomic output buffering
+
+- Move the descriptor-backed buffered and seekable output stream into its own detail translation unit, separate from atomic workspace cleanup and publication.
+- Keep the existing large-write, seek-position, failure, and publication behavior covered by the atomic-file suite.
+
 ## 2026-10: Batch Breakout brick rendering
 
 - Cache screen-space brick rectangles until the playfield layout changes and batch alive bricks by row color, reducing per-frame rectangle submissions from up to 50 to at most five.
