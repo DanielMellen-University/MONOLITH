@@ -1,5 +1,7 @@
 # Session log
 
+| 2026-10-05 | fix/data-safety | Align final conditional-write validation with descriptor-relative publication: verify the target parent still identifies the pinned directory and compare the target entry via `fstatat`. A deterministic parent-symlink retarget regression preserves both directory targets. Full headless suite, production build, and hosted run #515 `verify`/`sanitize` passed; uncoordinated host writes can still race after validation. |
+
 | 2026-10-05 | fix/filesystem | Prepare the destination entry before the final conditional-write stamp callback, removing post-check string allocations and leaving only component validation plus the rename syscall. This narrows but does not eliminate the race with host writers outside Monolith's advisory lock. Focused atomic suite, production build, and hosted run #512 `verify`/`sanitize` passed. |
 
 | 2026-10-05 | fix/filesystem | Preserve `seekp`/`tellp` behavior on the buffered descriptor-backed atomic stream by flushing pending bytes before `lseek`; a regression overwrites bytes in the middle of an existing staged stream and checks reported positions. Focused atomic suite and production build pass; hosted run #509 `verify`/`sanitize` passed. |
