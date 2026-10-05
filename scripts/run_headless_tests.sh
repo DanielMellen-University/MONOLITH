@@ -14,6 +14,7 @@ read -r -a SDL_FLAGS <<< "$(pkg-config --cflags --libs sdl2)"
 read -r -a SDL_TTF_CFLAGS <<< "$(pkg-config --cflags sdl2 SDL2_ttf)"
 read -r -a SDL_TTF_FLAGS <<< "$(pkg-config --cflags --libs sdl2 SDL2_ttf)"
 WINDOW_MANAGER_TEST_OBJECTS=()
+ATOMIC_FILE_SOURCES=(src/detail/AtomicFile.cpp src/detail/AtomicTempOutput.cpp)
 
 compile_plain() {
     local name="$1"
@@ -32,6 +33,7 @@ compile_window_manager_runtime() {
     local object_dir="$BUILD_DIR/window_manager_test_objects"
     local -a sources=(
         "$ROOT/src/detail/AtomicFile.cpp"
+        "$ROOT/src/detail/AtomicTempOutput.cpp"
         "$ROOT/src/window/WindowManager.cpp"
         "$ROOT/src/window/WallpaperImage.cpp"
         "$ROOT/src/app/"*.cpp
@@ -94,38 +96,38 @@ compile_plain test_file_path scripts/test_file_path.cpp
 compile_plain test_utf8 scripts/test_utf8.cpp
 compile_plain test_random scripts/test_random.cpp
 compile_plain test_temp_dir scripts/test_temp_dir.cpp
-compile_plain test_atomic_file scripts/test_atomic_file.cpp src/detail/AtomicFile.cpp
+compile_plain test_atomic_file scripts/test_atomic_file.cpp "${ATOMIC_FILE_SOURCES[@]}"
 compile_plain test_tick_math scripts/test_tick_math.cpp
 compile_plain test_terminal_lexer scripts/test_terminal_lexer.cpp src/app/TerminalLexer.cpp
 compile_sdl test_terminal_filesystem_state \
     scripts/test_terminal_filesystem_state.cpp src/app/TerminalApp.cpp \
-    src/app/TerminalLexer.cpp src/fs/Filesystem.cpp src/detail/AtomicFile.cpp
+    src/app/TerminalLexer.cpp src/fs/Filesystem.cpp "${ATOMIC_FILE_SOURCES[@]}"
 compile_sdl test_text_editor_state \
     scripts/test_text_editor_state.cpp src/app/TextEditorApp.cpp \
-    src/fs/Filesystem.cpp src/detail/AtomicFile.cpp
+    src/fs/Filesystem.cpp "${ATOMIC_FILE_SOURCES[@]}"
 compile_sdl test_filesystem_app_state \
     scripts/test_filesystem_app_state.cpp src/app/FilesystemApp.cpp \
-    src/fs/Filesystem.cpp src/detail/AtomicFile.cpp
+    src/fs/Filesystem.cpp "${ATOMIC_FILE_SOURCES[@]}"
 compile_plain test_fs_roadmap scripts/test_fs_roadmap.cpp \
-    src/fs/Filesystem.cpp src/detail/AtomicFile.cpp
+    src/fs/Filesystem.cpp "${ATOMIC_FILE_SOURCES[@]}"
 compile_plain test_drawing_roadmap scripts/test_drawing_roadmap.cpp src/app/DrawingRaster.cpp
 compile_sdl test_drawing_state \
     scripts/test_drawing_state.cpp src/app/DrawingApp.cpp \
-    src/app/DrawingRaster.cpp src/fs/Filesystem.cpp src/detail/AtomicFile.cpp
+    src/app/DrawingRaster.cpp src/fs/Filesystem.cpp "${ATOMIC_FILE_SOURCES[@]}"
 compile_plain test_modr_format scripts/test_modr_format.cpp src/app/DrawingRaster.cpp
 compile_plain test_desktop_settings scripts/test_desktop_settings.cpp \
-    src/settings/DesktopSettings.cpp src/detail/AtomicFile.cpp
+    src/settings/DesktopSettings.cpp "${ATOMIC_FILE_SOURCES[@]}"
 compile_sdl test_wallpaper_image -I"$BUILD_DIR/generated" \
     scripts/test_wallpaper_image.cpp src/window/WallpaperImage.cpp
 compile_sdl test_settings_app_state \
     -I"$BUILD_DIR/generated/settings" scripts/test_settings_app_state.cpp \
-    src/app/SettingsApp.cpp src/fs/Filesystem.cpp src/detail/AtomicFile.cpp
+    src/app/SettingsApp.cpp src/fs/Filesystem.cpp "${ATOMIC_FILE_SOURCES[@]}"
 compile_sdl test_text_texture_cache scripts/test_text_texture_cache.cpp
 compile_plain test_session_format scripts/test_session_format.cpp
 compile_sdl test_snake_state scripts/test_snake_state.cpp \
-    src/app/SnakeApp.cpp src/detail/AtomicFile.cpp
+    src/app/SnakeApp.cpp "${ATOMIC_FILE_SOURCES[@]}"
 compile_sdl test_minesweeper_state scripts/test_minesweeper_state.cpp \
-    src/app/MinesweeperApp.cpp src/detail/AtomicFile.cpp
+    src/app/MinesweeperApp.cpp "${ATOMIC_FILE_SOURCES[@]}"
 compile_sdl test_breakout_render scripts/test_breakout_render.cpp \
     src/app/BreakoutApp.cpp src/app/BreakoutLogic.cpp
 compile_plain test_pong_state scripts/test_pong_state.cpp src/app/PongLogic.cpp
