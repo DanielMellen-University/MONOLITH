@@ -226,6 +226,7 @@ private:
 
     std::string m_statusMessage;
     std::string m_renderStatusText;
+    std::string m_renderPromptCursorText;
 
     PathPromptMode m_pathPromptMode = PathPromptMode::None;
     std::string m_pathPromptBuffer;

@@ -4,9 +4,11 @@
 #include <SDL2/SDL_ttf.h>
 
 #include <algorithm>
+#include <cstdlib>
 #include <filesystem>
 #include <iostream>
 #include <limits>
+#include <new>
 #include <string>
 #include <utility>
 #include <vector>
@@ -19,6 +21,28 @@
 #define private public
 #include "../src/app/DrawingApp.hpp"
 #undef private
+
+namespace {
+bool g_trackAllocations = false;
+std::size_t g_trackedAllocations = 0;
+}
+
+void* operator new(std::size_t size) {
+    if (g_trackAllocations) ++g_trackedAllocations;
+    if (void* memory = std::malloc(size == 0 ? 1 : size)) return memory;
+    throw std::bad_alloc();
+}
+
+void* operator new[](std::size_t size) {
+    if (g_trackAllocations) ++g_trackedAllocations;
+    if (void* memory = std::malloc(size == 0 ? 1 : size)) return memory;
+    throw std::bad_alloc();
+}
+
+void operator delete(void* memory) noexcept { std::free(memory); }
+void operator delete(void* memory, std::size_t) noexcept { std::free(memory); }
+void operator delete[](void* memory) noexcept { std::free(memory); }
+void operator delete[](void* memory, std::size_t) noexcept { std::free(memory); }
 
 namespace {
 
@@ -1495,7 +1519,11 @@ int main() {
                 const std::string openCursorText = expectedCursorText();
                 const bool openWidthCached = cachedWidthMatches(openCursorText);
                 const int openWidth = promptMetrics.m_promptCursorPixelWidth;
+                g_trackedAllocations = 0;
+                g_trackAllocations = true;
                 promptMetrics.render(renderer, {0, 0, 280, 280});
+                g_trackAllocations = false;
+                const bool warmedPromptRenderAllocatesNothing = g_trackedAllocations == 0;
                 const bool openWidthRetained = cachedWidthMatches(openCursorText)
                     && promptMetrics.m_promptCursorPixelWidth == openWidth;
 
@@ -1521,11 +1549,12 @@ int main() {
                 const bool promptWidthInvalidated =
                     !promptMetrics.m_promptCursorMeasureValid;
                 promptMetrics.render(renderer, {0, 0, 280, 280});
-                check(openWidthCached && openWidthRetained && caretMovementRefreshes
+                check(openWidthCached && openWidthRetained
+                          && warmedPromptRenderAllocatesNothing && caretMovementRefreshes
                           && saveWidthCached && rgbWidthCached && fontResized
                           && promptWidthInvalidated && cachedWidthMatches(rgbCursorText)
                           && promptMetrics.m_promptCursorPixelWidth != oldRgbWidth,
-                      "Drawing reuses prompt caret widths and refreshes them after caret or font changes");
+                      "Drawing reuses prompt caret widths, refreshes changed metrics, and allocates nothing on a warmed path-prompt frame");
             };
             verifyPromptMetrics();
             TTF_CloseFont(promptFont);

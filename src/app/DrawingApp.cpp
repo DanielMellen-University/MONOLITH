@@ -1830,13 +1830,18 @@ void DrawingApp::drawStatusBar(SDL_Renderer* renderer, const SDL_Rect& contentRe
     int promptCursorPx = 0;
     if (m_pathPromptMode != PathPromptMode::None) {
         m_pathPromptCursorPos = std::min(m_pathPromptCursorPos, m_pathPromptBuffer.size());
-        const std::string beforeCursor = m_pathPromptBuffer.substr(0, m_pathPromptCursorPos);
-        text += " " + beforeCursor + "_" + m_pathPromptBuffer.substr(m_pathPromptCursorPos);
-        std::string cursorText;
+        text.push_back(' ');
+        text.append(m_pathPromptBuffer, 0, m_pathPromptCursorPos);
+        text.push_back('_');
+        text.append(m_pathPromptBuffer, m_pathPromptCursorPos,
+                    std::string::npos);
+
+        std::string& cursorText = m_renderPromptCursorText;
+        cursorText.clear();
         if (m_externalChangePending) cursorText.append("[external change] ");
         cursorText.append(m_statusMessage);
         cursorText.push_back(' ');
-        cursorText.append(beforeCursor);
+        cursorText.append(m_pathPromptBuffer, 0, m_pathPromptCursorPos);
         cursorText.push_back('_');
         promptCursorPx = measurePromptCursorWidth(cursorText);
         promptActive = true;
