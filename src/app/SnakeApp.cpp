@@ -273,11 +273,30 @@ void SnakeApp::layoutBoard(const SDL_Rect& contentRect) {
     const int availW = contentRect.w;
     const int hudH = hudHeight();
     const int availH = std::max(1, contentRect.h - hudH);
-    m_cellPx = std::max(1, std::min(availW / kGridW, availH / kGridH));
-    m_boardPxW = m_cellPx * kGridW;
-    m_boardPxH = m_cellPx * kGridH;
-    m_boardX = contentRect.x + (availW - m_boardPxW) / 2;
-    m_boardY = contentRect.y + hudH + (availH - m_boardPxH) / 2;
+    const int cellPx = std::max(1, std::min(availW / kGridW, availH / kGridH));
+    const int boardPxW = cellPx * kGridW;
+    const int boardPxH = cellPx * kGridH;
+    const int boardX = contentRect.x + (availW - boardPxW) / 2;
+    const int boardY = contentRect.y + hudH + (availH - boardPxH) / 2;
+    if (cellPx == m_cellPx && boardX == m_boardX && boardY == m_boardY) return;
+
+    m_cellPx = cellPx;
+    m_boardPxW = boardPxW;
+    m_boardPxH = boardPxH;
+    m_boardX = boardX;
+    m_boardY = boardY;
+    std::size_t nextCell = 0;
+    for (int y = 0; y < kGridH; ++y) {
+        for (int x = 0; x < kGridW; ++x) {
+            if (((x + y) & 1) == 0) continue;
+            m_checkerboardCells[nextCell++] = {
+                m_boardX + x * m_cellPx,
+                m_boardY + y * m_cellPx,
+                m_cellPx,
+                m_cellPx
+            };
+        }
+    }
 }
 
 void SnakeApp::drawText(SDL_Renderer* renderer, const char* text, int x, int y,
@@ -452,20 +471,10 @@ void SnakeApp::render(SDL_Renderer* renderer, const SDL_Rect& contentRect) {
     SDL_Rect boardRect{m_boardX, m_boardY, m_boardPxW, m_boardPxH};
     SDL_RenderFillRect(renderer, &boardRect);
 
-    // Checkerboard cells
-    for (int y = 0; y < kGridH; ++y) {
-        for (int x = 0; x < kGridW; ++x) {
-            if (((x + y) & 1) == 0) continue;
-            SDL_Rect cell{
-                m_boardX + x * m_cellPx,
-                m_boardY + y * m_cellPx,
-                m_cellPx,
-                m_cellPx
-            };
-            SDL_SetRenderDrawColor(renderer, 34, 36, 44, 255);
-            SDL_RenderFillRect(renderer, &cell);
-        }
-    }
+    // Submit the cached alternating cells as one renderer batch.
+    SDL_SetRenderDrawColor(renderer, 34, 36, 44, 255);
+    SDL_RenderFillRects(renderer, m_checkerboardCells.data(),
+                        static_cast<int>(m_checkerboardCells.size()));
 
     // Board border
     SDL_SetRenderDrawColor(renderer, 55, 58, 70, 255);

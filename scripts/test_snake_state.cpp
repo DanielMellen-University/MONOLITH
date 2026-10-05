@@ -227,6 +227,61 @@ int main() {
     check(snakeRenderer != nullptr, "Snake state creates a software renderer");
     if (snakeRenderer) {
         SDL_SetRenderDrawBlendMode(snakeRenderer, SDL_BLENDMODE_ADD);
+        SDL_SetRenderDrawBlendMode(snakeRenderer, SDL_BLENDMODE_NONE);
+        game.resetGame();
+        game.m_foodX = SnakeApp::kGridW - 1;
+        game.m_foodY = SnakeApp::kGridH - 1;
+        game.render(snakeRenderer, {0, 0, 240, 240});
+        const int initialCellPx = game.m_cellPx;
+        const SDL_Rect initialFirstCheckerCell = game.m_checkerboardCells.front();
+        Uint8 baseCellPixel[4]{};
+        Uint8 checkerCellPixel[4]{};
+        const SDL_Rect baseCellSample{
+            game.m_boardX + 1, game.m_boardY + 1, 1, 1
+        };
+        const SDL_Rect checkerCellSample{
+            game.m_boardX + game.m_cellPx + 1, game.m_boardY + 1, 1, 1
+        };
+        const bool initialCheckerboardRead =
+            SDL_RenderReadPixels(snakeRenderer, &baseCellSample,
+                                 SDL_PIXELFORMAT_RGBA32, baseCellPixel,
+                                 sizeof(baseCellPixel)) == 0
+            && SDL_RenderReadPixels(snakeRenderer, &checkerCellSample,
+                                    SDL_PIXELFORMAT_RGBA32, checkerCellPixel,
+                                    sizeof(checkerCellPixel)) == 0;
+
+        game.render(snakeRenderer, {0, 0, 180, 240});
+        Uint8 resizedBasePixel[4]{};
+        Uint8 resizedCheckerPixel[4]{};
+        const SDL_Rect resizedBaseSample{
+            game.m_boardX + 1, game.m_boardY + 1, 1, 1
+        };
+        const SDL_Rect resizedCheckerSample{
+            game.m_boardX + game.m_cellPx + 1, game.m_boardY + 1, 1, 1
+        };
+        const bool resizedCheckerboardRead =
+            SDL_RenderReadPixels(snakeRenderer, &resizedBaseSample,
+                                 SDL_PIXELFORMAT_RGBA32, resizedBasePixel,
+                                 sizeof(resizedBasePixel)) == 0
+            && SDL_RenderReadPixels(snakeRenderer, &resizedCheckerSample,
+                                    SDL_PIXELFORMAT_RGBA32, resizedCheckerPixel,
+                                    sizeof(resizedCheckerPixel)) == 0;
+        const bool checkerboardResized = game.m_cellPx != initialCellPx
+            && game.m_checkerboardCells.front().x != initialFirstCheckerCell.x;
+        check(initialCheckerboardRead
+                  && baseCellPixel[0] == 28 && baseCellPixel[1] == 30
+                  && baseCellPixel[2] == 36
+                  && checkerCellPixel[0] == 34 && checkerCellPixel[1] == 36
+                  && checkerCellPixel[2] == 44
+                  && resizedCheckerboardRead && checkerboardResized
+                  && resizedBasePixel[0] == 28 && resizedBasePixel[1] == 30
+                  && resizedBasePixel[2] == 36
+                  && resizedCheckerPixel[0] == 34 && resizedCheckerPixel[1] == 36
+                  && resizedCheckerPixel[2] == 44,
+              "Snake batches the checkerboard and rebuilds its tile geometry after resizing");
+        game.render(snakeRenderer, {0, 0, 240, 240});
+        SDL_SetRenderDrawBlendMode(snakeRenderer, SDL_BLENDMODE_ADD);
+
         game.m_score = 23;
         game.m_highScore = 41;
         game.m_state = SnakeApp::State::GameOver;

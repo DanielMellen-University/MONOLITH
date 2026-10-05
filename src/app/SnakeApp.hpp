@@ -5,6 +5,7 @@
 #include "../detail/TextTextureCache.hpp"
 #include <SDL2/SDL.h>
 #include <SDL2/SDL_ttf.h>
+#include <array>
 #include <cstdint>
 #include <deque>
 #include <utility>
@@ -91,6 +92,7 @@ private:
     int m_boardY = 0;
     int m_boardPxW = 0;
     int m_boardPxH = 0;
+    std::array<SDL_Rect, (kGridW * kGridH) / 2> m_checkerboardCells{};
 };
 
 } // namespace monolith::app
