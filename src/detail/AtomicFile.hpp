@@ -720,47 +720,85 @@ struct AtomicTempCleanup {
     }
 };
 
+inline bool setAtomicTempFileMode(int pathFd, mode_t mode) {
+    struct stat status {};
+    if (::fstat(pathFd, &status) != 0 || !S_ISREG(status.st_mode)) return false;
+
+    int result;
+    do {
+        result = ::fchmodat(pathFd, "", mode, AT_EMPTY_PATH);
+    } while (result != 0 && errno == EINTR);
+    if (result == 0) return true;
+    if (errno != ENOSYS && errno != EINVAL && errno != ENOENT && errno != ENOTSUP) {
+        return false;
+    }
+
+    const std::string descriptorPath = "/proc/self/fd/" + std::to_string(pathFd);
+    do {
+        result = ::chmod(descriptorPath.c_str(), mode);
+    } while (result != 0 && errno == EINTR);
+    return result == 0;
+}
+
 inline bool syncAtomicTempFile(const std::filesystem::path& path) {
+    int pathFd;
+    do {
+        pathFd = ::open(path.c_str(), O_PATH | O_CLOEXEC | O_NOFOLLOW);
+    } while (pathFd < 0 && errno == EINTR);
+    if (pathFd < 0) return false;
+
     struct stat pathStatus {};
-    if (::lstat(path.c_str(), &pathStatus) != 0 || !S_ISREG(pathStatus.st_mode)) {
+    const bool regularFile = ::fstat(pathFd, &pathStatus) == 0
+        && S_ISREG(pathStatus.st_mode);
+    if (!regularFile) {
+        ::close(pathFd);
         return false;
     }
 
     const mode_t finalMode = pathStatus.st_mode & 07777;
-    // A restrictive umask may have created mode-000 content; restore its mode
-    // through the open descriptor after granting temporary owner access.
-    int chmodResult;
-    do {
-        chmodResult = ::chmod(path.c_str(), finalMode | S_IRUSR | S_IWUSR);
-    } while (chmodResult != 0 && errno == EINTR);
-    if (chmodResult != 0) return false;
+    // A restrictive umask may create mode-000 content; adjust the pinned inode,
+    // never the pathname that could have been replaced by a symlink.
+    if (!setAtomicTempFileMode(pathFd, finalMode | S_IRUSR | S_IWUSR)) {
+        ::close(pathFd);
+        return false;
+    }
 
     int fd;
     do {
         fd = ::open(path.c_str(), O_RDWR | O_CLOEXEC | O_NOFOLLOW);
     } while (fd < 0 && errno == EINTR);
-    if (fd < 0) return false;
+    if (fd < 0) {
+        (void)setAtomicTempFileMode(pathFd, finalMode);
+        ::close(pathFd);
+        return false;
+    }
 
     struct stat openedStatus {};
-    bool synced = ::fstat(fd, &openedStatus) == 0
+    bool sameFile = ::fstat(fd, &openedStatus) == 0
         && S_ISREG(openedStatus.st_mode)
         && openedStatus.st_dev == pathStatus.st_dev
         && openedStatus.st_ino == pathStatus.st_ino;
-    if (synced) {
-        int result;
-        do {
-            result = ::fchmod(fd, finalMode);
-        } while (result != 0 && errno == EINTR);
-        synced = result == 0;
+    if (!sameFile) {
+        (void)setAtomicTempFileMode(pathFd, finalMode);
+        ::close(fd);
+        ::close(pathFd);
+        return false;
     }
+
+    int result;
+    do {
+        result = ::fchmod(fd, finalMode);
+    } while (result != 0 && errno == EINTR);
+    bool synced = result == 0;
+    if (!synced) (void)setAtomicTempFileMode(pathFd, finalMode);
     if (synced) {
-        int result;
         do {
             result = ::fsync(fd);
         } while (result != 0 && errno == EINTR);
         synced = result == 0;
     }
     if (::close(fd) != 0) synced = false;
+    if (::close(pathFd) != 0) synced = false;
     return synced;
 }
 

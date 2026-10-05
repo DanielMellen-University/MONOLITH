@@ -156,6 +156,60 @@ int main() {
     check(stagedSymlinkWorkspaceCleaned,
           "staged-symlink cleanup preserves unexpected entries until explicitly removed");
 
+    const fs::path modeRaceDirectory = parent / "mode-race";
+    const fs::path modeRaceStagedPath = modeRaceDirectory / "content";
+    const fs::path modeRaceOutsidePath = modeRaceDirectory / "outside.txt";
+    ec.clear();
+    bool modeRaceFixturesReady = fs::create_directory(modeRaceDirectory, ec) && !ec
+        && writeFixture(modeRaceStagedPath, "staged")
+        && writeFixture(modeRaceOutsidePath, "outside");
+    if (modeRaceFixturesReady) {
+        ec.clear();
+        fs::permissions(modeRaceStagedPath, fs::perms::none,
+                        fs::perm_options::replace, ec);
+        modeRaceFixturesReady = !ec;
+    }
+    if (modeRaceFixturesReady) {
+        ec.clear();
+        fs::permissions(modeRaceOutsidePath,
+                        fs::perms::owner_read | fs::perms::owner_write
+                            | fs::perms::group_read,
+                        fs::perm_options::replace, ec);
+        modeRaceFixturesReady = !ec;
+    }
+    int pinnedModeRaceFd = -1;
+    if (modeRaceFixturesReady) {
+        pinnedModeRaceFd = ::open(modeRaceStagedPath.c_str(),
+                                  O_PATH | O_CLOEXEC | O_NOFOLLOW);
+    }
+    ec.clear();
+    const bool stagedNameRemoved = pinnedModeRaceFd >= 0
+        && fs::remove(modeRaceStagedPath, ec) && !ec;
+    if (stagedNameRemoved) {
+        ec.clear();
+        fs::create_symlink(modeRaceOutsidePath, modeRaceStagedPath, ec);
+    }
+    const bool modeRaceSymlinkReady = stagedNameRemoved && !ec;
+    const bool pinnedModeUpdated = modeRaceSymlinkReady
+        && monolith::detail::setAtomicTempFileMode(
+            pinnedModeRaceFd, S_IRUSR | S_IWUSR);
+    struct stat pinnedModeStatus {};
+    const bool pinnedModeIsOwnerAccessible = pinnedModeRaceFd >= 0
+        && ::fstat(pinnedModeRaceFd, &pinnedModeStatus) == 0
+        && (pinnedModeStatus.st_mode & 0777) == (S_IRUSR | S_IWUSR);
+    struct stat outsideModeStatus {};
+    const bool outsideModeUnchanged =
+        ::stat(modeRaceOutsidePath.c_str(), &outsideModeStatus) == 0
+        && (outsideModeStatus.st_mode & 0777)
+            == (S_IRUSR | S_IWUSR | S_IRGRP);
+    const bool pinnedModeRestored = pinnedModeRaceFd >= 0
+        && monolith::detail::setAtomicTempFileMode(pinnedModeRaceFd, 0);
+    if (pinnedModeRaceFd >= 0) ::close(pinnedModeRaceFd);
+    check(modeRaceFixturesReady && modeRaceSymlinkReady && pinnedModeUpdated
+              && pinnedModeIsOwnerAccessible && outsideModeUnchanged
+              && pinnedModeRestored,
+          "staged permission recovery changes the pinned inode, not its replacement symlink target");
+
     const fs::path callbackSuccessTarget = callbackFailureDirectory / "success.txt";
     const bool callbackSuccessCommitted = callbackFailureFixture
         && monolith::detail::writeTextAtomically(
