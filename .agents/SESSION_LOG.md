@@ -1,5 +1,7 @@
 # Session log
 
+| 2026-10-05 | fix/window-manager | Finalize active frame drags and resizes at the last known pointer on host-focus loss, sharing the mouse-up completion path. Regressions that failed before the fix now cover drag clamping, resize callback delivery, gesture cleanup, and focus regain. Full headless suite, production build, and hosted run #521 `verify`/`sanitize` passed. |
+
 | 2026-10-05 | fix/window-manager | Apply release-event coordinates to active frame drags and resizes before clearing gesture state. A regression that failed before the fix now verifies final drag position/taskbar clamping and resize callback delivery when SDL batches motion and mouse-up ahead of the frame update. Full headless suite, production build, and hosted run #518 `verify`/`sanitize` passed. |
 
 | 2026-10-05 | fix/data-safety | Align final conditional-write validation with descriptor-relative publication: verify the target parent still identifies the pinned directory and compare the target entry via `fstatat`. A deterministic parent-symlink retarget regression preserves both directory targets. Full headless suite, production build, and hosted run #515 `verify`/`sanitize` passed; uncoordinated host writes can still race after validation. |
