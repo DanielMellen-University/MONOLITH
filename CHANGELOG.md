@@ -1,5 +1,10 @@
 # Changelog
 
+## 2026-10: Batch Breakout brick rendering
+
+- Cache screen-space brick rectangles until the playfield layout changes and batch alive bricks by row color, reducing per-frame rectangle submissions from up to 50 to at most five.
+- Verify row colors, cleared-brick gaps, and geometry rebuilds after resizing with a software-renderer regression.
+
 ## 2026-10: Reuse Text Editor syntax spans while scrolling
 
 - Shift cached syntax-span rows with same-sized overlapping viewports so scrolling tokenizes only newly exposed rows.

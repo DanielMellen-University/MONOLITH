@@ -188,6 +188,7 @@ All app callbacks enter through a small lifecycle scope. If a callback requests 
 - Text Editor mouse hit testing uses one `TTF_MeasureUTF8` scan to map pixel position to a UTF-8 byte column, rather than allocating and remeasuring every growing prefix.
 - Text Editor multi-line paste assembles replacement rows and inserts them as one range, avoiding repeated shifts of the untouched document tail.
 - Pong, Breakout, Snake, and Minesweeper use renderer-bound text texture caches capped at 256 entries and an estimated 16 MiB. Repeated HUD, overlay, and cell-glyph draws reuse the same SDL texture between frames; cache entries are rebuilt after interface-scale changes and discarded when the renderer changes. Snake caches its 200 alternating checkerboard-cell rectangles until board geometry changes and submits them in one SDL batch per frame. It formats its game-over score/best line into a bounded stack buffer; Minesweeper does the same for its live status and win-overlay time/best lines. Their warmed HUD/overlay renders avoid temporary heap strings. App destruction occurs before renderer shutdown so cached textures are released safely.
+- Breakout caches each screen-space brick rectangle until playfield geometry changes and batches live bricks by row color, reducing up to 50 per-brick draw submissions to at most five row batches per frame.
 
 ### 4. Input System
 
