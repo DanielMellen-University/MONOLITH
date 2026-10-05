@@ -453,6 +453,32 @@ int main() {
               && restrictiveLeaseReadable && restrictiveContents == "after",
           "atomic saves normalize workspace and lease permissions under a restrictive umask");
 
+    const fs::path restrictiveNewTarget = restrictiveUmaskParent / "new-record.txt";
+    bool restrictiveNewWrite = false;
+    {
+        ScopedUmask restrictiveUmask(S_IRWXU | S_IRWXG | S_IRWXO);
+        restrictiveNewWrite = monolith::detail::writeTextAtomically(
+            restrictiveNewTarget,
+            [](std::ostream& out) {
+                out << "newafter";
+                return static_cast<bool>(out);
+            });
+    }
+    struct stat restrictiveNewStatus {};
+    const bool restrictiveNewMode =
+        ::stat(restrictiveNewTarget.c_str(), &restrictiveNewStatus) == 0
+        && (restrictiveNewStatus.st_mode & 0777) == 0;
+    ec.clear();
+    fs::permissions(restrictiveNewTarget,
+                    fs::perms::owner_read | fs::perms::owner_write,
+                    fs::perm_options::replace, ec);
+    std::ifstream restrictiveNewInput(restrictiveNewTarget, std::ios::binary);
+    std::string restrictiveNewContents;
+    restrictiveNewInput >> restrictiveNewContents;
+    check(restrictiveNewWrite && restrictiveNewMode && !ec
+              && restrictiveNewContents == "newafter",
+          "atomic file sync succeeds under a restrictive umask and preserves mode zero");
+
     const fs::path target = parent / "settings.txt";
     const auto stalePath = workspacePath(parent, target, 7);
     fs::create_directory(stalePath, ec);

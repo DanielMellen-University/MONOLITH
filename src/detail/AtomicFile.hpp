@@ -720,6 +720,58 @@ struct AtomicTempCleanup {
     }
 };
 
+inline bool syncAtomicTempFile(const std::filesystem::path& path) {
+    struct stat pathStatus {};
+    if (::lstat(path.c_str(), &pathStatus) != 0 || !S_ISREG(pathStatus.st_mode)) {
+        return false;
+    }
+
+    const mode_t finalMode = pathStatus.st_mode & 07777;
+    // A restrictive umask may have created mode-000 content; restore its mode
+    // through the open descriptor after granting temporary owner access.
+    int chmodResult;
+    do {
+        chmodResult = ::chmod(path.c_str(), finalMode | S_IRUSR | S_IWUSR);
+    } while (chmodResult != 0 && errno == EINTR);
+    if (chmodResult != 0) return false;
+
+    int fd;
+    do {
+        fd = ::open(path.c_str(), O_RDWR | O_CLOEXEC | O_NOFOLLOW);
+    } while (fd < 0 && errno == EINTR);
+    if (fd < 0) return false;
+
+    struct stat openedStatus {};
+    bool synced = ::fstat(fd, &openedStatus) == 0
+        && S_ISREG(openedStatus.st_mode)
+        && openedStatus.st_dev == pathStatus.st_dev
+        && openedStatus.st_ino == pathStatus.st_ino;
+    if (synced) {
+        int result;
+        do {
+            result = ::fchmod(fd, finalMode);
+        } while (result != 0 && errno == EINTR);
+        synced = result == 0;
+    }
+    if (synced) {
+        int result;
+        do {
+            result = ::fsync(fd);
+        } while (result != 0 && errno == EINTR);
+        synced = result == 0;
+    }
+    if (::close(fd) != 0) synced = false;
+    return synced;
+}
+
+inline bool syncAtomicParentDirectory(int fd) {
+    int result;
+    do {
+        result = ::fsync(fd);
+    } while (result != 0 && errno == EINTR);
+    return result == 0;
+}
+
 // Write inside a uniquely reserved hidden sibling workspace, then replace the
 // target only after the complete stream has succeeded.
 template <typename Writer>
@@ -782,6 +834,7 @@ bool writeAtomically(const std::filesystem::path& targetPath,
             permissionError);
         if (permissionError) return false;
     }
+    if (!syncAtomicTempFile(tempPath)) return false;
 
     const std::filesystem::path parentPath = targetPath.has_parent_path()
         ? targetPath.parent_path()
@@ -796,6 +849,9 @@ bool writeAtomically(const std::filesystem::path& targetPath,
 #if defined(SYS_renameat2) && defined(RENAME_NOREPLACE)
         if (::syscall(SYS_renameat2, AT_FDCWD, tempPath.c_str(), AT_FDCWD,
                       targetPath.c_str(), RENAME_NOREPLACE) == 0) {
+            // Rename cannot be rolled back safely after publication, so parent
+            // directory sync is best-effort while file-content sync is required.
+            (void)syncAtomicParentDirectory(publicationLock.fd());
             return true;
         }
         if (errno == EEXIST && outTargetAlreadyExists) {
@@ -807,7 +863,9 @@ bool writeAtomically(const std::filesystem::path& targetPath,
 
     std::error_code renameError;
     std::filesystem::rename(tempPath, targetPath, renameError);
-    return !renameError;
+    if (renameError) return false;
+    (void)syncAtomicParentDirectory(publicationLock.fd());
+    return true;
 }
 
 template <typename Writer>

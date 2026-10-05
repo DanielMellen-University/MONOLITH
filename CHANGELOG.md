@@ -1,5 +1,11 @@
 # Changelog
 
+## 2026-10: Sync atomic saves before publication
+
+- Require staged file content and final permission metadata to sync before rename; a sync failure leaves the existing target untouched.
+- Attempt a destination-directory sync after successful publication, while keeping completed rename results successful if that non-rollbackable sync fails.
+- Cover mode-`000` new files under a restrictive umask to ensure syncing preserves the target's intended permissions.
+
 ## 2026-10: Verify multiline Find bounds
 
 - Compare multiline match ranges against a straightforward reference scan across 14,040 exhaustive small document/query combinations, including empty rows and overlapping prefixes.
