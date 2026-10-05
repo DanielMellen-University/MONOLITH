@@ -1,5 +1,7 @@
 # Session log
 
+| 2026-10-05 | perf/ui | Routed Window Manager shell labels through the shared renderer-aware `TextTextureCache`, removing its duplicate string-keyed LRU and eviction implementation. Shared cache estimates now include retained text bytes and entry/bookkeeping overhead; a warmed 512-byte shell label reuses its texture with zero C++ heap allocations. Full headless suite, Release build, and hosted run #527 `verify`/`sanitize` passed. |
+
 | 2026-10-05 | perf/ui | The shared text texture cache now measures misses and rejects an individual raster above its estimated 16 MiB RGBA budget before creating the SDL surface or texture. The regression exceeded the budget and failed before the guard. Full ordinary headless suite and Release build pass; the focused test passes under ASan/UBSan with leak detection disabled because LeakSanitizer cannot run under the sandbox ptrace wrapper; hosted run #524 `verify`/`sanitize` passed. |
 
 | 2026-10-05 | fix/window-manager | Finalize active frame drags and resizes at the last known pointer on host-focus loss, sharing the mouse-up completion path. Regressions that failed before the fix now cover drag clamping, resize callback delivery, gesture cleanup, and focus regain. Full headless suite, production build, and hosted run #521 `verify`/`sanitize` passed. |
