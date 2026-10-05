@@ -1,11 +1,12 @@
 #pragma once
 
+#include <array>
 #include <cstddef>
 #include <filesystem>
-#include <fstream>
 #include <functional>
 #include <ios>
 #include <ostream>
+#include <streambuf>
 #include <string>
 #include <string_view>
 #include <system_error>
@@ -51,6 +52,7 @@ class AtomicTempParentLock {
 public:
     explicit AtomicTempParentLock(const std::filesystem::path& parent,
                                   bool nonBlocking = false);
+    explicit AtomicTempParentLock(int pinnedParentFd, bool nonBlocking = false);
     AtomicTempParentLock(const AtomicTempParentLock&) = delete;
     AtomicTempParentLock& operator=(const AtomicTempParentLock&) = delete;
     ~AtomicTempParentLock();
@@ -66,25 +68,55 @@ private:
 };
 
 bool createAtomicTempDirectory(const std::filesystem::path& targetPath,
-                               std::filesystem::path& outDirectory,
+                               std::string& outWorkspaceName,
                                int& outLeaseFd,
-                               int& outParentFd);
+                               int& outParentFd,
+                               int& outWorkspaceFd);
 bool setAtomicTempFileMode(int pathFd, mode_t mode);
-bool syncAtomicTempFile(const std::filesystem::path& path);
-bool publishAtomicTempFile(const std::filesystem::path& source,
-                           const std::filesystem::path& target,
+int openAtomicTempContent(int workspaceFd,
+                          std::ios_base::openmode openMode);
+bool syncAtomicTempFile(int workspaceFd,
+                        bool preserveMode,
+                        mode_t requestedMode = 0);
+bool publishAtomicTempFile(int workspaceFd,
+                           std::string_view workspaceName,
                            int parentFd,
+                           std::string_view targetName,
                            bool noReplaceTarget,
                            bool* outTargetAlreadyExists);
 
+class AtomicTempOutputBuffer final : public std::streambuf {
+public:
+    explicit AtomicTempOutputBuffer(int fd);
+    AtomicTempOutputBuffer(const AtomicTempOutputBuffer&) = delete;
+    AtomicTempOutputBuffer& operator=(const AtomicTempOutputBuffer&) = delete;
+    ~AtomicTempOutputBuffer() override;
+
+    bool close();
+
+protected:
+    int_type overflow(int_type character) override;
+    std::streamsize xsputn(const char* data, std::streamsize size) override;
+    int sync() override;
+
+private:
+    bool flushBuffer();
+
+    int fd_{-1};
+    bool failed_{false};
+    std::array<char, 16 * 1024> buffer_{};
+};
+
 struct AtomicTempCleanup {
-    std::filesystem::path directory;
+    std::string workspaceName;
     int leaseFd{-1};
     int parentFd{-1};
+    int workspaceFd{-1};
 
-    AtomicTempCleanup(std::filesystem::path tempDirectory,
+    AtomicTempCleanup(std::string tempWorkspaceName,
                       int tempLeaseFd,
-                      int tempParentFd);
+                      int tempParentFd,
+                      int tempWorkspaceFd);
     AtomicTempCleanup(const AtomicTempCleanup&) = delete;
     AtomicTempCleanup& operator=(const AtomicTempCleanup&) = delete;
     ~AtomicTempCleanup();
@@ -121,18 +153,20 @@ bool writeAtomically(const std::filesystem::path& targetPath,
         return false;
     }
 
-    std::filesystem::path tempDirectory;
+    std::string tempWorkspaceName;
     int tempLeaseFd = -1;
     int tempParentFd = -1;
-    if (!createAtomicTempDirectory(targetPath, tempDirectory, tempLeaseFd,
-                                   tempParentFd)) {
+    int tempWorkspaceFd = -1;
+    if (!createAtomicTempDirectory(targetPath, tempWorkspaceName, tempLeaseFd,
+                                   tempParentFd, tempWorkspaceFd)) {
         return false;
     }
-    AtomicTempCleanup cleanup(std::move(tempDirectory), tempLeaseFd, tempParentFd);
-    const std::filesystem::path tempPath = cleanup.directory / "content";
-
-    std::ofstream out(tempPath, openMode | std::ios_base::trunc);
-    if (!out) return false;
+    AtomicTempCleanup cleanup(std::move(tempWorkspaceName), tempLeaseFd,
+                              tempParentFd, tempWorkspaceFd);
+    const int outputFd = openAtomicTempContent(cleanup.workspaceFd, openMode);
+    if (outputFd < 0) return false;
+    AtomicTempOutputBuffer outputBuffer(outputFd);
+    std::ostream out(&outputBuffer);
 
     try {
         using Result = std::invoke_result_t<Writer, std::ostream&>;
@@ -146,28 +180,22 @@ bool writeAtomically(const std::filesystem::path& targetPath,
     }
     out.flush();
     if (!out) return false;
-    out.close();
-    if (!out) return false;
+    if (!outputBuffer.close()) return false;
 
-    if (preservePermissions) {
-        std::error_code permissionError;
-        std::filesystem::permissions(
-            tempPath, existingPermissions, std::filesystem::perm_options::replace,
-            permissionError);
-        if (permissionError) return false;
+    if (!syncAtomicTempFile(
+            cleanup.workspaceFd, preservePermissions,
+            preservePermissions ? static_cast<mode_t>(existingPermissions) : 0)) {
+        return false;
     }
-    if (!syncAtomicTempFile(tempPath)) return false;
 
-    const std::filesystem::path parentPath = targetPath.has_parent_path()
-        ? targetPath.parent_path()
-        : std::filesystem::path(".");
-    AtomicTempParentLock publicationLock(parentPath);
+    AtomicTempParentLock publicationLock(cleanup.parentFd);
     if (!publicationLock.locked()) return false;
 
     // The callback must not reenter an atomic write to this parent directory.
     if (beforeReplace && !beforeReplace()) return false;
-    return publishAtomicTempFile(tempPath, targetPath, publicationLock.fd(),
-                                 noReplaceTarget, outTargetAlreadyExists);
+    return publishAtomicTempFile(
+        cleanup.workspaceFd, "content", publicationLock.fd(),
+        pathBasenameView(targetPath), noReplaceTarget, outTargetAlreadyExists);
 }
 
 template <typename Writer>

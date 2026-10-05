@@ -1,5 +1,6 @@
 #include "AtomicFile.hpp"
 
+#include <algorithm>
 #include <array>
 #include <cerrno>
 #include <cstddef>
@@ -63,6 +64,29 @@ public:
 private:
     int fd_{-1};
 };
+
+bool setAtomicTempPathMode(int pathFd, mode_t mode) {
+    struct stat status {};
+    if (::fstat(pathFd, &status) != 0
+        || (!S_ISREG(status.st_mode) && !S_ISDIR(status.st_mode))) {
+        return false;
+    }
+
+    int result;
+    do {
+        result = ::fchmodat(pathFd, "", mode, AT_EMPTY_PATH);
+    } while (result != 0 && errno == EINTR);
+    if (result == 0) return true;
+    if (errno != ENOSYS && errno != EINVAL && errno != ENOENT && errno != ENOTSUP) {
+        return false;
+    }
+
+    const std::string descriptorPath = "/proc/self/fd/" + std::to_string(pathFd);
+    do {
+        result = ::chmod(descriptorPath.c_str(), mode);
+    } while (result != 0 && errno == EINTR);
+    return result == 0;
+}
 
 struct AtomicTempSweepSlot {
     std::filesystem::path parent;
@@ -208,6 +232,27 @@ AtomicTempParentLock::AtomicTempParentLock(
     }
 }
 
+AtomicTempParentLock::AtomicTempParentLock(int pinnedParentFd, bool nonBlocking) {
+    do {
+        fd_ = ::openat(pinnedParentFd, ".",
+                       O_RDONLY | O_CLOEXEC | O_DIRECTORY);
+    } while (fd_ < 0 && errno == EINTR);
+    if (fd_ < 0) {
+        error_ = errno;
+        return;
+    }
+
+    const int flags = LOCK_EX | (nonBlocking ? LOCK_NB : 0);
+    int result;
+    do {
+        result = ::flock(fd_, flags);
+    } while (result != 0 && errno == EINTR);
+    if (result != 0) {
+        error_ = errno;
+        release();
+    }
+}
+
 AtomicTempParentLock::~AtomicTempParentLock() { release(); }
 
 bool AtomicTempParentLock::locked() const { return fd_ >= 0; }
@@ -295,6 +340,17 @@ ScopedFd openWorkspaceAt(int parentFd, std::string_view entryName) {
     do {
         fd = ::openat(parentFd, name.c_str(),
                       O_RDONLY | O_CLOEXEC | O_DIRECTORY | O_NOFOLLOW);
+    } while (fd < 0 && errno == EINTR);
+    return ScopedFd(fd);
+}
+
+ScopedFd openWorkspacePathAt(int parentFd, std::string_view entryName) {
+    if (!isSingleEntryName(entryName)) return ScopedFd{};
+    const std::string name(entryName);
+    int fd;
+    do {
+        fd = ::openat(parentFd, name.c_str(),
+                      O_PATH | O_CLOEXEC | O_DIRECTORY | O_NOFOLLOW);
     } while (fd < 0 && errno == EINTR);
     return ScopedFd(fd);
 }
@@ -707,11 +763,14 @@ void scavengeAtomicTempDirectoriesIfDue(const std::filesystem::path& parent) {
 }
 
 bool createAtomicTempDirectory(const std::filesystem::path& targetPath,
-                                      std::filesystem::path& outDirectory,
-                                      int& outLeaseFd,
-                                      int& outParentFd) {
+                               std::string& outWorkspaceName,
+                               int& outLeaseFd,
+                               int& outParentFd,
+                               int& outWorkspaceFd) {
+    outWorkspaceName.clear();
     outLeaseFd = -1;
     outParentFd = -1;
+    outWorkspaceFd = -1;
     if (targetPath.filename().empty()) return false;
     const std::filesystem::path parent = targetPath.has_parent_path()
         ? targetPath.parent_path()
@@ -725,68 +784,104 @@ bool createAtomicTempDirectory(const std::filesystem::path& targetPath,
     }
     if (sweepDue) scavengeAtomicTempDirectoryStepLocked(parent, parentLock);
 
-    auto prepareNewDirectory = [&](const std::filesystem::path& candidate) {
-        const std::string_view candidateName = pathBasenameView(candidate);
-        std::error_code permissionError;
-        std::filesystem::permissions(candidate, std::filesystem::perms::owner_all,
-                                     std::filesystem::perm_options::replace,
-                                     permissionError);
-        if (permissionError) {
-            removeAtomicTempDirectoryAt(parentLock.fd(), candidateName);
+    auto prepareNewDirectory = [&](const std::string& candidateName) {
+        ScopedFd workspacePathFd = openWorkspacePathAt(parentLock.fd(), candidateName);
+        if (workspacePathFd.get() < 0) {
             return false;
         }
 
-        if (!createAtomicTempOwnerMarker(candidate)) {
-            removeAtomicTempDirectoryAt(parentLock.fd(), candidateName);
+        if (!setAtomicTempPathMode(workspacePathFd.get(), S_IRWXU)) {
+            if (sameWorkspaceEntry(parentLock.fd(), candidateName,
+                                   workspacePathFd.get())) {
+                removeAtomicTempDirectoryAt(parentLock.fd(), candidateName);
+            }
+            return false;
+        }
+        int readableWorkspaceRawFd;
+        do {
+            readableWorkspaceRawFd = ::openat(
+                workspacePathFd.get(), ".", O_RDONLY | O_CLOEXEC | O_DIRECTORY);
+        } while (readableWorkspaceRawFd < 0 && errno == EINTR);
+        ScopedFd workspaceFd(readableWorkspaceRawFd);
+        if (workspaceFd.get() < 0
+            || !sameWorkspaceEntry(parentLock.fd(), candidateName,
+                                   workspaceFd.get())) {
             return false;
         }
 
-        const std::filesystem::path leasePath = candidate / "lease";
-        const int leaseFd = ::open(leasePath.c_str(),
-                                   O_CREAT | O_EXCL | O_RDWR | O_CLOEXEC | O_NOFOLLOW,
-                                   S_IRUSR | S_IWUSR);
-        if (leaseFd < 0) {
-            removeAtomicTempWorkspaceAt(parentLock.fd(), candidateName, false);
-            return false;
-        }
-        if (::fchmod(leaseFd, S_IRUSR | S_IWUSR) != 0
-            || ::flock(leaseFd, LOCK_EX | LOCK_NB) != 0) {
-            ::close(leaseFd);
-            removeAtomicTempWorkspaceAt(parentLock.fd(), candidateName, false);
+        if (::symlinkat(atomicTempOwnerMarker, workspaceFd.get(),
+                           atomicTempOwnerName) != 0) {
+            if (sameWorkspaceEntry(parentLock.fd(), candidateName,
+                                   workspaceFd.get())) {
+                removeAtomicTempDirectoryAt(parentLock.fd(), candidateName);
+            }
             return false;
         }
 
-        const std::filesystem::path readyPath = candidate / "ready";
-        const int readyFd = ::open(readyPath.c_str(),
-                                   O_CREAT | O_EXCL | O_WRONLY | O_CLOEXEC | O_NOFOLLOW,
-                                   S_IRUSR | S_IWUSR);
+        int leaseRawFd;
+        do {
+            leaseRawFd = ::openat(workspaceFd.get(), "lease",
+                                  O_CREAT | O_EXCL | O_RDWR | O_CLOEXEC | O_NOFOLLOW,
+                                  S_IRUSR | S_IWUSR);
+        } while (leaseRawFd < 0 && errno == EINTR);
+        ScopedFd leaseFd(leaseRawFd);
+        if (leaseFd.get() < 0) {
+            removeAtomicTempWorkspaceFd(parentLock.fd(), candidateName,
+                                        workspaceFd.get(), false);
+            return false;
+        }
+        if (::fchmod(leaseFd.get(), S_IRUSR | S_IWUSR) != 0
+            || ::flock(leaseFd.get(), LOCK_EX | LOCK_NB) != 0) {
+            leaseFd.reset();
+            removeAtomicTempWorkspaceFd(parentLock.fd(), candidateName,
+                                        workspaceFd.get(), false);
+            return false;
+        }
+
+        int readyFd;
+        do {
+            readyFd = ::openat(workspaceFd.get(), "ready",
+                               O_CREAT | O_EXCL | O_WRONLY | O_CLOEXEC | O_NOFOLLOW,
+                               S_IRUSR | S_IWUSR);
+        } while (readyFd < 0 && errno == EINTR);
         if (readyFd < 0) {
-            ::flock(leaseFd, LOCK_UN);
-            ::close(leaseFd);
-            removeAtomicTempWorkspaceAt(parentLock.fd(), candidateName, false);
+            leaseFd.reset();
+            removeAtomicTempWorkspaceFd(parentLock.fd(), candidateName,
+                                        workspaceFd.get(), false);
             return false;
         }
         if (::close(readyFd) != 0) {
-            ::flock(leaseFd, LOCK_UN);
-            ::close(leaseFd);
-            removeAtomicTempWorkspaceAt(parentLock.fd(), candidateName, true);
+            leaseFd.reset();
+            removeAtomicTempWorkspaceFd(parentLock.fd(), candidateName,
+                                        workspaceFd.get(), true);
             return false;
         }
 
-        outDirectory = candidate;
         int cleanupParentFd;
         do {
             cleanupParentFd = ::fcntl(parentLock.fd(), F_DUPFD_CLOEXEC, 0);
         } while (cleanupParentFd < 0 && errno == EINTR);
         if (cleanupParentFd < 0) {
-            ::flock(leaseFd, LOCK_UN);
-            ::close(leaseFd);
-            removeAtomicTempWorkspaceAt(parentLock.fd(), candidateName, true);
-            outDirectory.clear();
+            leaseFd.reset();
+            removeAtomicTempWorkspaceFd(parentLock.fd(), candidateName,
+                                        workspaceFd.get(), true);
             return false;
         }
-        outLeaseFd = leaseFd;
+        int cleanupWorkspaceFd;
+        do {
+            cleanupWorkspaceFd = ::fcntl(workspaceFd.get(), F_DUPFD_CLOEXEC, 0);
+        } while (cleanupWorkspaceFd < 0 && errno == EINTR);
+        if (cleanupWorkspaceFd < 0) {
+            ::close(cleanupParentFd);
+            leaseFd.reset();
+            removeAtomicTempWorkspaceFd(parentLock.fd(), candidateName,
+                                        workspaceFd.get(), true);
+            return false;
+        }
+        outWorkspaceName = candidateName;
+        outLeaseFd = leaseFd.release();
         outParentFd = cleanupParentFd;
+        outWorkspaceFd = cleanupWorkspaceFd;
         parentLock.release();
         return true;
     };
@@ -794,29 +889,31 @@ bool createAtomicTempDirectory(const std::filesystem::path& targetPath,
     for (unsigned attempt = 0; attempt < 128; ++attempt) {
         std::string candidateName;
         if (!createAtomicTempTokenName(candidateName)) return false;
-        const auto candidate = parent / candidateName;
         int createResult;
         do {
-            createResult = ::mkdir(candidate.c_str(), S_IRUSR | S_IWUSR | S_IXUSR);
+            createResult = ::mkdirat(parentLock.fd(), candidateName.c_str(),
+                                     S_IRUSR | S_IWUSR | S_IXUSR);
         } while (createResult != 0 && errno == EINTR);
         if (createResult == 0) {
-            return prepareNewDirectory(candidate);
+            return prepareNewDirectory(candidateName);
         }
         if (errno != EEXIST) return false;
     }
     return false;
 }
 
-AtomicTempCleanup::AtomicTempCleanup(std::filesystem::path tempDirectory,
+AtomicTempCleanup::AtomicTempCleanup(std::string tempWorkspaceName,
                                      int tempLeaseFd,
-                                     int tempParentFd)
-    : directory(std::move(tempDirectory)),
+                                     int tempParentFd,
+                                     int tempWorkspaceFd)
+    : workspaceName(std::move(tempWorkspaceName)),
       leaseFd(tempLeaseFd),
-      parentFd(tempParentFd) {}
+      parentFd(tempParentFd),
+      workspaceFd(tempWorkspaceFd) {}
 
 AtomicTempCleanup::~AtomicTempCleanup() {
     try {
-        removeAtomicTempWorkspaceAt(parentFd, pathBasenameView(directory), true);
+        removeAtomicTempWorkspaceFd(parentFd, workspaceName, workspaceFd, true);
     } catch (...) {
         // Cleanup is best-effort; a destructor must not throw.
     }
@@ -825,32 +922,107 @@ AtomicTempCleanup::~AtomicTempCleanup() {
         ::close(leaseFd);
     }
     if (parentFd >= 0) ::close(parentFd);
+    if (workspaceFd >= 0) ::close(workspaceFd);
 }
 
 bool setAtomicTempFileMode(int pathFd, mode_t mode) {
     struct stat status {};
     if (::fstat(pathFd, &status) != 0 || !S_ISREG(status.st_mode)) return false;
-
-    int result;
-    do {
-        result = ::fchmodat(pathFd, "", mode, AT_EMPTY_PATH);
-    } while (result != 0 && errno == EINTR);
-    if (result == 0) return true;
-    if (errno != ENOSYS && errno != EINVAL && errno != ENOENT && errno != ENOTSUP) {
-        return false;
-    }
-
-    const std::string descriptorPath = "/proc/self/fd/" + std::to_string(pathFd);
-    do {
-        result = ::chmod(descriptorPath.c_str(), mode);
-    } while (result != 0 && errno == EINTR);
-    return result == 0;
+    return setAtomicTempPathMode(pathFd, mode);
 }
 
-bool syncAtomicTempFile(const std::filesystem::path& path) {
+int openAtomicTempContent(int workspaceFd,
+                          std::ios_base::openmode openMode) {
+    if ((openMode & std::ios_base::out) == 0
+        || (openMode & std::ios_base::app) != 0) {
+        return -1;
+    }
+
+    int fd;
+    do {
+        fd = ::openat(workspaceFd, "content",
+                      O_CREAT | O_EXCL | O_WRONLY | O_CLOEXEC | O_NOFOLLOW,
+                      S_IRUSR | S_IWUSR | S_IRGRP | S_IWGRP | S_IROTH | S_IWOTH);
+    } while (fd < 0 && errno == EINTR);
+    if (fd < 0) return -1;
+
+    struct stat status {};
+    if (::fstat(fd, &status) != 0 || !S_ISREG(status.st_mode)) {
+        ::close(fd);
+        return -1;
+    }
+    return fd;
+}
+
+AtomicTempOutputBuffer::AtomicTempOutputBuffer(int fd) : fd_(fd) {
+    setp(buffer_.data(), buffer_.data() + buffer_.size());
+}
+
+AtomicTempOutputBuffer::~AtomicTempOutputBuffer() {
+    if (fd_ >= 0) ::close(fd_);
+}
+
+bool AtomicTempOutputBuffer::flushBuffer() {
+    if (failed_ || fd_ < 0) return false;
+    const std::size_t size = static_cast<std::size_t>(pptr() - pbase());
+    std::size_t written = 0;
+    while (written < size) {
+        const ssize_t result = ::write(fd_, pbase() + written, size - written);
+        if (result < 0 && errno == EINTR) continue;
+        if (result <= 0) {
+            failed_ = true;
+            setp(buffer_.data(), buffer_.data() + buffer_.size());
+            return false;
+        }
+        written += static_cast<std::size_t>(result);
+    }
+    setp(buffer_.data(), buffer_.data() + buffer_.size());
+    return true;
+}
+
+AtomicTempOutputBuffer::int_type AtomicTempOutputBuffer::overflow(
+    int_type character) {
+    if (failed_ || fd_ < 0 || !flushBuffer()) return traits_type::eof();
+    if (!traits_type::eq_int_type(character, traits_type::eof())) {
+        *pptr() = traits_type::to_char_type(character);
+        pbump(1);
+    }
+    return traits_type::not_eof(character);
+}
+
+std::streamsize AtomicTempOutputBuffer::xsputn(const char* data,
+                                               std::streamsize size) {
+    if (size <= 0 || failed_ || fd_ < 0) return 0;
+    std::streamsize written = 0;
+    while (written < size) {
+        if (pptr() == epptr() && !flushBuffer()) break;
+        const auto available = static_cast<std::streamsize>(epptr() - pptr());
+        const auto chunk = std::min(available, size - written);
+        std::memcpy(pptr(), data + written, static_cast<std::size_t>(chunk));
+        pbump(static_cast<int>(chunk));
+        written += chunk;
+    }
+    return written;
+}
+
+int AtomicTempOutputBuffer::sync() {
+    return flushBuffer() ? 0 : -1;
+}
+
+bool AtomicTempOutputBuffer::close() {
+    const bool flushed = sync() == 0;
+    if (fd_ < 0) return flushed;
+    const int fd = std::exchange(fd_, -1);
+    return ::close(fd) == 0 && flushed;
+}
+
+bool syncAtomicTempFile(int workspaceFd,
+                        bool preserveMode,
+                        mode_t requestedMode) {
     int pathFd;
     do {
-        pathFd = ::open(path.c_str(), O_PATH | O_CLOEXEC | O_NOFOLLOW);
+        pathFd = ::openat(workspaceFd, "content",
+                          O_PATH | O_CLOEXEC | O_NOFOLLOW);
     } while (pathFd < 0 && errno == EINTR);
     if (pathFd < 0) return false;
 
@@ -862,7 +1034,9 @@ bool syncAtomicTempFile(const std::filesystem::path& path) {
         return false;
     }
 
-    const mode_t finalMode = pathStatus.st_mode & 07777;
+    const mode_t finalMode = preserveMode
+        ? requestedMode & 07777
+        : pathStatus.st_mode & 07777;
     // A restrictive umask may create mode-000 content; adjust the pinned inode,
     // never the pathname that could have been replaced by a symlink.
     if (!setAtomicTempFileMode(pathFd, finalMode | S_IRUSR | S_IWUSR)) {
@@ -872,7 +1046,8 @@ bool syncAtomicTempFile(const std::filesystem::path& path) {
 
     int fd;
     do {
-        fd = ::open(path.c_str(), O_RDWR | O_CLOEXEC | O_NOFOLLOW);
+        fd = ::openat(workspaceFd, "content",
+                      O_RDWR | O_CLOEXEC | O_NOFOLLOW);
     } while (fd < 0 && errno == EINTR);
     if (fd < 0) {
         (void)setAtomicTempFileMode(pathFd, finalMode);
@@ -917,15 +1092,21 @@ bool syncAtomicParentDirectory(int fd) {
     return result == 0;
 }
 
-bool publishAtomicTempFile(const std::filesystem::path& source,
-                           const std::filesystem::path& target,
+bool publishAtomicTempFile(int workspaceFd,
+                           std::string_view workspaceName,
                            int parentFd,
+                           std::string_view targetName,
                            bool noReplaceTarget,
                            bool* outTargetAlreadyExists) {
+    if (!isSingleEntryName(workspaceName) || !isSingleEntryName(targetName)) {
+        return false;
+    }
+    const std::string sourceEntry(workspaceName);
+    const std::string targetEntry(targetName);
     if (noReplaceTarget) {
 #if defined(SYS_renameat2) && defined(RENAME_NOREPLACE)
-        if (::syscall(SYS_renameat2, AT_FDCWD, source.c_str(), AT_FDCWD,
-                      target.c_str(), RENAME_NOREPLACE) == 0) {
+        if (::syscall(SYS_renameat2, workspaceFd, sourceEntry.c_str(), parentFd,
+                      targetEntry.c_str(), RENAME_NOREPLACE) == 0) {
             (void)syncAtomicParentDirectory(parentFd);
             return true;
         }
@@ -936,9 +1117,12 @@ bool publishAtomicTempFile(const std::filesystem::path& source,
         return false;
     }
 
-    std::error_code renameError;
-    std::filesystem::rename(source, target, renameError);
-    if (renameError) return false;
+    int result;
+    do {
+        result = ::renameat(workspaceFd, sourceEntry.c_str(),
+                            parentFd, targetEntry.c_str());
+    } while (result != 0 && errno == EINTR);
+    if (result != 0) return false;
     (void)syncAtomicParentDirectory(parentFd);
     return true;
 }
