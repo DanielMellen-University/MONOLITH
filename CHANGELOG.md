@@ -1,5 +1,10 @@
 # Changelog
 
+## 2026-10: Remove Start-menu frame allocations
+
+- Build registry rows once and use bounded arrays for filtered rows and actionable hit targets, avoiding per-frame heap work while type-ahead is active.
+- Remove the unreachable placeholder-table tail from Start-menu hit-target rebuilding and verify warmed filtered renders allocate no C++ heap memory.
+
 ## 2026-10: Avoid desktop icon frame allocations
 
 - Use fixed-capacity registry and placement arrays for desktop icon layout, removing recurring heap allocations during shell rendering and icon hit testing.
