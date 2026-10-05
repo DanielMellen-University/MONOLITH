@@ -1,5 +1,12 @@
 # Changelog
 
+## 2026-10: Support multiline Text Editor Find and Replace
+
+- Seed Find/Replace from multiline selections and support newline-aware queries, navigation, selection, and single/all replacements.
+- Preserve clipboard line breaks after normalizing CR and CRLF to LF; Ctrl+Enter inserts a break in the active prompt field, while other control characters remain filtered.
+- Keep prompts single-line by rendering query breaks as `\n`, retain sparse non-overlapping match checkpoints, and highlight each visible row fragment without rebuilding geometry during navigation.
+- Enforce the existing 16 MiB byte bound plus a 65,536-line bound on each search field; cover input, navigation, replacement, limits, undo/redo, and active highlight movement.
+
 ## 2026-10: Serialize atomic file publication
 
 - Hold the destination-directory advisory lock across the final conditional stamp check and rename, so competing Monolith atomic writers cannot overwrite each other's confirmed version.

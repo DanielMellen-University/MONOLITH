@@ -87,24 +87,25 @@ The editor applies lightweight syntax highlighting:
 
 ### Find Mode (Ctrl+F)
 
-When a single line of text is selected, Ctrl+F starts with that text as the query and selects its current occurrence. Multi-line or control-bearing selections start with an empty query.
+When text is selected, Ctrl+F starts with that text as the query and selects its current occurrence, including selections across multiple lines. Selections containing control characters other than line breaks start with an empty query.
 
 | Key | Action |
 |-----|--------|
 | Type | Build search query (matches update live) |
 | Enter | Jump to next match |
 | Shift+Enter | Jump to previous match |
+| Ctrl+Enter | Insert a line break in the query |
 | Tab | Switch to replace mode (focus replacement field) |
 | Left / Right / Home / End | Move the active query caret |
 | Backspace / Delete | Remove the previous or next complete UTF-8 character |
-| Ctrl+V | Paste at the query caret; line breaks and other control characters are removed |
+| Ctrl+V | Paste at the query caret; CR and CRLF become line breaks, other control characters are removed |
 | Esc | Exit find mode |
 
-The status bar shows match count (e.g. `2/5`). The current match is selected in the buffer. Search stores one location checkpoint per 256 non-overlapping matches, resolving navigation from the nearest checkpoint instead of retaining every hit; highlight geometry is built only for matches intersecting the visible text viewport.
+The status bar shows match count (e.g. `2/5`). Embedded query line breaks are displayed as `\n` so the prompt stays on one line. A multiline query matches consecutive document rows: its first segment must end at the starting row's end, complete middle segments must match whole rows, and the last segment must match from the next row's beginning. The current match is selected across all matched rows. Search stores one location checkpoint per 256 non-overlapping matches, resolving navigation from the nearest checkpoint instead of retaining every hit; highlight geometry is built only for fragments intersecting the visible text viewport.
 
 ### Find & Replace (Ctrl+H)
 
-When started from the editor with a single-line selection, Ctrl+H uses that text as the query and selects the matching occurrence. Multi-line or control-bearing selections start with an empty query.
+When started from the editor with a selection, Ctrl+H uses that text as the query and selects the matching occurrence, including selections across multiple lines. Selections containing control characters other than line breaks start with an empty query.
 
 | Key | Action |
 |-----|--------|
@@ -112,16 +113,17 @@ When started from the editor with a single-line selection, Ctrl+H uses that text
 | Tab | Toggle between find and replacement fields |
 | Left / Right / Home / End | Move the active field caret |
 | Backspace / Delete | Remove the previous or next complete UTF-8 character |
-| Ctrl+V | Paste at the active field caret; line breaks and other control characters are removed |
+| Ctrl+Enter | Insert a line break in the active field |
+| Ctrl+V | Paste at the active field caret; CR and CRLF become line breaks, other control characters are removed |
 | Enter / Shift+Enter | Next / previous match |
 | Ctrl+R | Replace current match, then jump forward |
 | Ctrl+Shift+R | Replace all matches (one undo step) |
 | Esc | Exit |
 
-Replacement is case-sensitive, non-overlapping substring match (same as find). Each original match is replaced once, even when the replacement text contains the search text. Multi-line find is not supported.
+Find and replacement are case-sensitive and non-overlapping. Multiline queries match consecutive document rows, with each query line break matching a row boundary. Replace Current and Replace All accept multiline replacement text; each original match is replaced once, even when the replacement text contains the search text. Replace All is one undo step.
 Replacing with the same text is a no-op: it leaves the buffer clean and does not add an undo step.
 Both search fields insert text at the caret, and long prompts scroll horizontally to keep the active caret visible.
-Each field is bounded to 16 MiB; input that would exceed the limit is rejected, and a UTF-8 character is never split at the boundary.
+Each field is bounded to 16 MiB and 65,536 lines; input that would exceed either limit is rejected, and a UTF-8 character is never split at the byte boundary.
 Long Find/Replace values keep their full search text, while the status bar renders a bounded UTF-8-safe excerpt around each field caret. Match highlights measure only the portion intersecting the visible text viewport.
 
 ## Saving
@@ -151,7 +153,7 @@ Path prompts support Left/Right/Home/End, UTF-8-safe Backspace/Delete, and inser
 - Document rows and the status prompt intersect their internal clips with the caller clip and restore it after rendering, so editor content stays inside the shell's visible client intersection.
 - Combining characters / complex scripts are treated as separate codepoints for cursor motion.
 - Clipboard uses the host OS clipboard (SDL), not a Monolith-only buffer.
-- Find/replace is case-sensitive and single-line only (no regex).
+- Find/replace is case-sensitive and does not support regular expressions.
 - No integration with the custom language runtime yet.
 
 ## Developer Notes
