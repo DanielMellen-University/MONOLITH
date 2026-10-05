@@ -1,6 +1,6 @@
 # Session log
 
-| 2026-10-04 | test/editor | Added 14,040 exhaustive small-case comparisons between multiline Find and a straightforward reference matcher, plus a 65,536-row/32,768-row near-match stress case. Focused Text Editor state suite passes. |
+| 2026-10-04 | test/editor | Added 14,040 exhaustive small-case comparisons between multiline Find and a straightforward reference matcher, plus a 65,536-row/32,768-row near-match stress case. Focused/full headless suites and production build pass; hosted run #467 passed `verify` and `sanitize`. |
 
 | 2026-10-04 | perf/editor | Replaced per-candidate multiline query rechecks with KMP over exact middle-row segments and first/last-row boundary validation. Added overlapping-prefix and empty-boundary regressions; focused editor tests, full headless suite, production build, and hosted run #464 `verify`/`sanitize` passed. Commits `0b1e7e8` and `49d4787` are on `beta`. |
 
