@@ -82,6 +82,7 @@ add_custom_target(monolith_main_bodies DEPENDS ${MONOLITH_MAIN_BODY_OUTPUTS})
 
 add_executable(monolith
     src/main.cpp
+    src/detail/AtomicFile.cpp
     src/window/WindowManager.cpp
     src/window/WallpaperImage.cpp
 
