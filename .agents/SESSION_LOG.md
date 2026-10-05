@@ -1,5 +1,7 @@
 # Session log
 
+| 2026-10-05 | perf/breakout | Cache screen-space brick rectangles until playfield geometry changes and batch live bricks by row color, reducing up to 50 draw submissions to at most five. Software-render pixel regression checks palette, cleared-brick gaps, and resize rebuilds; full headless suite and Release build pass. |
+
 | 2026-10-05 | perf/editor | Shift cached syntax-span vectors with same-sized overlapping viewports; single-row scrolling preserves shared rows and retokenizes only newly exposed lines. A long-identifier regression verifies storage reuse in both directions and bounded allocation growth; full headless suite and Release build pass. |
 
 | 2026-10-05 | perf/snake | Cache fixed checkerboard-cell rectangles until board geometry changes and submit the 200 alternating cells through one SDL batch per frame. Software-renderer pixel checks preserve tile colors across resize; full headless suite and Release build pass. |
