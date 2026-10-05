@@ -80,6 +80,36 @@ inline void rememberAtomicTempSweepAlias(
     slot.nextAlias = (slot.nextAlias + 1) % slot.aliases.size();
 }
 
+// These tracker helpers are called only while atomicTempSweepMutex is held.
+inline AtomicTempSweepSlot* findAtomicTempSweepSlotLocked(
+    const std::filesystem::path& lexicalKey,
+    const std::filesystem::path& resolvedKey) {
+    for (auto& slot : atomicTempSweepSlots) {
+        if (atomicTempSweepSlotMatches(slot, lexicalKey)) return &slot;
+    }
+    for (auto& slot : atomicTempSweepSlots) {
+        if (slot.parent != resolvedKey) continue;
+        rememberAtomicTempSweepAlias(slot, lexicalKey);
+        return &slot;
+    }
+    return nullptr;
+}
+
+inline AtomicTempSweepSlot& registerAtomicTempSweepSlotLocked(
+    const std::filesystem::path& lexicalKey,
+    const std::filesystem::path& resolvedKey,
+    unsigned long long operationsSinceSweep) {
+    auto& slot = atomicTempSweepSlots[atomicTempSweepNextSlot];
+    atomicTempSweepNextSlot = (atomicTempSweepNextSlot + 1) % atomicTempSweepSlots.size();
+    slot.traversal.reset();
+    slot.parent = resolvedKey;
+    slot.aliases = {};
+    slot.nextAlias = 0;
+    rememberAtomicTempSweepAlias(slot, lexicalKey);
+    slot.operationsSinceSweep = operationsSinceSweep;
+    return slot;
+}
+
 class AtomicTempParentLock {
 public:
     explicit AtomicTempParentLock(const std::filesystem::path& parent,
@@ -134,11 +164,9 @@ inline bool shouldSweepAtomicTempParent(const std::filesystem::path& parent) {
 
     {
         std::lock_guard lock(atomicTempSweepMutex);
-        for (auto& slot : atomicTempSweepSlots) {
-            if (atomicTempSweepSlotMatches(slot, lexicalKey)) {
-                if (slot.traversal) return true;
-                return countOperation(slot);
-            }
+        if (auto* slot = findAtomicTempSweepSlotLocked(lexicalKey, lexicalKey)) {
+            if (slot->traversal) return true;
+            return countOperation(*slot);
         }
     }
 
@@ -148,21 +176,12 @@ inline bool shouldSweepAtomicTempParent(const std::filesystem::path& parent) {
     const auto key = pathError ? lexicalKey : resolvedKey;
 
     std::lock_guard lock(atomicTempSweepMutex);
-    for (auto& slot : atomicTempSweepSlots) {
-        if (slot.parent != key) continue;
-        rememberAtomicTempSweepAlias(slot, lexicalKey);
-        if (slot.traversal) return true;
-        return countOperation(slot);
+    if (auto* slot = findAtomicTempSweepSlotLocked(lexicalKey, key)) {
+        if (slot->traversal) return true;
+        return countOperation(*slot);
     }
 
-    auto& slot = atomicTempSweepSlots[atomicTempSweepNextSlot];
-    atomicTempSweepNextSlot = (atomicTempSweepNextSlot + 1) % atomicTempSweepSlots.size();
-    slot.traversal.reset();
-    slot.parent = key;
-    slot.aliases = {};
-    slot.nextAlias = 0;
-    rememberAtomicTempSweepAlias(slot, lexicalKey);
-    slot.operationsSinceSweep = 1;
+    registerAtomicTempSweepSlotLocked(lexicalKey, key, 1);
     return true;
 }
 
@@ -180,27 +199,25 @@ inline std::string_view pathBasenameView(const std::filesystem::path& path) {
 
 inline void scheduleAtomicTempSweepRetry(const std::filesystem::path& parent) {
     const auto lexicalKey = parent.lexically_normal();
+    {
+        std::lock_guard lock(atomicTempSweepMutex);
+        if (auto* slot = findAtomicTempSweepSlotLocked(lexicalKey, lexicalKey)) {
+            slot->operationsSinceSweep = atomicTempSweepInterval;
+            return;
+        }
+    }
+
     std::error_code pathError;
     const auto resolvedKey = std::filesystem::weakly_canonical(parent, pathError);
     const auto key = pathError ? lexicalKey : resolvedKey;
 
     std::lock_guard lock(atomicTempSweepMutex);
-    for (auto& slot : atomicTempSweepSlots) {
-        if (slot.parent != key && !atomicTempSweepSlotMatches(slot, lexicalKey)) {
-            continue;
-        }
-        slot.operationsSinceSweep = atomicTempSweepInterval;
+    if (auto* slot = findAtomicTempSweepSlotLocked(lexicalKey, key)) {
+        slot->operationsSinceSweep = atomicTempSweepInterval;
         return;
     }
 
-    auto& slot = atomicTempSweepSlots[atomicTempSweepNextSlot];
-    atomicTempSweepNextSlot = (atomicTempSweepNextSlot + 1) % atomicTempSweepSlots.size();
-    slot.traversal.reset();
-    slot.parent = key;
-    slot.aliases = {};
-    slot.nextAlias = 0;
-    rememberAtomicTempSweepAlias(slot, lexicalKey);
-    slot.operationsSinceSweep = atomicTempSweepInterval;
+    registerAtomicTempSweepSlotLocked(lexicalKey, key, atomicTempSweepInterval);
 }
 
 inline bool hasAtomicTempTokenName(std::string_view name);
@@ -473,16 +490,8 @@ inline bool scavengeAtomicTempDirectoryStepLocked(
 
     const auto lexicalKey = parent.lexically_normal();
     std::unique_lock lock(atomicTempSweepMutex);
-    auto findLexicalSlot = [&]() -> AtomicTempSweepSlot* {
-        for (auto& candidate : atomicTempSweepSlots) {
-            if (atomicTempSweepSlotMatches(candidate, lexicalKey)) {
-                return &candidate;
-            }
-        }
-        return nullptr;
-    };
-
-    AtomicTempSweepSlot* slot = findLexicalSlot();
+    AtomicTempSweepSlot* slot =
+        findAtomicTempSweepSlotLocked(lexicalKey, lexicalKey);
     auto key = lexicalKey;
     if (!slot) {
         lock.unlock();
@@ -491,26 +500,10 @@ inline bool scavengeAtomicTempDirectoryStepLocked(
         key = pathError ? lexicalKey : resolvedKey;
         lock.lock();
         // The lexical spelling may have been registered while resolution ran.
-        slot = findLexicalSlot();
+        slot = findAtomicTempSweepSlotLocked(lexicalKey, key);
     }
     if (!slot) {
-        for (auto& candidate : atomicTempSweepSlots) {
-            if (candidate.parent != key) continue;
-            rememberAtomicTempSweepAlias(candidate, lexicalKey);
-            slot = &candidate;
-            break;
-        }
-    }
-    if (!slot) {
-        slot = &atomicTempSweepSlots[atomicTempSweepNextSlot];
-        atomicTempSweepNextSlot = (atomicTempSweepNextSlot + 1)
-            % atomicTempSweepSlots.size();
-        slot->traversal.reset();
-        slot->parent = key;
-        slot->aliases = {};
-        slot->nextAlias = 0;
-        rememberAtomicTempSweepAlias(*slot, lexicalKey);
-        slot->operationsSinceSweep = 1;
+        slot = &registerAtomicTempSweepSlotLocked(lexicalKey, key, 1);
     }
 
     if (!slot->traversal) {

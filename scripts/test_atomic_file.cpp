@@ -285,6 +285,15 @@ int main() {
         && monolith::detail::shouldSweepAtomicTempParent(aliasTarget);
     check(aliasFixturesReady && firstAliasSweep && aliasCadenceHeld && aliasIntervalSweep,
           "symlink aliases share one destination-parent sweep cadence");
+    if (aliasFixturesReady) {
+        monolith::detail::scheduleAtomicTempSweepRetry(aliasPathThree);
+    }
+    const bool aliasRetryTriggered = aliasFixturesReady
+        && monolith::detail::shouldSweepAtomicTempParent(aliasTarget);
+    const bool aliasRetryRestoredCadence = aliasFixturesReady
+        && !monolith::detail::shouldSweepAtomicTempParent(aliasPath);
+    check(aliasRetryTriggered && aliasRetryRestoredCadence,
+          "a failed sweep retry through a tracked alias reschedules the physical parent");
 
     const fs::path fifoParent = parent / "fifo-parent";
     ec.clear();
