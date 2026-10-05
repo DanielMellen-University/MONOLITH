@@ -50,7 +50,7 @@ The best score is saved on the host at `~/.monolith/snake_highscore.txt` and sho
 The board letterboxes inside the window when resized or maximized. If the client area becomes very small, cells compress so the full board remains inside the window instead of covering the HUD.
 Direct render-size changes refresh the cached client geometry before layout, so input and rendering stay aligned even before the next Window Manager resize callback.
 
-Repeated HUD and overlay labels reuse a bounded renderer-owned text texture cache between frames. Changing the shared interface text scale clears the cache so labels use the new font metrics.
+Repeated HUD and overlay labels reuse a bounded renderer-owned text texture cache between frames. The game-over score/best line is formatted into a bounded stack buffer, avoiding a temporary heap string on warmed game-over frames. Changing the shared interface text scale clears the cache so labels use the new font metrics.
 
 ## Current Limitations
 

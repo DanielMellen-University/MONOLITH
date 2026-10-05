@@ -1,5 +1,10 @@
 # Changelog
 
+## 2026-10: Remove Snake game-over render allocations
+
+- Format the score/best overlay line into a bounded stack buffer instead of rebuilding a heap-backed string each frame.
+- Verify warmed game-over rendering performs zero C++ heap allocations and preserves the displayed values and spacing.
+
 ## 2026-10: Remove Minesweeper HUD and win-overlay allocations
 
 - Format the live timer HUD and win-overlay time/best line into bounded stack buffers instead of rebuilding long `std::string` values every frame.
