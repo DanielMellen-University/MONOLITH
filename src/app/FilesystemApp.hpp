@@ -165,6 +165,7 @@ private:
     int m_contextMenuHoverIndex = -1;
 
     std::string m_statusMessage;
+    std::string m_renderStatusText;
 
     // Clipboard for copy/cut + paste (multi-select paths)
     std::vector<std::string> m_clipboardPaths;

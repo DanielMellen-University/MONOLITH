@@ -3,7 +3,9 @@
 #include "../detail/RendererClip.hpp"
 
 #include <algorithm>
+#include <charconv>
 #include <cctype>
+#include <limits>
 #include <memory>
 #include <sstream>
 #include <utility>
@@ -2232,22 +2234,27 @@ void FilesystemApp::drawStatusBar(SDL_Renderer* r, const SDL_Rect& contentRect) 
 
     if (!m_font) return;
 
-    std::string status;
-
-    if (visibleEntryCount() == 0) {
-        status = "0 items";
-    } else {
-        status = std::to_string(visibleEntryCount()) + " items";
+    std::string& status = m_renderStatusText;
+    status.clear();
+    char countBuffer[std::numeric_limits<std::size_t>::digits10 + 1];
+    const auto countResult = std::to_chars(
+        countBuffer, countBuffer + sizeof(countBuffer), visibleEntryCount());
+    if (countResult.ec == std::errc{}) {
+        status.append(countBuffer,
+                      static_cast<std::size_t>(countResult.ptr - countBuffer));
     }
+    status.append(" items");
 
     if (m_selectedIndex >= 0 && m_selectedIndex < static_cast<int>(visibleEntryCount())) {
         const auto& sel = visibleEntryAt(static_cast<std::size_t>(m_selectedIndex));
-        status += "   |   Selected: " + sel.name;
-        if (sel.isDirectory) status += " (dir)";
+        status.append("   |   Selected: ");
+        status.append(sel.name);
+        if (sel.isDirectory) status.append(" (dir)");
     }
 
     if (!m_statusMessage.empty()) {
-        status += "   |   " + m_statusMessage;
+        status.append("   |   ");
+        status.append(m_statusMessage);
     }
 
     SDL_Color textCol = {160, 165, 175, 255};

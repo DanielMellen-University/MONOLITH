@@ -6,13 +6,37 @@
 #include <SDL2/SDL.h>
 #include <SDL2/SDL_ttf.h>
 #include <cstdio>
+#include <cstdlib>
 #include <filesystem>
 #include <iostream>
+#include <new>
 #include <string>
 
 #define private public
 #include "../src/app/FilesystemApp.hpp"
 #undef private
+
+namespace {
+bool g_trackAllocations = false;
+std::size_t g_trackedAllocations = 0;
+}
+
+void* operator new(std::size_t size) {
+    if (g_trackAllocations) ++g_trackedAllocations;
+    if (void* memory = std::malloc(size == 0 ? 1 : size)) return memory;
+    throw std::bad_alloc();
+}
+
+void* operator new[](std::size_t size) {
+    if (g_trackAllocations) ++g_trackedAllocations;
+    if (void* memory = std::malloc(size == 0 ? 1 : size)) return memory;
+    throw std::bad_alloc();
+}
+
+void operator delete(void* memory) noexcept { std::free(memory); }
+void operator delete(void* memory, std::size_t) noexcept { std::free(memory); }
+void operator delete[](void* memory) noexcept { std::free(memory); }
+void operator delete[](void* memory, std::size_t) noexcept { std::free(memory); }
 
 namespace {
 
@@ -612,6 +636,20 @@ int main() {
     SDL_Renderer* renderer = surface ? SDL_CreateSoftwareRenderer(surface) : nullptr;
     check(renderer != nullptr, "browser state creates a software renderer");
     if (renderer) {
+        TestFilesystemApp allocationBrowser(font, &fs);
+        allocationBrowser.onResize(240, 240);
+        const bool selectedStatusRow = allocationBrowser.selectEntryNamed(
+            "note_11.txt", false);
+        allocationBrowser.render(renderer, {0, 0, 240, 240});
+        g_trackedAllocations = 0;
+        g_trackAllocations = true;
+        allocationBrowser.render(renderer, {0, 0, 240, 240});
+        g_trackAllocations = false;
+        check(selectedStatusRow && g_trackedAllocations == 0
+                  && allocationBrowser.m_renderStatusText.find(
+                      "Selected: note_11.txt") != std::string::npos,
+              "warmed Filesystem Browser selected-row rendering performs no heap allocations");
+
         SDL_RenderSetClipRect(renderer, nullptr);
         const Uint32 sentinel = SDL_MapRGBA(surface->format, 3, 5, 7, 255);
         SDL_SetRenderDrawColor(renderer, 3, 5, 7, 255);
