@@ -1,5 +1,10 @@
 # Changelog
 
+## 2026-10: Remove Terminal scrollback frame allocations
+
+- Pass visible UTF-8 scrollback slices directly to the shared text cache as borrowed views instead of copying each clipped row every frame.
+- Cover a warmed frame with an actually clipped, heap-sized history slice and require zero C++ heap allocations.
+
 ## 2026-10: Remove Text Editor Find frame allocations
 
 - Pass visible syntax slices to the text texture cache as borrowed views, avoiding a temporary string copy on every rendered line.
