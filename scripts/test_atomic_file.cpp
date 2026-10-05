@@ -268,6 +268,84 @@ int main() {
               && cleanupTrapContents == "keep external data",
           "atomic cleanup stays anchored to its original parent after a symlink alias retarget");
 
+    const fs::path publishParentOne = parent / "publish-parent-one";
+    const fs::path publishParentTwo = parent / "publish-parent-two";
+    const fs::path publishAlias = parent / "publish-parent-alias";
+    ec.clear();
+    bool publishFixturesReady = fs::create_directory(publishParentOne, ec) && !ec;
+    ec.clear();
+    publishFixturesReady = publishFixturesReady
+        && fs::create_directory(publishParentTwo, ec) && !ec;
+    ec.clear();
+    if (publishFixturesReady) {
+        fs::create_directory_symlink(publishParentOne, publishAlias, ec);
+    }
+    publishFixturesReady = publishFixturesReady && !ec;
+
+    std::string publishWorkspaceName;
+    fs::path publishTrapWorkspace;
+    bool publishTrapPrepared = false;
+    bool publishAliasRetargeted = false;
+    const bool publishWriteSucceeded = publishFixturesReady
+        && monolith::detail::writeTextAtomically(
+            publishAlias / "record.txt",
+            [&](std::ostream& out) {
+                for (const auto& entry : fs::directory_iterator(publishParentOne)) {
+                    const std::string_view name =
+                        monolith::detail::pathBasenameView(entry.path());
+                    if (!name.starts_with(monolith::detail::atomicTempPrefix)) continue;
+                    publishWorkspaceName.assign(name);
+                    break;
+                }
+                if (publishWorkspaceName.empty()) return false;
+
+                publishTrapWorkspace = publishParentTwo / publishWorkspaceName;
+                std::error_code trapError;
+                publishTrapPrepared = fs::create_directory(publishTrapWorkspace,
+                                                           trapError)
+                    && !trapError;
+                if (publishTrapPrepared) {
+                    fs::create_symlink(monolith::detail::atomicTempOwnerMarker,
+                                       publishTrapWorkspace
+                                           / monolith::detail::atomicTempOwnerName,
+                                       trapError);
+                    publishTrapPrepared = !trapError
+                        && writeFixture(publishTrapWorkspace / "lease", "lease")
+                        && writeFixture(publishTrapWorkspace / "ready", "ready")
+                        && writeFixture(publishTrapWorkspace / "content",
+                                        "keep published trap");
+                }
+                if (!publishTrapPrepared) return false;
+
+                std::error_code aliasError;
+                const bool removedAlias = fs::remove(publishAlias, aliasError)
+                    && !aliasError;
+                if (removedAlias) {
+                    fs::create_directory_symlink(publishParentTwo, publishAlias,
+                                                 aliasError);
+                }
+                publishAliasRetargeted = removedAlias && !aliasError;
+                if (!publishAliasRetargeted) return false;
+                out << "published to original parent";
+                return static_cast<bool>(out);
+            });
+    std::ifstream publishOriginalInput(publishParentOne / "record.txt",
+                                       std::ios::binary);
+    const std::string publishOriginalContents(
+        (std::istreambuf_iterator<char>(publishOriginalInput)),
+        std::istreambuf_iterator<char>());
+    std::ifstream publishTrapInput(publishTrapWorkspace / "content",
+                                   std::ios::binary);
+    const std::string publishTrapContents(
+        (std::istreambuf_iterator<char>(publishTrapInput)),
+        std::istreambuf_iterator<char>());
+    check(publishWriteSucceeded && publishTrapPrepared && publishAliasRetargeted
+              && publishOriginalContents == "published to original parent"
+              && !fs::exists(publishParentTwo / "record.txt")
+              && publishTrapContents == "keep published trap"
+              && fs::exists(publishTrapWorkspace),
+          "atomic staging and publication stay anchored after a parent alias retarget");
+
     const fs::path modeRaceDirectory = parent / "mode-race";
     const fs::path modeRaceStagedPath = modeRaceDirectory / "content";
     const fs::path modeRaceOutsidePath = modeRaceDirectory / "outside.txt";
@@ -336,6 +414,26 @@ int main() {
         std::istreambuf_iterator<char>());
     check(callbackSuccessCommitted && callbackSuccessContents == "complete version",
           "a true-returning atomic writer commits its completed output");
+
+    std::string bufferedPayload(48 * 1024, '\0');
+    for (std::size_t index = 0; index < bufferedPayload.size(); ++index) {
+        bufferedPayload[index] = static_cast<char>(index % 251);
+    }
+    const fs::path bufferedTarget = callbackFailureDirectory / "buffered.bin";
+    const bool bufferedWriteCommitted = monolith::detail::writeAtomically(
+        bufferedTarget,
+        [&](std::ostream& out) {
+            out.write(bufferedPayload.data(),
+                      static_cast<std::streamsize>(bufferedPayload.size()));
+            return static_cast<bool>(out);
+        },
+        false, std::ios_base::out | std::ios_base::binary);
+    std::ifstream bufferedInput(bufferedTarget, std::ios::binary);
+    const std::string bufferedContents(
+        (std::istreambuf_iterator<char>(bufferedInput)),
+        std::istreambuf_iterator<char>());
+    check(bufferedWriteCommitted && bufferedContents == bufferedPayload,
+          "atomic output buffering preserves large binary streams across flush boundaries");
 
     {
         monolith::detail::AtomicTempParentLock heldLock(parent);
