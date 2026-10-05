@@ -37,6 +37,12 @@ inline constexpr std::size_t atomicTempSweepEntryBudget = 32;
 inline constexpr std::size_t atomicTempTrackedParents = 16;
 inline constexpr std::size_t atomicTempTrackedAliases = 3;
 
+inline bool isAtomicTempWorkspaceName(std::string_view name) {
+    return name.starts_with(atomicTempPrefix)
+        || name.starts_with(atomicTempPreviousPrefix)
+        || name.starts_with(atomicTempOlderPrefix);
+}
+
 struct AtomicTempDirectoryCloser {
     void operator()(DIR* directory) const noexcept {
         if (directory) ::closedir(directory);
@@ -574,10 +580,7 @@ inline bool scavengeAtomicTempDirectoryStepLocked(
         ++entriesRead;
 
         const std::string_view name(entry->d_name);
-        const bool isWorkspace = name.starts_with(atomicTempPrefix)
-            || name.starts_with(atomicTempPreviousPrefix)
-            || name.starts_with(atomicTempOlderPrefix);
-        if (!isWorkspace) continue;
+        if (!isAtomicTempWorkspaceName(name)) continue;
 
         candidates[candidateCount++] = parent / std::filesystem::path(name);
     }

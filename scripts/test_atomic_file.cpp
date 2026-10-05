@@ -86,6 +86,14 @@ int main() {
     }
     const fs::path parent = temp.path();
     std::error_code ec;
+    check(monolith::detail::isAtomicTempWorkspaceName(
+              std::string(monolith::detail::atomicTempPrefix) + "token")
+              && monolith::detail::isAtomicTempWorkspaceName(
+                  std::string(monolith::detail::atomicTempPreviousPrefix) + "token")
+              && monolith::detail::isAtomicTempWorkspaceName(
+                  std::string(monolith::detail::atomicTempOlderPrefix) + "token")
+              && !monolith::detail::isAtomicTempWorkspaceName("notes.txt.tmp"),
+          "startup and synchronous sweeps share v2-v4 workspace-name recognition");
     check(monolith::detail::pathBasenameView(fs::path("relative/workspace")) == "workspace"
               && monolith::detail::pathBasenameView(fs::path("relative/workspace/"))
                   == "workspace"

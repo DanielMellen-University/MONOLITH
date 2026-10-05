@@ -392,9 +392,7 @@ bool Filesystem::maintenanceStep(std::size_t entryBudget) noexcept {
             const stdfs::directory_entry& currentEntry = *frame.current;
             const stdfs::path& entryPath = currentEntry.path();
             const std::string_view name = monolith::detail::pathBasenameView(entryPath);
-            if (name.starts_with(monolith::detail::atomicTempPrefix)
-                || name.starts_with(monolith::detail::atomicTempPreviousPrefix)
-                || name.starts_with(monolith::detail::atomicTempOlderPrefix)) {
+            if (monolith::detail::isAtomicTempWorkspaceName(name)) {
                 workspacePath = entryPath;
                 isWorkspace = true;
             } else {
