@@ -467,6 +467,9 @@ inline bool scavengeAtomicTempDirectoryStepLocked(
         scheduleAtomicTempSweepRetry(parent);
         return false;
     }
+    if (entryBudget > atomicTempSweepEntryBudget) {
+        entryBudget = atomicTempSweepEntryBudget;
+    }
 
     const auto lexicalKey = parent.lexically_normal();
     std::unique_lock lock(atomicTempSweepMutex);
@@ -529,7 +532,10 @@ inline bool scavengeAtomicTempDirectoryStepLocked(
         return false;
     }
 
+    std::array<std::filesystem::path, atomicTempSweepEntryBudget> candidates{};
+    std::size_t candidateCount = 0;
     std::size_t entriesRead = 0;
+    bool complete = false;
     while (entriesRead < entryBudget) {
         errno = 0;
         const dirent* entry = ::readdir(slot->traversal.get());
@@ -540,7 +546,8 @@ inline bool scavengeAtomicTempDirectoryStepLocked(
                 return false;
             }
             slot->traversal.reset();
-            return true;
+            complete = true;
+            break;
         }
         ++entriesRead;
 
@@ -550,11 +557,16 @@ inline bool scavengeAtomicTempDirectoryStepLocked(
             || name.starts_with(atomicTempOlderPrefix);
         if (!isWorkspace) continue;
 
-        const std::filesystem::path candidate = parent / std::filesystem::path(name);
-        if (tryReclaimIncompleteAtomicTempDirectory(candidate)) continue;
-        tryReclaimAtomicTempDirectory(candidate);
+        candidates[candidateCount++] = parent / std::filesystem::path(name);
     }
-    return false;
+
+    // Keep filesystem cleanup off the process-wide cursor/tracker mutex.
+    lock.unlock();
+    for (std::size_t index = 0; index < candidateCount; ++index) {
+        if (tryReclaimIncompleteAtomicTempDirectory(candidates[index])) continue;
+        tryReclaimAtomicTempDirectory(candidates[index]);
+    }
+    return complete;
 }
 
 inline void scavengeAtomicTempDirectoriesIfDue(const std::filesystem::path& parent) {
