@@ -1,5 +1,7 @@
 # Session log
 
+| 2026-10-05 | perf/editor | Measure visible Find prefixes and match slices with a 4 KiB stack scratch buffer during geometry rebuilds, using temporary storage only for exceptionally large slices. The isolated rebuild regression fails with substring allocation and passes with scratch measurement; full headless suite and Release build pass. |
+
 | 2026-10-05 | perf/snake | Format the game-over score/best line into a bounded stack buffer. A warmed game-over render performs zero C++ heap allocations and preserves exact text; full headless suite and Release build pass. |
 
 | 2026-10-05 | perf/minesweeper | Format the live HUD status and win-overlay time/best line into bounded stack buffers. Warmed gameplay and win-overlay renders perform zero C++ heap allocations and preserve exact text; full headless suite and Release build pass. |
