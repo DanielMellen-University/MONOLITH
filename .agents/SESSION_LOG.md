@@ -1,5 +1,7 @@
 # Session log
 
+| 2026-10-05 | fix/filesystem | Preserve `seekp`/`tellp` behavior on the buffered descriptor-backed atomic stream by flushing pending bytes before `lseek`; a regression overwrites bytes in the middle of an existing staged stream and checks reported positions. Focused atomic suite and production build pass; hosted run #509 `verify`/`sanitize` passed. |
+
 | 2026-10-05 | fix/data-safety | Anchor atomic workspace setup, buffered output, permission recovery, sync, publication, and rollback to retained parent/workspace descriptors. A deterministic parent-symlink retarget regression preserves a valid-looking workspace in the new target, and a 48 KiB binary test covers stream-buffer boundaries. Focused atomic suite and production build pass; hosted run #505 `verify`/`sanitize` passed. Uncoordinated host writers remain outside Monolith's advisory-lock guarantee. |
 
 | 2026-10-05 | fix/data-safety | Anchor atomic workspace reclamation to the locked parent and a no-follow workspace descriptor; failed-save rollback retains its original parent FD, with a deterministic symlink-retarget regression proving a valid-looking workspace at the new target is preserved. Production build, full headless suite, and hosted run #502 `verify`/`sanitize` pass. |
