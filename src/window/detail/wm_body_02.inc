@@ -111,12 +111,17 @@
         m_mouseY = event.button.y;
         m_mouseDown = false;
 
+        const int releaseLogicalX = screenToLogicalX(m_mouseX);
+        const int releaseLogicalY = screenToLogicalY(m_mouseY);
+
         if (m_draggedWindow) {
+            updateDraggedWindowPosition(releaseLogicalX, releaseLogicalY);
             m_draggedWindow->beingDragged = false;
             m_draggedWindow = nullptr;
         }
 
         if (m_resizingWindow) {
+            applyResize(m_resizingWindow, releaseLogicalX, releaseLogicalY);
             m_resizingWindow = nullptr;
             m_resizeDirection = ResizeDirection::None;
         }
@@ -138,11 +143,7 @@ void WindowManager::update() {
     const int logicalMouseY = screenToLogicalY(m_mouseY);
 
     if (m_draggedWindow && m_mouseDown) {
-        m_draggedWindow->rect.x = logicalMouseX - m_draggedWindow->dragOffsetX;
-        m_draggedWindow->rect.y = logicalMouseY - m_draggedWindow->dragOffsetY;
-
-        // Prevent user from dragging the window so far that buttons become inaccessible
-        clampSingleWindow(*m_draggedWindow);
+        updateDraggedWindowPosition(logicalMouseX, logicalMouseY);
     }
 
     if (m_resizingWindow && m_mouseDown) {

@@ -136,6 +136,14 @@ void WindowManager::applyResize(Window* window, int mouseX, int mouseY) {
     notifyAppResizeIfGeometryChanged(*window, before);
 }
 
+void WindowManager::updateDraggedWindowPosition(int logicalMouseX, int logicalMouseY) {
+    if (!m_draggedWindow) return;
+
+    m_draggedWindow->rect.x = logicalMouseX - m_draggedWindow->dragOffsetX;
+    m_draggedWindow->rect.y = logicalMouseY - m_draggedWindow->dragOffsetY;
+    clampSingleWindow(*m_draggedWindow);
+}
+
 void WindowManager::processDeferredCloses() {
     if (m_processingDeferredCloses || m_appCallbackDepth != 0) return;
 

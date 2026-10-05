@@ -442,6 +442,63 @@ int main() {
     check(window->rect.x == 190 && window->rect.y == 190,
           "scaled dragging uses logical pointer coordinates");
 
+    SDL_Event dragRelease{};
+    dragRelease.type = SDL_MOUSEBUTTONUP;
+    dragRelease.button.button = SDL_BUTTON_LEFT;
+    dragRelease.button.x = 400;
+    dragRelease.button.y = 400;
+    wm.handleEvent(dragRelease);
+
+    SDL_Event batchedDragStart{};
+    batchedDragStart.type = SDL_MOUSEBUTTONDOWN;
+    batchedDragStart.button.button = SDL_BUTTON_LEFT;
+    batchedDragStart.button.x = 400;
+    batchedDragStart.button.y = 400;
+    wm.handleEvent(batchedDragStart);
+    SDL_Event batchedDragMotion{};
+    batchedDragMotion.type = SDL_MOUSEMOTION;
+    batchedDragMotion.motion.x = 620;
+    batchedDragMotion.motion.y = 1200;
+    wm.handleEvent(batchedDragMotion);
+    SDL_Event batchedDragRelease{};
+    batchedDragRelease.type = SDL_MOUSEBUTTONUP;
+    batchedDragRelease.button.button = SDL_BUTTON_LEFT;
+    batchedDragRelease.button.x = batchedDragMotion.motion.x;
+    batchedDragRelease.button.y = batchedDragMotion.motion.y;
+    wm.handleEvent(batchedDragRelease);
+    wm.update();
+    const SDL_Rect usableAfterBatchedDrag = wm.getUsableDesktopRect();
+    check(window->rect.x == 300 && window->rect.y == 432
+              && window->rect.y + window->rect.h
+                  <= usableAfterBatchedDrag.y + usableAfterBatchedDrag.h
+              && !window->beingDragged && wm.m_draggedWindow == nullptr,
+          "batched drag release applies its final position and stays above the taskbar");
+
+    const int resizeCallsBeforeBatchedRelease = probePtr->resizeCalls;
+    SDL_Event batchedResizeStart{};
+    batchedResizeStart.type = SDL_MOUSEBUTTONDOWN;
+    batchedResizeStart.button.button = SDL_BUTTON_LEFT;
+    batchedResizeStart.button.x = (window->rect.x + window->rect.w - 1) * 2;
+    batchedResizeStart.button.y = (window->rect.y + 100) * 2;
+    wm.handleEvent(batchedResizeStart);
+    SDL_Event batchedResizeMotion{};
+    batchedResizeMotion.type = SDL_MOUSEMOTION;
+    batchedResizeMotion.motion.x = 650 * 2;
+    batchedResizeMotion.motion.y = batchedResizeStart.button.y;
+    wm.handleEvent(batchedResizeMotion);
+    SDL_Event batchedResizeRelease{};
+    batchedResizeRelease.type = SDL_MOUSEBUTTONUP;
+    batchedResizeRelease.button.button = SDL_BUTTON_LEFT;
+    batchedResizeRelease.button.x = batchedResizeMotion.motion.x;
+    batchedResizeRelease.button.y = batchedResizeMotion.motion.y;
+    wm.handleEvent(batchedResizeRelease);
+    wm.update();
+    check(window->rect.w == 350 && probePtr->resizeCalls
+                  == resizeCallsBeforeBatchedRelease + 1
+              && probePtr->lastResizeWidth == window->rect.w,
+          "batched resize release applies its final size and notifies the app");
+
+    const int resizeCallsBeforeNarrowDesktop = probePtr->resizeCalls;
     wm.setLogicalDesktopSize(120, 120);
     check(window->rect.x == 0 && window->rect.w == 120,
           "narrow logical desktops keep clamped windows inside the left edge");
@@ -449,7 +506,7 @@ int main() {
     check(window->rect.y >= narrowUsable.y
               && window->rect.y + window->rect.h <= narrowUsable.y + narrowUsable.h,
           "narrow logical desktops keep the full frame above the taskbar");
-    check(probePtr->resizeCalls == 2
+    check(probePtr->resizeCalls == resizeCallsBeforeNarrowDesktop + 1
               && probePtr->lastResizeWidth == window->rect.w
               && probePtr->lastResizeHeight == window->rect.h - monolith::window::Window::TITLE_BAR_HEIGHT,
           "desktop clamping notifies the app of its changed client size");

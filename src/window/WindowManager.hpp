@@ -201,5 +201,6 @@ private:
     std::string m_startMenuFilter;
     void invalidateStartMenuHitTargets();
     void applyStartMenuFilterEdit();
+    void updateDraggedWindowPosition(int logicalMouseX, int logicalMouseY);
 
 #include "WindowManager_private.inc"

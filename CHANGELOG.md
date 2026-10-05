@@ -1,5 +1,10 @@
 # Changelog
 
+## 2026-10: Commit final window drag and resize positions
+
+- Apply the mouse-up coordinates to active window drags and frame resizes before clearing gesture state, preserving the last movement when SDL batches motion and release before the frame update.
+- Keep drag clamping and app resize notifications on the final released geometry; cover both paths in the Window Manager coordinate suite.
+
 ## 2026-10: Keep atomic cleanup bounded
 
 - Remove the duplicate unbounded whole-directory scanner; regression tests now drive the same resumable 32-entry sweep used by saves and listings, reacquiring the parent lock for each slice.
