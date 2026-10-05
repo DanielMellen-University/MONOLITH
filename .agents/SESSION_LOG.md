@@ -1,5 +1,7 @@
 # Session log
 
+| 2026-10-05 | fix/data-safety | Anchor atomic workspace reclamation to the locked parent and a no-follow workspace descriptor; failed-save rollback retains its original parent FD, with a deterministic symlink-retarget regression proving a valid-looking workspace at the new target is preserved. Focused atomic-file suite and production build pass locally; full hosted verification pending. |
+
 | 2026-10-05 | refactor/filesystem | Move non-template atomic-save cleanup, locking, sync, and publication implementations into `AtomicFile.cpp`; the header now holds declarations and writer templates. Production build, full headless suite, and hosted run #499 `verify`/`sanitize` pass. |
 
 | 2026-10-05 | perf/filesystem | Classify atomic-save v4 ownership, directory type, and ready-marker state once before routing incomplete or lease-protected cleanup, removing repeated metadata probes while preserving final workspace validation; focused atomic suite, full headless suite, production build, and hosted run #496 `verify`/`sanitize` pass. |
