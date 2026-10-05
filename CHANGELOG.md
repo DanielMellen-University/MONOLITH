@@ -1,5 +1,10 @@
 # Changelog
 
+## 2026-10: Remove Text Editor Find frame allocations
+
+- Pass visible syntax slices to the text texture cache as borrowed views, avoiding a temporary string copy on every rendered line.
+- Format active Find match counts into a stack buffer and verify a warmed Find frame preserves its count without C++ heap allocations.
+
 ## 2026-10: Remove Start-menu frame allocations
 
 - Build registry rows once and use bounded arrays for filtered rows and actionable hit targets, avoiding per-frame heap work while type-ahead is active.
