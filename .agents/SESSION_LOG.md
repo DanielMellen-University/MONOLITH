@@ -1,5 +1,7 @@
 # Session log
 
+| 2026-10-04 | test/data-safety | Added a process-level regression for two conditional saves staged from the same version; verifies that final publication produces one `Written` and one `Conflict` with no staging workspaces left behind. Focused normal and ASan/UBSan checks pass; local LeakSanitizer shutdown is unavailable in this ptrace environment, while hosted run #460 passed leak-enabled `verify` and `sanitize`. |
+
 | 2026-10-04 | fix/data-safety | Atomic writers now hold the destination parent lock across final version validation and publication, so competing Monolith atomic writers cannot replace one another between check and rename. Host tools and uncoordinated mutations remain outside the advisory lock. Production build, full headless suite, and hosted run #458 `verify`/`sanitize` pass. |
 
 | 2026-10-04 | fix | Shared atomic writes now abort on a callback's explicit `false` result instead of publishing partial output; void callbacks remain compatible. Preservation, cleanup, and success coverage pass with the production build and hosted run #456 verify/sanitize. |
