@@ -1,5 +1,7 @@
 # Session log
 
+| 2026-10-04 | fix/data-safety | Atomic publication now fsyncs staged file data and restored permissions before rename, aborting without replacing the target on file-sync failure. It attempts to sync the destination directory after rename; an error there cannot undo publication and does not report a false failed write. Added a mode-000 new-file regression under umask 0777; full headless suite, production build, and hosted run #470 `verify`/`sanitize` passed. |
+
 | 2026-10-04 | test/editor | Added 14,040 exhaustive small-case comparisons between multiline Find and a straightforward reference matcher, plus a 65,536-row/32,768-row near-match stress case. Focused/full headless suites and production build pass; hosted run #467 passed `verify` and `sanitize`. |
 
 | 2026-10-04 | perf/editor | Replaced per-candidate multiline query rechecks with KMP over exact middle-row segments and first/last-row boundary validation. Added overlapping-prefix and empty-boundary regressions; focused editor tests, full headless suite, production build, and hosted run #464 `verify`/`sanitize` passed. Commits `0b1e7e8` and `49d4787` are on `beta`. |
