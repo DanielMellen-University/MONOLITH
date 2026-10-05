@@ -3,6 +3,7 @@
 #include <SDL2/SDL.h>
 
 #include <algorithm>
+#include <array>
 #include <cstddef>
 #include <cstring>
 #include <string_view>
@@ -173,16 +174,16 @@ struct DesktopIconDef {
     Uint8 b;
 };
 
-inline std::vector<DesktopIconDef> collectDesktopIconDefs() {
+inline std::array<DesktopIconDef, kDesktopIconCount> collectDesktopIconDefs() {
     struct Item {
         int order;
         DesktopIconDef def;
     };
-    std::vector<Item> items;
-    items.reserve(static_cast<std::size_t>(kDesktopIconCount));
+    std::array<Item, kDesktopIconCount> items{};
+    std::size_t count = 0;
     for (const auto& app : kAppRegistry) {
         if (!app.showDesktopIcon) continue;
-        items.push_back({
+        items[count++] = {
             app.desktopOrder,
             DesktopIconDef{
                 app.desktopLabel ? app.desktopLabel : app.displayName,
@@ -192,13 +193,12 @@ inline std::vector<DesktopIconDef> collectDesktopIconDefs() {
                 app.iconG,
                 app.iconB,
             },
-        });
+        };
     }
-    std::sort(items.begin(), items.end(),
+    std::sort(items.begin(), items.begin() + count,
               [](const Item& a, const Item& b) { return a.order < b.order; });
-    std::vector<DesktopIconDef> out;
-    out.reserve(items.size());
-    for (const auto& item : items) out.push_back(item.def);
+    std::array<DesktopIconDef, kDesktopIconCount> out{};
+    for (std::size_t i = 0; i < count; ++i) out[i] = items[i].def;
     return out;
 }
 

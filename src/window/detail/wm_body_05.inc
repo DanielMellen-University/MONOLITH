@@ -55,12 +55,12 @@
         if (m_altTabIndex >= 0 && m_altTabIndex < static_cast<int>(m_altTabOrder.size())) {
             current = m_altTabOrder[static_cast<size_t>(m_altTabIndex)];
         }
-        const std::string label = current ? current->title : "(no window)";
+        const char* label = current ? current->title.c_str() : "(no window)";
         SDL_Color textCol = {235, 235, 240, 255};
         int textW = 0;
         int textH = 0;
         SDL_Texture* textTexture = getShellTextTexture(
-            renderer, label.c_str(), textCol, textW, textH);
+            renderer, label, textCol, textW, textH);
         if (textTexture) {
             const int logicalTextW = static_cast<int>(std::ceil(
                 static_cast<float>(textW) / m_contentScale));

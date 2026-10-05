@@ -7,6 +7,7 @@
 
 #include <algorithm>
 #include <cstddef>
+#include <cstdint>
 #include <cstdlib>
 #include <iostream>
 #include <memory>
@@ -317,18 +318,30 @@ int main() {
           "font changes invalidate cached taskbar title widths");
     wm.m_showStartMenu = false;
     wm.invalidateShellHitTargets();
+    const std::string altTabLongTitle(512, 'A');
+    wm.setWindowTitle(window, altTabLongTitle);
     wm.m_altTabOrder = {window};
     wm.m_altTabIndex = 0;
     wm.m_altTabCycling = true;
     wm.render(renderer);
-    SDL_Texture* firstAltTabTexture = getShellTexture("Probe", {235, 235, 240, 255});
+    SDL_Texture* firstAltTabTexture = getShellTexture(
+        altTabLongTitle.c_str(), {235, 235, 240, 255});
     const size_t altTabCacheSize = wm.m_shellTextCache.size();
+    const std::int64_t altTabClockMinute = wm.m_clockMinuteKey;
+    g_trackedAllocations = 0;
+    g_trackAllocations = true;
     wm.render(renderer);
-    SDL_Texture* secondAltTabTexture = getShellTexture("Probe", {235, 235, 240, 255});
+    g_trackAllocations = false;
+    const bool altTabClockStayedWarm = wm.m_clockMinuteKey == altTabClockMinute;
+    SDL_Texture* secondAltTabTexture = getShellTexture(
+        altTabLongTitle.c_str(), {235, 235, 240, 255});
     check(firstAltTabTexture != nullptr
               && secondAltTabTexture == firstAltTabTexture
               && wm.m_shellTextCache.size() == altTabCacheSize,
           "shell text reuses Alt+Tab overlay textures between frames");
+    check(!altTabClockStayedWarm || g_trackedAllocations == 0,
+          "a warmed Alt+Tab title adds no heap allocation while the clock is stable");
+    wm.setWindowTitle(window, "Probe");
 
     const SDL_Color cacheWhite = {255, 255, 255, 255};
     int cachedWidth = 0;

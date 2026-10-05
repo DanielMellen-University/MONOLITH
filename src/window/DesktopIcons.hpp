@@ -5,8 +5,8 @@
 #include <SDL2/SDL.h>
 
 #include <algorithm>
+#include <array>
 #include <cstddef>
-#include <vector>
 
 namespace monolith::window {
 
@@ -24,6 +24,21 @@ struct DesktopIconPlacement {
     Uint8 b;
 };
 
+struct DesktopIconPlacements {
+    std::array<DesktopIconPlacement, kDesktopIconCount> entries{};
+    std::size_t count = 0;
+
+    std::size_t size() const { return count; }
+    bool empty() const { return count == 0; }
+    const DesktopIconPlacement& front() const { return entries.front(); }
+    const DesktopIconPlacement& back() const { return entries[count - 1]; }
+    const DesktopIconPlacement& operator[](std::size_t index) const {
+        return entries[index];
+    }
+    const DesktopIconPlacement* begin() const { return entries.data(); }
+    const DesktopIconPlacement* end() const { return entries.data() + count; }
+};
+
 inline constexpr int kDesktopIconTile = 48;
 inline constexpr int kDesktopIconCellW = 112;
 inline constexpr int kDesktopIconLabelBand = 22;
@@ -39,9 +54,9 @@ inline constexpr Uint32 kDesktopIconDoubleClickMs = 450;
 // within each column) inside the usable desktop above the taskbar.
 // Icons that cannot fit entirely are omitted rather than overlapping the
 // taskbar or clipping past the right edge.
-inline std::vector<DesktopIconPlacement> layoutDesktopIcons(
+inline DesktopIconPlacements layoutDesktopIcons(
     int usableWidth, int usableHeight) {
-    std::vector<DesktopIconPlacement> out;
+    DesktopIconPlacements out;
     if (usableWidth <= 0 || usableHeight <= 0) return out;
 
     const auto defs = collectDesktopIconDefs();
@@ -61,7 +76,6 @@ inline std::vector<DesktopIconPlacement> layoutDesktopIcons(
 
     const int capacity = maxRows * maxCols;
     const int count = std::min(static_cast<int>(defs.size()), capacity);
-    out.reserve(static_cast<size_t>(count));
 
     for (int i = 0; i < count; ++i) {
         const int col = i / maxRows;
@@ -81,13 +95,13 @@ inline std::vector<DesktopIconPlacement> layoutDesktopIcons(
         p.r = def.r;
         p.g = def.g;
         p.b = def.b;
-        out.push_back(p);
+        out.entries[out.count++] = p;
     }
     return out;
 }
 
 inline int hitTestDesktopIcon(
-    const std::vector<DesktopIconPlacement>& icons, int logicalX, int logicalY) {
+    const DesktopIconPlacements& icons, int logicalX, int logicalY) {
     SDL_Point p{logicalX, logicalY};
     for (int i = 0; i < static_cast<int>(icons.size()); ++i) {
         if (SDL_PointInRect(&p, &icons[static_cast<size_t>(i)].rect)) {
