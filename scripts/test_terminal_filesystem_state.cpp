@@ -6,11 +6,13 @@
 #include <algorithm>
 #include <chrono>
 #include <cstddef>
+#include <cstdlib>
 #include <deque>
 #include <filesystem>
 #include <fstream>
 #include <iostream>
 #include <iterator>
+#include <new>
 #include <ostream>
 #include <string>
 #include <string_view>
@@ -27,6 +29,28 @@
 #define private public
 #include "../src/app/TerminalApp.hpp"
 #undef private
+
+namespace {
+bool g_trackAllocations = false;
+std::size_t g_trackedAllocations = 0;
+}
+
+void* operator new(std::size_t size) {
+    if (g_trackAllocations) ++g_trackedAllocations;
+    if (void* memory = std::malloc(size == 0 ? 1 : size)) return memory;
+    throw std::bad_alloc();
+}
+
+void* operator new[](std::size_t size) {
+    if (g_trackAllocations) ++g_trackedAllocations;
+    if (void* memory = std::malloc(size == 0 ? 1 : size)) return memory;
+    throw std::bad_alloc();
+}
+
+void operator delete(void* memory) noexcept { std::free(memory); }
+void operator delete(void* memory, std::size_t) noexcept { std::free(memory); }
+void operator delete[](void* memory) noexcept { std::free(memory); }
+void operator delete[](void* memory, std::size_t) noexcept { std::free(memory); }
 
 namespace {
 
@@ -968,6 +992,23 @@ int main() {
     SDL_Renderer* renderer = surface ? SDL_CreateSoftwareRenderer(surface) : nullptr;
     check(renderer != nullptr, "terminal state creates a software renderer");
     if (renderer) {
+        TestTerminal allocationTerminal(font, &fs);
+        allocationTerminal.addOutput(std::string(256, 'i'));
+        allocationTerminal.onResize(240, 240);
+        allocationTerminal.render(renderer, {0, 0, 240, 240});
+        const bool rowUsesClippedHeapSizedView =
+            !allocationTerminal.m_historyViewportMeasures.empty()
+            && allocationTerminal.m_historyViewportMeasures.back().valid
+            && allocationTerminal.m_historyViewportMeasures.back().visibleBytes > 15
+            && allocationTerminal.m_historyViewportMeasures.back().visibleBytes
+                < allocationTerminal.m_history.back().size();
+        g_trackedAllocations = 0;
+        g_trackAllocations = true;
+        allocationTerminal.render(renderer, {0, 0, 240, 240});
+        g_trackAllocations = false;
+        check(rowUsesClippedHeapSizedView && g_trackedAllocations == 0,
+              "warmed Terminal frame with clipped scrollback performs no heap allocations");
+
         const SDL_Rect expectedClip{5, 6, 140, 120};
         SDL_RenderSetClipRect(renderer, &expectedClip);
         terminal.render(renderer, {0, 0, 200, 200});

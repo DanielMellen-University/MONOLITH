@@ -794,8 +794,6 @@ void TerminalApp::render(SDL_Renderer* renderer, const SDL_Rect& contentRect) {
 
         for (int i = startIdx; i >= 0 && y >= historyRect.y; --i) {
             const std::string& line = m_history[i];
-            std::string visibleLine;
-            const char* displayText = line.c_str();
             std::size_t startBytes = 0;
             std::size_t visibleBytes = 0;
             if (!getVisibleHistoryRangeBytes(
@@ -804,14 +802,11 @@ void TerminalApp::render(SDL_Renderer* renderer, const SDL_Rect& contentRect) {
                 y -= lineHeight;
                 continue;
             }
-
-            if (startBytes > 0 || visibleBytes < line.size()) {
-                visibleLine.assign(line.data() + startBytes, visibleBytes);
-                displayText = visibleLine.c_str();
-            }
+            const std::string_view visibleText(
+                line.data() + startBytes, visibleBytes);
 
             const auto texture = m_textTextureCache.get(
-                renderer, m_font, displayText, textColor);
+                renderer, m_font, visibleText, textColor);
             if (texture) {
                 SDL_Rect dst = {
                     historyRect.x,
