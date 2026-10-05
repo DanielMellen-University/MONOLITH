@@ -1199,7 +1199,7 @@ int main() {
         },
         true,
         std::ios_base::out,
-        [&publicationLockHeld, &hostRoot]() {
+        [&publicationLockHeld, &hostRoot](int, const std::string&) {
             monolith::detail::AtomicTempParentLock probe(hostRoot / "src", true);
             publicationLockHeld = !probe.locked()
                 && (probe.error() == EWOULDBLOCK || probe.error() == EAGAIN);
@@ -1330,7 +1330,7 @@ int main() {
         },
         true,
         std::ios_base::out,
-        [&noReplaceRaceTarget]() {
+        [&noReplaceRaceTarget](int, const std::string&) {
             std::ofstream externalWriter(noReplaceRaceTarget);
             externalWriter << "concurrent";
             return static_cast<bool>(externalWriter);
@@ -1369,6 +1369,42 @@ int main() {
                   && fs.readFile("/src/conditional-link-b.txt") == "target-b"
                   && !hasAtomicTempWorkspace(hostRoot / "src"),
               "conditional write rejects a symlink retarget during content generation");
+    }
+    check(fs.createDirectory("/src/conditional-parent-a")
+              && fs.createDirectory("/src/conditional-parent-b")
+              && fs.writeFile("/src/conditional-parent-a/record.txt", "parent-a")
+              && fs.writeFile("/src/conditional-parent-b/record.txt", "parent-b"),
+          "create conditional parent-alias fixtures");
+    const stdfs::path conditionalParentAlias = hostRoot / "src/conditional-parent-link";
+    ec.clear();
+    stdfs::create_directory_symlink(
+        hostRoot / "src/conditional-parent-a", conditionalParentAlias, ec);
+    check(!ec, "create conditional parent-directory symlink fixture");
+    if (!ec) {
+        monolith::fs::FileStamp conditionalParentStamp;
+        check(fs.fileStamp("/src/conditional-parent-link/record.txt",
+                           conditionalParentStamp),
+              "read conditional parent-alias baseline stamp");
+        const auto parentSymlinkRaceResult = fs.writeFileWithProducerIfStampMatches(
+            "/src/conditional-parent-link/record.txt",
+            [&conditionalParentAlias, &hostRoot, &ec](std::ostream& out) {
+                stdfs::remove(conditionalParentAlias, ec);
+                if (ec) return false;
+                stdfs::create_directory_symlink(
+                    hostRoot / "src/conditional-parent-b",
+                    conditionalParentAlias, ec);
+                if (ec) return false;
+                out << "outer-write";
+                return static_cast<bool>(out);
+            },
+            conditionalParentStamp);
+        check(parentSymlinkRaceResult
+                      == monolith::fs::ConditionalWriteResult::Conflict
+                  && fs.readFile("/src/conditional-parent-a/record.txt") == "parent-a"
+                  && fs.readFile("/src/conditional-parent-b/record.txt") == "parent-b"
+                  && !hasAtomicTempWorkspace(hostRoot / "src/conditional-parent-a")
+                  && !hasAtomicTempWorkspace(hostRoot / "src/conditional-parent-b"),
+              "conditional write rejects a parent-directory symlink retarget during content generation");
     }
     const std::string streamedBinary("new\0bytes", 9);
     check(fs.writeFileWithProducer("/src/streamed.bin", [&streamedBinary](std::ostream& out) {

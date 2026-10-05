@@ -134,7 +134,7 @@ bool writeAtomically(const std::filesystem::path& targetPath,
                      Writer&& writer,
                      bool createParentDirectories = false,
                      std::ios_base::openmode openMode = std::ios_base::out,
-                     const std::function<bool()>& beforeReplace = {},
+                     const std::function<bool(int, const std::string&)>& beforeReplace = {},
                      bool noReplaceTarget = false,
                      bool* outTargetAlreadyExists = nullptr) {
     if (outTargetAlreadyExists) *outTargetAlreadyExists = false;
@@ -198,7 +198,7 @@ bool writeAtomically(const std::filesystem::path& targetPath,
     if (!publicationLock.locked()) return false;
 
     // The callback must not reenter an atomic write to this parent directory.
-    if (beforeReplace && !beforeReplace()) return false;
+    if (beforeReplace && !beforeReplace(publicationLock.fd(), targetEntry)) return false;
     return publishAtomicTempFile(
         cleanup.workspaceFd, "content", publicationLock.fd(), targetEntry,
         noReplaceTarget, outTargetAlreadyExists);

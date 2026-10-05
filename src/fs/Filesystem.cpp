@@ -113,6 +113,42 @@ StampCheck checkHostPathStamp(const stdfs::path& path,
     return StampCheck::Error;
 }
 
+StampCheck checkParentEntryStamp(
+    int parentFd,
+    const std::string& entryName,
+    const std::optional<monolith::fs::FileStamp>& expected) {
+    struct stat info {};
+    if (::fstatat(parentFd, entryName.c_str(), &info, AT_SYMLINK_NOFOLLOW) == 0) {
+        if (!S_ISREG(info.st_mode)) return StampCheck::Conflict;
+        return expected && *expected == fileStampFromStat(info)
+            ? StampCheck::Match
+            : StampCheck::Conflict;
+    }
+    if (errno == ENOENT) {
+        return expected ? StampCheck::Conflict : StampCheck::Match;
+    }
+    return StampCheck::Error;
+}
+
+StampCheck checkParentPathIdentity(const stdfs::path& parentPath, int parentFd) {
+    struct stat pinnedParent {};
+    if (::fstat(parentFd, &pinnedParent) != 0) return StampCheck::Error;
+
+    struct stat pathParent {};
+    if (::stat(parentPath.c_str(), &pathParent) != 0) {
+        if (errno == ENOENT || errno == ENOTDIR || errno == ELOOP) {
+            return StampCheck::Conflict;
+        }
+        return StampCheck::Error;
+    }
+    if (!S_ISDIR(pinnedParent.st_mode) || !S_ISDIR(pathParent.st_mode)
+        || pinnedParent.st_dev != pathParent.st_dev
+        || pinnedParent.st_ino != pathParent.st_ino) {
+        return StampCheck::Conflict;
+    }
+    return StampCheck::Match;
+}
+
 std::error_code renameWithoutReplacing(const stdfs::path& source,
                                        const stdfs::path& destination) {
 #if defined(SYS_renameat2) && defined(RENAME_NOREPLACE)
@@ -1099,7 +1135,9 @@ bool Filesystem::writeFileWithProducerAtHostPath(
             if (resolveEc || !isWithinHostRoot(writePath.string())) return false;
         }
 
-        auto versionMatches = [&]() {
+        const stdfs::path writeParentPath = writePath.parent_path();
+
+        auto symbolicPathMatches = [&]() {
             if (!expectedStamp) return true;
             if (isSymlinkPath(hostPath) != hostPathIsSymlink) {
                 if (outVersionConflict) *outVersionConflict = true;
@@ -1115,13 +1153,35 @@ bool Filesystem::writeFileWithProducerAtHostPath(
                     return false;
                 }
             }
+            return true;
+        };
+        auto versionMatchesAtPath = [&]() {
+            if (!symbolicPathMatches()) return false;
+            if (!expectedStamp) return true;
             const StampCheck check = checkHostPathStamp(writePath, *expectedStamp);
             if (check == StampCheck::Conflict && outVersionConflict) {
                 *outVersionConflict = true;
             }
             return check == StampCheck::Match;
         };
-        if (!versionMatches()) return false;
+        auto versionMatchesAtParent = [&](int parentFd, const std::string& entryName) {
+            if (!symbolicPathMatches()) return false;
+            if (!expectedStamp) return true;
+            const StampCheck parentCheck = checkParentPathIdentity(writeParentPath, parentFd);
+            if (parentCheck != StampCheck::Match) {
+                if (parentCheck == StampCheck::Conflict && outVersionConflict) {
+                    *outVersionConflict = true;
+                }
+                return false;
+            }
+            const StampCheck entryCheck = checkParentEntryStamp(
+                parentFd, entryName, *expectedStamp);
+            if (entryCheck == StampCheck::Conflict && outVersionConflict) {
+                *outVersionConflict = true;
+            }
+            return entryCheck == StampCheck::Match;
+        };
+        if (!versionMatchesAtPath()) return false;
 
         std::error_code statusEc;
         const auto existingStatus = stdfs::status(writePath, statusEc);
@@ -1147,8 +1207,8 @@ bool Filesystem::writeFileWithProducerAtHostPath(
             true,
             std::ios_base::out | std::ios_base::binary,
             expectedStamp
-                ? std::function<bool()>(versionMatches)
-                : std::function<bool()>{},
+                ? std::function<bool(int, const std::string&)>(versionMatchesAtParent)
+                : std::function<bool(int, const std::string&)>{},
             expectedStamp && !*expectedStamp,
             &targetAppearedDuringReplace);
         if (targetAppearedDuringReplace && outVersionConflict) {

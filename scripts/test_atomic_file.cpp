@@ -212,7 +212,7 @@ int main() {
                 return static_cast<bool>(out);
             },
             false, std::ios_base::out,
-            [&]() {
+            [&](int, const std::string&) {
                 for (const auto& entry : fs::directory_iterator(cleanupParentOne)) {
                     const std::string_view name =
                         monolith::detail::pathBasenameView(entry.path());

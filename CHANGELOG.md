@@ -15,6 +15,7 @@
 - Anchor workspace creation, buffered output, permission recovery, sync, and publication to retained directory descriptors; retargeting a parent symlink during a save cannot redirect content or rename, and restrictive-umask setup remains supported.
 - Preserve seek/tell output behavior on the descriptor-backed atomic stream by flushing its buffer before repositioning; cover in-place overwrite through `seekp`.
 - Prepare the target basename before the final conditional-write stamp check, leaving only validation and the rename syscall afterward; document that uncoordinated host writers can still race.
+- Validate conditional-write stamps relative to the pinned publication directory and reject parent-symlink retargets during content generation.
 
 ## 2026-10: Sync atomic saves before publication
 
