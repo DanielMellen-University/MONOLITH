@@ -6,12 +6,36 @@
 #undef private
 
 #include <algorithm>
+#include <cstddef>
 #include <cstdlib>
 #include <iostream>
 #include <memory>
+#include <new>
 #include <string>
 #include <type_traits>
 #include <vector>
+
+namespace {
+bool g_trackAllocations = false;
+std::size_t g_trackedAllocations = 0;
+}
+
+void* operator new(std::size_t size) {
+    if (g_trackAllocations) ++g_trackedAllocations;
+    if (void* memory = std::malloc(size == 0 ? 1 : size)) return memory;
+    throw std::bad_alloc();
+}
+
+void* operator new[](std::size_t size) {
+    if (g_trackAllocations) ++g_trackedAllocations;
+    if (void* memory = std::malloc(size == 0 ? 1 : size)) return memory;
+    throw std::bad_alloc();
+}
+
+void operator delete(void* memory) noexcept { std::free(memory); }
+void operator delete(void* memory, std::size_t) noexcept { std::free(memory); }
+void operator delete[](void* memory) noexcept { std::free(memory); }
+void operator delete[](void* memory, std::size_t) noexcept { std::free(memory); }
 
 static_assert(std::is_trivially_copyable_v<monolith::window::WindowManager::TaskbarLayout>,
               "taskbar layout should not own per-frame heap buffers");
@@ -115,6 +139,11 @@ int main() {
     monolith::window::WindowManager wm;
     wm.setLogicalDesktopSize(1000, 700);
     wm.setContentScale(2.0f);
+    auto getShellTexture = [&wm, renderer](const char* text, SDL_Color color) {
+        int width = 0;
+        int height = 0;
+        return wm.getShellTextTexture(renderer, text, color, width, height);
+    };
 
     wm.setHeaderOffset(20);
     check(wm.screenToLogicalX(-1) == -1
@@ -242,22 +271,10 @@ int main() {
     const std::string firstClockText = wm.m_clockText;
     const std::string firstClockDateText = wm.m_clockDateText;
     const std::int64_t firstClockMinuteKey = wm.m_clockMinuteKey;
-    SDL_Texture* firstTaskbarTitle = nullptr;
-    for (const auto& [key, entry] : wm.m_shellTextCache) {
-        if (key.rfind("Probe", 0) == 0) {
-            firstTaskbarTitle = entry.texture;
-            break;
-        }
-    }
+    SDL_Texture* firstTaskbarTitle = getShellTexture("Probe", {235, 235, 240, 255});
     wm.render(renderer);
     const bool clockMinuteUnchanged = firstClockMinuteKey == wm.m_clockMinuteKey;
-    SDL_Texture* secondTaskbarTitle = nullptr;
-    for (const auto& [key, entry] : wm.m_shellTextCache) {
-        if (key.rfind("Probe", 0) == 0) {
-            secondTaskbarTitle = entry.texture;
-            break;
-        }
-    }
+    SDL_Texture* secondTaskbarTitle = getShellTexture("Probe", {235, 235, 240, 255});
     check(firstDesktopGlyph != nullptr
               && wm.m_desktopIconTextCache[0].glyphTexture == firstDesktopGlyph
               && firstDesktopLabel != nullptr
@@ -278,28 +295,16 @@ int main() {
           "clock text formatting and textures stay cached within the displayed minute");
     wm.m_showStartMenu = true;
     wm.render(renderer);
-    SDL_Texture* firstStartMenuHeader = nullptr;
-    for (const auto& [key, entry] : wm.m_shellTextCache) {
-        if (key.rfind("Monolith", 0) == 0) {
-            firstStartMenuHeader = entry.texture;
-            break;
-        }
-    }
+    SDL_Texture* firstStartMenuHeader = getShellTexture("Monolith", {255, 255, 255, 255});
     const size_t firstShellTextCacheSize = wm.m_shellTextCache.size();
     wm.render(renderer);
-    SDL_Texture* secondStartMenuHeader = nullptr;
-    for (const auto& [key, entry] : wm.m_shellTextCache) {
-        if (key.rfind("Monolith", 0) == 0) {
-            secondStartMenuHeader = entry.texture;
-            break;
-        }
-    }
+    SDL_Texture* secondStartMenuHeader = getShellTexture("Monolith", {255, 255, 255, 255});
     check(firstStartMenuHeader != nullptr
               && secondStartMenuHeader == firstStartMenuHeader
               && wm.m_shellTextCache.size() == firstShellTextCacheSize,
           "shell text reuses Start-menu textures between frames");
     wm.setFont(nullptr);
-    check(wm.m_shellTextCache.empty()
+    check(wm.m_shellTextCache.size() == 0
               && wm.m_desktopIconTextCache[0].glyphTexture == nullptr
               && wm.m_desktopIconTextCache[0].labelTexture == nullptr
               && wm.m_desktopIconTextCache[0].selectedLabelTexture == nullptr
@@ -316,39 +321,22 @@ int main() {
     wm.m_altTabIndex = 0;
     wm.m_altTabCycling = true;
     wm.render(renderer);
-    const std::string altTabTextKey = std::string("Probe")
-        + '\0' + static_cast<char>(235) + static_cast<char>(235)
-        + static_cast<char>(240) + static_cast<char>(255);
-    const auto altTabCacheEntry = wm.m_shellTextCache.find(altTabTextKey);
-    SDL_Texture* firstAltTabTexture = altTabCacheEntry == wm.m_shellTextCache.end()
-        ? nullptr : altTabCacheEntry->second.texture;
+    SDL_Texture* firstAltTabTexture = getShellTexture("Probe", {235, 235, 240, 255});
     const size_t altTabCacheSize = wm.m_shellTextCache.size();
     wm.render(renderer);
-    const auto secondAltTabCacheEntry = wm.m_shellTextCache.find(altTabTextKey);
-    SDL_Texture* secondAltTabTexture = secondAltTabCacheEntry == wm.m_shellTextCache.end()
-        ? nullptr : secondAltTabCacheEntry->second.texture;
+    SDL_Texture* secondAltTabTexture = getShellTexture("Probe", {235, 235, 240, 255});
     check(firstAltTabTexture != nullptr
               && secondAltTabTexture == firstAltTabTexture
               && wm.m_shellTextCache.size() == altTabCacheSize,
           "shell text reuses Alt+Tab overlay textures between frames");
 
     const SDL_Color cacheWhite = {255, 255, 255, 255};
-    auto shellTextKey = [](const std::string& text, SDL_Color color) {
-        std::string key = text;
-        key.push_back('\0');
-        key.push_back(static_cast<char>(color.r));
-        key.push_back(static_cast<char>(color.g));
-        key.push_back(static_cast<char>(color.b));
-        key.push_back(static_cast<char>(color.a));
-        return key;
-    };
     int cachedWidth = 0;
     int cachedHeight = 0;
     wm.getShellTextTexture(renderer, "Start", cacheWhite, cachedWidth, cachedHeight);
-    const std::string retainedShellKey = shellTextKey("Start", cacheWhite);
     const std::string firstTransientLabel = "Transient shell label 0";
-    const std::string firstTransientKey = shellTextKey(firstTransientLabel, cacheWhite);
-    const std::size_t transientCount = wm.kMaxShellTextCacheEntries + 32;
+    const std::size_t transientCount =
+        monolith::detail::TextTextureCache::kMaxEntries + 32;
     const std::size_t transientHalf = transientCount / 2;
     for (std::size_t i = 0; i < transientHalf; ++i) {
         const std::string label = "Transient shell label " + std::to_string(i);
@@ -359,35 +347,57 @@ int main() {
         const std::string label = "Transient shell label " + std::to_string(i);
         wm.getShellTextTexture(renderer, label.c_str(), cacheWhite, cachedWidth, cachedHeight);
     }
-    const std::string lastTransientKey = shellTextKey(
-        "Transient shell label " + std::to_string(transientCount - 1), cacheWhite);
-    check(wm.m_shellTextCache.size() <= wm.kMaxShellTextCacheEntries
-              && wm.m_shellTextCacheBytes <= wm.kMaxShellTextCacheBytes
-              && wm.m_shellTextCache.find(retainedShellKey) != wm.m_shellTextCache.end()
-              && wm.m_shellTextCache.find(firstTransientKey) == wm.m_shellTextCache.end()
-              && wm.m_shellTextCache.find(lastTransientKey) != wm.m_shellTextCache.end(),
+    const std::string lastTransientLabel =
+        "Transient shell label " + std::to_string(transientCount - 1);
+    check(wm.m_shellTextCache.size()
+                  <= monolith::detail::TextTextureCache::kMaxEntries
+              && wm.m_shellTextCache.estimatedBytes()
+                  <= monolith::detail::TextTextureCache::kMaxEstimatedBytes
+              && wm.m_shellTextCache.contains(renderer, font, "Start", cacheWhite)
+              && !wm.m_shellTextCache.contains(
+                  renderer, font, firstTransientLabel.c_str(), cacheWhite)
+              && wm.m_shellTextCache.contains(
+                  renderer, font, lastTransientLabel.c_str(), cacheWhite),
           "shell text cache evicts least-recently-used textures within its entry cap");
 
     wm.destroyShellTextCache();
     bool longLabelsRendered = true;
     std::string longLabel(512, 'x');
-    std::string firstLargeKey;
-    std::string lastLargeKey;
+    std::string firstLargeLabel;
+    std::string lastLargeLabel;
     for (int i = 0; i < 80; ++i) {
         longLabel.back() = static_cast<char>('a' + i % 26);
         const std::string label = longLabel + std::to_string(i);
-        const std::string key = shellTextKey(label, cacheWhite);
-        if (i == 0) firstLargeKey = key;
-        if (i == 79) lastLargeKey = key;
+        if (i == 0) firstLargeLabel = label;
+        if (i == 79) lastLargeLabel = label;
         longLabelsRendered = wm.getShellTextTexture(
             renderer, label.c_str(), cacheWhite, cachedWidth, cachedHeight) != nullptr
             && longLabelsRendered;
     }
     check(longLabelsRendered
-              && wm.m_shellTextCacheBytes <= wm.kMaxShellTextCacheBytes
-              && wm.m_shellTextCache.find(firstLargeKey) == wm.m_shellTextCache.end()
-              && wm.m_shellTextCache.find(lastLargeKey) != wm.m_shellTextCache.end(),
+              && wm.m_shellTextCache.estimatedBytes()
+                  <= monolith::detail::TextTextureCache::kMaxEstimatedBytes
+              && !wm.m_shellTextCache.contains(
+                  renderer, font, firstLargeLabel.c_str(), cacheWhite)
+              && wm.m_shellTextCache.contains(
+                  renderer, font, lastLargeLabel.c_str(), cacheWhite),
           "shell texture cache evicts by estimated memory before reaching its byte budget");
+
+    const std::string shellCacheHitLabel(512, 'h');
+    const SDL_Color shellCacheHitColor{235, 235, 240, 255};
+    const SDL_Texture* firstShellCacheHit = wm.getShellTextTexture(
+        renderer, shellCacheHitLabel.c_str(), shellCacheHitColor,
+        cachedWidth, cachedHeight);
+    g_trackedAllocations = 0;
+    g_trackAllocations = true;
+    const SDL_Texture* secondShellCacheHit = wm.getShellTextTexture(
+        renderer, shellCacheHitLabel.c_str(), shellCacheHitColor,
+        cachedWidth, cachedHeight);
+    g_trackAllocations = false;
+    check(firstShellCacheHit != nullptr
+              && secondShellCacheHit == firstShellCacheHit
+              && g_trackedAllocations == 0,
+          "a warmed shell text-cache hit reuses long keys without heap allocation");
     wm.endAltTabCycle();
     wm.m_desktopIconSelected = 1;
     wm.m_desktopIconLastClickIndex = 1;

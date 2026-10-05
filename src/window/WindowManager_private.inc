@@ -77,19 +77,7 @@ private:
     };
     std::unordered_map<int, TitleCacheEntry> m_titleCache;
 
-    struct ShellTextCacheEntry {
-        SDL_Texture* texture = nullptr;
-        int width = 0;
-        int height = 0;
-        std::size_t estimatedBytes = 0;
-        std::list<std::string>::iterator lruPosition;
-    };
-    static constexpr std::size_t kMaxShellTextCacheEntries = 256;
-    static constexpr std::size_t kMaxShellTextCacheBytes = 16 * 1024 * 1024;
-    // Shell labels are keyed by text and color and bounded independently of window churn.
-    std::unordered_map<std::string, ShellTextCacheEntry> m_shellTextCache;
-    std::list<std::string> m_shellTextCacheLru;
-    std::size_t m_shellTextCacheBytes = 0;
+    monolith::detail::TextTextureCache m_shellTextCache;
 
     // Logical internal desktop size (overridden at startup; matches main.cpp)
     int m_logicalWidth = 1280;
@@ -208,9 +196,8 @@ private:
 
     void destroyClockTextures();
     void destroyShellTextCache();
-    void trimShellTextCacheFor(std::size_t incomingBytes);
     SDL_Texture* getShellTextTexture(SDL_Renderer* renderer, const char* text,
-                                      SDL_Color color, int& width, int& height);
+                                     SDL_Color color, int& width, int& height);
     void destroyWallpaperTexture();
     void ensureWallpaperTexture(SDL_Renderer* renderer);
     void renderWallpaper(SDL_Renderer* renderer);

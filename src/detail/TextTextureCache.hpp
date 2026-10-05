@@ -43,7 +43,8 @@ public:
             m_renderer = renderer;
         }
 
-        const KeyView lookup{font, text, color};
+        const std::string_view textView{text};
+        const KeyView lookup{font, textView, color};
         auto cached = m_entries.find(lookup);
         if (cached != m_entries.end()) {
             m_lru.splice(m_lru.begin(), m_lru, cached->second.lruPosition);
@@ -54,7 +55,8 @@ public:
         int measuredWidth = 0;
         int measuredHeight = 0;
         if (TTF_SizeUTF8(font, text, &measuredWidth, &measuredHeight) != 0
-            || estimateBytes(measuredWidth, measuredHeight) > kMaxEstimatedBytes) {
+            || estimateEntryBytes(measuredWidth, measuredHeight, textView.size())
+                > kMaxEstimatedBytes) {
             return {};
         }
 
@@ -63,7 +65,8 @@ public:
 
         const int width = surface->w;
         const int height = surface->h;
-        const std::uint64_t estimatedBytes = estimateBytes(width, height);
+        const std::uint64_t estimatedBytes =
+            estimateEntryBytes(width, height, textView.size());
         if (estimatedBytes > kMaxEstimatedBytes) {
             SDL_FreeSurface(surface);
             return {};
@@ -73,7 +76,7 @@ public:
         SDL_FreeSurface(surface);
         if (!texture) return {};
 
-        CacheKey key{font, std::string(text), color};
+        CacheKey key{font, std::string(textView), color};
         auto inserted = m_entries.emplace(std::move(key), Entry{
             texture, width, height, estimatedBytes, {}});
         if (!inserted.second) {
@@ -85,6 +88,12 @@ public:
         m_estimatedBytes += estimatedBytes;
         trim();
         return {texture, width, height};
+    }
+
+    bool contains(SDL_Renderer* renderer, TTF_Font* font, const char* text,
+                  SDL_Color color) const {
+        if (!renderer || !font || !text || !*text || m_renderer != renderer) return false;
+        return m_entries.find(KeyView{font, text, color}) != m_entries.end();
     }
 
     void clear() const {
@@ -167,6 +176,20 @@ private:
         const std::uint64_t h = static_cast<std::uint64_t>(height);
         if (w > kMaxEstimatedBytes / 4 / h) return overBudget;
         return w * h * 4;
+    }
+
+    static std::uint64_t estimateEntryBytes(int width, int height,
+                                             std::size_t textBytes) {
+        constexpr std::uint64_t kEntryOverheadBytes = 256; // Key, map node, and LRU node.
+        const std::uint64_t overBudget = kMaxEstimatedBytes + 1;
+        const std::uint64_t rasterBytes = estimateBytes(width, height);
+        if (rasterBytes > kMaxEstimatedBytes) return overBudget;
+        const std::uint64_t textSize = static_cast<std::uint64_t>(textBytes);
+        if (textSize > kMaxEstimatedBytes - rasterBytes
+            || kEntryOverheadBytes > kMaxEstimatedBytes - rasterBytes - textSize) {
+            return overBudget;
+        }
+        return rasterBytes + textSize + kEntryOverheadBytes;
     }
 
     void trim() const {

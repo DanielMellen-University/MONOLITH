@@ -2,6 +2,7 @@
 
 #include "Window.hpp"
 #include "DesktopIcons.hpp"
+#include "../detail/TextTextureCache.hpp"
 #include <SDL2/SDL.h>
 #include <array>
 #include <cmath>
