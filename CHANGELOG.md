@@ -12,6 +12,7 @@
 - Classify v4 ownership, directory type, and ready-marker state once before selecting incomplete or lease-protected reclamation.
 - Move non-template atomic-save, locking, sync, and cleanup implementations into one compiled source file, leaving the header focused on declarations and writer templates.
 - Anchor workspace reclamation and failed-save rollback to the locked parent and a no-follow workspace descriptor; a retargeted parent alias cannot redirect cleanup to a different same-named workspace.
+- Anchor workspace creation, buffered output, permission recovery, sync, and publication to retained directory descriptors; retargeting a parent symlink during a save cannot redirect content or rename, and restrictive-umask setup remains supported.
 
 ## 2026-10: Sync atomic saves before publication
 
