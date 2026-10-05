@@ -1127,20 +1127,19 @@ bool syncAtomicParentDirectory(int fd) {
 }
 
 bool publishAtomicTempFile(int workspaceFd,
-                           std::string_view workspaceName,
+                           const char* workspaceName,
                            int parentFd,
-                           std::string_view targetName,
+                           const std::string& targetName,
                            bool noReplaceTarget,
                            bool* outTargetAlreadyExists) {
-    if (!isSingleEntryName(workspaceName) || !isSingleEntryName(targetName)) {
+    if (!workspaceName || !isSingleEntryName(workspaceName)
+        || !isSingleEntryName(targetName)) {
         return false;
     }
-    const std::string sourceEntry(workspaceName);
-    const std::string targetEntry(targetName);
     if (noReplaceTarget) {
 #if defined(SYS_renameat2) && defined(RENAME_NOREPLACE)
-        if (::syscall(SYS_renameat2, workspaceFd, sourceEntry.c_str(), parentFd,
-                      targetEntry.c_str(), RENAME_NOREPLACE) == 0) {
+        if (::syscall(SYS_renameat2, workspaceFd, workspaceName, parentFd,
+                      targetName.c_str(), RENAME_NOREPLACE) == 0) {
             (void)syncAtomicParentDirectory(parentFd);
             return true;
         }
@@ -1153,8 +1152,8 @@ bool publishAtomicTempFile(int workspaceFd,
 
     int result;
     do {
-        result = ::renameat(workspaceFd, sourceEntry.c_str(),
-                            parentFd, targetEntry.c_str());
+        result = ::renameat(workspaceFd, workspaceName,
+                            parentFd, targetName.c_str());
     } while (result != 0 && errno == EINTR);
     if (result != 0) return false;
     (void)syncAtomicParentDirectory(parentFd);

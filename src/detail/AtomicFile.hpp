@@ -79,9 +79,9 @@ bool syncAtomicTempFile(int workspaceFd,
                         bool preserveMode,
                         mode_t requestedMode = 0);
 bool publishAtomicTempFile(int workspaceFd,
-                           std::string_view workspaceName,
+                           const char* workspaceName,
                            int parentFd,
-                           std::string_view targetName,
+                           const std::string& targetName,
                            bool noReplaceTarget,
                            bool* outTargetAlreadyExists);
 
@@ -193,14 +193,15 @@ bool writeAtomically(const std::filesystem::path& targetPath,
         return false;
     }
 
+    const std::string targetEntry(pathBasenameView(targetPath));
     AtomicTempParentLock publicationLock(cleanup.parentFd);
     if (!publicationLock.locked()) return false;
 
     // The callback must not reenter an atomic write to this parent directory.
     if (beforeReplace && !beforeReplace()) return false;
     return publishAtomicTempFile(
-        cleanup.workspaceFd, "content", publicationLock.fd(),
-        pathBasenameView(targetPath), noReplaceTarget, outTargetAlreadyExists);
+        cleanup.workspaceFd, "content", publicationLock.fd(), targetEntry,
+        noReplaceTarget, outTargetAlreadyExists);
 }
 
 template <typename Writer>
