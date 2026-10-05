@@ -1,6 +1,6 @@
 # Session log
 
-| 2026-10-04 | perf/filesystem | Classify atomic-save v4 ownership, directory type, and ready-marker state once before routing incomplete or lease-protected cleanup, removing repeated metadata probes while preserving final workspace validation; focused atomic suite, full headless suite, and production build pass locally. |
+| 2026-10-05 | perf/filesystem | Classify atomic-save v4 ownership, directory type, and ready-marker state once before routing incomplete or lease-protected cleanup, removing repeated metadata probes while preserving final workspace validation; focused atomic suite, full headless suite, production build, and hosted run #496 `verify`/`sanitize` pass. |
 
 | 2026-10-04 | refactor/filesystem | Route synchronous atomic-save sweep candidates through the same parent-lock-checked workspace-reclamation dispatcher as startup maintenance, keeping traversal budgets and scheduling distinct; focused/full headless suites, production build, and hosted run #493 `verify`/`sanitize` pass. |
 
