@@ -34,6 +34,7 @@ The human funds token budget and lives in the desktop. You:
 
 | When | Kind | Note |
 |------|------|------|
+| 2026-10-05 | text-editor-find-frame-allocation | Pass visible syntax slices to the shared text cache as borrowed views and format Find match counts into a stack buffer; a warmed active Find frame preserves its count with zero C++ heap allocations |
 | 2026-10-05 | start-menu-frame-allocation | Build Start-menu registry rows once; filter rows and actionable hit targets use bounded arrays; remove the unreachable placeholder-table tail; a warmed filtered menu frame now performs zero C++ heap allocations |
 | 2026-10-05 | desktop-icon-frame-allocation | Replace registry scratch, icon definitions, and placements with fixed-capacity arrays; warmed Window Manager render including a 512-byte Alt+Tab title now performs zero C++ heap allocations; focused coordinate/icon tests pass |
 | 2026-10-05 | shared-shell-text-cache | Reuse the renderer-aware app LRU in Window Manager, removing duplicate eviction code and per-hit owned-key allocation; include text storage/bookkeeping in estimates; no-allocation warmed-label regression passes; full headless suite, Release build, and hosted run #527 verify/sanitize passed |
@@ -471,6 +472,7 @@ Older recent-work rows: [`SESSION_LOG.md`](SESSION_LOG.md).
 | 7.183 | Share app and shell text caches | done | Route Window Manager labels through the renderer-aware TextTextureCache, remove duplicate cache/eviction code, avoid heap allocations on warmed long-label hits, and include text/bookkeeping in estimated bytes; full headless suite, Release build, and hosted run #527 verify/sanitize passed |
 | 7.184 | Remove desktop icon frame allocations | done | Replace per-frame registry and placement vectors with fixed-capacity arrays; a warmed Window Manager frame with a long Alt+Tab title now performs zero C++ heap allocations; focused coordinate and icon tests pass |
 | 7.185 | Remove Start-menu frame allocations | done | Build registry rows once and use bounded arrays for filtered output and action hit targets; remove dead placeholder-table code; warmed filtered Window Manager rendering performs zero C++ heap allocations |
+| 7.186 | Remove Text Editor Find frame allocations | done | Pass syntax slices to the text cache as borrowed views and stack-format active match counts; a warmed Find frame retains its displayed count with zero C++ heap allocations; full headless suite and Release build pass |
 | fs-browser-filter-cache | Reuse Filesystem Browser filter snapshots | done | Reuse one directory listing for filter edits; refresh it on F5 and Monolith filesystem notifications, including while filtering |
 | terminal-input-editing | Terminal command-line selection | done | Support UTF-8-safe keyboard/mouse selection and Ctrl+A/C/X/V; normalize all clipboard lines and tabs into the single-line prompt |
 | terminal-touch-mtime | Complete Terminal touch semantics | done | Update existing regular-file last-write time without truncation; reject outside-root symlink targets |

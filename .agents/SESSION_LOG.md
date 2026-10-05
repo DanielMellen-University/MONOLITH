@@ -1,5 +1,7 @@
 # Session log
 
+| 2026-10-05 | perf/editor | Pass visible syntax slices directly to the shared text cache as borrowed views and format Find match counts into a stack buffer. A warmed active Find frame preserves its `1/1` count with zero C++ heap allocations; focused Text Editor state suite passes. |
+
 | 2026-10-05 | perf/ui | Build Start-menu rows once and use fixed-capacity arrays for filtered rows and actionable hit targets. Removed heap-backed `vector<bool>` filtering and the unreachable placeholder tail in hit-target rebuilding; a warmed filtered Start-menu frame performs zero C++ heap allocations. Full headless suite and Release build pass. |
 
 | 2026-10-05 | perf/ui | Replaced per-call desktop-icon registry and placement vectors with fixed-capacity arrays, removing three steady-frame heap allocations from icon rendering and hit testing. A warmed Window Manager frame with a 512-byte Alt+Tab title now records zero C++ heap allocations; focused coordinate and desktop-icon suites pass. |
