@@ -451,6 +451,8 @@ Use the action that matches your intent:
 
 An external overwrite does not change the Drawing title, bound path, dirty marker, or undo history. An `[external change]` marker remains visible through other status updates until the file is reloaded, successfully saved, removed, or replaced with a new sketch. Before saving to the bound path, Drawing compares the current file stamp with its last loaded/saved version; a changed stamp triggers exact comparison of the serialized `.modr` bytes, detecting host edits and other Monolith processes without a change notification. Unchanged stamps avoid rereading the canvas file. A normal Ctrl+S pauses before replacing a different or missing disk version; press **Ctrl+D** to confirm the overwrite, or **Esc** to keep the external version. The comparison is streamed without a second encoded-file buffer and the confirmation applies only to that save attempt. Opening the currently bound path reloads the external version in the same window; if the canvas is dirty, the existing dirty-content decision uses **Ctrl+D** to discard local pixels and reload. A successful Save still sends the normal filesystem change notification so other open apps can refresh their views. Host writers are not locked and can still race after comparison.
 
+Bound-path saves check the expected file stamp again immediately before replacement. A write arriving while the `.modr` stream is generated is preserved and requires another **Ctrl+D** confirmation; a host writer can still race in the final stamp-check-to-rename interval.
+
 ## Common File Workflows
 
 Use this sequence when managing a saved sketch outside the canvas:

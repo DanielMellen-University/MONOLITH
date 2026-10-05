@@ -5,6 +5,7 @@
 #include <functional>
 #include <iosfwd>
 #include <memory>
+#include <optional>
 #include <string>
 #include <string_view>
 #include <vector>
@@ -22,6 +23,8 @@ struct FileStamp {
 
     bool operator==(const FileStamp&) const = default;
 };
+
+enum class ConditionalWriteResult { Written, Conflict, Failed };
 
 /**
  * Basic host-backed filesystem for Monolith.
@@ -105,6 +108,17 @@ public:
      */
     bool writeFileWithProducer(const std::string& virtualPath,
                                const FileContentProducer& produceContent);
+
+    /**
+     * Checks the target stamp before staging and immediately before atomic replacement;
+     * nullopt means the target is expected to be absent. A Conflict means the
+     * target changed and no replacement occurred; the final check and rename are
+     * not a cross-process compare-and-swap.
+     */
+    ConditionalWriteResult writeFileWithProducerIfStampMatches(
+        const std::string& virtualPath,
+        const FileContentProducer& produceContent,
+        const std::optional<FileStamp>& expectedStamp);
 
     /** Updates the last-write time of an existing regular file without changing its content. */
     bool updateModifiedTime(const std::string& virtualPath);
@@ -243,7 +257,9 @@ private:
                                bool sourceIsDirectory);
     bool writeFileWithProducerAtHostPath(
         const std::string& hostPath,
-        const FileContentProducer& produceContent);
+        const FileContentProducer& produceContent,
+        const std::optional<FileStamp>* expectedStamp = nullptr,
+        bool* outVersionConflict = nullptr);
 
     std::string m_hostRoot;
     std::shared_ptr<CleanupTraversal> m_cleanupTraversal;

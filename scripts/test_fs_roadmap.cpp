@@ -1137,6 +1137,85 @@ int main() {
               && fs.readFile("/src/atomic.txt.tmp") == "important neighboring data"
               && !hasAtomicTempWorkspace(hostRoot / "src"),
           "failed producer preserves both destination data and neighboring .tmp file");
+    monolith::fs::FileStamp conditionalStamp;
+    check(fs.fileStamp("/src/atomic.txt", conditionalStamp),
+          "read conditional-write baseline stamp");
+    const auto racedWriteResult = fs.writeFileWithProducerIfStampMatches(
+        "/src/atomic.txt",
+        [&fs](std::ostream& out) {
+            if (!fs.writeFile("/src/atomic.txt", "external-during-write")) return false;
+            out << "outer-write";
+            return static_cast<bool>(out);
+        },
+        conditionalStamp);
+    check(racedWriteResult == monolith::fs::ConditionalWriteResult::Conflict
+              && fs.readFile("/src/atomic.txt") == "external-during-write"
+              && !hasAtomicTempWorkspace(hostRoot / "src"),
+          "conditional write preserves a host/other-process change during content generation");
+    monolith::fs::FileStamp refreshedConditionalStamp;
+    check(fs.fileStamp("/src/atomic.txt", refreshedConditionalStamp)
+              && fs.writeFileWithProducerIfStampMatches(
+                     "/src/atomic.txt",
+                     [](std::ostream& out) {
+                         out << "conditional-success";
+                         return static_cast<bool>(out);
+                     },
+                     refreshedConditionalStamp)
+                    == monolith::fs::ConditionalWriteResult::Written
+              && fs.readFile("/src/atomic.txt") == "conditional-success",
+          "conditional write replaces an unchanged version");
+    const auto absentRaceResult = fs.writeFileWithProducerIfStampMatches(
+        "/src/conditional-absent.txt",
+        [&fs](std::ostream& out) {
+            if (!fs.writeFile("/src/conditional-absent.txt", "created-during-write")) {
+                return false;
+            }
+            out << "outer-create";
+            return static_cast<bool>(out);
+        },
+        std::nullopt);
+    check(absentRaceResult == monolith::fs::ConditionalWriteResult::Conflict
+              && fs.readFile("/src/conditional-absent.txt") == "created-during-write"
+              && !hasAtomicTempWorkspace(hostRoot / "src"),
+          "conditional create preserves a destination created during content generation");
+    check(fs.writeFileWithProducerIfStampMatches(
+              "/src/conditional-new.txt",
+              [](std::ostream& out) {
+                  out << "created";
+                  return static_cast<bool>(out);
+              },
+              std::nullopt) == monolith::fs::ConditionalWriteResult::Written
+              && fs.readFile("/src/conditional-new.txt") == "created",
+          "conditional write creates a target that was expected to be absent");
+    check(fs.writeFile("/src/conditional-link-a.txt", "target-a")
+              && fs.writeFile("/src/conditional-link-b.txt", "target-b"),
+          "write conditional symlink target fixtures");
+    const stdfs::path conditionalLink = hostRoot / "src/conditional-link.txt";
+    ec.clear();
+    stdfs::create_symlink(hostRoot / "src/conditional-link-a.txt", conditionalLink, ec);
+    check(!ec, "create conditional-write symlink fixture");
+    if (!ec) {
+        monolith::fs::FileStamp conditionalLinkStamp;
+        check(fs.fileStamp("/src/conditional-link.txt", conditionalLinkStamp),
+              "read conditional-write symlink target stamp");
+        const auto symlinkRaceResult = fs.writeFileWithProducerIfStampMatches(
+            "/src/conditional-link.txt",
+            [&conditionalLink, &hostRoot, &ec](std::ostream& out) {
+                stdfs::remove(conditionalLink, ec);
+                if (ec) return false;
+                stdfs::create_symlink(
+                    hostRoot / "src/conditional-link-b.txt", conditionalLink, ec);
+                if (ec) return false;
+                out << "outer-write";
+                return static_cast<bool>(out);
+            },
+            conditionalLinkStamp);
+        check(symlinkRaceResult == monolith::fs::ConditionalWriteResult::Conflict
+                  && fs.readFile("/src/conditional-link-a.txt") == "target-a"
+                  && fs.readFile("/src/conditional-link-b.txt") == "target-b"
+                  && !hasAtomicTempWorkspace(hostRoot / "src"),
+              "conditional write rejects a symlink retarget during content generation");
+    }
     const std::string streamedBinary("new\0bytes", 9);
     check(fs.writeFileWithProducer("/src/streamed.bin", [&streamedBinary](std::ostream& out) {
               out.write(streamedBinary.data(),

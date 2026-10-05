@@ -121,7 +121,8 @@ private:
 
     // === File I/O ===
     bool saveToPath(const std::string& virtualPath,
-                    bool confirmedExternalOverwrite = false);
+                    bool confirmedExternalOverwrite = false,
+                    bool explicitTarget = false);
     bool savedCanvasMatchesFile(const std::string& path, bool& matches);
     bool loadFromPath(const std::string& virtualPath);
     std::string defaultSavePath();

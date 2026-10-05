@@ -960,7 +960,8 @@ bool DrawingApp::savedCanvasMatchesFile(const std::string& path, bool& matches) 
 }
 
 bool DrawingApp::saveToPath(const std::string& virtualPath,
-                            bool confirmedExternalOverwrite) {
+                            bool confirmedExternalOverwrite,
+                            bool explicitTarget) {
     if (!m_fs) {
         clearDiscardArm();
         setStatus("Save failed: filesystem not available.");
@@ -1022,10 +1023,41 @@ bool DrawingApp::saveToPath(const std::string& virtualPath,
         }
     }
 
-    if (!m_fs->writeFileWithProducer(path, [this](std::ostream& output) {
-            return monolith::drawing::writeModr(
-                output, m_canvasWidth, m_canvasHeight, m_pixels);
-        })) {
+    auto produceContent = [this](std::ostream& output) {
+        return monolith::drawing::writeModr(
+            output, m_canvasWidth, m_canvasHeight, m_pixels);
+    };
+    monolith::fs::ConditionalWriteResult conditionalResult =
+        monolith::fs::ConditionalWriteResult::Failed;
+    bool written = false;
+    if (overwritingCurrentPath && !explicitTarget) {
+        std::optional<monolith::fs::FileStamp> expectedStamp;
+        if (!confirmedExternalOverwrite && m_hasSavedFileStamp) {
+            expectedStamp = m_savedFileStamp;
+        } else {
+            monolith::fs::FileStamp currentStamp;
+            if (m_fs->fileStamp(path, currentStamp)) {
+                expectedStamp = currentStamp;
+            } else if (m_fs->exists(path)) {
+                clearDiscardArm();
+                setStatus("Save failed: could not verify file.");
+                return false;
+            }
+        }
+        conditionalResult = m_fs->writeFileWithProducerIfStampMatches(
+            path, produceContent, expectedStamp);
+        written = conditionalResult == monolith::fs::ConditionalWriteResult::Written;
+    } else {
+        written = m_fs->writeFileWithProducer(path, produceContent);
+    }
+    if (!written) {
+        if (conditionalResult == monolith::fs::ConditionalWriteResult::Conflict) {
+            if (m_drawing) endActiveStroke();
+            m_externalChangePending = true;
+            m_overwriteConfirmationPending = true;
+            setStatus("File changed during save; Ctrl+D retries overwrite, Esc cancels.");
+            return false;
+        }
         clearDiscardArm();
         setStatus("Save failed: could not write file.");
         return false;
@@ -1412,7 +1444,7 @@ void DrawingApp::finishPathPrompt(bool commit, bool confirmDiscard) {
                 return;
             }
         }
-        if (saveToPath(buffer, true)) {
+        if (saveToPath(buffer, true, true)) {
             completePendingSaveAction();
         } else {
             restorePrompt();
@@ -2015,7 +2047,7 @@ void DrawingApp::handleEvent(const SDL_Event& event) {
             if ((key.mod & KMOD_CTRL) && key.sym == SDLK_d) {
                 if (saveToPath(m_filePath, true)) {
                     completePendingSaveAction();
-                } else {
+                } else if (!m_overwriteConfirmationPending) {
                     m_closeAfterSave = false;
                     m_newAfterSave = false;
                 }

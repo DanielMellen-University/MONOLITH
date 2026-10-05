@@ -84,6 +84,35 @@ bool hostEntryExists(const stdfs::path& path) {
     return !ec && status.type() != stdfs::file_type::not_found;
 }
 
+monolith::fs::FileStamp fileStampFromStat(const struct stat& info) {
+    monolith::fs::FileStamp stamp;
+    stamp.device = static_cast<std::uint64_t>(info.st_dev);
+    stamp.inode = static_cast<std::uint64_t>(info.st_ino);
+    stamp.size = static_cast<std::uint64_t>(info.st_size);
+    stamp.modifiedSeconds = static_cast<std::int64_t>(info.st_mtim.tv_sec);
+    stamp.modifiedNanoseconds = static_cast<std::int64_t>(info.st_mtim.tv_nsec);
+    stamp.changedSeconds = static_cast<std::int64_t>(info.st_ctim.tv_sec);
+    stamp.changedNanoseconds = static_cast<std::int64_t>(info.st_ctim.tv_nsec);
+    return stamp;
+}
+
+enum class StampCheck { Match, Conflict, Error };
+
+StampCheck checkHostPathStamp(const stdfs::path& path,
+                              const std::optional<monolith::fs::FileStamp>& expected) {
+    struct stat info {};
+    if (::stat(path.c_str(), &info) == 0) {
+        if (!S_ISREG(info.st_mode)) return StampCheck::Conflict;
+        return expected && *expected == fileStampFromStat(info)
+            ? StampCheck::Match
+            : StampCheck::Conflict;
+    }
+    if (errno == ENOENT) {
+        return expected ? StampCheck::Conflict : StampCheck::Match;
+    }
+    return StampCheck::Error;
+}
+
 std::error_code renameWithoutReplacing(const stdfs::path& source,
                                        const stdfs::path& destination) {
 #if defined(SYS_renameat2) && defined(RENAME_NOREPLACE)
@@ -1030,10 +1059,34 @@ bool Filesystem::writeFileWithProducer(
     }
 }
 
+ConditionalWriteResult Filesystem::writeFileWithProducerIfStampMatches(
+    const std::string& virtualPath,
+    const FileContentProducer& produceContent,
+    const std::optional<FileStamp>& expectedStamp) {
+    if (!produceContent) return ConditionalWriteResult::Failed;
+
+    bool versionConflict = false;
+    try {
+        const std::string hostPathString = toHostPath(virtualPath);
+        if (hostPathString.empty()) return ConditionalWriteResult::Failed;
+        const bool written = writeFileWithProducerAtHostPath(
+            hostPathString, produceContent, &expectedStamp, &versionConflict);
+        if (versionConflict) return ConditionalWriteResult::Conflict;
+        return written ? ConditionalWriteResult::Written : ConditionalWriteResult::Failed;
+    } catch (const std::exception& e) {
+        std::cerr << "conditional write failed: " << e.what() << std::endl;
+        return versionConflict ? ConditionalWriteResult::Conflict
+                               : ConditionalWriteResult::Failed;
+    }
+}
+
 bool Filesystem::writeFileWithProducerAtHostPath(
     const std::string& hostPathString,
-    const FileContentProducer& produceContent) {
+    const FileContentProducer& produceContent,
+    const std::optional<FileStamp>* expectedStamp,
+    bool* outVersionConflict) {
     if (!produceContent || hostPathString.empty()) return false;
+    if (outVersionConflict) *outVersionConflict = false;
 
     try {
         stdfs::path hostPath(hostPathString);
@@ -1041,11 +1094,36 @@ bool Filesystem::writeFileWithProducerAtHostPath(
         // Keep writes to an existing file atomic. Resolve a file symlink first
         // so replacing it updates the target instead of deleting the link.
         stdfs::path writePath = hostPath;
-        if (isSymlinkPath(hostPath)) {
+        const bool hostPathIsSymlink = isSymlinkPath(hostPath);
+        if (hostPathIsSymlink) {
             std::error_code resolveEc;
             writePath = stdfs::weakly_canonical(hostPath, resolveEc);
             if (resolveEc || !isWithinHostRoot(writePath.string())) return false;
         }
+
+        auto versionMatches = [&]() {
+            if (!expectedStamp) return true;
+            if (isSymlinkPath(hostPath) != hostPathIsSymlink) {
+                if (outVersionConflict) *outVersionConflict = true;
+                return false;
+            }
+            if (hostPathIsSymlink) {
+                std::error_code resolveEc;
+                const stdfs::path currentWritePath =
+                    stdfs::weakly_canonical(hostPath, resolveEc);
+                if (resolveEc) return false;
+                if (currentWritePath != writePath) {
+                    if (outVersionConflict) *outVersionConflict = true;
+                    return false;
+                }
+            }
+            const StampCheck check = checkHostPathStamp(writePath, *expectedStamp);
+            if (check == StampCheck::Conflict && outVersionConflict) {
+                *outVersionConflict = true;
+            }
+            return check == StampCheck::Match;
+        };
+        if (!versionMatches()) return false;
 
         std::error_code statusEc;
         const auto existingStatus = stdfs::status(writePath, statusEc);
@@ -1068,7 +1146,10 @@ bool Filesystem::writeFileWithProducerAtHostPath(
                 }
             },
             true,
-            std::ios_base::out | std::ios_base::binary);
+            std::ios_base::out | std::ios_base::binary,
+            expectedStamp
+                ? std::function<bool()>(versionMatches)
+                : std::function<bool()>{});
     } catch (const std::exception& e) {
         std::cerr << "writeFileWithProducer failed: " << e.what() << std::endl;
         return false;

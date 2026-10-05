@@ -101,7 +101,8 @@ private:
                                        size_t* serializedBytes = nullptr);
     bool savedDocumentMatchesBoundFile(bool& matches);
     bool loadInitialFile(const std::string& virtualPath);
-    bool saveCurrentFile(bool confirmedExternalOverwrite);
+    bool saveCurrentFile(bool confirmedExternalOverwrite,
+                         bool explicitTarget = false);
     std::string getDisplayName() const;
     void updateTitleForPath();
 

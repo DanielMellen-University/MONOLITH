@@ -1,5 +1,11 @@
 # Changelog
 
+## 2026-10: Recheck bound files immediately before replacement
+
+- Add conditional atomic writes that compare the expected file stamp both before staging and immediately before rename; preserve a host/other-process write that lands while save content is being generated.
+- Use the guard for Text Editor and Drawing saves to their bound paths, keep Save As an explicit target choice, and require Ctrl+D again if a conflicting write arrives during a confirmed save.
+- Document the remaining final stamp-check-to-rename race and cover changed-file and newly-created-target conflicts.
+
 ## 2026-10: Detect unannounced changes before bound-file saves
 
 - Check a bound file's identity and high-resolution version stamp before overwrite; unchanged saves avoid a content reread, while changed stamps trigger an exact streamed comparison and the existing Ctrl+D/Esc decision.

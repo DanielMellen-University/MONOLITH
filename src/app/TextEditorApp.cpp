@@ -622,7 +622,8 @@ bool TextEditorApp::saveCurrentFile() {
     return saveCurrentFile(false);
 }
 
-bool TextEditorApp::saveCurrentFile(bool confirmedExternalOverwrite) {
+bool TextEditorApp::saveCurrentFile(bool confirmedExternalOverwrite,
+                                   bool explicitTarget) {
     if (!m_fs) {
         clearDiscardArm();
         setStatus("Save failed: filesystem not available");
@@ -658,14 +659,37 @@ bool TextEditorApp::saveCurrentFile(bool confirmedExternalOverwrite) {
     m_overwriteConfirmationPending = false;
 
     const bool wasExisting = m_fs->exists(m_filePath);
-    const bool ok = m_fs->writeFileWithProducer(m_filePath, [this](std::ostream& output) {
+    auto produceContent = [this](std::ostream& output) {
         monolith::detail::BufferedStreamWriter writer(output);
         for (size_t i = 0; i < m_lines.size(); ++i) {
             if (i > 0 && !writer.append("\n")) return false;
             if (!writer.append(m_lines[i])) return false;
         }
         return writer.finish();
-    });
+    };
+    monolith::fs::ConditionalWriteResult conditionalResult =
+        monolith::fs::ConditionalWriteResult::Failed;
+    bool ok = false;
+    if (explicitTarget) {
+        ok = m_fs->writeFileWithProducer(m_filePath, produceContent);
+    } else {
+        std::optional<monolith::fs::FileStamp> expectedStamp;
+        if (!confirmedExternalOverwrite && m_hasSavedFileStamp) {
+            expectedStamp = m_savedFileStamp;
+        } else {
+            monolith::fs::FileStamp currentStamp;
+            if (m_fs->fileStamp(m_filePath, currentStamp)) {
+                expectedStamp = currentStamp;
+            } else if (m_fs->exists(m_filePath)) {
+                clearDiscardArm();
+                setStatus("Save failed: could not verify " + m_filePath);
+                return false;
+            }
+        }
+        conditionalResult = m_fs->writeFileWithProducerIfStampMatches(
+            m_filePath, produceContent, expectedStamp);
+        ok = conditionalResult == monolith::fs::ConditionalWriteResult::Written;
+    }
     if (ok) {
         m_hasSavedFileBaseline = true;
         m_hasSavedFileStamp = m_fs->fileStamp(m_filePath, m_savedFileStamp);
@@ -689,6 +713,11 @@ bool TextEditorApp::saveCurrentFile(bool confirmedExternalOverwrite) {
             }
         }
         setStatus("Saved: " + getDisplayName());
+    } else if (conditionalResult == monolith::fs::ConditionalWriteResult::Conflict) {
+        m_externalChangePending = true;
+        m_overwriteConfirmationPending = true;
+        m_selectingWithMouse = false;
+        setStatus("File changed during save; Ctrl+D retries overwrite, Esc cancels.");
     } else {
         clearDiscardArm();
         setStatus("Save failed: could not write " + m_filePath);
@@ -1000,7 +1029,7 @@ void TextEditorApp::finishPathPrompt(bool commit, bool confirmDiscard) {
 
         m_filePath = path;
         refreshSyntaxMode();
-        if (saveCurrentFile(true)) {
+        if (saveCurrentFile(true, true)) {
             updateTitleForPath();
             if (m_closeAfterSave) {
                 m_closeAfterSave = false;
@@ -2759,7 +2788,7 @@ void TextEditorApp::handleEvent(const SDL_Event& event) {
                     if (closeAfterSave) {
                         if (auto* ctrl = getController()) ctrl->close();
                     }
-                } else {
+                } else if (!m_overwriteConfirmationPending) {
                     m_closeAfterSave = false;
                 }
                 return;

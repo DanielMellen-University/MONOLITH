@@ -723,7 +723,8 @@ template <typename Writer>
 bool writeAtomically(const std::filesystem::path& targetPath,
                      Writer&& writer,
                      bool createParentDirectories = false,
-                     std::ios_base::openmode openMode = std::ios_base::out) {
+                     std::ios_base::openmode openMode = std::ios_base::out,
+                     const std::function<bool()>& beforeReplace = {}) {
     if (targetPath.empty()) return false;
 
     if (createParentDirectories && targetPath.has_parent_path()) {
@@ -770,6 +771,8 @@ bool writeAtomically(const std::filesystem::path& targetPath,
             permissionError);
         if (permissionError) return false;
     }
+
+    if (beforeReplace && !beforeReplace()) return false;
 
     std::error_code renameError;
     std::filesystem::rename(tempPath, targetPath, renameError);
