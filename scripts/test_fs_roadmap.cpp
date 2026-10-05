@@ -1187,6 +1187,25 @@ int main() {
               std::nullopt) == monolith::fs::ConditionalWriteResult::Written
               && fs.readFile("/src/conditional-new.txt") == "created",
           "conditional write creates a target that was expected to be absent");
+    bool publicationLockHeld = false;
+    const stdfs::path publicationLockTarget = hostRoot / "src/publication-lock.txt";
+    const bool publicationLockWrite = monolith::detail::writeAtomically(
+        publicationLockTarget,
+        [](std::ostream& out) {
+            out << "published";
+            return static_cast<bool>(out);
+        },
+        true,
+        std::ios_base::out,
+        [&publicationLockHeld, &hostRoot]() {
+            monolith::detail::AtomicTempParentLock probe(hostRoot / "src", true);
+            publicationLockHeld = !probe.locked()
+                && (probe.error() == EWOULDBLOCK || probe.error() == EAGAIN);
+            return true;
+        });
+    check(publicationLockWrite && publicationLockHeld
+              && fs.readFile("/src/publication-lock.txt") == "published",
+          "atomic publication holds the parent lock across final validation");
     bool targetAppearedDuringReplace = false;
     const stdfs::path noReplaceRaceTarget = hostRoot / "src/no-replace-race.txt";
     const bool noReplaceRaceWritten = monolith::detail::writeAtomically(
@@ -1197,7 +1216,11 @@ int main() {
         },
         true,
         std::ios_base::out,
-        [&fs]() { return fs.writeFile("/src/no-replace-race.txt", "concurrent"); },
+        [&noReplaceRaceTarget]() {
+            std::ofstream externalWriter(noReplaceRaceTarget);
+            externalWriter << "concurrent";
+            return static_cast<bool>(externalWriter);
+        },
         true,
         &targetAppearedDuringReplace);
     check(!noReplaceRaceWritten && targetAppearedDuringReplace

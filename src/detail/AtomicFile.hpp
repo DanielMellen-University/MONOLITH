@@ -783,6 +783,13 @@ bool writeAtomically(const std::filesystem::path& targetPath,
         if (permissionError) return false;
     }
 
+    const std::filesystem::path parentPath = targetPath.has_parent_path()
+        ? targetPath.parent_path()
+        : std::filesystem::path(".");
+    AtomicTempParentLock publicationLock(parentPath);
+    if (!publicationLock.locked()) return false;
+
+    // The callback must not reenter an atomic write to this parent directory.
     if (beforeReplace && !beforeReplace()) return false;
 
     if (noReplaceTarget) {

@@ -111,10 +111,11 @@ public:
 
     /**
      * Checks the target stamp before staging and immediately before atomic replacement;
-     * nullopt means the target is expected to be absent. A Conflict means the
-     * target changed and no replacement occurred; the final check and rename are
-     * not a cross-process compare-and-swap for existing targets. An absent target
-     * is published with no-replace rename semantics.
+     * nullopt means the target is expected to be absent. Final validation and
+     * publication are serialized against other Monolith atomic writers in the same
+     * parent directory. A Conflict means the target changed and no replacement
+     * occurred. Host tools and uncoordinated filesystem mutations do not honor that
+     * advisory lock. An absent target is published with no-replace rename semantics.
      */
     ConditionalWriteResult writeFileWithProducerIfStampMatches(
         const std::string& virtualPath,
