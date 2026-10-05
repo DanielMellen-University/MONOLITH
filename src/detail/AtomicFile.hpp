@@ -557,49 +557,6 @@ inline bool scavengeAtomicTempDirectoryStepLocked(
     return false;
 }
 
-inline bool scavengeAtomicTempDirectoriesLocked(
-    const std::filesystem::path& parent,
-    const AtomicTempParentLock& parentLock) {
-    if (!parentLock.locked()) {
-        scheduleAtomicTempSweepRetry(parent);
-        return false;
-    }
-
-    std::unique_ptr<DIR, AtomicTempDirectoryCloser> directory(
-        ::opendir(parent.c_str()));
-    if (!directory) {
-        scheduleAtomicTempSweepRetry(parent);
-        return false;
-    }
-
-    int readError = 0;
-    while (true) {
-        // POSIX leaves errno unchanged at end-of-directory.
-        errno = 0;
-        const dirent* entry = ::readdir(directory.get());
-        if (!entry) {
-            readError = errno;
-            break;
-        }
-        const std::string_view name(entry->d_name);
-        const bool isWorkspace = name.starts_with(atomicTempPrefix)
-            || name.starts_with(atomicTempPreviousPrefix)
-            || name.starts_with(atomicTempOlderPrefix);
-        if (!isWorkspace) continue;
-        const std::filesystem::path candidate = parent / std::filesystem::path(name);
-        if (tryReclaimIncompleteAtomicTempDirectory(candidate)) continue;
-        tryReclaimAtomicTempDirectory(candidate);
-    }
-    const bool complete = readError == 0;
-    if (!complete) scheduleAtomicTempSweepRetry(parent);
-    return complete;
-}
-
-inline bool scavengeAtomicTempDirectories(const std::filesystem::path& parent) {
-    const AtomicTempParentLock parentLock(parent);
-    return scavengeAtomicTempDirectoriesLocked(parent, parentLock);
-}
-
 inline void scavengeAtomicTempDirectoriesIfDue(const std::filesystem::path& parent) {
     if (!shouldSweepAtomicTempParent(parent)) return;
 

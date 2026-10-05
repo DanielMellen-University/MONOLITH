@@ -47,6 +47,27 @@ static fs::path workspacePath(const fs::path& parent,
                      + std::to_string(hash) + "-" + std::to_string(sequence));
 }
 
+static bool scavengeAtomicTempDirectoriesForTest(const fs::path& parent) {
+    // A prior partial cursor can have passed fixtures created since its last visit.
+    for (unsigned pass = 0; pass < 2; ++pass) {
+        bool completed = false;
+        for (unsigned slice = 0; slice < 4096; ++slice) {
+            monolith::detail::AtomicTempParentLock parentLock(parent);
+            if (!parentLock.locked()) {
+                monolith::detail::scheduleAtomicTempSweepRetry(parent);
+                return false;
+            }
+            if (monolith::detail::scavengeAtomicTempDirectoryStepLocked(
+                    parent, parentLock)) {
+                completed = true;
+                break;
+            }
+        }
+        if (!completed) return false;
+    }
+    return true;
+}
+
 int main() {
     int failures = 0;
     auto check = [&](bool ok, const char* message) {
@@ -265,9 +286,12 @@ int main() {
     check(aliasFixturesReady && firstAliasSweep && aliasCadenceHeld && aliasIntervalSweep,
           "symlink aliases share one destination-parent sweep cadence");
 
-    const fs::path fifoMarkerDirectory = parent
+    const fs::path fifoParent = parent / "fifo-parent";
+    ec.clear();
+    const bool fifoParentReady = fs::create_directory(fifoParent, ec) && !ec;
+    const fs::path fifoMarkerDirectory = fifoParent
         / (std::string(monolith::detail::atomicTempPrefix) + "fifo-owner");
-    const fs::path fifoLeaseDirectory = parent
+    const fs::path fifoLeaseDirectory = fifoParent
         / (std::string(monolith::detail::atomicTempPrefix) + "fifo-lease");
     ec.clear();
     const bool fifoDirectoryReady = fs::create_directory(fifoMarkerDirectory, ec) && !ec;
@@ -275,7 +299,7 @@ int main() {
     ec.clear();
     const bool fifoLeaseDirectoryReady = fs::create_directory(fifoLeaseDirectory, ec) && !ec;
     const fs::path fifoLeasePath = fifoLeaseDirectory / "lease";
-    const bool fifoFixturesReady = fifoDirectoryReady
+    const bool fifoFixturesReady = fifoParentReady && fifoDirectoryReady
         && ::mkfifo(fifoOwnerPath.c_str(), S_IRUSR | S_IWUSR) == 0
         && writeFixture(fifoMarkerDirectory / "notes.txt", "keep this directory")
         && fifoLeaseDirectoryReady
@@ -288,7 +312,7 @@ int main() {
         const pid_t child = ::fork();
         if (child == 0) {
             ::alarm(2);
-            monolith::detail::scavengeAtomicTempDirectories(parent);
+            scavengeAtomicTempDirectoriesForTest(fifoParent);
             const bool preserved = fs::exists(fifoOwnerPath)
                 && fs::exists(fifoMarkerDirectory / "notes.txt")
                 && fs::exists(fifoLeasePath)
@@ -313,7 +337,7 @@ int main() {
     const bool orphanFixturesReady = fs::create_directory(orphanPath, ec) && !ec
         && fs::create_directory(tokenLookalikePath, ec) && !ec
         && writeFixture(tokenLookalikePath / "notes.txt", "keep this directory");
-    if (orphanFixturesReady) monolith::detail::scavengeAtomicTempDirectories(parent);
+    if (orphanFixturesReady) scavengeAtomicTempDirectoriesForTest(parent);
     check(orphanFixturesReady && !fs::exists(orphanPath)
               && fs::exists(tokenLookalikePath / "notes.txt"),
           "cleanup reclaims empty pre-marker orphans but preserves nonempty token lookalikes");
@@ -349,13 +373,17 @@ int main() {
             "user data");
     }
     bool sweepBatchCompleted = false;
-    bool sweepBatchLockRetained = false;
-    if (sweepBatchFixturesReady) {
+    bool sweepBatchSliceLocked = false;
+    std::size_t sweepBatchSlices = 0;
+    while (sweepBatchFixturesReady && sweepBatchSlices < 4096) {
         monolith::detail::AtomicTempParentLock sweepBatchLock(sweepBatchParent);
-        if (sweepBatchLock.locked()) {
-            sweepBatchCompleted = monolith::detail::scavengeAtomicTempDirectoriesLocked(
-                sweepBatchParent, sweepBatchLock);
-            sweepBatchLockRetained = sweepBatchLock.locked();
+        if (!sweepBatchLock.locked()) break;
+        sweepBatchSliceLocked = sweepBatchLock.locked();
+        ++sweepBatchSlices;
+        if (monolith::detail::scavengeAtomicTempDirectoryStepLocked(
+                sweepBatchParent, sweepBatchLock)) {
+            sweepBatchCompleted = true;
+            break;
         }
     }
     std::size_t sweepBatchRemaining = 0;
@@ -370,9 +398,10 @@ int main() {
             }
         }
     }
-    check(sweepBatchCompleted && sweepBatchLockRetained && sweepBatchRemaining == 0
+    check(sweepBatchCompleted && sweepBatchSliceLocked && sweepBatchSlices > 1
+              && sweepBatchRemaining == 0
               && ordinaryEntriesRemaining == sweepBatchSize,
-          "a sweep reuses the setup lock while reclaiming stale workspaces and preserving siblings");
+          "a large cleanup uses bounded lock-held slices and preserves ordinary siblings");
 
     const fs::path incrementalParent = parent / "incremental-sweep";
     const fs::path incrementalAlias = parent / "incremental-sweep-alias";
@@ -645,9 +674,11 @@ int main() {
         && userIncompleteReady && userMarkedReady && symlinkMarkedLookalikeReady
         && monolith::detail::writeTextAtomically(
             target, [](std::ostream& out) { out << "recovered"; });
-    check(staleWrite && !fs::exists(stalePath) && !fs::exists(currentStalePath)
+    const bool staleCleanupCompleted = staleWrite
+        && scavengeAtomicTempDirectoriesForTest(parent);
+    check(staleCleanupCompleted && !fs::exists(stalePath) && !fs::exists(currentStalePath)
               && fs::exists(target) && fs::file_size(target, ec) == 9,
-          "stale workspaces with read-only leases are reclaimed after an interrupted save");
+          "bounded sweeps reclaim stale read-only leases after an interrupted save");
     check(userIncompleteReady && userMarkedReady
               && fs::exists(userIncompletePath / "notes.txt")
               && fs::exists(userMarkedPath / "notes.txt"),
@@ -659,13 +690,13 @@ int main() {
     const fs::path retryParent = parent / "retry-after-sweep-failure";
     const bool retryWasDue = monolith::detail::shouldSweepAtomicTempParent(retryParent);
     const bool missingParentSweepReported =
-        !monolith::detail::scavengeAtomicTempDirectories(retryParent);
+        !scavengeAtomicTempDirectoriesForTest(retryParent);
     ec.clear();
     const bool retryParentCreated = fs::create_directory(retryParent, ec) && !ec;
     const bool retryTriggeredImmediately = retryParentCreated
         && monolith::detail::shouldSweepAtomicTempParent(retryParent);
     const bool retrySweepCompleted = retryTriggeredImmediately
-        && monolith::detail::scavengeAtomicTempDirectories(retryParent);
+        && scavengeAtomicTempDirectoriesForTest(retryParent);
     const bool normalCadenceRestored = retrySweepCompleted
         && !monolith::detail::shouldSweepAtomicTempParent(retryParent);
     check(retryWasDue && missingParentSweepReported && retryParentCreated
@@ -693,7 +724,7 @@ int main() {
     const bool activeLockHeld = activeLeaseFd >= 0
         && ::flock(activeLeaseFd, LOCK_EX | LOCK_NB) == 0;
     if (activeFixtureReady && activeLockHeld) {
-        monolith::detail::scavengeAtomicTempDirectories(parent);
+        scavengeAtomicTempDirectoriesForTest(parent);
     }
     check(activeFixtureReady && activeLeaseReadOnly && activeLockHeld
               && fs::exists(activePath / "content")
@@ -704,7 +735,7 @@ int main() {
         ::close(activeLeaseFd);
     }
 
-    monolith::detail::scavengeAtomicTempDirectories(parent);
+    scavengeAtomicTempDirectoriesForTest(parent);
     check(!fs::exists(activePath),
           "cleanup reclaims an unlocked interrupted workspace");
 
@@ -785,7 +816,7 @@ int main() {
         && writeFixture(readyWithUserData / "content", "partial snapshot")
         && writeFixture(readyWithUserData / "notes.txt", "keep ready notes");
     if (markedUserDataFixturesReady) {
-        monolith::detail::scavengeAtomicTempDirectories(parent);
+        scavengeAtomicTempDirectoriesForTest(parent);
     }
     check(markedUserDataFixturesReady
               && fs::exists(incompleteWithUserData / "notes.txt")
@@ -821,7 +852,7 @@ int main() {
                 out << "saved";
             });
     if (activeUnexpectedParentReady) {
-        monolith::detail::scavengeAtomicTempDirectories(activeUnexpectedParent);
+        scavengeAtomicTempDirectoriesForTest(activeUnexpectedParent);
     }
     check(activeUnexpectedWrite, "atomic save succeeds with an extra workspace entry");
     check(activeUnexpectedEntryCreated,
