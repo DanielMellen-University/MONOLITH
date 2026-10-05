@@ -1,5 +1,7 @@
 # Session log
 
+| 2026-10-05 | perf/ui | Build Start-menu rows once and use fixed-capacity arrays for filtered rows and actionable hit targets. Removed heap-backed `vector<bool>` filtering and the unreachable placeholder tail in hit-target rebuilding; a warmed filtered Start-menu frame performs zero C++ heap allocations. Full headless suite and Release build pass. |
+
 | 2026-10-05 | perf/ui | Replaced per-call desktop-icon registry and placement vectors with fixed-capacity arrays, removing three steady-frame heap allocations from icon rendering and hit testing. A warmed Window Manager frame with a 512-byte Alt+Tab title now records zero C++ heap allocations; focused coordinate and desktop-icon suites pass. |
 
 | 2026-10-05 | perf/ui | Routed Window Manager shell labels through the shared renderer-aware `TextTextureCache`, removing its duplicate string-keyed LRU and eviction implementation. Shared cache estimates now include retained text bytes and entry/bookkeeping overhead; a warmed 512-byte shell label reuses its texture with zero C++ heap allocations. Full headless suite, Release build, and hosted run #527 `verify`/`sanitize` passed. |
