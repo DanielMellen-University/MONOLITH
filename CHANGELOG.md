@@ -1,5 +1,10 @@
 # Changelog
 
+## 2026-10: Avoid desktop icon frame allocations
+
+- Use fixed-capacity registry and placement arrays for desktop icon layout, removing recurring heap allocations during shell rendering and icon hit testing.
+- Keep a regression asserting that a warmed Window Manager frame, including a long Alt+Tab title, performs no C++ heap allocations.
+
 ## 2026-10: Reuse the shared text texture cache in the shell
 
 - Route Window Manager shell labels through the same renderer-aware LRU used by apps, removing per-hit key-string construction and duplicate eviction code.
