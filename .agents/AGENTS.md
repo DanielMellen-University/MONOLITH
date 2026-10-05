@@ -34,6 +34,7 @@ The human funds token budget and lives in the desktop. You:
 
 | When | Kind | Note |
 |------|------|------|
+| 2026-10-04 | text-editor-multiline-find-replace | Support multiline selections, newline-aware Find/Replace, Ctrl+Enter and normalized clipboard line breaks; render row fragments with live active styling; enforce field byte/line bounds; focused suite, full headless suite, production build, and hosted run #462 verify/sanitize passed |
 | 2026-10-04 | atomic-publication-process-test | Stage two conditional writers in separate processes from one baseline and require exactly one write plus one conflict; focused normal and ASan/UBSan checks pass, hosted run #460 verify/sanitize passed |
 | 2026-10-04 | atomic-publication-lock | Hold the parent-directory advisory lock across final stamp validation and rename, serializing Monolith atomic writers; host/uncoordinated writers remain outside the guarantee; production build, full headless suite, and hosted run #458 verify/sanitize passed |
 | 2026-10-04 | atomic-writer-callback-result | Honor false-returning atomic writer callbacks so partial output is discarded; void callbacks remain supported; preserve previous files and clean staging workspaces; hosted run #456 verify and sanitize passed |
@@ -422,6 +423,7 @@ Older recent-work rows: [`SESSION_LOG.md`](SESSION_LOG.md).
 | 7.159 | Abort atomic writes on callback failure | done | Honor boolean callback failure in the shared atomic writer while preserving void callbacks; verify the old target remains intact, staged workspace is removed, and success callbacks still commit; hosted run #456 passed |
 | 7.160 | Serialize atomic file publication | done | Hold the destination parent lock across final conditional validation and rename, serializing competing Monolith atomic writers; cover lock ownership and retain external no-replace coverage; production build, full headless suite, and hosted run #458 passed both jobs |
 | 7.161 | Verify cross-process conditional writes | done | Stage two independent processes against one file stamp, release together, and require exactly one `Written` and one `Conflict`; focused Filesystem suite and hosted run #460 passed both jobs |
+| 7.162 | Complete multiline Text Editor Find and Replace | done | Seed multiline selections; match, navigate, select, and replace across row boundaries; normalize pasted line endings; provide Ctrl+Enter and row-fragment highlights with live active state; enforce 16 MiB/65,536-line field limits; focused and full headless suites, production build, hosted run #462 verify/sanitize passed |
 | fs-browser-filter-cache | Reuse Filesystem Browser filter snapshots | done | Reuse one directory listing for filter edits; refresh it on F5 and Monolith filesystem notifications, including while filtering |
 | terminal-input-editing | Terminal command-line selection | done | Support UTF-8-safe keyboard/mouse selection and Ctrl+A/C/X/V; normalize all clipboard lines and tabs into the single-line prompt |
 | terminal-touch-mtime | Complete Terminal touch semantics | done | Update existing regular-file last-write time without truncation; reject outside-root symlink targets |

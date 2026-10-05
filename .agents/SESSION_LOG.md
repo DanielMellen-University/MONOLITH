@@ -1,5 +1,7 @@
 # Session log
 
+| 2026-10-04 | fix/editor | Text Editor Find/Replace now seeds multiline selections, matches and selects row-spanning ranges, accepts normalized multiline query/replacement input, and supports one-step Replace All undo. Added Ctrl+Enter, visible escaped newlines, bounded row-fragment highlighting with active styling that updates without geometry rebuilds, and maintained byte/line counters. Focused editor suite, full headless suite, production build, and hosted run #462 `verify`/`sanitize` passed. |
+
 | 2026-10-04 | test/data-safety | Added a process-level regression for two conditional saves staged from the same version; verifies that final publication produces one `Written` and one `Conflict` with no staging workspaces left behind. Focused normal and ASan/UBSan checks pass; local LeakSanitizer shutdown is unavailable in this ptrace environment, while hosted run #460 passed leak-enabled `verify` and `sanitize`. |
 
 | 2026-10-04 | fix/data-safety | Atomic writers now hold the destination parent lock across final version validation and publication, so competing Monolith atomic writers cannot replace one another between check and rename. Host tools and uncoordinated mutations remain outside the advisory lock. Production build, full headless suite, and hosted run #458 `verify`/`sanitize` pass. |
