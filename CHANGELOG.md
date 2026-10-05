@@ -10,6 +10,7 @@
 - Share v2-v4 workspace-name recognition between startup maintenance and bounded per-directory sweeps.
 - Route synchronous sweep candidates through the same lock-checked workspace-reclamation dispatcher used by startup maintenance.
 - Classify v4 ownership, directory type, and ready-marker state once before selecting incomplete or lease-protected reclamation.
+- Move non-template atomic-save, locking, sync, and cleanup implementations into one compiled source file, leaving the header focused on declarations and writer templates.
 
 ## 2026-10: Sync atomic saves before publication
 
