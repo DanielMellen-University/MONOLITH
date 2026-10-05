@@ -36,15 +36,20 @@ public:
 
     Texture get(SDL_Renderer* renderer, TTF_Font* font, const char* text,
                 SDL_Color color) const {
-        if (!renderer || !font || !text || !*text) return {};
+        if (!text) return {};
+        return get(renderer, font, std::string_view(text), color);
+    }
+
+    Texture get(SDL_Renderer* renderer, TTF_Font* font, std::string_view text,
+                SDL_Color color) const {
+        if (!renderer || !font || text.empty()) return {};
 
         if (m_renderer != renderer) {
             clear();
             m_renderer = renderer;
         }
 
-        const std::string_view textView{text};
-        const KeyView lookup{font, textView, color};
+        const KeyView lookup{font, text, color};
         auto cached = m_entries.find(lookup);
         if (cached != m_entries.end()) {
             m_lru.splice(m_lru.begin(), m_lru, cached->second.lruPosition);
@@ -52,21 +57,22 @@ public:
             return {cached->second.handle, cached->second.width, cached->second.height};
         }
 
+        std::string ownedText(text);
         int measuredWidth = 0;
         int measuredHeight = 0;
-        if (TTF_SizeUTF8(font, text, &measuredWidth, &measuredHeight) != 0
-            || estimateEntryBytes(measuredWidth, measuredHeight, textView.size())
+        if (TTF_SizeUTF8(font, ownedText.c_str(), &measuredWidth, &measuredHeight) != 0
+            || estimateEntryBytes(measuredWidth, measuredHeight, text.size())
                 > kMaxEstimatedBytes) {
             return {};
         }
 
-        SDL_Surface* surface = TTF_RenderUTF8_Blended(font, text, color);
+        SDL_Surface* surface = TTF_RenderUTF8_Blended(font, ownedText.c_str(), color);
         if (!surface) return {};
 
         const int width = surface->w;
         const int height = surface->h;
         const std::uint64_t estimatedBytes =
-            estimateEntryBytes(width, height, textView.size());
+            estimateEntryBytes(width, height, text.size());
         if (estimatedBytes > kMaxEstimatedBytes) {
             SDL_FreeSurface(surface);
             return {};
@@ -76,7 +82,7 @@ public:
         SDL_FreeSurface(surface);
         if (!texture) return {};
 
-        CacheKey key{font, std::string(textView), color};
+        CacheKey key{font, std::move(ownedText), color};
         auto inserted = m_entries.emplace(std::move(key), Entry{
             texture, width, height, estimatedBytes, {}});
         if (!inserted.second) {

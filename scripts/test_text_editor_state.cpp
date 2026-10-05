@@ -6,8 +6,10 @@
 #include <algorithm>
 #include <cstddef>
 #include <cstdint>
+#include <cstdlib>
 #include <filesystem>
 #include <iostream>
+#include <new>
 #include <string>
 #include <string_view>
 #include <utility>
@@ -16,6 +18,28 @@
 #include "TestTempDir.hpp"
 #include "../src/app/App.hpp"
 #include "../src/fs/Filesystem.hpp"
+
+namespace {
+bool g_trackAllocations = false;
+std::size_t g_trackedAllocations = 0;
+}
+
+void* operator new(std::size_t size) {
+    if (g_trackAllocations) ++g_trackedAllocations;
+    if (void* memory = std::malloc(size == 0 ? 1 : size)) return memory;
+    throw std::bad_alloc();
+}
+
+void* operator new[](std::size_t size) {
+    if (g_trackAllocations) ++g_trackedAllocations;
+    if (void* memory = std::malloc(size == 0 ? 1 : size)) return memory;
+    throw std::bad_alloc();
+}
+
+void operator delete(void* memory) noexcept { std::free(memory); }
+void operator delete(void* memory, std::size_t) noexcept { std::free(memory); }
+void operator delete[](void* memory) noexcept { std::free(memory); }
+void operator delete[](void* memory, std::size_t) noexcept { std::free(memory); }
 
 #define private public
 #include "../src/app/TextEditorApp.hpp"
@@ -471,6 +495,22 @@ int main() {
                       "Text Editor renders bounded UTF-8 excerpts for maximum-size search fields");
                 TTF_CloseFont(promptFont);
             }
+
+            TestEditor findAllocationEditor(scaleFont, &fs, "");
+            setEditorLines(findAllocationEditor, {"needle in a warmed Find frame"});
+            findAllocationEditor.m_searchMode = TestEditor::SearchMode::Find;
+            findAllocationEditor.m_findQuery = "needle";
+            findAllocationEditor.updateFindMatches();
+            findAllocationEditor.onResize(240, 200);
+            findAllocationEditor.render(renderer, {0, 0, 240, 200});
+            g_trackedAllocations = 0;
+            g_trackAllocations = true;
+            findAllocationEditor.render(renderer, {0, 0, 240, 200});
+            g_trackAllocations = false;
+            check(g_trackedAllocations == 0
+                      && findAllocationEditor.m_renderStatusText.find("1/1")
+                          != std::string::npos,
+                  "warmed Find rendering keeps its match count and performs no heap allocations");
 
             TestEditor findViewportEditor(scaleFont, &fs, "/find-viewport.txt");
             findViewportEditor.m_lines.assign(256, "target target");

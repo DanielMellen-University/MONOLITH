@@ -3,6 +3,7 @@
 
 #include <iostream>
 #include <string>
+#include <string_view>
 
 #include "../src/detail/TextTextureCache.hpp"
 
@@ -59,6 +60,14 @@ int main() {
     const auto colored = cache.get(firstRenderer, font, "Shared HUD", {200, 90, 70, 255});
     check(colored && colored.handle != first.handle && cache.size() == 2,
           "text color participates in the cache key");
+
+    const std::string viewBacking = "xxBorrowed viewyy";
+    const std::string_view borrowedText(viewBacking.data() + 2, 13);
+    const auto borrowed = cache.get(firstRenderer, font, borrowedText, white);
+    const auto borrowedHit = cache.get(firstRenderer, font, borrowedText, white);
+    check(borrowed && borrowedHit.handle == borrowed.handle
+              && borrowedText == "Borrowed view",
+          "borrowed non-terminated text views render once and reuse their owned cache key");
 
     TTF_Font* alternateFont = TTF_OpenFont("assets/fonts/DejaVuSans.ttf", 16);
     check(alternateFont != nullptr, "text texture cache loads an alternate font");

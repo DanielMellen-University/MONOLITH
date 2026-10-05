@@ -4,6 +4,7 @@
 #include "../detail/BufferedStreamWriter.hpp"
 #include "../detail/RendererClip.hpp"
 #include <algorithm>
+#include <charconv>
 #include <cctype>
 #include <iterator>
 #include <limits>
@@ -419,9 +420,10 @@ void TextEditorApp::drawColoredLine(SDL_Renderer* renderer, const std::string& l
         const size_t visibleEnd = std::min(spanEnd, slice.visibleEndByte);
         if (visibleEnd <= visibleStart) continue;
 
-        const std::string text = line.substr(visibleStart, visibleEnd - visibleStart);
+        const std::string_view text(line.data() + visibleStart,
+                                    visibleEnd - visibleStart);
         const auto texture = m_textTextureCache.get(
-            renderer, m_font, text.c_str(), span.color);
+            renderer, m_font, text, span.color);
         if (!texture) continue;
 
         // The caller owns the viewport clip. Keep the texture at native size
@@ -3050,8 +3052,19 @@ void TextEditorApp::render(SDL_Renderer* renderer, const SDL_Rect& contentRect) 
             } else if (m_findMatchCount == 0) {
                 status += "   |  no matches";
             } else {
-                status += "   |  " + std::to_string(m_currentFindMatch + 1) +
-                          "/" + std::to_string(m_findMatchCount);
+                status.append("   |  ");
+                char countBuffer[std::numeric_limits<std::size_t>::digits10 + 1];
+                const auto appendCount = [&](std::size_t value) {
+                    const auto result = std::to_chars(
+                        countBuffer, countBuffer + sizeof(countBuffer), value);
+                    if (result.ec == std::errc{}) {
+                        status.append(countBuffer,
+                                      static_cast<std::size_t>(result.ptr - countBuffer));
+                    }
+                };
+                appendCount(m_currentFindMatch + 1);
+                status.push_back('/');
+                appendCount(m_findMatchCount);
             }
             if (m_searchMode == SearchMode::Replace) {
                 status += "   |  Tab fields  Ctrl+Enter newline  Enter next  Ctrl+R one  Ctrl+Shift+R all  Esc";
