@@ -11,6 +11,7 @@
 #include <fstream>
 #include <iostream>
 #include <iterator>
+#include <new>
 #include <string>
 #include <utility>
 
@@ -23,6 +24,28 @@
 #undef private
 
 using monolith::app::SnakeApp;
+
+namespace {
+bool g_trackAllocations = false;
+std::size_t g_trackedAllocations = 0;
+}
+
+void* operator new(std::size_t size) {
+    if (g_trackAllocations) ++g_trackedAllocations;
+    if (void* memory = std::malloc(size == 0 ? 1 : size)) return memory;
+    throw std::bad_alloc();
+}
+
+void* operator new[](std::size_t size) {
+    if (g_trackAllocations) ++g_trackedAllocations;
+    if (void* memory = std::malloc(size == 0 ? 1 : size)) return memory;
+    throw std::bad_alloc();
+}
+
+void operator delete(void* memory) noexcept { std::free(memory); }
+void operator delete(void* memory, std::size_t) noexcept { std::free(memory); }
+void operator delete[](void* memory) noexcept { std::free(memory); }
+void operator delete[](void* memory, std::size_t) noexcept { std::free(memory); }
 
 int main() {
     int failures = 0;
@@ -204,6 +227,8 @@ int main() {
     check(snakeRenderer != nullptr, "Snake state creates a software renderer");
     if (snakeRenderer) {
         SDL_SetRenderDrawBlendMode(snakeRenderer, SDL_BLENDMODE_ADD);
+        game.m_score = 23;
+        game.m_highScore = 41;
         game.m_state = SnakeApp::State::GameOver;
         game.m_highScoreSaveFailed = true;
         game.m_clientWidth = 1;
@@ -214,7 +239,18 @@ int main() {
         const size_t cachedTextureCount = game.m_textTextureCache.size();
         const auto gameOverTexture = game.m_textTextureCache.get(
             snakeRenderer, font, "GAME OVER", {245, 245, 250, 255});
+        g_trackedAllocations = 0;
+        g_trackAllocations = true;
         game.render(snakeRenderer, {0, 0, 240, 240});
+        g_trackAllocations = false;
+        check(g_trackedAllocations == 0,
+              "Snake warmed game-over overlay rendering performs no heap allocations");
+        const size_t scoreLineTextureCount = game.m_textTextureCache.size();
+        const auto scoreLineTexture = game.m_textTextureCache.get(
+            snakeRenderer, font, "Score 23  ·  Best 41", {140, 140, 150, 255});
+        check(scoreLineTexture.handle
+                  && game.m_textTextureCache.size() == scoreLineTextureCount,
+              "Snake stack-formatted game-over score preserves text and spacing");
         const auto repeatedGameOverTexture = game.m_textTextureCache.get(
             snakeRenderer, font, "GAME OVER", {245, 245, 250, 255});
         check(cachedTextureCount > 0 && repeatedGameOverTexture.handle

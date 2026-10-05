@@ -6,6 +6,7 @@
 #include "../detail/TickMath.hpp"
 
 #include <algorithm>
+#include <charconv>
 #include <filesystem>
 #include <fstream>
 #include <sstream>
@@ -20,6 +21,16 @@ constexpr SDL_Color kOverlayText{245, 245, 250, 255};
 constexpr SDL_Color kGold{230, 190, 70, 255};
 constexpr SDL_Color kBestText{180, 200, 140, 255};
 constexpr SDL_Color kSaveWarning{240, 160, 90, 255};
+
+char* appendText(char* output, const char* text) {
+    while (*text) *output++ = *text++;
+    return output;
+}
+
+char* appendNumber(char* output, char* end, int value) {
+    const auto result = std::to_chars(output, end, value);
+    return result.ec == std::errc{} ? result.ptr : output;
+}
 } // namespace
 
 using monolith::detail::RendererClipState;
@@ -547,7 +558,7 @@ void SnakeApp::render(SDL_Renderer* renderer, const SDL_Rect& contentRect) {
     }
 
     // Overlays — all lines horizontally centered as a vertical stack
-    auto drawOverlayStack = [&](const char* title, const std::string& line2,
+    auto drawOverlayStack = [&](const char* title, const char* line2,
                                 const char* line3, SDL_Color line3Color) {
         const RendererBlendState previousBlend = captureRendererBlend(renderer);
         SDL_SetRenderDrawBlendMode(renderer, SDL_BLENDMODE_BLEND);
@@ -557,14 +568,14 @@ void SnakeApp::render(SDL_Renderer* renderer, const SDL_Rect& contentRect) {
 
         const int lineH = std::max(18, m_font ? TTF_FontHeight(m_font) : 18);
         const int gap = 4;
-        int lines = 1 + (!line2.empty() ? 1 : 0) + (line3 && *line3 ? 1 : 0);
+        int lines = 1 + (line2 && *line2 ? 1 : 0) + (line3 && *line3 ? 1 : 0);
         const int blockH = lines * lineH + (lines - 1) * gap;
         int y = boardRect.y + (boardRect.h - blockH) / 2;
 
         drawCenteredLine(renderer, title, boardRect, y, kOverlayText);
         y += lineH + gap;
-        if (!line2.empty()) {
-            drawCenteredLine(renderer, line2.c_str(), boardRect, y, kDimText);
+        if (line2 && *line2) {
+            drawCenteredLine(renderer, line2, boardRect, y, kDimText);
             y += lineH + gap;
         }
         if (line3 && *line3) {
@@ -575,8 +586,14 @@ void SnakeApp::render(SDL_Renderer* renderer, const SDL_Rect& contentRect) {
     if (m_paused && m_state == State::Playing) {
         drawOverlayStack("PAUSED", "Space / P / click to resume", nullptr, kDimText);
     } else if (m_state == State::GameOver) {
-        const std::string finalScore =
-            "Score " + std::to_string(m_score) + "  ·  Best " + std::to_string(m_highScore);
+        char finalScore[64];
+        char* finalScoreEnd = appendText(finalScore, "Score ");
+        finalScoreEnd = appendNumber(
+            finalScoreEnd, finalScore + sizeof(finalScore) - 1, m_score);
+        finalScoreEnd = appendText(finalScoreEnd, "  ·  Best ");
+        finalScoreEnd = appendNumber(
+            finalScoreEnd, finalScore + sizeof(finalScore) - 1, m_highScore);
+        *finalScoreEnd = '\0';
         if (m_highScoreSaveFailed) {
             drawOverlayStack("GAME OVER", finalScore, "BEST NOT SAVED", kSaveWarning);
         } else if (m_newHighScore) {
