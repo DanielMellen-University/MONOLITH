@@ -1,5 +1,7 @@
 # Session log
 
+| 2026-10-05 | refactor/filesystem | Move the descriptor-backed 16 KiB atomic output stream, including seek/tell support, into `AtomicTempOutput.cpp`, separating stream mechanics from workspace cleanup and publication. Existing large-write and seek regressions pass with the focused atomic-file suite; full headless suite and Release build pass. |
+
 | 2026-10-05 | perf/breakout | Cache screen-space brick rectangles until playfield geometry changes and batch live bricks by row color, reducing up to 50 draw submissions to at most five. Software-render pixel regression checks palette, cleared-brick gaps, and resize rebuilds; full headless suite and Release build pass. |
 
 | 2026-10-05 | perf/editor | Shift cached syntax-span vectors with same-sized overlapping viewports; single-row scrolling preserves shared rows and retokenizes only newly exposed lines. A long-identifier regression verifies storage reuse in both directions and bounded allocation growth; full headless suite and Release build pass. |
