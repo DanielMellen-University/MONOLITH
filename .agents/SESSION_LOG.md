@@ -1,6 +1,6 @@
 # Session log
 
-| 2026-10-04 | perf/filesystem | Release the process-wide sweep tracker mutex after advancing at most 32 directory entries and collecting workspace paths. Candidate validation/reclamation now runs outside that mutex while the per-parent lock remains held; focused atomic-file suite, full headless suite, and production build pass locally. |
+| 2026-10-04 | perf/filesystem | Release the process-wide sweep tracker mutex after advancing at most 32 directory entries and collecting workspace paths. Candidate validation/reclamation now runs outside that mutex while the per-parent lock remains held; focused atomic-file suite, full headless suite, production build, and hosted run #481 `verify`/`sanitize` pass. |
 
 | 2026-10-04 | refactor/filesystem | Remove the unused unbounded atomic-temp directory scanner. Large recovery tests now advance the production 32-entry cursor across separately locked slices; a 128-workspace batch preserves ordinary siblings, and recovery/retry fixtures pass. Focused atomic-file suite, full headless suite, production build, and hosted run #478 `verify`/`sanitize` pass. |
 
