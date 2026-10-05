@@ -1,5 +1,7 @@
 # Session log
 
+| 2026-10-05 | perf/editor | Shift cached syntax-span vectors with same-sized overlapping viewports; single-row scrolling preserves shared rows and retokenizes only newly exposed lines. A long-identifier regression verifies storage reuse in both directions and bounded allocation growth; full headless suite and Release build pass. |
+
 | 2026-10-05 | perf/snake | Cache fixed checkerboard-cell rectangles until board geometry changes and submit the 200 alternating cells through one SDL batch per frame. Software-renderer pixel checks preserve tile colors across resize; full headless suite and Release build pass. |
 
 | 2026-10-05 | perf/editor | Measure visible Find prefixes and match slices with a 4 KiB stack scratch buffer during geometry rebuilds, using temporary storage only for exceptionally large slices. The isolated rebuild regression fails with substring allocation and passes with scratch measurement; full headless suite and Release build pass. |
