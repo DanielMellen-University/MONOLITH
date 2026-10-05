@@ -1,5 +1,10 @@
 # Changelog
 
+## 2026-10: Keep atomic cleanup bounded
+
+- Remove the duplicate unbounded whole-directory scanner; regression tests now drive the same resumable 32-entry sweep used by saves and listings, reacquiring the parent lock for each slice.
+- Exercise large cleanup across multiple slices while preserving ordinary sibling files.
+
 ## 2026-10: Sync atomic saves before publication
 
 - Require staged file content and final permission metadata to sync before rename; a sync failure leaves the existing target untouched.

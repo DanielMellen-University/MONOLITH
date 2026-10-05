@@ -1,5 +1,7 @@
 # Session log
 
+| 2026-10-04 | refactor/filesystem | Remove the unused unbounded atomic-temp directory scanner. Large recovery tests now advance the production 32-entry cursor across separately locked slices; a 128-workspace batch preserves ordinary siblings, and recovery/retry fixtures pass. Focused atomic-file suite, full headless suite, and production build pass locally. |
+
 | 2026-10-04 | fix/data-safety | Pin staged atomic-save inodes with `O_PATH|O_NOFOLLOW`; change temporary/final permissions through that inode, then verify the writable no-follow descriptor matches before syncing. A deterministic path-swap regression proves external symlink targets keep their mode, while restrictive-umask/mode-000 saves still pass. Focused atomic-file suite, full headless suite, production build, and hosted run #475 `verify`/`sanitize` pass; the separate host-writer check-to-replace race remains documented. |
 
 | 2026-10-04 | test/data-safety | Cover a staged content path replaced with a symlink before sync: publication is rejected, the old destination and external target remain unchanged, and cleanup preserves the unexpected link until explicitly removed. Focused atomic-file test, full headless suite, and production build pass locally. |
