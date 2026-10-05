@@ -1,5 +1,10 @@
 # Changelog
 
+## 2026-10: Remove Drawing path-prompt frame allocations
+
+- Assemble status and caret text directly from path-buffer slices in retained strings instead of allocating temporary substrings each frame.
+- Verify a warmed active path-prompt render preserves caret metrics and performs zero C++ heap allocations.
+
 ## 2026-10: Remove Filesystem Browser status frame allocations
 
 - Reuse retained status-bar storage and append the item count, selected filename, and feedback directly instead of concatenating temporary strings.
