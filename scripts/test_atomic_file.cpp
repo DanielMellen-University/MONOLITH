@@ -185,6 +185,89 @@ int main() {
     check(stagedSymlinkWorkspaceCleaned,
           "staged-symlink cleanup preserves unexpected entries until explicitly removed");
 
+    const fs::path cleanupParentOne = parent / "cleanup-parent-one";
+    const fs::path cleanupParentTwo = parent / "cleanup-parent-two";
+    const fs::path cleanupAlias = parent / "cleanup-parent-alias";
+    ec.clear();
+    bool cleanupAliasFixturesReady = fs::create_directory(cleanupParentOne, ec) && !ec;
+    ec.clear();
+    cleanupAliasFixturesReady = cleanupAliasFixturesReady
+        && fs::create_directory(cleanupParentTwo, ec) && !ec;
+    ec.clear();
+    if (cleanupAliasFixturesReady) {
+        fs::create_directory_symlink(cleanupParentOne, cleanupAlias, ec);
+    }
+    cleanupAliasFixturesReady = cleanupAliasFixturesReady && !ec;
+
+    std::string cleanupWorkspaceName;
+    fs::path cleanupTrapWorkspace;
+    bool cleanupWorkspaceFound = false;
+    bool cleanupTrapPrepared = false;
+    bool cleanupAliasRetargeted = false;
+    const bool cleanupWriteRejected = cleanupAliasFixturesReady
+        && !monolith::detail::writeAtomically(
+            cleanupAlias / "record.txt",
+            [](std::ostream& out) {
+                out << "discarded content";
+                return static_cast<bool>(out);
+            },
+            false, std::ios_base::out,
+            [&]() {
+                for (const auto& entry : fs::directory_iterator(cleanupParentOne)) {
+                    const std::string_view name =
+                        monolith::detail::pathBasenameView(entry.path());
+                    if (!name.starts_with(monolith::detail::atomicTempPrefix)) continue;
+                    cleanupWorkspaceName.assign(name);
+                    cleanupWorkspaceFound = true;
+                    break;
+                }
+                if (!cleanupWorkspaceFound) return false;
+
+                cleanupTrapWorkspace = cleanupParentTwo / cleanupWorkspaceName;
+                std::error_code trapError;
+                cleanupTrapPrepared = fs::create_directory(cleanupTrapWorkspace, trapError)
+                    && !trapError;
+                if (cleanupTrapPrepared) {
+                    fs::create_symlink(monolith::detail::atomicTempOwnerMarker,
+                                       cleanupTrapWorkspace
+                                           / monolith::detail::atomicTempOwnerName,
+                                       trapError);
+                    cleanupTrapPrepared = !trapError
+                        && writeFixture(cleanupTrapWorkspace / "lease", "lease")
+                        && writeFixture(cleanupTrapWorkspace / "ready", "ready")
+                        && writeFixture(cleanupTrapWorkspace / "content",
+                                        "keep external data");
+                }
+                if (!cleanupTrapPrepared) return false;
+
+                std::error_code aliasError;
+                const bool removedAlias = fs::remove(cleanupAlias, aliasError) && !aliasError;
+                if (removedAlias) {
+                    fs::create_directory_symlink(cleanupParentTwo, cleanupAlias, aliasError);
+                }
+                cleanupAliasRetargeted = removedAlias && !aliasError;
+                return false;
+            });
+
+    std::size_t cleanupParentOneWorkspaces = 0;
+    if (cleanupAliasFixturesReady) {
+        for (const auto& entry : fs::directory_iterator(cleanupParentOne)) {
+            if (monolith::detail::pathBasenameView(entry.path()).starts_with(
+                    monolith::detail::atomicTempPrefix)) {
+                ++cleanupParentOneWorkspaces;
+            }
+        }
+    }
+    std::ifstream cleanupTrapContentInput(cleanupTrapWorkspace / "content",
+                                         std::ios::binary);
+    const std::string cleanupTrapContents(
+        (std::istreambuf_iterator<char>(cleanupTrapContentInput)),
+        std::istreambuf_iterator<char>());
+    check(cleanupWriteRejected && cleanupWorkspaceFound && cleanupTrapPrepared
+              && cleanupAliasRetargeted && cleanupParentOneWorkspaces == 0
+              && cleanupTrapContents == "keep external data",
+          "atomic cleanup stays anchored to its original parent after a symlink alias retarget");
+
     const fs::path modeRaceDirectory = parent / "mode-race";
     const fs::path modeRaceStagedPath = modeRaceDirectory / "content";
     const fs::path modeRaceOutsidePath = modeRaceDirectory / "outside.txt";

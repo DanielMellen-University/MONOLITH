@@ -67,7 +67,8 @@ private:
 
 bool createAtomicTempDirectory(const std::filesystem::path& targetPath,
                                std::filesystem::path& outDirectory,
-                               int& outLeaseFd);
+                               int& outLeaseFd,
+                               int& outParentFd);
 bool setAtomicTempFileMode(int pathFd, mode_t mode);
 bool syncAtomicTempFile(const std::filesystem::path& path);
 bool publishAtomicTempFile(const std::filesystem::path& source,
@@ -79,8 +80,11 @@ bool publishAtomicTempFile(const std::filesystem::path& source,
 struct AtomicTempCleanup {
     std::filesystem::path directory;
     int leaseFd{-1};
+    int parentFd{-1};
 
-    AtomicTempCleanup(std::filesystem::path tempDirectory, int tempLeaseFd);
+    AtomicTempCleanup(std::filesystem::path tempDirectory,
+                      int tempLeaseFd,
+                      int tempParentFd);
     AtomicTempCleanup(const AtomicTempCleanup&) = delete;
     AtomicTempCleanup& operator=(const AtomicTempCleanup&) = delete;
     ~AtomicTempCleanup();
@@ -119,9 +123,13 @@ bool writeAtomically(const std::filesystem::path& targetPath,
 
     std::filesystem::path tempDirectory;
     int tempLeaseFd = -1;
-    if (!createAtomicTempDirectory(targetPath, tempDirectory, tempLeaseFd)) return false;
-    const std::filesystem::path tempPath = tempDirectory / "content";
-    AtomicTempCleanup cleanup(tempDirectory, tempLeaseFd);
+    int tempParentFd = -1;
+    if (!createAtomicTempDirectory(targetPath, tempDirectory, tempLeaseFd,
+                                   tempParentFd)) {
+        return false;
+    }
+    AtomicTempCleanup cleanup(std::move(tempDirectory), tempLeaseFd, tempParentFd);
+    const std::filesystem::path tempPath = cleanup.directory / "content";
 
     std::ofstream out(tempPath, openMode | std::ios_base::trunc);
     if (!out) return false;
