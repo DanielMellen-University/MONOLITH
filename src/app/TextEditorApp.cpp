@@ -2712,9 +2712,38 @@ void TextEditorApp::render(SDL_Renderer* renderer, const SDL_Rect& contentRect) 
         0, std::min(visibleLines, static_cast<int>(m_lines.size()) - m_scrollOffset));
     if (m_renderedSyntaxStartRow != m_scrollOffset
         || m_renderedSyntaxSpans.size() != static_cast<size_t>(renderedLineCount)) {
+        const std::size_t rowCount = m_renderedSyntaxSpans.size();
+        const std::size_t nextRowCount = static_cast<std::size_t>(renderedLineCount);
+        const int scrollDelta = m_scrollOffset - m_renderedSyntaxStartRow;
+        bool retainedOverlap = false;
+        if (m_renderedSyntaxStartRow >= 0 && rowCount == nextRowCount
+            && scrollDelta > 0
+            && static_cast<std::size_t>(scrollDelta) < rowCount) {
+            const std::size_t shift = static_cast<std::size_t>(scrollDelta);
+            std::rotate(m_renderedSyntaxSpans.begin(),
+                        m_renderedSyntaxSpans.begin() + shift,
+                        m_renderedSyntaxSpans.end());
+            for (std::size_t row = rowCount - shift; row < rowCount; ++row) {
+                m_renderedSyntaxSpans[row].clear();
+            }
+            retainedOverlap = true;
+        } else if (m_renderedSyntaxStartRow >= 0 && rowCount == nextRowCount
+                   && scrollDelta < 0
+                   && static_cast<std::size_t>(-scrollDelta) < rowCount) {
+            const std::size_t shift = static_cast<std::size_t>(-scrollDelta);
+            std::rotate(m_renderedSyntaxSpans.begin(),
+                        m_renderedSyntaxSpans.end() - shift,
+                        m_renderedSyntaxSpans.end());
+            for (std::size_t row = 0; row < shift; ++row) {
+                m_renderedSyntaxSpans[row].clear();
+            }
+            retainedOverlap = true;
+        }
+        if (!retainedOverlap) {
+            m_renderedSyntaxSpans.clear();
+            m_renderedSyntaxSpans.resize(nextRowCount);
+        }
         m_renderedSyntaxStartRow = m_scrollOffset;
-        m_renderedSyntaxSpans.clear();
-        m_renderedSyntaxSpans.resize(static_cast<size_t>(renderedLineCount));
     }
     if (m_renderedTextSliceStartRow != m_scrollOffset
         || m_renderedTextSliceWidth != textWidth

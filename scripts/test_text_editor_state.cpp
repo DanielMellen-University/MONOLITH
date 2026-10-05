@@ -778,6 +778,37 @@ int main() {
                       && syntaxCacheEditor.m_renderedSyntaxSpans[1][0].color.g == 205,
                   "Text Editor rebuilds viewport spans when the file switches syntax modes");
 
+            TestEditor syntaxScrollEditor(scaleFont, &fs, "/syntax-scroll.cpp");
+            syntaxScrollEditor.m_lines.assign(
+                256, "return very_long_identifier_name_that_allocates;");
+            syntaxScrollEditor.onResize(240, 200);
+            syntaxScrollEditor.render(renderer, {0, 0, 240, 200});
+            const int visibleSyntaxRows = syntaxScrollEditor.getVisibleLineCount(
+                {0, 0, 240, 200});
+            syntaxScrollEditor.m_scrollOffset = 1;
+            syntaxScrollEditor.render(renderer, {0, 0, 240, 200});
+            syntaxScrollEditor.m_scrollOffset = 0;
+            syntaxScrollEditor.render(renderer, {0, 0, 240, 200});
+            const auto* overlappingSyntaxStorage =
+                syntaxScrollEditor.m_renderedSyntaxSpans[1].data();
+            g_trackedAllocations = 0;
+            g_trackAllocations = true;
+            syntaxScrollEditor.m_scrollOffset = 1;
+            syntaxScrollEditor.render(renderer, {0, 0, 240, 200});
+            g_trackAllocations = false;
+            const bool retainedAfterDownScroll =
+                syntaxScrollEditor.m_renderedSyntaxStartRow == 1
+                && syntaxScrollEditor.m_renderedSyntaxSpans[0].data()
+                    == overlappingSyntaxStorage;
+            syntaxScrollEditor.m_scrollOffset = 0;
+            syntaxScrollEditor.render(renderer, {0, 0, 240, 200});
+            check(retainedAfterDownScroll
+                      && syntaxScrollEditor.m_renderedSyntaxSpans[1].data()
+                          == overlappingSyntaxStorage
+                      && g_trackedAllocations
+                          < static_cast<std::size_t>(visibleSyntaxRows),
+                  "Text Editor reuses overlapping syntax spans when scrolling one row");
+
             const size_t beforeStatus = scaleEditor.m_textTextureCache.size();
             scaleEditor.setStatus("cache invalidation");
             scaleEditor.render(renderer, {0, 0, 200, 160});
