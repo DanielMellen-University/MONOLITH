@@ -217,6 +217,8 @@ Workspace reclamation is anchored to the locked parent descriptor and opens cand
 
 Atomic-save setup, output, sync, publication, and rollback now remain anchored to the same retained parent/workspace descriptors. Workspace entries are created with `mkdirat`/`openat`; a buffered, seekable `std::ostream` adapter writes to an exclusively created descriptor-relative content file and flushes before repositioning; sync verifies the pinned inode; and `renameat` or no-replace `renameat2` publishes into the originally opened parent. A restrictive umask can be normalized through the workspace's `O_PATH` descriptor before opening the usable directory handle.
 
+Conditional publication prepares the destination basename before its final version-check callback, so only entry validation and the rename syscall follow the check. This narrows, but cannot eliminate, the race with host tools that do not honor Monolith's advisory lock.
+
 See [filesystem.md](filesystem.md) for virtual path rules, host mapping, and app usage. Advanced features (permissions, metadata, versioning, etc.) are explicitly out of scope for the foreseeable future.
 
 ### 6. Built-in Applications
