@@ -435,6 +435,21 @@ int main() {
     check(bufferedWriteCommitted && bufferedContents == bufferedPayload,
           "atomic output buffering preserves large binary streams across flush boundaries");
 
+    const fs::path seekTarget = callbackFailureDirectory / "seek.txt";
+    const bool seekWriteCommitted = monolith::detail::writeTextAtomically(
+        seekTarget,
+        [](std::ostream& out) {
+            out << "abcdefghij";
+            out.seekp(3);
+            out << "XYZ";
+            return static_cast<bool>(out);
+        });
+    std::ifstream seekInput(seekTarget, std::ios::binary);
+    std::string seekContents(
+        (std::istreambuf_iterator<char>(seekInput)), std::istreambuf_iterator<char>());
+    check(seekWriteCommitted && seekContents == "abcXYZghij",
+          "descriptor-backed atomic output preserves ostream seekp behavior");
+
     {
         monolith::detail::AtomicTempParentLock heldLock(parent);
         monolith::detail::AtomicTempParentLock competingLock(parent, true);

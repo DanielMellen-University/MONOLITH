@@ -1009,6 +1009,40 @@ int AtomicTempOutputBuffer::sync() {
     return flushBuffer() ? 0 : -1;
 }
 
+AtomicTempOutputBuffer::pos_type AtomicTempOutputBuffer::seekoff(
+    off_type offset,
+    std::ios_base::seekdir direction,
+    std::ios_base::openmode which) {
+    if ((which & std::ios_base::out) == 0 || fd_ < 0 || sync() != 0) {
+        return pos_type(off_type(-1));
+    }
+
+    int whence;
+    if (direction == std::ios_base::beg) {
+        whence = SEEK_SET;
+    } else if (direction == std::ios_base::cur) {
+        whence = SEEK_CUR;
+    } else if (direction == std::ios_base::end) {
+        whence = SEEK_END;
+    } else {
+        return pos_type(off_type(-1));
+    }
+
+    const off_t nativeOffset = static_cast<off_t>(offset);
+    if (static_cast<off_type>(nativeOffset) != offset) {
+        return pos_type(off_type(-1));
+    }
+    const off_t position = ::lseek(fd_, nativeOffset, whence);
+    if (position < 0) return pos_type(off_type(-1));
+    return pos_type(static_cast<off_type>(position));
+}
+
+AtomicTempOutputBuffer::pos_type AtomicTempOutputBuffer::seekpos(
+    pos_type position,
+    std::ios_base::openmode which) {
+    return seekoff(static_cast<off_type>(position), std::ios_base::beg, which);
+}
+
 bool AtomicTempOutputBuffer::close() {
     const bool flushed = sync() == 0;
     if (fd_ < 0) return flushed;

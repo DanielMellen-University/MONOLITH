@@ -98,6 +98,11 @@ protected:
     int_type overflow(int_type character) override;
     std::streamsize xsputn(const char* data, std::streamsize size) override;
     int sync() override;
+    pos_type seekoff(off_type offset,
+                     std::ios_base::seekdir direction,
+                     std::ios_base::openmode which) override;
+    pos_type seekpos(pos_type position,
+                     std::ios_base::openmode which) override;
 
 private:
     bool flushBuffer();
