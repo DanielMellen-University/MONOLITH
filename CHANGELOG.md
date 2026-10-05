@@ -1,5 +1,10 @@
 # Changelog
 
+## 2026-10: Batch Snake checkerboard rendering
+
+- Cache the 200 alternating board-cell rectangles until board geometry changes and submit them through one SDL rectangle batch per frame.
+- Verify the original tile colors remain unchanged and cached geometry follows board resizing.
+
 ## 2026-10: Remove Text Editor Find geometry rebuild allocations
 
 - Measure visible Find prefixes and match slices in a 4 KiB stack buffer, falling back to temporary storage only for exceptionally large slices.
