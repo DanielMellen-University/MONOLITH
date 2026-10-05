@@ -425,20 +425,8 @@ inline bool removeAtomicTempWorkspace(
 }
 
 // A ready marker exists only after the writer owns the lease lock.
-inline bool tryReclaimAtomicTempDirectory(const std::filesystem::path& directory) {
-    if (pathBasenameView(directory).starts_with(atomicTempPrefix)
-        && !hasAtomicTempOwnerMarker(directory)) {
-        return false;
-    }
-
-    std::error_code statusError;
-    const auto directoryStatus = std::filesystem::symlink_status(directory, statusError);
-    if (statusError || !std::filesystem::is_directory(directoryStatus)) return false;
-
-    const auto readyPath = directory / "ready";
-    const auto readyStatus = std::filesystem::symlink_status(readyPath, statusError);
-    if (statusError || !std::filesystem::is_regular_file(readyStatus)) return false;
-
+inline bool tryReclaimReadyAtomicTempDirectory(
+    const std::filesystem::path& directory) {
     const std::filesystem::path leasePath = directory / "lease";
     struct stat leasePathStatus {};
     if (::lstat(leasePath.c_str(), &leasePathStatus) != 0
@@ -478,43 +466,42 @@ inline bool tryReclaimAtomicTempDirectory(const std::filesystem::path& directory
     return reclaimed;
 }
 
-// V4 setup holds the parent lock until ownership, lease, and ready markers exist,
-// so an incomplete owned directory cannot belong to an active writer while locked.
-inline bool tryReclaimIncompleteAtomicTempDirectory(
-    const std::filesystem::path& directory) {
+// Classify each candidate once. V4 setup holds the parent lock until ownership,
+// lease, and ready markers exist, so an owned incomplete workspace cannot be active.
+inline bool tryScavengeAtomicTempWorkspace(
+    const std::filesystem::path& directory,
+    const AtomicTempParentLock& parentLock) {
+    if (!parentLock.locked()) return false;
+
     const std::string_view name = pathBasenameView(directory);
-    if (!name.starts_with(atomicTempPrefix)) {
-        return false;
-    }
-    const bool hasOwnerMarker = hasAtomicTempOwnerMarker(directory);
-    if (!hasOwnerMarker && !hasAtomicTempTokenName(name)) return false;
+    const bool isV4 = name.starts_with(atomicTempPrefix);
+    const bool hasOwnerMarker = isV4 && hasAtomicTempOwnerMarker(directory);
+    if (isV4 && !hasOwnerMarker && !hasAtomicTempTokenName(name)) return false;
 
     std::error_code statusError;
     const auto directoryStatus = std::filesystem::symlink_status(directory, statusError);
     if (statusError || !std::filesystem::is_directory(directoryStatus)) return false;
 
-    statusError.clear();
     const auto readyStatus = std::filesystem::symlink_status(directory / "ready", statusError);
-    if ((!statusError && readyStatus.type() != std::filesystem::file_type::not_found)
-        || (statusError && statusError != std::errc::no_such_file_or_directory)) {
-        return false;
-    }
+    const bool readyMissing = (!statusError
+                               && readyStatus.type()
+                                   == std::filesystem::file_type::not_found)
+        || statusError == std::errc::no_such_file_or_directory;
+    if (!readyMissing && statusError) return false;
 
-    if (!hasOwnerMarker) {
+    if (readyMissing) {
+        if (!isV4) return false;
+        if (hasOwnerMarker) return removeAtomicTempWorkspace(directory, false);
         // Before the owner symlink is published, the directory is still empty.
         // rmdir semantics make a concurrent/user-added entry fail closed.
         return removeAtomicTempDirectoryIfEmpty(directory);
     }
 
-    return removeAtomicTempWorkspace(directory, false);
-}
-
-inline bool tryScavengeAtomicTempWorkspace(
-    const std::filesystem::path& directory,
-    const AtomicTempParentLock& parentLock) {
-    if (!parentLock.locked()) return false;
-    if (tryReclaimIncompleteAtomicTempDirectory(directory)) return true;
-    return tryReclaimAtomicTempDirectory(directory);
+    if (!std::filesystem::is_regular_file(readyStatus)
+        || (isV4 && !hasOwnerMarker)) {
+        return false;
+    }
+    return tryReclaimReadyAtomicTempDirectory(directory);
 }
 
 // Keep the directory cursor between operations, but hold the parent lock only
