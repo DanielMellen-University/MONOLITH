@@ -1,12 +1,7 @@
-// AppRegistry-backed Start menu hit rebuild.
-// Replaces the former hardcoded MenuEntry table. Included from
-// ensureStartMenuHitTargets after a local MenuEntry struct declaration.
-// Does the real rebuild from filtered AppRegistry rows, then returns. A tiny
-// dummy entries array keeps the unreachable caller-side sizeof/loop valid.
-{
+    // Rebuild hit targets from the same filtered registry rows used by rendering.
     #include "wm_start_menu_rows.inc"
-    StartMenuLayout layout = computeStartMenuLayout(contentHLogical);
     const int headerHLogical = m_startMenuFilter.empty() ? 22 : 36;
+    StartMenuLayout layout = computeStartMenuLayout(contentHLogical);
     if (layout.headerHLogical != headerHLogical) {
         const int delta = headerHLogical - layout.headerHLogical;
         layout.headerHLogical = headerHLogical;
@@ -20,7 +15,7 @@
     m_startMenuHoverIndex = -1;
 
     int y = layout.itemStartY;
-    for (size_t i = 0; i < entryCount; ++i) {
+    for (std::size_t i = 0; i < entryCount; ++i) {
         const auto& entry = entries[i];
         if (entry.action == -2) {
             y += layout.separatorH;
@@ -44,8 +39,3 @@
         }
         y += layout.itemH + layout.itemGap;
     }
-}
-return;
-const MenuEntry entries[] = {
-    {"", -2, 0},
-};

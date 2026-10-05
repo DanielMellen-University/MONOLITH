@@ -304,6 +304,24 @@ int main() {
               && secondStartMenuHeader == firstStartMenuHeader
               && wm.m_shellTextCache.size() == firstShellTextCacheSize,
           "shell text reuses Start-menu textures between frames");
+    wm.m_startMenuFilter = "snake";
+    wm.invalidateStartMenuHitTargets();
+    wm.render(renderer);
+    const size_t filteredStartMenuTargets = wm.m_startMenuItems.size();
+    const std::int64_t filteredMenuClockMinute = wm.m_clockMinuteKey;
+    g_trackedAllocations = 0;
+    g_trackAllocations = true;
+    wm.render(renderer);
+    g_trackAllocations = false;
+    const bool filteredMenuClockStayedWarm =
+        wm.m_clockMinuteKey == filteredMenuClockMinute;
+    check(filteredStartMenuTargets == 1 && wm.m_startMenuItems.size() == 1,
+          "filtered Start-menu rows keep only the matching actionable hit target");
+    check(!filteredMenuClockStayedWarm || g_trackedAllocations == 0,
+          "a warmed filtered Start-menu frame performs no heap allocations");
+    wm.m_startMenuFilter.clear();
+    wm.invalidateStartMenuHitTargets();
+    wm.render(renderer);
     wm.setFont(nullptr);
     check(wm.m_shellTextCache.size() == 0
               && wm.m_desktopIconTextCache[0].glyphTexture == nullptr
@@ -1001,11 +1019,10 @@ int main() {
         wm.m_showStartMenu = false;
 
         wm.m_showStartMenu = true;
-        wm.m_startMenuItems = {
-            {{0, 0, 40, 20}, 9},
-            {{0, 20, 40, 20}, 9},
-            {{0, 40, 40, 20}, 9}
-        };
+        wm.m_startMenuItems.clear();
+        wm.m_startMenuItems.push_back({{0, 0, 40, 20}, 9});
+        wm.m_startMenuItems.push_back({{0, 20, 40, 20}, 9});
+        wm.m_startMenuItems.push_back({{0, 40, 40, 20}, 9});
         wm.m_startMenuKeyboardIndex = -1;
         SDL_Event menuDown{};
         menuDown.type = SDL_KEYDOWN;
@@ -1029,7 +1046,8 @@ int main() {
               "Start menu Escape closes keyboard navigation");
 
         wm.m_showStartMenu = true;
-        wm.m_startMenuItems = {{{0, 0, 40, 20}, 9}};
+        wm.m_startMenuItems.clear();
+        wm.m_startMenuItems.push_back({{0, 0, 40, 20}, 9});
         wm.m_startMenuKeyboardIndex = 0;
         SDL_Event menuEnter = menuDown;
         menuEnter.key.keysym.sym = SDLK_RETURN;

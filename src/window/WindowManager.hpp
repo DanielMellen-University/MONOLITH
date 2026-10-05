@@ -5,6 +5,7 @@
 #include "../detail/TextTextureCache.hpp"
 #include <SDL2/SDL.h>
 #include <array>
+#include <cassert>
 #include <cmath>
 #include <cstddef>
 #include <cstdint>

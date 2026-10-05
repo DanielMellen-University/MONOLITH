@@ -325,60 +325,7 @@ void WindowManager::ensureStartMenuHitTargets() {
         return;
     }
 
-    struct MenuEntry {
-        const char* label;
-        int action;
-        int indent;
-    };
     #include "wm_start_menu_entries.inc"
-    const size_t entryCount = sizeof(entries) / sizeof(entries[0]);
-    const int itemHLogical = 26;
-    const int itemGapLogical = 2;
-    const int categoryHLogical = 20;
-    const int separatorHLogical = 10;
-    const int bottomPadLogical = 8;
-    const int topPadLogical = 6;
-    int contentHLogical = topPadLogical;
-    for (size_t i = 0; i < entryCount; ++i) {
-        if (entries[i].action == -2) {
-            contentHLogical += separatorHLogical;
-        } else if (entries[i].action == -1) {
-            contentHLogical += categoryHLogical + itemGapLogical;
-        } else {
-            contentHLogical += itemHLogical + itemGapLogical;
-        }
-    }
-    contentHLogical += bottomPadLogical;
-    const StartMenuLayout layout = computeStartMenuLayout(contentHLogical);
-    m_startMenuRect = layout.menuRect;
-    m_startMenuItems.clear();
-    m_startMenuHoverIndex = -1;
-
-    int y = layout.itemStartY;
-    for (size_t i = 0; i < entryCount; ++i) {
-        const auto& entry = entries[i];
-        if (entry.action == -2) {
-            y += layout.separatorH;
-            continue;
-        }
-        if (entry.action == -1) {
-            y += layout.categoryH + layout.itemGap;
-            continue;
-        }
-
-        const SDL_Rect itemRect = {
-            layout.menuRect.x + static_cast<int>(4 * m_contentScale),
-            y,
-            static_cast<int>(std::max(0, layout.menuWidthLogical - 8) * m_contentScale),
-            layout.itemH
-        };
-        SDL_Rect visibleItemRect{};
-        if (SDL_IntersectRect(&itemRect, &m_startMenuRect, &visibleItemRect)
-            && visibleItemRect.w > 0 && visibleItemRect.h > 0) {
-            m_startMenuItems.push_back({visibleItemRect, entry.action});
-        }
-        y += layout.itemH + layout.itemGap;
-    }
 }
 
 void WindowManager::bringToFront(Window* window) {

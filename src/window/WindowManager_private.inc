@@ -231,7 +231,26 @@ private:
         // Category headers / separators are not added to this list.
         int action;
     };
-    std::vector<StartMenuItem> m_startMenuItems;
+    struct StartMenuItems {
+        std::array<StartMenuItem, kAppRegistryCount> entries{};
+        std::size_t count = 0;
+
+        std::size_t size() const { return count; }
+        bool empty() const { return count == 0; }
+        const StartMenuItem& operator[](std::size_t index) const {
+            return entries[index];
+        }
+        const StartMenuItem* begin() const { return entries.data(); }
+        const StartMenuItem* end() const { return entries.data() + count; }
+
+        void clear() { count = 0; }
+
+        void push_back(const StartMenuItem& item) {
+            assert(count < entries.size());
+            if (count < entries.size()) entries[count++] = item;
+        }
+    };
+    StartMenuItems m_startMenuItems;
 
     struct StartMenuLayout {
         int menuWidthLogical = 0;

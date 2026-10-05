@@ -10,6 +10,10 @@ ok() { echo "ok: $1"; }
 
 grep -q 'filterStartMenuRows' src/window/StartMenuFilter.hpp \
   || fail "filterStartMenuRows missing from StartMenuFilter.hpp"
+grep -q 'std::array<bool, kMaxStartMenuRows>' src/window/StartMenuFilter.hpp \
+  || fail "Start-menu filter must use its bounded keep mask"
+grep -q 'kMaxStartMenuRows' src/window/AppRegistry.hpp \
+  || fail "bounded Start-menu registry row capacity missing"
 grep -q 'startMenuLabelMatches' src/window/StartMenuFilter.hpp \
   || fail "startMenuLabelMatches missing"
 grep -q 'appendStartMenuFilterInput' src/window/StartMenuFilter.hpp \
@@ -51,4 +55,11 @@ grep -q 'headerHLogical' src/window/detail/wm_start_menu_entries.inc \
 
 grep -q 'StartMenuFilter.hpp' src/window/WindowManager.cpp \
   || fail "StartMenuFilter.hpp not included in WM"
+if grep -Eq 'std::vector<StartMenuRow>|std::vector<StartMenuItem>' \
+   src/window/AppRegistry.hpp src/window/StartMenuFilter.hpp src/window/WindowManager_private.inc; then
+  fail "Start-menu registry, filtered rows, and hit targets must remain bounded"
+fi
+if grep -q 'MenuEntry entries\[\]' src/window/detail/wm_start_menu_entries.inc; then
+  fail "obsolete placeholder Start-menu entry table remains"
+fi
 ok "all Start menu type-ahead static integration checks passed"

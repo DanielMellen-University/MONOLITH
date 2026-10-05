@@ -4,10 +4,10 @@
 
 #include <algorithm>
 #include <array>
+#include <cassert>
 #include <cstddef>
 #include <cstring>
 #include <string_view>
-#include <vector>
 
 namespace monolith::window {
 
@@ -85,44 +85,73 @@ struct StartMenuRow {
     int indent; // 0 top-level, 1 nested under a category
 };
 
-inline std::vector<StartMenuRow> buildStartMenuRows() {
-    std::vector<StartMenuRow> rows;
-    rows.reserve(kAppRegistryCount + 4);
+// A registry item can contribute a separator, category header, and action row.
+inline constexpr std::size_t kMaxStartMenuRows = 3 * kAppRegistryCount + 1;
 
-    bool emittedSinceSeparator = false;
-    const char* openCategory = nullptr;
+struct StartMenuRows {
+    std::array<StartMenuRow, kMaxStartMenuRows> entries{};
+    std::size_t count = 0;
 
-    for (const auto& app : kAppRegistry) {
-        if (!app.showInStartMenu) continue;
+    std::size_t size() const { return count; }
+    bool empty() const { return count == 0; }
+    const StartMenuRow& operator[](std::size_t index) const { return entries[index]; }
+    const StartMenuRow& front() const { return entries[0]; }
+    const StartMenuRow& back() const { return entries[count - 1]; }
+    const StartMenuRow* begin() const { return entries.data(); }
+    const StartMenuRow* end() const { return entries.data() + count; }
 
-        if (app.action == AppAction::ShutDown) {
-            if (emittedSinceSeparator) {
-                rows.push_back({"", -2, 0});
-            }
-            rows.push_back({app.startMenuLabel, static_cast<int>(app.action), 0});
-            emittedSinceSeparator = false;
-            openCategory = nullptr;
-            continue;
-        }
-
-        if (app.startMenuCategory != nullptr) {
-            if (openCategory == nullptr
-                || std::strcmp(openCategory, app.startMenuCategory) != 0) {
-                if (emittedSinceSeparator) {
-                    rows.push_back({"", -2, 0});
-                }
-                rows.push_back({app.startMenuCategory, -1, 0});
-                openCategory = app.startMenuCategory;
-            }
-            rows.push_back({app.startMenuLabel, static_cast<int>(app.action), 1});
-            emittedSinceSeparator = true;
-            continue;
-        }
-
-        openCategory = nullptr;
-        rows.push_back({app.startMenuLabel, static_cast<int>(app.action), 0});
-        emittedSinceSeparator = true;
+    void push_back(const StartMenuRow& row) {
+        assert(count < entries.size());
+        if (count < entries.size()) entries[count++] = row;
     }
+
+    void pop_back() {
+        assert(count > 0);
+        if (count > 0) --count;
+    }
+};
+
+inline const StartMenuRows& buildStartMenuRows() {
+    static const StartMenuRows rows = [] {
+        StartMenuRows result;
+
+        bool emittedSinceSeparator = false;
+        const char* openCategory = nullptr;
+
+        for (const auto& app : kAppRegistry) {
+            if (!app.showInStartMenu) continue;
+
+            if (app.action == AppAction::ShutDown) {
+                if (emittedSinceSeparator) {
+                    result.push_back({"", -2, 0});
+                }
+                result.push_back({app.startMenuLabel, static_cast<int>(app.action), 0});
+                emittedSinceSeparator = false;
+                openCategory = nullptr;
+                continue;
+            }
+
+            if (app.startMenuCategory != nullptr) {
+                if (openCategory == nullptr
+                    || std::strcmp(openCategory, app.startMenuCategory) != 0) {
+                    if (emittedSinceSeparator) {
+                        result.push_back({"", -2, 0});
+                    }
+                    result.push_back({app.startMenuCategory, -1, 0});
+                    openCategory = app.startMenuCategory;
+                }
+                result.push_back({app.startMenuLabel, static_cast<int>(app.action), 1});
+                emittedSinceSeparator = true;
+                continue;
+            }
+
+            openCategory = nullptr;
+            result.push_back({app.startMenuLabel, static_cast<int>(app.action), 0});
+            emittedSinceSeparator = true;
+        }
+
+        return result;
+    }();
     return rows;
 }
 
@@ -151,7 +180,7 @@ inline const AppRegistryEntry* findAppByBaseTitle(std::string_view base) {
 
 inline int startMenuContentHeightLogical(
     int topPad, int itemH, int itemGap, int categoryH, int separatorH, int bottomPad) {
-    const auto rows = buildStartMenuRows();
+    const auto& rows = buildStartMenuRows();
     int height = topPad;
     for (const auto& row : rows) {
         if (row.action == -2) {

@@ -5,7 +5,6 @@
 #include <cstring>
 #include <string>
 #include <string_view>
-#include <vector>
 
 namespace monolith::window {
 
@@ -71,11 +70,11 @@ inline bool startMenuLabelMatches(const char* label, std::string_view filter) {
 // Keep actionable rows whose label matches filter. Category headers stay only
 // when they still have a matching nested child. Separators stay only when they
 // still separate kept content. Headers remain action -1 (not hit-testable).
-inline std::vector<StartMenuRow> filterStartMenuRows(
-    const std::vector<StartMenuRow>& rows, std::string_view filter) {
+inline StartMenuRows filterStartMenuRows(
+    const StartMenuRows& rows, std::string_view filter) {
     if (filter.empty()) return rows;
 
-    std::vector<bool> keep(rows.size(), false);
+    std::array<bool, kMaxStartMenuRows> keep{};
     for (std::size_t i = 0; i < rows.size(); ++i) {
         if (rows[i].action >= 0
             && startMenuLabelMatches(rows[i].label, filter)) {
@@ -97,8 +96,7 @@ inline std::vector<StartMenuRow> filterStartMenuRows(
         if (hasChild) keep[i] = true;
     }
 
-    std::vector<StartMenuRow> out;
-    out.reserve(rows.size());
+    StartMenuRows out;
     for (std::size_t i = 0; i < rows.size(); ++i) {
         if (rows[i].action == -2) {
             const bool before = !out.empty() && out.back().action != -2;
@@ -119,7 +117,7 @@ inline std::vector<StartMenuRow> filterStartMenuRows(
 }
 
 inline int startMenuRowsContentHeightLogical(
-    const std::vector<StartMenuRow>& rows,
+    const StartMenuRows& rows,
     int topPad, int itemH, int itemGap, int categoryH, int separatorH, int bottomPad) {
     int height = topPad;
     for (const auto& row : rows) {
