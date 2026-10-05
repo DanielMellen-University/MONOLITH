@@ -98,6 +98,64 @@ int main() {
               && callbackFailureEntries == 1,
           "a false-returning atomic writer preserves the target and cleans its workspace");
 
+    const fs::path stagedSymlinkDirectory = parent / "staged-symlink";
+    const fs::path stagedSymlinkTarget = stagedSymlinkDirectory / "record.txt";
+    const fs::path stagedSymlinkOutside = stagedSymlinkDirectory / "outside.txt";
+    ec.clear();
+    const bool stagedSymlinkFixturesReady =
+        fs::create_directory(stagedSymlinkDirectory, ec) && !ec
+        && writeFixture(stagedSymlinkTarget, "previous version")
+        && writeFixture(stagedSymlinkOutside, "outside sentinel");
+    fs::path stagedSymlinkWorkspace;
+    fs::path stagedSymlinkContent;
+    bool stagedSymlinkSwapReady = false;
+    const bool stagedSymlinkWriteRejected = stagedSymlinkFixturesReady
+        && !monolith::detail::writeTextAtomically(
+            stagedSymlinkTarget,
+            [&](std::ostream& out) {
+                for (const auto& entry : fs::directory_iterator(stagedSymlinkDirectory)) {
+                    if (!entry.path().filename().string().starts_with(
+                            monolith::detail::atomicTempPrefix)) {
+                        continue;
+                    }
+                    stagedSymlinkWorkspace = entry.path();
+                    stagedSymlinkContent = stagedSymlinkWorkspace / "content";
+                    std::error_code removeError;
+                    const bool removed = fs::remove(stagedSymlinkContent, removeError);
+                    std::error_code symlinkError;
+                    if (removed && !removeError) {
+                        fs::create_symlink(stagedSymlinkOutside,
+                                           stagedSymlinkContent, symlinkError);
+                        stagedSymlinkSwapReady = !symlinkError;
+                    }
+                    break;
+                }
+                out << "must not publish";
+                return stagedSymlinkSwapReady && static_cast<bool>(out);
+            });
+    std::ifstream stagedSymlinkTargetInput(stagedSymlinkTarget, std::ios::binary);
+    const std::string stagedSymlinkTargetContents(
+        (std::istreambuf_iterator<char>(stagedSymlinkTargetInput)),
+        std::istreambuf_iterator<char>());
+    std::ifstream stagedSymlinkOutsideInput(stagedSymlinkOutside, std::ios::binary);
+    const std::string stagedSymlinkOutsideContents(
+        (std::istreambuf_iterator<char>(stagedSymlinkOutsideInput)),
+        std::istreambuf_iterator<char>());
+    ec.clear();
+    const auto stagedSymlinkStatus = fs::symlink_status(stagedSymlinkContent, ec);
+    const bool stagedSymlinkPreserved = !ec && fs::is_symlink(stagedSymlinkStatus);
+    check(stagedSymlinkWriteRejected && stagedSymlinkSwapReady
+              && stagedSymlinkTargetContents == "previous version"
+              && stagedSymlinkOutsideContents == "outside sentinel"
+              && stagedSymlinkPreserved,
+          "atomic sync rejects a staged symlink and preserves both target files");
+    ec.clear();
+    const bool stagedSymlinkWorkspaceCleaned = stagedSymlinkPreserved
+        && fs::remove(stagedSymlinkContent, ec) && !ec
+        && monolith::detail::removeAtomicTempWorkspace(stagedSymlinkWorkspace, true);
+    check(stagedSymlinkWorkspaceCleaned,
+          "staged-symlink cleanup preserves unexpected entries until explicitly removed");
+
     const fs::path callbackSuccessTarget = callbackFailureDirectory / "success.txt";
     const bool callbackSuccessCommitted = callbackFailureFixture
         && monolith::detail::writeTextAtomically(

@@ -1,5 +1,7 @@
 # Session log
 
+| 2026-10-04 | test/data-safety | Cover a staged content path replaced with a symlink before sync: publication is rejected, the old destination and external target remain unchanged, and cleanup preserves the unexpected link until explicitly removed. Focused atomic-file test, full headless suite, and production build pass locally. |
+
 | 2026-10-04 | fix/data-safety | Atomic publication now fsyncs staged file data and restored permissions before rename, aborting without replacing the target on file-sync failure. It attempts to sync the destination directory after rename; an error there cannot undo publication and does not report a false failed write. Added a mode-000 new-file regression under umask 0777; full headless suite, production build, and hosted run #470 `verify`/`sanitize` passed. |
 
 | 2026-10-04 | test/editor | Added 14,040 exhaustive small-case comparisons between multiline Find and a straightforward reference matcher, plus a 65,536-row/32,768-row near-match stress case. Focused/full headless suites and production build pass; hosted run #467 passed `verify` and `sanitize`. |

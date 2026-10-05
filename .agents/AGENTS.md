@@ -34,6 +34,7 @@ The human funds token budget and lives in the desktop. You:
 
 | When | Kind | Note |
 |------|------|------|
+| 2026-10-04 | atomic-save-staged-symlink-test | Verify sync rejects a staged content path replaced by a symlink, preserves the old destination and external target, and leaves unexpected workspace entries for fail-closed cleanup; focused atomic-file test, full headless suite, and production build pass locally |
 | 2026-10-04 | atomic-save-file-sync | Fsync staged content and restored permission metadata before rename, then best-effort sync the destination directory after publication; a mode-000 new target under umask 0777 passes; full headless suite, production build, and hosted run #470 verify/sanitize passed |
 | 2026-10-04 | text-editor-multiline-find-regressions | Differentially compare exact ranges with a simple reference scan across 14,040 small cases and exercise a 32,768-row near-match in a 65,536-row document; focused/full headless suites, production build, and hosted run #467 verify/sanitize passed |
 | 2026-10-04 | text-editor-multiline-find-performance | Match middle query rows with a KMP failure table and validate only the boundary fragments, avoiding repeated full-query comparisons on long near-matches; focused/full headless suites, production build, and hosted run #464 verify/sanitize passed |
