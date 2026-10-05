@@ -1,5 +1,10 @@
 # Changelog
 
+## 2026-10: Verify multiline Find bounds
+
+- Compare multiline match ranges against a straightforward reference scan across 14,040 exhaustive small document/query combinations, including empty rows and overlapping prefixes.
+- Exercise a 65,536-row document with a 32,768-row near-match to guard the long-query scan path.
+
 ## 2026-10: Bound multiline Find scan cost
 
 - Match multiline query middle rows with a precomputed KMP failure table, then validate only the first-row suffix and last-row prefix; long near-matches no longer trigger repeated full-query row comparisons.

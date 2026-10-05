@@ -1,5 +1,7 @@
 # Session log
 
+| 2026-10-04 | test/editor | Added 14,040 exhaustive small-case comparisons between multiline Find and a straightforward reference matcher, plus a 65,536-row/32,768-row near-match stress case. Focused Text Editor state suite passes. |
+
 | 2026-10-04 | perf/editor | Replaced per-candidate multiline query rechecks with KMP over exact middle-row segments and first/last-row boundary validation. Added overlapping-prefix and empty-boundary regressions; focused editor tests, full headless suite, production build, and hosted run #464 `verify`/`sanitize` passed. Commits `0b1e7e8` and `49d4787` are on `beta`. |
 
 | 2026-10-04 | fix/editor | Text Editor Find/Replace now seeds multiline selections, matches and selects row-spanning ranges, accepts normalized multiline query/replacement input, and supports one-step Replace All undo. Added Ctrl+Enter, visible escaped newlines, bounded row-fragment highlighting with active styling that updates without geometry rebuilds, and maintained byte/line counters. Focused editor suite, full headless suite, production build, and hosted run #462 `verify`/`sanitize` passed. |

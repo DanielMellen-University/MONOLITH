@@ -1841,6 +1841,131 @@ int main() {
                   == std::pair<int, int>{5, 0},
           "multiline Find preserves empty boundary segments through KMP matching");
 
+    TestEditor multilineFindReferenceEditor(nullptr, &fs, "");
+    const std::vector<std::string> rowTokens = {"", "a", "b"};
+    auto decodeRows = [&](std::size_t encoded, std::size_t rowCount) {
+        std::vector<std::string> rows(rowCount);
+        for (std::string& row : rows) {
+            row = rowTokens[encoded % rowTokens.size()];
+            encoded /= rowTokens.size();
+        }
+        return rows;
+    };
+    std::size_t differentialCases = 0;
+    bool allDifferentialRangesMatch = true;
+    for (std::size_t documentRows = 1; documentRows <= 4; ++documentRows) {
+        std::size_t documentPatterns = 1;
+        for (std::size_t i = 0; i < documentRows; ++i) {
+            documentPatterns *= rowTokens.size();
+        }
+        for (std::size_t documentPattern = 0;
+             documentPattern < documentPatterns; ++documentPattern) {
+            const std::vector<std::string> document =
+                decodeRows(documentPattern, documentRows);
+            for (std::size_t queryRows = 2; queryRows <= 4; ++queryRows) {
+                std::size_t queryPatterns = 1;
+                for (std::size_t i = 0; i < queryRows; ++i) {
+                    queryPatterns *= rowTokens.size();
+                }
+                for (std::size_t queryPattern = 0;
+                     queryPattern < queryPatterns; ++queryPattern) {
+                    const std::vector<std::string> segments =
+                        decodeRows(queryPattern, queryRows);
+                    std::string query;
+                    for (std::size_t i = 0; i < segments.size(); ++i) {
+                        if (i > 0) query.push_back('\n');
+                        query += segments[i];
+                    }
+
+                    std::vector<TestEditor::FindMatchRange> expectedRanges;
+                    std::size_t searchRow = 0;
+                    std::size_t searchCol = 0;
+                    while (searchRow < document.size()) {
+                        bool found = false;
+                        for (std::size_t candidateRow = searchRow;
+                             candidateRow + queryRows <= document.size();
+                             ++candidateRow) {
+                            const std::string& firstLine = document[candidateRow];
+                            std::size_t startCol = 0;
+                            bool matches = segments.front().empty();
+                            if (segments.front().empty()) {
+                                startCol = firstLine.size();
+                            } else if (segments.front().size() <= firstLine.size()) {
+                                startCol = firstLine.size() - segments.front().size();
+                                matches = firstLine.compare(
+                                    startCol, segments.front().size(), segments.front()) == 0;
+                            }
+                            if (candidateRow == searchRow && startCol < searchCol) {
+                                matches = false;
+                            }
+                            for (std::size_t i = 1;
+                                 matches && i + 1 < queryRows; ++i) {
+                                matches = document[candidateRow + i] == segments[i];
+                            }
+                            const std::string& lastLine =
+                                document[candidateRow + queryRows - 1];
+                            matches = matches
+                                && segments.back().size() <= lastLine.size()
+                                && lastLine.compare(0, segments.back().size(),
+                                                    segments.back()) == 0;
+                            if (!matches) continue;
+
+                            const std::size_t endRow = candidateRow + queryRows - 1;
+                            expectedRanges.push_back({
+                                {static_cast<int>(candidateRow), static_cast<int>(startCol)},
+                                {static_cast<int>(endRow),
+                                 static_cast<int>(segments.back().size())}});
+                            searchRow = endRow;
+                            searchCol = segments.back().size();
+                            found = true;
+                            break;
+                        }
+                        if (!found) break;
+                    }
+
+                    setEditorLines(multilineFindReferenceEditor, document);
+                    multilineFindReferenceEditor.m_cursorRow = 0;
+                    multilineFindReferenceEditor.m_cursorCol = 0;
+                    multilineFindReferenceEditor.m_findQuery = query;
+                    multilineFindReferenceEditor.updateFindMatches();
+                    ++differentialCases;
+                    if (multilineFindReferenceEditor.m_findMatchCount
+                            != expectedRanges.size()) {
+                        allDifferentialRangesMatch = false;
+                        continue;
+                    }
+                    for (std::size_t i = 0; i < expectedRanges.size(); ++i) {
+                        const TestEditor::FindMatchRange actual =
+                            multilineFindReferenceEditor.findMatchRangeAtIndex(i);
+                        if (actual.start != expectedRanges[i].start
+                            || actual.end != expectedRanges[i].end) {
+                            allDifferentialRangesMatch = false;
+                            break;
+                        }
+                    }
+                }
+            }
+        }
+    }
+    check(allDifferentialRangesMatch && differentialCases == 14'040,
+          "multiline Find matches a reference scan for 14,040 exhaustive small cases");
+
+    TestEditor multilineFindLimitEditor(nullptr, &fs, "");
+    constexpr std::size_t multilineFindLimitRows = TestEditor::kMaxDocumentLines;
+    constexpr std::size_t multilineFindLimitQueryRows = multilineFindLimitRows / 2;
+    multilineFindLimitEditor.m_lines.assign(multilineFindLimitRows, "x");
+    multilineFindLimitEditor.m_findQuery.reserve(multilineFindLimitQueryRows * 2);
+    for (std::size_t i = 0; i < multilineFindLimitQueryRows; ++i) {
+        if (i > 0) multilineFindLimitEditor.m_findQuery.push_back('\n');
+        multilineFindLimitEditor.m_findQuery.push_back(
+            i == multilineFindLimitQueryRows - 2 ? 'y' : 'x');
+    }
+    multilineFindLimitEditor.updateFindMatches();
+    check(multilineFindLimitEditor.m_findMatchCount == 0
+              && multilineFindLimitEditor.m_findMiddleFailure.size()
+                  == multilineFindLimitQueryRows - 2,
+          "multiline Find scans a maximum-row document with a long near-match");
+
     TestEditor denseFindEditor(nullptr, &fs, "");
     constexpr std::size_t denseFindCount = 1'048'576;
     denseFindEditor.m_lines = {std::string(denseFindCount, 'x')};
