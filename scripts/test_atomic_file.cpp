@@ -295,6 +295,52 @@ int main() {
     check(aliasRetryTriggered && aliasRetryRestoredCadence,
           "a failed sweep retry through a tracked alias reschedules the physical parent");
 
+    const fs::path retargetParentOne = parent / "alias-retarget-one";
+    const fs::path retargetParentTwo = parent / "alias-retarget-two";
+    const fs::path retargetAlias = parent / "alias-retarget-path";
+    ec.clear();
+    bool retargetFixturesReady = fs::create_directory(retargetParentOne, ec) && !ec;
+    ec.clear();
+    retargetFixturesReady = retargetFixturesReady
+        && fs::create_directory(retargetParentTwo, ec) && !ec;
+    ec.clear();
+    fs::create_directory_symlink(retargetParentOne, retargetAlias, ec);
+    retargetFixturesReady = retargetFixturesReady && !ec;
+    const bool retargetInitialSweep = retargetFixturesReady
+        && monolith::detail::shouldSweepAtomicTempParent(retargetParentOne);
+    const bool retargetAliasSharesCadence = retargetFixturesReady
+        && !monolith::detail::shouldSweepAtomicTempParent(retargetAlias);
+
+    std::string retargetWorkspaceName;
+    const fs::path retargetWorkspace = retargetParentTwo
+        / (monolith::detail::createAtomicTempTokenName(retargetWorkspaceName)
+               ? retargetWorkspaceName
+               : "invalid-workspace-name");
+    ec.clear();
+    const bool retargetWorkspaceReady = retargetFixturesReady
+        && !retargetWorkspaceName.empty()
+        && fs::create_directory(retargetWorkspace, ec) && !ec
+        && monolith::detail::createAtomicTempOwnerMarker(retargetWorkspace)
+        && writeFixture(retargetWorkspace / "lease", "")
+        && writeFixture(retargetWorkspace / "ready", "")
+        && writeFixture(retargetWorkspace / "content", "stale version");
+    ec.clear();
+    if (retargetFixturesReady) fs::remove(retargetAlias, ec);
+    const bool retargetAliasRemoved = retargetFixturesReady && !ec;
+    ec.clear();
+    if (retargetAliasRemoved) {
+        fs::create_directory_symlink(retargetParentTwo, retargetAlias, ec);
+    }
+    const bool retargetChanged = retargetAliasRemoved && !ec;
+    const bool retargetFirstWrite = retargetWorkspaceReady && retargetChanged
+        && monolith::detail::writeTextAtomically(
+            retargetAlias / "record.txt",
+            [](std::ostream& out) { out << "new target"; });
+    check(retargetFixturesReady && retargetInitialSweep && retargetAliasSharesCadence
+              && retargetWorkspaceReady && retargetChanged && retargetFirstWrite
+              && !fs::exists(retargetWorkspace),
+          "retargeting a tracked symlink gives the new directory an immediate cleanup sweep");
+
     const fs::path fifoParent = parent / "fifo-parent";
     ec.clear();
     const bool fifoParentReady = fs::create_directory(fifoParent, ec) && !ec;

@@ -110,6 +110,62 @@ inline AtomicTempSweepSlot& registerAtomicTempSweepSlotLocked(
     return slot;
 }
 
+inline bool atomicTempPathsReferToSameDirectory(
+    const std::filesystem::path& first,
+    const std::filesystem::path& second) {
+    struct stat firstStatus {};
+    struct stat secondStatus {};
+    return ::stat(first.c_str(), &firstStatus) == 0
+        && ::stat(second.c_str(), &secondStatus) == 0
+        && S_ISDIR(firstStatus.st_mode)
+        && S_ISDIR(secondStatus.st_mode)
+        && firstStatus.st_dev == secondStatus.st_dev
+        && firstStatus.st_ino == secondStatus.st_ino;
+}
+
+inline void forgetAtomicTempSweepAliasLocked(
+    AtomicTempSweepSlot& slot,
+    const std::filesystem::path& lexicalKey) {
+    for (auto& alias : slot.aliases) {
+        if (alias == lexicalKey) alias.clear();
+    }
+}
+
+// Returns a tracked slot with the mutex held, repairing aliases that changed targets.
+inline AtomicTempSweepSlot* findCurrentAtomicTempSweepSlotLocked(
+    const std::filesystem::path& lexicalKey,
+    std::unique_lock<std::mutex>& lock,
+    std::filesystem::path& resolvedKey,
+    bool& resolved) {
+    while (true) {
+        auto* slot = findAtomicTempSweepSlotLocked(lexicalKey, lexicalKey);
+        if (!slot || slot->parent == lexicalKey) break;
+
+        const auto trackedParent = slot->parent;
+        lock.unlock();
+        const bool aliasStillMatches =
+            atomicTempPathsReferToSameDirectory(lexicalKey, trackedParent);
+        lock.lock();
+
+        slot = findAtomicTempSweepSlotLocked(lexicalKey, lexicalKey);
+        if (!slot || slot->parent != trackedParent) continue;
+        if (aliasStillMatches) return slot;
+
+        forgetAtomicTempSweepAliasLocked(*slot, lexicalKey);
+        break;
+    }
+
+    if (!resolved) {
+        lock.unlock();
+        std::error_code pathError;
+        const auto canonical = std::filesystem::weakly_canonical(lexicalKey, pathError);
+        resolvedKey = pathError ? lexicalKey : canonical;
+        resolved = true;
+        lock.lock();
+    }
+    return findAtomicTempSweepSlotLocked(lexicalKey, resolvedKey);
+}
+
 class AtomicTempParentLock {
 public:
     explicit AtomicTempParentLock(const std::filesystem::path& parent,
@@ -162,27 +218,17 @@ inline bool shouldSweepAtomicTempParent(const std::filesystem::path& parent) {
         return false;
     };
 
-    {
-        std::lock_guard lock(atomicTempSweepMutex);
-        if (auto* slot = findAtomicTempSweepSlotLocked(lexicalKey, lexicalKey)) {
-            if (slot->traversal) return true;
-            return countOperation(*slot);
-        }
+    std::unique_lock lock(atomicTempSweepMutex);
+    std::filesystem::path key = lexicalKey;
+    bool resolved = false;
+    auto* slot = findCurrentAtomicTempSweepSlotLocked(
+        lexicalKey, lock, key, resolved);
+    if (!slot) {
+        registerAtomicTempSweepSlotLocked(lexicalKey, key, 1);
+        return true;
     }
-
-    // Resolve only an unseen spelling, keeping known-parent operations on the lexical hot path.
-    std::error_code pathError;
-    const auto resolvedKey = std::filesystem::weakly_canonical(parent, pathError);
-    const auto key = pathError ? lexicalKey : resolvedKey;
-
-    std::lock_guard lock(atomicTempSweepMutex);
-    if (auto* slot = findAtomicTempSweepSlotLocked(lexicalKey, key)) {
-        if (slot->traversal) return true;
-        return countOperation(*slot);
-    }
-
-    registerAtomicTempSweepSlotLocked(lexicalKey, key, 1);
-    return true;
+    if (slot->traversal) return true;
+    return countOperation(*slot);
 }
 
 inline std::string_view pathBasenameView(const std::filesystem::path& path) {
@@ -199,25 +245,16 @@ inline std::string_view pathBasenameView(const std::filesystem::path& path) {
 
 inline void scheduleAtomicTempSweepRetry(const std::filesystem::path& parent) {
     const auto lexicalKey = parent.lexically_normal();
-    {
-        std::lock_guard lock(atomicTempSweepMutex);
-        if (auto* slot = findAtomicTempSweepSlotLocked(lexicalKey, lexicalKey)) {
-            slot->operationsSinceSweep = atomicTempSweepInterval;
-            return;
-        }
-    }
-
-    std::error_code pathError;
-    const auto resolvedKey = std::filesystem::weakly_canonical(parent, pathError);
-    const auto key = pathError ? lexicalKey : resolvedKey;
-
-    std::lock_guard lock(atomicTempSweepMutex);
-    if (auto* slot = findAtomicTempSweepSlotLocked(lexicalKey, key)) {
-        slot->operationsSinceSweep = atomicTempSweepInterval;
+    std::unique_lock lock(atomicTempSweepMutex);
+    std::filesystem::path key = lexicalKey;
+    bool resolved = false;
+    auto* slot = findCurrentAtomicTempSweepSlotLocked(lexicalKey, lock, key, resolved);
+    if (!slot) {
+        registerAtomicTempSweepSlotLocked(
+            lexicalKey, key, atomicTempSweepInterval);
         return;
     }
-
-    registerAtomicTempSweepSlotLocked(lexicalKey, key, atomicTempSweepInterval);
+    slot->operationsSinceSweep = atomicTempSweepInterval;
 }
 
 inline bool hasAtomicTempTokenName(std::string_view name);
@@ -490,18 +527,10 @@ inline bool scavengeAtomicTempDirectoryStepLocked(
 
     const auto lexicalKey = parent.lexically_normal();
     std::unique_lock lock(atomicTempSweepMutex);
-    AtomicTempSweepSlot* slot =
-        findAtomicTempSweepSlotLocked(lexicalKey, lexicalKey);
     auto key = lexicalKey;
-    if (!slot) {
-        lock.unlock();
-        std::error_code pathError;
-        const auto resolvedKey = std::filesystem::weakly_canonical(parent, pathError);
-        key = pathError ? lexicalKey : resolvedKey;
-        lock.lock();
-        // The lexical spelling may have been registered while resolution ran.
-        slot = findAtomicTempSweepSlotLocked(lexicalKey, key);
-    }
+    bool resolved = false;
+    AtomicTempSweepSlot* slot = findCurrentAtomicTempSweepSlotLocked(
+        lexicalKey, lock, key, resolved);
     if (!slot) {
         slot = &registerAtomicTempSweepSlotLocked(lexicalKey, key, 1);
     }
