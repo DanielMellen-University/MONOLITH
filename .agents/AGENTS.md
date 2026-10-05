@@ -34,6 +34,7 @@ The human funds token budget and lives in the desktop. You:
 
 | When | Kind | Note |
 |------|------|------|
+| 2026-10-05 | snake-gameover-frame-allocation | Format the score/best overlay into a bounded stack buffer; a warmed game-over frame preserves the exact line and performs zero C++ heap allocations; full headless suite and Release build pass |
 | 2026-10-05 | minesweeper-hud-frame-allocation | Format the live timer HUD and win-overlay time/best text into bounded stack buffers; warmed gameplay and win renders now allocate no C++ heap memory; full headless suite and Release build pass |
 | 2026-10-05 | drawing-path-prompt-frame-allocation | Assemble Drawing status/caret text directly from path-buffer slices into retained strings; warmed active path-prompt rendering preserves caret metrics with zero C++ heap allocations |
 | 2026-10-05 | filesystem-browser-status-frame-allocation | Reuse status render storage and append the visible item count, selected filename, and status message directly; warmed selected-row rendering now allocates no C++ heap memory |
@@ -481,6 +482,7 @@ Older recent-work rows: [`SESSION_LOG.md`](SESSION_LOG.md).
 | 7.188 | Remove Filesystem Browser status frame allocations | done | Keep status text in retained storage and append the item count, selected name, and feedback directly; a warmed selected-row frame preserves the filename with zero C++ heap allocations; focused browser state suite passes |
 | 7.189 | Remove Drawing path-prompt frame allocations | done | Assemble status and caret text directly from prompt-buffer slices into retained strings; a warmed active path-prompt frame preserves caret metrics with zero C++ heap allocations; focused Drawing state suite passes |
 | 7.190 | Remove Minesweeper HUD and overlay frame allocations | done | Format live timer and win-overlay time/best labels into bounded stack buffers; warmed gameplay HUD and win-overlay renders perform zero C++ heap allocations and preserve exact text; full headless suite and Release build pass |
+| 7.191 | Remove Snake game-over overlay frame allocations | done | Format the score/best line into a bounded stack buffer; warmed game-over rendering performs zero C++ heap allocations and preserves exact text and spacing; full headless suite and Release build pass |
 | fs-browser-filter-cache | Reuse Filesystem Browser filter snapshots | done | Reuse one directory listing for filter edits; refresh it on F5 and Monolith filesystem notifications, including while filtering |
 | terminal-input-editing | Terminal command-line selection | done | Support UTF-8-safe keyboard/mouse selection and Ctrl+A/C/X/V; normalize all clipboard lines and tabs into the single-line prompt |
 | terminal-touch-mtime | Complete Terminal touch semantics | done | Update existing regular-file last-write time without truncation; reject outside-root symlink targets |
