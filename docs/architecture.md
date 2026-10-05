@@ -215,7 +215,7 @@ Startup cleanup probes each candidate's parent lock nonblocking. A contended can
 
 Workspace reclamation is anchored to the locked parent descriptor and opens candidates with `O_NOFOLLOW`; marker validation and removal stay relative to the pinned workspace directory. Failed-save cleanup retains its original parent descriptor so a retargeted symlink alias cannot redirect deletion.
 
-Atomic-save setup, output, sync, publication, and rollback now remain anchored to the same retained parent/workspace descriptors. Workspace entries are created with `mkdirat`/`openat`; a buffered `std::ostream` adapter writes to an exclusively created descriptor-relative content file; sync verifies and flushes the pinned inode; and `renameat` or no-replace `renameat2` publishes into the originally opened parent. A restrictive umask can be normalized through the workspace's `O_PATH` descriptor before opening the usable directory handle.
+Atomic-save setup, output, sync, publication, and rollback now remain anchored to the same retained parent/workspace descriptors. Workspace entries are created with `mkdirat`/`openat`; a buffered, seekable `std::ostream` adapter writes to an exclusively created descriptor-relative content file and flushes before repositioning; sync verifies the pinned inode; and `renameat` or no-replace `renameat2` publishes into the originally opened parent. A restrictive umask can be normalized through the workspace's `O_PATH` descriptor before opening the usable directory handle.
 
 See [filesystem.md](filesystem.md) for virtual path rules, host mapping, and app usage. Advanced features (permissions, metadata, versioning, etc.) are explicitly out of scope for the foreseeable future.
 
