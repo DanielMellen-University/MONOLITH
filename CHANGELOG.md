@@ -1,5 +1,10 @@
 # Changelog
 
+## 2026-10: Remove Text Editor Find geometry rebuild allocations
+
+- Measure visible Find prefixes and match slices in a 4 KiB stack buffer, falling back to temporary storage only for exceptionally large slices.
+- Add a regression that isolates viewport highlight-geometry rebuilds and verifies ordinary visible matches allocate no C++ heap memory.
+
 ## 2026-10: Remove Snake game-over render allocations
 
 - Format the score/best overlay line into a bounded stack buffer instead of rebuilding a heap-backed string each frame.
