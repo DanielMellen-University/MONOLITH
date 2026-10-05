@@ -1,5 +1,7 @@
 # Session log
 
+| 2026-10-04 | refactor/filesystem | Share v2-v4 atomic-workspace name recognition between startup DFS and synchronous per-directory sweeps; focused/full headless suites, production build, and hosted run #490 `verify`/`sanitize` pass. |
+
 | 2026-10-04 | fix/filesystem | Cached sweep aliases now validate against the tracked directory identity outside the global mutex. Retargeted symlinks are detached from the old parent and their new physical target receives an immediate first-touch sweep; focused/full headless suites, production build, and hosted run #487 `verify`/`sanitize` pass. |
 
 | 2026-10-04 | refactor/filesystem | Centralize bounded sweep-tracker slot lookup and registration; retry requests reuse known lexical aliases without canonical resolution. Focused atomic-file suite, full headless suite, production build, and hosted run #484 `verify`/`sanitize` pass. |
