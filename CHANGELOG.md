@@ -4,6 +4,7 @@
 
 - Remove the duplicate unbounded whole-directory scanner; regression tests now drive the same resumable 32-entry sweep used by saves and listings, reacquiring the parent lock for each slice.
 - Exercise large cleanup across multiple slices while preserving ordinary sibling files.
+- Release the process-wide tracker mutex before validating or reclaiming staged workspaces, so unrelated directory sweeps are not serialized behind cleanup I/O.
 
 ## 2026-10: Sync atomic saves before publication
 
