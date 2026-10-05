@@ -64,7 +64,7 @@ The editor applies lightweight syntax highlighting:
 
 **Light mode** (`.txt` and other plain extensions): line comments (`//`, `#`), double-quoted strings, and numbers only — keywords and block comments are not highlighted, and apostrophes in prose (`Monolith's`) are not treated as strings.
 
-**Code mode** (`.cpp`, `.py`, `.js`, `.rs`, `.md`, and similar): adds keyword highlighting for common programming tokens and carries C-style `/* ... */` block comments across lines. The editor caches lexical state through the visible rows and reuses syntax spans for the current viewport; edits invalidate downstream lexical state and visible spans.
+**Code mode** (`.cpp`, `.py`, `.js`, `.rs`, `.md`, and similar): adds keyword highlighting for common programming tokens and carries C-style `/* ... */` block comments across lines. The editor caches lexical state through visible rows and reuses syntax spans for the current viewport. Scrolling between same-sized overlapping viewports shifts the cached spans and tokenizes only newly exposed rows; edits invalidate downstream lexical state and visible spans.
 
 ## Keyboard Shortcuts
 

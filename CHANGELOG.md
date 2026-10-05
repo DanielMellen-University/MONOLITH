@@ -1,5 +1,10 @@
 # Changelog
 
+## 2026-10: Reuse Text Editor syntax spans while scrolling
+
+- Shift cached syntax-span rows with same-sized overlapping viewports so scrolling tokenizes only newly exposed rows.
+- Keep edit and syntax-mode invalidation behavior, and cover reuse in both scroll directions with an allocation regression.
+
 ## 2026-10: Batch Snake checkerboard rendering
 
 - Cache the 200 alternating board-cell rectangles until board geometry changes and submit them through one SDL rectangle batch per frame.
