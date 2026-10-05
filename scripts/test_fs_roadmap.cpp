@@ -1187,6 +1187,23 @@ int main() {
               std::nullopt) == monolith::fs::ConditionalWriteResult::Written
               && fs.readFile("/src/conditional-new.txt") == "created",
           "conditional write creates a target that was expected to be absent");
+    bool targetAppearedDuringReplace = false;
+    const stdfs::path noReplaceRaceTarget = hostRoot / "src/no-replace-race.txt";
+    const bool noReplaceRaceWritten = monolith::detail::writeAtomically(
+        noReplaceRaceTarget,
+        [](std::ostream& out) {
+            out << "outer";
+            return static_cast<bool>(out);
+        },
+        true,
+        std::ios_base::out,
+        [&fs]() { return fs.writeFile("/src/no-replace-race.txt", "concurrent"); },
+        true,
+        &targetAppearedDuringReplace);
+    check(!noReplaceRaceWritten && targetAppearedDuringReplace
+              && fs.readFile("/src/no-replace-race.txt") == "concurrent"
+              && !hasAtomicTempWorkspace(hostRoot / "src"),
+          "no-replace publication preserves a target created after the final check");
     check(fs.writeFile("/src/conditional-link-a.txt", "target-a")
               && fs.writeFile("/src/conditional-link-b.txt", "target-b"),
           "write conditional symlink target fixtures");

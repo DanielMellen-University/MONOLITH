@@ -1,5 +1,7 @@
 # Session log
 
+| 2026-10-04 | fix | Conditional writes for absent files now publish with `RENAME_NOREPLACE`, preserving a host/other-process create that lands after the last stamp check; the atomic-writer race regression passes. Existing-file final check-to-rename limitation remains. |
+
 | 2026-10-04 | fix | Text Editor and Drawing now recheck bound-file stamps immediately before atomic replacement. Conflicting file and symlink changes during content generation are preserved and prompt for Ctrl+D again. Production build, full headless suite, and hosted run #452 verify/sanitize pass; the residual final stamp-check-to-rename race is documented. |
 
 | 2026-10-04 | fix/data-safety | Text Editor and Drawing now compare bound files with their loaded/saved baselines before saving, catching host edits and other-process changes without shell notifications. Unchanged file stamps avoid rereading; divergence uses Ctrl+D/Esc; Editor normalizes CRLF/CR and Drawing compares `.modr` bytes in chunks. Production build, full headless suite, and hosted runs #450 verify and sanitize pass. |

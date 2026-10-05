@@ -1138,7 +1138,8 @@ bool Filesystem::writeFileWithProducerAtHostPath(
             if (writable == stdfs::perms::none) return false;
         }
 
-        return monolith::detail::writeAtomically(
+        bool targetAppearedDuringReplace = false;
+        const bool written = monolith::detail::writeAtomically(
             writePath,
             [&produceContent](std::ostream& out) {
                 if (!produceContent(out)) {
@@ -1149,7 +1150,13 @@ bool Filesystem::writeFileWithProducerAtHostPath(
             std::ios_base::out | std::ios_base::binary,
             expectedStamp
                 ? std::function<bool()>(versionMatches)
-                : std::function<bool()>{});
+                : std::function<bool()>{},
+            expectedStamp && !*expectedStamp,
+            &targetAppearedDuringReplace);
+        if (targetAppearedDuringReplace && outVersionConflict) {
+            *outVersionConflict = true;
+        }
+        return written;
     } catch (const std::exception& e) {
         std::cerr << "writeFileWithProducer failed: " << e.what() << std::endl;
         return false;

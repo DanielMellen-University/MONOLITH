@@ -1,5 +1,10 @@
 # Changelog
 
+## 2026-10: Prevent racing creates from replacing new files
+
+- Publish conditional writes whose expected target is absent with Linux `RENAME_NOREPLACE`, so a file created after the final stamp check is preserved and reported as a conflict.
+- Keep ordinary atomic replacement behavior unchanged for existing files; cover last-instant creation at the atomic-writer boundary.
+
 ## 2026-10: Recheck bound files immediately before replacement
 
 - Add conditional atomic writes that compare the expected file stamp both before staging and immediately before rename; preserve a host/other-process write that lands while save content is being generated.

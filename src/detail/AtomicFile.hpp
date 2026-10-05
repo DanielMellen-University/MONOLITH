@@ -7,6 +7,7 @@
 #include <filesystem>
 #include <fstream>
 #include <functional>
+#include <linux/fs.h>
 #include <memory>
 #include <mutex>
 #include <ostream>
@@ -20,6 +21,7 @@
 #include <sys/file.h>
 #include <sys/random.h>
 #include <sys/stat.h>
+#include <sys/syscall.h>
 #include <unistd.h>
 
 namespace monolith::detail {
@@ -724,7 +726,10 @@ bool writeAtomically(const std::filesystem::path& targetPath,
                      Writer&& writer,
                      bool createParentDirectories = false,
                      std::ios_base::openmode openMode = std::ios_base::out,
-                     const std::function<bool()>& beforeReplace = {}) {
+                     const std::function<bool()>& beforeReplace = {},
+                     bool noReplaceTarget = false,
+                     bool* outTargetAlreadyExists = nullptr) {
+    if (outTargetAlreadyExists) *outTargetAlreadyExists = false;
     if (targetPath.empty()) return false;
 
     if (createParentDirectories && targetPath.has_parent_path()) {
@@ -773,6 +778,19 @@ bool writeAtomically(const std::filesystem::path& targetPath,
     }
 
     if (beforeReplace && !beforeReplace()) return false;
+
+    if (noReplaceTarget) {
+#if defined(SYS_renameat2) && defined(RENAME_NOREPLACE)
+        if (::syscall(SYS_renameat2, AT_FDCWD, tempPath.c_str(), AT_FDCWD,
+                      targetPath.c_str(), RENAME_NOREPLACE) == 0) {
+            return true;
+        }
+        if (errno == EEXIST && outTargetAlreadyExists) {
+            *outTargetAlreadyExists = true;
+        }
+#endif
+        return false;
+    }
 
     std::error_code renameError;
     std::filesystem::rename(tempPath, targetPath, renameError);
