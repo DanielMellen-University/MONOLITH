@@ -1,5 +1,10 @@
 # Changelog
 
+## 2026-10: Reuse the shared text texture cache in the shell
+
+- Route Window Manager shell labels through the same renderer-aware LRU used by apps, removing per-hit key-string construction and duplicate eviction code.
+- Include retained text keys and per-entry bookkeeping in the estimated memory budget; verify warmed long-label shell hits allocate no heap memory.
+
 ## 2026-10: Keep text texture caches within budget
 
 - Measure cache misses before rasterizing and reject a single label whose estimated RGBA texture exceeds the 16 MiB LRU budget.
