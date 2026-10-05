@@ -512,6 +512,28 @@ int main() {
                           != std::string::npos,
                   "warmed Find rendering keeps its match count and performs no heap allocations");
 
+            TestEditor findGeometryAllocationEditor(scaleFont, &fs, "");
+            findGeometryAllocationEditor.m_lines.assign(
+                256, "iiiiiiiiiiiiiiii target");
+            findGeometryAllocationEditor.m_findQuery = "target";
+            findGeometryAllocationEditor.updateFindMatches();
+            findGeometryAllocationEditor.onResize(240, 200);
+            findGeometryAllocationEditor.render(renderer, {0, 0, 240, 200});
+            findGeometryAllocationEditor.m_scrollOffset = 1;
+            findGeometryAllocationEditor.render(renderer, {0, 0, 240, 200});
+            findGeometryAllocationEditor.m_scrollOffset = 0;
+            findGeometryAllocationEditor.render(renderer, {0, 0, 240, 200});
+            findGeometryAllocationEditor.m_renderedFindStartRow = -1;
+            g_trackedAllocations = 0;
+            g_trackAllocations = true;
+            findGeometryAllocationEditor.render(renderer, {0, 0, 240, 200});
+            g_trackAllocations = false;
+            check(g_trackedAllocations == 0
+                      && findGeometryAllocationEditor.m_renderedFindVisibleMatches.size()
+                          == static_cast<size_t>(findGeometryAllocationEditor
+                              .getVisibleLineCount({0, 0, 240, 200})),
+                  "Find highlight geometry rebuild avoids temporary prefix allocations");
+
             TestEditor findViewportEditor(scaleFont, &fs, "/find-viewport.txt");
             findViewportEditor.m_lines.assign(256, "target target");
             findViewportEditor.m_findQuery = "target";

@@ -2738,6 +2738,20 @@ void TextEditorApp::render(SDL_Renderer* renderer, const SDL_Rect& contentRect) 
         m_renderedFindPrefixWidths.clear();
         m_renderedFindVisibleWidths.clear();
         if (!m_findQuery.empty() && renderedLineCount > 0) {
+            char findMeasureScratch[4096];
+            auto measureFindSlice = [&](const std::string& line,
+                                        std::size_t start,
+                                        std::size_t length,
+                                        int& width,
+                                        int& height) {
+                if (length < sizeof(findMeasureScratch)) {
+                    std::copy_n(line.data() + start, length, findMeasureScratch);
+                    findMeasureScratch[length] = '\0';
+                    return TTF_SizeUTF8(m_font, findMeasureScratch, &width, &height);
+                }
+                const std::string oversizedSlice = line.substr(start, length);
+                return TTF_SizeUTF8(m_font, oversizedSlice.c_str(), &width, &height);
+            };
             auto addVisibleFragment = [&](int row, std::size_t start,
                                           std::size_t end, int matchStartRow,
                                           int matchStartCol) {
@@ -2758,17 +2772,14 @@ void TextEditorApp::render(SDL_Renderer* renderer, const SDL_Rect& contentRect) 
                 int prefixWidth = 0;
                 int measuredHeight = 0;
                 if (visibleStart > slice.firstVisibleByte) {
-                    const std::string visiblePrefix = line.substr(
-                        slice.firstVisibleByte, visibleStart - slice.firstVisibleByte);
-                    TTF_SizeUTF8(m_font, visiblePrefix.c_str(),
-                                 &prefixWidth, &measuredHeight);
+                    measureFindSlice(line, slice.firstVisibleByte,
+                                     visibleStart - slice.firstVisibleByte,
+                                     prefixWidth, measuredHeight);
                 }
                 prefixWidth += slice.hiddenPixelWidth;
-                const std::string visibleMatch = line.substr(
-                    visibleStart, visibleEnd - visibleStart);
                 int visibleMatchWidth = 0;
-                TTF_SizeUTF8(m_font, visibleMatch.c_str(),
-                             &visibleMatchWidth, &measuredHeight);
+                measureFindSlice(line, visibleStart, visibleEnd - visibleStart,
+                                 visibleMatchWidth, measuredHeight);
                 visibleMatchWidth = std::min(visibleMatchWidth, textWidth);
                 m_renderedFindVisibleMatches.push_back(
                     {row, static_cast<int>(start), matchStartRow, matchStartCol});
