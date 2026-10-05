@@ -498,6 +498,56 @@ int main() {
               && probePtr->lastResizeWidth == window->rect.w,
           "batched resize release applies its final size and notifies the app");
 
+    SDL_Event interruptedDragStart{};
+    interruptedDragStart.type = SDL_MOUSEBUTTONDOWN;
+    interruptedDragStart.button.button = SDL_BUTTON_LEFT;
+    interruptedDragStart.button.x = (window->rect.x + 20) * 2;
+    interruptedDragStart.button.y = (window->rect.y + 10) * 2;
+    wm.handleEvent(interruptedDragStart);
+    SDL_Event interruptedDragMotion{};
+    interruptedDragMotion.type = SDL_MOUSEMOTION;
+    interruptedDragMotion.motion.x = 900;
+    interruptedDragMotion.motion.y = 1200;
+    wm.handleEvent(interruptedDragMotion);
+    SDL_Event dragFocusLost{};
+    dragFocusLost.type = SDL_WINDOWEVENT;
+    dragFocusLost.window.event = SDL_WINDOWEVENT_FOCUS_LOST;
+    dragFocusLost.window.windowID = 1;
+    wm.handleEvent(dragFocusLost);
+    check(window->rect.x == 430 && window->rect.y == 432
+              && !window->beingDragged && wm.m_draggedWindow == nullptr
+              && !wm.m_mouseDown,
+          "host focus loss commits the latest drag position before ending the gesture");
+
+    SDL_Event dragFocusGained{};
+    dragFocusGained.type = SDL_WINDOWEVENT;
+    dragFocusGained.window.event = SDL_WINDOWEVENT_FOCUS_GAINED;
+    dragFocusGained.window.windowID = 1;
+    wm.handleEvent(dragFocusGained);
+
+    const int resizeCallsBeforeFocusLoss = probePtr->resizeCalls;
+    SDL_Event interruptedResizeStart{};
+    interruptedResizeStart.type = SDL_MOUSEBUTTONDOWN;
+    interruptedResizeStart.button.button = SDL_BUTTON_LEFT;
+    interruptedResizeStart.button.x = (window->rect.x + window->rect.w - 1) * 2;
+    interruptedResizeStart.button.y = (window->rect.y + 100) * 2;
+    wm.handleEvent(interruptedResizeStart);
+    SDL_Event interruptedResizeMotion{};
+    interruptedResizeMotion.type = SDL_MOUSEMOTION;
+    interruptedResizeMotion.motion.x = 800 * 2;
+    interruptedResizeMotion.motion.y = interruptedResizeStart.button.y;
+    wm.handleEvent(interruptedResizeMotion);
+    SDL_Event resizeFocusLost = dragFocusLost;
+    wm.handleEvent(resizeFocusLost);
+    check(window->rect.w == 370 && wm.m_resizingWindow == nullptr
+              && wm.m_resizeDirection == monolith::window::ResizeDirection::None
+              && probePtr->resizeCalls == resizeCallsBeforeFocusLoss + 1
+              && probePtr->lastResizeWidth == window->rect.w,
+          "host focus loss commits the latest resize and notifies the app");
+
+    SDL_Event resizeFocusGained = dragFocusGained;
+    wm.handleEvent(resizeFocusGained);
+
     const int resizeCallsBeforeNarrowDesktop = probePtr->resizeCalls;
     wm.setLogicalDesktopSize(120, 120);
     check(window->rect.x == 0 && window->rect.w == 120,

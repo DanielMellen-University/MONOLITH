@@ -144,6 +144,20 @@ void WindowManager::updateDraggedWindowPosition(int logicalMouseX, int logicalMo
     clampSingleWindow(*m_draggedWindow);
 }
 
+void WindowManager::finishFramePointerGestureAt(int logicalMouseX, int logicalMouseY) {
+    if (m_draggedWindow) {
+        updateDraggedWindowPosition(logicalMouseX, logicalMouseY);
+        m_draggedWindow->beingDragged = false;
+        m_draggedWindow = nullptr;
+    }
+
+    if (m_resizingWindow) {
+        applyResize(m_resizingWindow, logicalMouseX, logicalMouseY);
+        m_resizingWindow = nullptr;
+        m_resizeDirection = ResizeDirection::None;
+    }
+}
+
 void WindowManager::processDeferredCloses() {
     if (m_processingDeferredCloses || m_appCallbackDepth != 0) return;
 

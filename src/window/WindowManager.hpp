@@ -202,5 +202,6 @@ private:
     void invalidateStartMenuHitTargets();
     void applyStartMenuFilterEdit();
     void updateDraggedWindowPosition(int logicalMouseX, int logicalMouseY);
+    void finishFramePointerGestureAt(int logicalMouseX, int logicalMouseY);
 
 #include "WindowManager_private.inc"

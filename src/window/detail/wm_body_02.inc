@@ -113,18 +113,7 @@
 
         const int releaseLogicalX = screenToLogicalX(m_mouseX);
         const int releaseLogicalY = screenToLogicalY(m_mouseY);
-
-        if (m_draggedWindow) {
-            updateDraggedWindowPosition(releaseLogicalX, releaseLogicalY);
-            m_draggedWindow->beingDragged = false;
-            m_draggedWindow = nullptr;
-        }
-
-        if (m_resizingWindow) {
-            applyResize(m_resizingWindow, releaseLogicalX, releaseLogicalY);
-            m_resizingWindow = nullptr;
-            m_resizeDirection = ResizeDirection::None;
-        }
+        finishFramePointerGestureAt(releaseLogicalX, releaseLogicalY);
 
         // Forward release to the client that received the press. This is a small
         // pointer-capture rule: focus and pointer location may have changed since down.

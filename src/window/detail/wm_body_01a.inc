@@ -223,12 +223,8 @@ void WindowManager::handleEvent(const SDL_Event& event) {
                 invokeAppCallback([&]() { capturedWindow->app->handleEvent(release); });
             }
 
-            if (m_draggedWindow) {
-                m_draggedWindow->beingDragged = false;
-                m_draggedWindow = nullptr;
-            }
-            m_resizingWindow = nullptr;
-            m_resizeDirection = ResizeDirection::None;
+            finishFramePointerGestureAt(
+                screenToLogicalX(m_mouseX), screenToLogicalY(m_mouseY));
             m_mouseCaptureWindow = nullptr;
             m_shellMouseCapture = false;
             m_mouseDown = false;
