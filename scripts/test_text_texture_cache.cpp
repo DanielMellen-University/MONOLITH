@@ -98,6 +98,23 @@ int main() {
           "recently used text survives least-recently-used eviction");
 
     cache.clear();
+    const std::string oversizedText(30000, 'W');
+    int oversizedWidth = 0;
+    int oversizedHeight = 0;
+    const bool measuredOversized = TTF_SizeUTF8(
+        font, oversizedText.c_str(), &oversizedWidth, &oversizedHeight) == 0;
+    const std::uint64_t oversizedBytes = measuredOversized
+        ? static_cast<std::uint64_t>(oversizedWidth)
+            * static_cast<std::uint64_t>(oversizedHeight) * 4
+        : 0;
+    check(measuredOversized
+              && oversizedBytes > monolith::detail::TextTextureCache::kMaxEstimatedBytes,
+          "oversized cache regression input exceeds the texture budget");
+    const auto oversized = cache.get(firstRenderer, font, oversizedText.c_str(), white);
+    check(!oversized && cache.size() == 0 && cache.estimatedBytes() == 0,
+          "an oversized single label is rejected instead of exceeding the cache budget");
+
+    cache.clear();
     const std::string widePrefix(500, 'W');
     int wideWidth = 0;
     int wideHeight = 0;

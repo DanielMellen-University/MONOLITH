@@ -51,12 +51,24 @@ public:
             return {cached->second.handle, cached->second.width, cached->second.height};
         }
 
+        int measuredWidth = 0;
+        int measuredHeight = 0;
+        if (TTF_SizeUTF8(font, text, &measuredWidth, &measuredHeight) != 0
+            || estimateBytes(measuredWidth, measuredHeight) > kMaxEstimatedBytes) {
+            return {};
+        }
+
         SDL_Surface* surface = TTF_RenderUTF8_Blended(font, text, color);
         if (!surface) return {};
 
         const int width = surface->w;
         const int height = surface->h;
         const std::uint64_t estimatedBytes = estimateBytes(width, height);
+        if (estimatedBytes > kMaxEstimatedBytes) {
+            SDL_FreeSurface(surface);
+            return {};
+        }
+
         SDL_Texture* texture = SDL_CreateTextureFromSurface(renderer, surface);
         SDL_FreeSurface(surface);
         if (!texture) return {};
