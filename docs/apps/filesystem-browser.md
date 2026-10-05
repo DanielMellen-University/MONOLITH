@@ -80,7 +80,7 @@ After a successful rename, the new name remains selected and the status bar repo
 
 If the renamed entry is open in Text Editor or Drawing, the shell updates that window's bound virtual path, title, session record, and singleton focus binding. Renaming a directory also updates open files and drawings below it, plus any Terminal or Filesystem Browser currently inside the directory.
 
-List rows use the existing cached filename texture dimensions for clipping. During inline rename, the caret-prefix width is reused while that prefix and the shared font stay unchanged.
+List rows use the existing cached filename texture dimensions for clipping. The status bar reuses its render buffer and appends the count, selected filename, and feedback directly, so a warmed selected-row frame does not allocate temporary strings. During inline rename, the caret-prefix width is reused while that prefix and the shared font stay unchanged.
 
 ### Filter / search
 

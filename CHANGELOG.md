@@ -1,5 +1,10 @@
 # Changelog
 
+## 2026-10: Remove Filesystem Browser status frame allocations
+
+- Reuse retained status-bar storage and append the item count, selected filename, and feedback directly instead of concatenating temporary strings.
+- Verify warmed selected-row rendering preserves its filename and performs zero C++ heap allocations.
+
 ## 2026-10: Remove Terminal scrollback frame allocations
 
 - Pass visible UTF-8 scrollback slices directly to the shared text cache as borrowed views instead of copying each clipped row every frame.
