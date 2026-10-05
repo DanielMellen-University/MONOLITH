@@ -1,5 +1,7 @@
 # Session log
 
+| 2026-10-04 | fix/filesystem | Cached sweep aliases now validate against the tracked directory identity outside the global mutex. Retargeted symlinks are detached from the old parent and their new physical target receives an immediate first-touch sweep; focused/full headless suites, production build, and hosted run #487 `verify`/`sanitize` pass. |
+
 | 2026-10-04 | refactor/filesystem | Centralize bounded sweep-tracker slot lookup and registration; retry requests reuse known lexical aliases without canonical resolution. Focused atomic-file suite, full headless suite, production build, and hosted run #484 `verify`/`sanitize` pass. |
 
 | 2026-10-04 | perf/filesystem | Release the process-wide sweep tracker mutex after advancing at most 32 directory entries and collecting workspace paths. Candidate validation/reclamation now runs outside that mutex while the per-parent lock remains held; focused atomic-file suite, full headless suite, production build, and hosted run #481 `verify`/`sanitize` pass. |
