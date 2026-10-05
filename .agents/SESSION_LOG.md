@@ -1,5 +1,7 @@
 # Session log
 
+| 2026-10-05 | perf/minesweeper | Format the live HUD status and win-overlay time/best line into bounded stack buffers. Warmed gameplay and win-overlay renders perform zero C++ heap allocations and preserve exact text; full headless suite and Release build pass. |
+
 | 2026-10-05 | perf/drawing | Assemble status and caret-prefix text directly from the path buffer into retained strings. A warmed active path-prompt frame preserves measured caret width and performs zero C++ heap allocations; focused Drawing state suite passes. |
 
 | 2026-10-05 | perf/filesystem-browser | Build status-bar text in retained storage using direct appends and stack-based item-count formatting. A warmed selected-row frame keeps its filename and performs zero C++ heap allocations; focused Filesystem Browser state suite passes. |
