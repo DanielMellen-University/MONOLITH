@@ -1,5 +1,10 @@
 # Changelog
 
+## 2026-10: Remove Minesweeper HUD and win-overlay allocations
+
+- Format the live timer HUD and win-overlay time/best line into bounded stack buffers instead of rebuilding long `std::string` values every frame.
+- Verify warmed gameplay HUD and win-overlay rendering perform zero C++ heap allocations.
+
 ## 2026-10: Remove Drawing path-prompt frame allocations
 
 - Assemble status and caret text directly from path-buffer slices in retained strings instead of allocating temporary substrings each frame.

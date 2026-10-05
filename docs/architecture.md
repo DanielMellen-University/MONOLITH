@@ -186,7 +186,7 @@ All app callbacks enter through a small lifecycle scope. If a callback requests 
 - Filesystem Browser filtering reuses its directory snapshot and stores visible matches as source indices, avoiding per-keystroke filename copies; query-only refreshes remap selection through those ordered indices instead of allocating filename identity sets. It normalizes a query once per pass and compares names without per-entry lowercase allocations. Case-insensitive sorting also compares names directly.
 - Text Editor mouse hit testing uses one `TTF_MeasureUTF8` scan to map pixel position to a UTF-8 byte column, rather than allocating and remeasuring every growing prefix.
 - Text Editor multi-line paste assembles replacement rows and inserts them as one range, avoiding repeated shifts of the untouched document tail.
-- Pong, Breakout, Snake, and Minesweeper use renderer-bound text texture caches capped at 256 entries and an estimated 16 MiB. Repeated HUD, overlay, and cell-glyph draws reuse the same SDL texture between frames; cache entries are rebuilt after interface-scale changes and discarded when the renderer changes. App destruction occurs before renderer shutdown so cached textures are released safely.
+- Pong, Breakout, Snake, and Minesweeper use renderer-bound text texture caches capped at 256 entries and an estimated 16 MiB. Repeated HUD, overlay, and cell-glyph draws reuse the same SDL texture between frames; cache entries are rebuilt after interface-scale changes and discarded when the renderer changes. Minesweeper formats its live status and win-overlay time/best lines into bounded stack buffers, avoiding per-frame heap strings. App destruction occurs before renderer shutdown so cached textures are released safely.
 
 ### 4. Input System
 

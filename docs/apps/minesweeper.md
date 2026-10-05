@@ -65,7 +65,7 @@ Per-difficulty best times are stored on the host at `~/.monolith/minesweeper_bes
 The board letterboxes inside the window. Expert on a small window uses compressed cells so the full board remains inside the client area; maximize for comfort. Tiny cells prioritize keeping the board and footer contained over drawing number glyphs that would not fit.
 Direct render-size changes refresh the cached client geometry before board layout, keeping the drawn controls and client-space hitboxes aligned.
 
-HUD, overlay, and repeated cell-glyph draws reuse a bounded renderer-owned text texture cache between frames. Changing the shared interface text scale clears it so labels and numbers use the new font metrics.
+HUD, overlay, and repeated cell-glyph draws reuse a bounded renderer-owned text texture cache between frames. The live status line and win-overlay time/best line are formatted into bounded stack buffers, avoiding temporary heap strings on warmed frames. Changing the shared interface text scale clears the cache so labels and numbers use the new font metrics.
 
 Changing difficulty resizes the window for roughly 24-pixel cells when the desktop has room. A maximized window stays maximized and remembers the new restore size; restarting the same difficulty keeps any manual window resize.
 
