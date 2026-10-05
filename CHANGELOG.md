@@ -1,5 +1,10 @@
 # Changelog
 
+## 2026-10: Honor atomic-writer callback failures
+
+- Treat a `false` result from an atomic writer callback as an abort, preserving the previous target and cleaning the staged workspace; keep void-returning callbacks unchanged.
+- Cover both rejected partial output and successful boolean-returning output.
+
 ## 2026-10: Prevent racing creates from replacing new files
 
 - Publish conditional writes whose expected target is absent with Linux `RENAME_NOREPLACE`, so a file created after the final stamp check is preserved and reported as a conflict.

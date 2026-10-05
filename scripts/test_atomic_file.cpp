@@ -7,6 +7,7 @@
 #include <fstream>
 #include <fcntl.h>
 #include <iostream>
+#include <iterator>
 #include <string>
 #include <sys/file.h>
 #include <sys/stat.h>
@@ -69,6 +70,48 @@ int main() {
                   == "workspace"
               && monolith::detail::pathBasenameView(fs::path("/")).empty(),
           "atomic workspace basename views handle relative, trailing-separator, and root paths");
+
+    const fs::path callbackFailureDirectory = parent / "callback-failure";
+    const fs::path callbackFailureTarget = callbackFailureDirectory / "record.txt";
+    ec.clear();
+    const bool callbackFailureFixture = fs::create_directory(callbackFailureDirectory, ec)
+        && !ec && writeFixture(callbackFailureTarget, "previous version");
+    const bool callbackFailureRejected = callbackFailureFixture
+        && !monolith::detail::writeTextAtomically(
+            callbackFailureTarget,
+            [](std::ostream& out) {
+                out << "partial version";
+                return false;
+            });
+    std::ifstream callbackFailureInput(callbackFailureTarget, std::ios::binary);
+    std::string callbackFailureContents(
+        (std::istreambuf_iterator<char>(callbackFailureInput)),
+        std::istreambuf_iterator<char>());
+    std::size_t callbackFailureEntries = 0;
+    if (callbackFailureFixture) {
+        for (const auto& entry : fs::directory_iterator(callbackFailureDirectory)) {
+            (void)entry;
+            ++callbackFailureEntries;
+        }
+    }
+    check(callbackFailureRejected && callbackFailureContents == "previous version"
+              && callbackFailureEntries == 1,
+          "a false-returning atomic writer preserves the target and cleans its workspace");
+
+    const fs::path callbackSuccessTarget = callbackFailureDirectory / "success.txt";
+    const bool callbackSuccessCommitted = callbackFailureFixture
+        && monolith::detail::writeTextAtomically(
+            callbackSuccessTarget,
+            [](std::ostream& out) {
+                out << "complete version";
+                return static_cast<bool>(out);
+            });
+    std::ifstream callbackSuccessInput(callbackSuccessTarget, std::ios::binary);
+    std::string callbackSuccessContents(
+        (std::istreambuf_iterator<char>(callbackSuccessInput)),
+        std::istreambuf_iterator<char>());
+    check(callbackSuccessCommitted && callbackSuccessContents == "complete version",
+          "a true-returning atomic writer commits its completed output");
 
     {
         monolith::detail::AtomicTempParentLock heldLock(parent);

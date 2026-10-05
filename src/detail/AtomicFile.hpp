@@ -22,6 +22,7 @@
 #include <sys/random.h>
 #include <sys/stat.h>
 #include <sys/syscall.h>
+#include <type_traits>
 #include <unistd.h>
 
 namespace monolith::detail {
@@ -760,7 +761,12 @@ bool writeAtomically(const std::filesystem::path& targetPath,
     if (!out) return false;
 
     try {
-        std::forward<Writer>(writer)(out);
+        using Result = std::invoke_result_t<Writer, std::ostream&>;
+        if constexpr (std::is_void_v<Result>) {
+            std::forward<Writer>(writer)(out);
+        } else if (!static_cast<bool>(std::forward<Writer>(writer)(out))) {
+            return false;
+        }
     } catch (...) {
         return false;
     }
