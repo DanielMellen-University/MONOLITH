@@ -5,6 +5,7 @@
 - Hold the destination-directory advisory lock across the final conditional stamp check and rename, so competing Monolith atomic writers cannot overwrite each other's confirmed version.
 - Preserve no-replace creation behavior; host tools and uncoordinated filesystem mutations remain outside the advisory-lock guarantee.
 - Cover lock ownership during publication and retain the racing external-create regression.
+- Exercise two conditional saves in separate processes from the same baseline, requiring one commit and one conflict.
 
 ## 2026-10: Honor atomic-writer callback failures
 

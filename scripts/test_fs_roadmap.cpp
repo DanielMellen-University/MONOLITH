@@ -15,10 +15,12 @@
 #include <fcntl.h>
 #include <future>
 #include <iostream>
+#include <poll.h>
 #include <sstream>
 #include <string>
 #include <string_view>
 #include <sys/resource.h>
+#include <sys/wait.h>
 #include <unistd.h>
 #include <vector>
 
@@ -1206,6 +1208,118 @@ int main() {
     check(publicationLockWrite && publicationLockHeld
               && fs.readFile("/src/publication-lock.txt") == "published",
           "atomic publication holds the parent lock across final validation");
+    // Stage both processes against one baseline before either can publish.
+    const bool parallelWriteSetup = fs.createDirectory("/parallel-publish")
+        && fs.writeFile("/parallel-publish/target.txt", "baseline");
+    monolith::fs::FileStamp parallelWriteStamp;
+    const bool parallelStampReady = parallelWriteSetup
+        && fs.fileStamp("/parallel-publish/target.txt", parallelWriteStamp);
+    bool parallelWritersSerialized = false;
+    int readyPipe[2] {-1, -1};
+    int releasePipe[2] {-1, -1};
+    auto sendPipeByte = [](int fd, char value) {
+        ssize_t count;
+        do {
+            count = ::write(fd, &value, 1);
+        } while (count < 0 && errno == EINTR);
+        return count == 1;
+    };
+    auto receivePipeByte = [](int fd, char& value) {
+        pollfd descriptor {fd, POLLIN, 0};
+        int ready;
+        do {
+            ready = ::poll(&descriptor, 1, 10'000);
+        } while (ready < 0 && errno == EINTR);
+        if (ready <= 0 || !(descriptor.revents & POLLIN)) return false;
+
+        ssize_t count;
+        do {
+            count = ::read(fd, &value, 1);
+        } while (count < 0 && errno == EINTR);
+        return count == 1;
+    };
+    bool pipesReady = false;
+    if (parallelStampReady && ::pipe(readyPipe) == 0) {
+        if (::pipe(releasePipe) == 0) {
+            pipesReady = true;
+        } else {
+            ::close(readyPipe[0]);
+            ::close(readyPipe[1]);
+        }
+    }
+    if (pipesReady) {
+        pid_t children[2] {-1, -1};
+        int childCount = 0;
+        for (int writer = 0; writer < 2; ++writer) {
+            const pid_t child = ::fork();
+            if (child == 0) {
+                ::close(readyPipe[0]);
+                ::close(releasePipe[1]);
+                const std::string path = "/parallel-publish/target.txt";
+                const std::string content = writer == 0 ? "writer-a" : "writer-b";
+                const auto result = fs.writeFileWithProducerIfStampMatches(
+                    path,
+                    [&](std::ostream& out) {
+                        if (!sendPipeByte(readyPipe[1], 'R')) return false;
+                        char release = 0;
+                        if (!receivePipeByte(releasePipe[0], release)
+                            || release != 'G') {
+                            return false;
+                        }
+                        out << content;
+                        return static_cast<bool>(out);
+                    },
+                    parallelWriteStamp);
+                ::close(readyPipe[1]);
+                ::close(releasePipe[0]);
+                const int exitCode = result
+                        == monolith::fs::ConditionalWriteResult::Written
+                    ? 0
+                    : result == monolith::fs::ConditionalWriteResult::Conflict ? 1 : 2;
+                ::_exit(exitCode);
+            }
+            if (child < 0) break;
+            children[childCount++] = child;
+        }
+
+        ::close(readyPipe[1]);
+        bool bothReady = childCount == 2;
+        for (int writer = 0; bothReady && writer < 2; ++writer) {
+            char ready = 0;
+            bothReady = receivePipeByte(readyPipe[0], ready) && ready == 'R';
+        }
+        ::close(readyPipe[0]);
+        sendPipeByte(releasePipe[1], 'G');
+        sendPipeByte(releasePipe[1], 'G');
+        ::close(releasePipe[1]);
+
+        int exitCodes[2] {-1, -1};
+        bool allChildrenExited = childCount == 2;
+        for (int writer = 0; writer < childCount; ++writer) {
+            int status = 0;
+            pid_t waited;
+            do {
+                waited = ::waitpid(children[writer], &status, 0);
+            } while (waited < 0 && errno == EINTR);
+            if (waited != children[writer] || !WIFEXITED(status)) {
+                allChildrenExited = false;
+                continue;
+            }
+            exitCodes[writer] = WEXITSTATUS(status);
+        }
+
+        const bool oneWriteOneConflict =
+            (exitCodes[0] == 0 && exitCodes[1] == 1)
+            || (exitCodes[0] == 1 && exitCodes[1] == 0);
+        const std::string parallelResult = fs.readFile(
+            "/parallel-publish/target.txt");
+        parallelWritersSerialized = bothReady && allChildrenExited
+            && oneWriteOneConflict
+            && (parallelResult == "writer-a" || parallelResult == "writer-b")
+            && !hasAtomicTempWorkspace(hostRoot / "parallel-publish");
+    }
+    check(parallelWritersSerialized,
+          "parallel Monolith processes serialize conditional saves from one baseline");
     bool targetAppearedDuringReplace = false;
     const stdfs::path noReplaceRaceTarget = hostRoot / "src/no-replace-race.txt";
     const bool noReplaceRaceWritten = monolith::detail::writeAtomically(
