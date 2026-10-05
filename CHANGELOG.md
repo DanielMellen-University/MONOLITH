@@ -1,5 +1,10 @@
 # Changelog
 
+## 2026-10: Bound multiline Find scan cost
+
+- Match multiline query middle rows with a precomputed KMP failure table, then validate only the first-row suffix and last-row prefix; long near-matches no longer trigger repeated full-query row comparisons.
+- Preserve exact row boundaries, non-overlapping results, and sparse navigation checkpoints; cover overlapping row prefixes that fall through to later matches.
+
 ## 2026-10: Support multiline Text Editor Find and Replace
 
 - Seed Find/Replace from multiline selections and support newline-aware queries, navigation, selection, and single/all replacements.
