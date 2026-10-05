@@ -1,5 +1,7 @@
 # Session log
 
+| 2026-10-05 | perf/filesystem-browser | Build status-bar text in retained storage using direct appends and stack-based item-count formatting. A warmed selected-row frame keeps its filename and performs zero C++ heap allocations; focused Filesystem Browser state suite passes. |
+
 | 2026-10-05 | perf/terminal | Replace each visible Terminal history row's temporary clipped-string copy with a borrowed `string_view` texture-cache lookup. A warmed render with a clipped, heap-sized UTF-8 row now performs zero C++ heap allocations; the focused Terminal state suite passes. |
 
 | 2026-10-05 | perf/editor | Pass visible syntax slices directly to the shared text cache as borrowed views and format Find match counts into a stack buffer. A warmed active Find frame preserves its `1/1` count with zero C++ heap allocations; focused Text Editor state suite passes. |
