@@ -11,6 +11,7 @@
 - Route synchronous sweep candidates through the same lock-checked workspace-reclamation dispatcher used by startup maintenance.
 - Classify v4 ownership, directory type, and ready-marker state once before selecting incomplete or lease-protected reclamation.
 - Move non-template atomic-save, locking, sync, and cleanup implementations into one compiled source file, leaving the header focused on declarations and writer templates.
+- Anchor workspace reclamation and failed-save rollback to the locked parent and a no-follow workspace descriptor; a retargeted parent alias cannot redirect cleanup to a different same-named workspace.
 
 ## 2026-10: Sync atomic saves before publication
 

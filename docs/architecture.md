@@ -213,6 +213,8 @@ Virtual directory listings share the per-directory cleanup cadence with writes, 
 
 Startup cleanup probes each candidate's parent lock nonblocking. A contended candidate remains at the current iterator position for a later frame, preventing another Monolith instance from stalling the UI; parent paths that hit descriptor exhaustion are deferred until active traversal handles unwind.
 
+Workspace reclamation is anchored to the locked parent descriptor and opens candidates with `O_NOFOLLOW`; marker validation and removal stay relative to the pinned workspace directory. Failed-save cleanup retains its original parent descriptor so a retargeted symlink alias cannot redirect deletion.
+
 See [filesystem.md](filesystem.md) for virtual path rules, host mapping, and app usage. Advanced features (permissions, metadata, versioning, etc.) are explicitly out of scope for the foreseeable future.
 
 ### 6. Built-in Applications
