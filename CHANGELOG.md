@@ -7,6 +7,7 @@
 - Release the process-wide tracker mutex before validating or reclaiming staged workspaces, so unrelated directory sweeps are not serialized behind cleanup I/O.
 - Centralize sweep-tracker slot lookup and registration; failed cleanup retries reuse known lexical aliases without resolving the path again.
 - Validate cached symlink aliases against directory identity so retargeted links receive the new target's first-touch cleanup sweep.
+- Share v2-v4 workspace-name recognition between startup maintenance and bounded per-directory sweeps.
 
 ## 2026-10: Sync atomic saves before publication
 

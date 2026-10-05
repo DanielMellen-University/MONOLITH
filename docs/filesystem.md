@@ -41,6 +41,8 @@ Regular file writes stage into a uniquely reserved, hidden sibling workspace and
 
 Cached symlink aliases are checked against their tracked directory identity outside the tracker mutex. If a link is retargeted, that spelling is detached from the old directory and the new target receives its own first-touch cleanup sweep.
 
+Startup maintenance and per-directory sweeps share the same v2-v4 workspace-name classifier while retaining their separate bounded traversal and lock policies.
+
 After startup, the Window Manager gives the filesystem a 32-entry maintenance budget per frame to walk the host tree and check reserved workspace names. Stale saves in directories nobody revisits are therefore eventually reclaimed without a startup-wide blocking scan. The traversal borrows ordinary entry paths from its directory iterator and copies only cleanup candidates or child directories that must outlive the current iterator step. It skips permission-denied directories and does not follow symlinks. If opening the root or a child hits the process or system descriptor limit, that directory is deferred until active traversal frames unwind and release handles, then retried within the same bounded walk; other iterator errors drop only the affected directory frame so readable siblings still get scanned. Ordinary saves and listings continue their local cleanup checks. A workspace is removed only through the same parent-lock, ownership, expected-entry, and free-lease checks used by ordinary directory sweeps.
 
 Related host files (not inside the virtual tree):
