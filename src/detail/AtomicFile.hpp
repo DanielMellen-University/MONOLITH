@@ -588,8 +588,7 @@ inline bool scavengeAtomicTempDirectoryStepLocked(
     // Keep filesystem cleanup off the process-wide cursor/tracker mutex.
     lock.unlock();
     for (std::size_t index = 0; index < candidateCount; ++index) {
-        if (tryReclaimIncompleteAtomicTempDirectory(candidates[index])) continue;
-        tryReclaimAtomicTempDirectory(candidates[index]);
+        tryScavengeAtomicTempWorkspace(candidates[index], parentLock);
     }
     return complete;
 }
