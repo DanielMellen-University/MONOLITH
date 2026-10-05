@@ -1970,6 +1970,7 @@ void TextEditorApp::enterFindMode() {
     m_replaceText.clear();
     m_replaceTextLineBreaks = 0;
     m_findSegments.clear();
+    m_findMiddleFailure.clear();
     m_findCheckpoints.clear();
     m_findMatchCount = 0;
     m_currentFindMatch = 0;
@@ -1997,6 +1998,7 @@ void TextEditorApp::enterReplaceMode() {
         m_findQueryLineBreaks = static_cast<std::size_t>(
             std::count(m_findQuery.begin(), m_findQuery.end(), '\n'));
         m_findSegments.clear();
+        m_findMiddleFailure.clear();
         m_findCheckpoints.clear();
         m_findMatchCount = 0;
         m_currentFindMatch = 0;
@@ -2031,6 +2033,7 @@ void TextEditorApp::exitFindMode() {
     m_findQueryLineBreaks = 0;
     m_replaceTextLineBreaks = 0;
     m_findSegments.clear();
+    m_findMiddleFailure.clear();
     m_findCheckpoints.clear();
     m_findMatchCount = 0;
     m_currentFindMatch = 0;
@@ -2057,6 +2060,7 @@ void TextEditorApp::updateFindMatches() {
     invalidateFindHighlightCache();
     m_findCheckpoints.clear();
     m_findSegments.clear();
+    m_findMiddleFailure.clear();
     m_findMatchCount = 0;
     m_currentFindMatch = 0;
     m_hasCurrentFindMatch = false;
@@ -2077,6 +2081,21 @@ void TextEditorApp::updateFindMatches() {
                                     segmentEnd - segmentStart);
         if (separator == std::string::npos) break;
         segmentStart = separator + 1;
+    }
+    if (m_findSegments.size() > 2) {
+        const std::size_t middleCount = m_findSegments.size() - 2;
+        m_findMiddleFailure.assign(middleCount, 0);
+        for (std::size_t i = 1; i < middleCount; ++i) {
+            std::size_t matched = m_findMiddleFailure[i - 1];
+            while (matched > 0
+                   && m_findSegments[i + 1] != m_findSegments[matched + 1]) {
+                matched = m_findMiddleFailure[matched - 1];
+            }
+            if (m_findSegments[i + 1] == m_findSegments[matched + 1]) {
+                ++matched;
+            }
+            m_findMiddleFailure[i] = matched;
+        }
     }
     if (m_findSegments.size() > m_lines.size()) {
         clearSelection();
@@ -2178,29 +2197,33 @@ bool TextEditorApp::findNextMatch(int& row,
                                  std::size_t& col,
                                  FindMatchRange& outRange,
                                  int maxStartRow) const {
-    if (m_findSegments.empty()) return false;
+    if (m_findSegments.empty() || maxStartRow < 0) return false;
     row = std::max(0, row);
+    if (row > maxStartRow || m_findSegments.size() > m_lines.size()) return false;
     const std::string_view firstSegment = m_findSegments.front();
-    for (int candidateRow = row;
-         candidateRow < static_cast<int>(m_lines.size())
-             && candidateRow <= maxStartRow;
-         ++candidateRow) {
-        const std::size_t rowIndex = static_cast<std::size_t>(candidateRow);
-        if (m_findSegments.size() > m_lines.size() - rowIndex) return false;
-        const std::string& line = m_lines[rowIndex];
-        const std::size_t searchFrom = candidateRow == row
-            ? std::min(col, line.size()) : 0;
+    const std::string_view lastSegment = m_findSegments.back();
+    auto boundaryStart = [&](const std::string& line, std::size_t& startCol) {
         if (firstSegment.empty()) {
-            if (searchFrom <= line.size()
-                && findMatchAt(candidateRow, line.size(), outRange)) {
-                row = outRange.start.first;
-                col = static_cast<std::size_t>(outRange.start.second);
-                return true;
-            }
-            continue;
+            startCol = line.size();
+            return true;
         }
-
-        if (m_findSegments.size() == 1) {
+        if (firstSegment.size() > line.size()) return false;
+        startCol = line.size() - firstSegment.size();
+        return line.compare(startCol, firstSegment.size(), firstSegment) == 0;
+    };
+    auto boundaryEnd = [&](const std::string& line) {
+        return lastSegment.size() <= line.size()
+            && line.compare(0, lastSegment.size(), lastSegment) == 0;
+    };
+    if (m_findSegments.size() == 1) {
+        for (int candidateRow = row;
+             candidateRow < static_cast<int>(m_lines.size())
+                 && candidateRow <= maxStartRow;
+             ++candidateRow) {
+            const std::size_t rowIndex = static_cast<std::size_t>(candidateRow);
+            const std::string& line = m_lines[rowIndex];
+            const std::size_t searchFrom = candidateRow == row
+                ? std::min(col, line.size()) : 0;
             const std::size_t position = line.find(firstSegment, searchFrom);
             if (position != std::string::npos
                 && findMatchAt(candidateRow, position, outRange)) {
@@ -2208,16 +2231,65 @@ bool TextEditorApp::findNextMatch(int& row,
                 col = static_cast<std::size_t>(outRange.start.second);
                 return true;
             }
-            continue;
         }
+        return false;
+    }
 
-        if (firstSegment.size() > line.size()) continue;
-        const std::size_t position = line.size() - firstSegment.size();
-        if (position >= searchFrom && findMatchAt(candidateRow, position, outRange)) {
+    const std::size_t middleCount = m_findSegments.size() - 2;
+    const std::size_t firstCandidateRow = static_cast<std::size_t>(row);
+    const std::size_t lastCandidateRow = std::min(
+        static_cast<std::size_t>(maxStartRow), m_lines.size() - m_findSegments.size());
+
+    if (middleCount == 0) {
+        for (std::size_t candidateRow = firstCandidateRow;
+             candidateRow <= lastCandidateRow; ++candidateRow) {
+            const std::string& firstLine = m_lines[candidateRow];
+            std::size_t startCol = 0;
+            const std::size_t searchFrom = candidateRow == firstCandidateRow
+                ? std::min(col, firstLine.size()) : 0;
+            if (!boundaryStart(firstLine, startCol) || startCol < searchFrom
+                || !boundaryEnd(m_lines[candidateRow + 1])) {
+                continue;
+            }
+
+            outRange = {{static_cast<int>(candidateRow), static_cast<int>(startCol)},
+                        {static_cast<int>(candidateRow + 1),
+                         static_cast<int>(lastSegment.size())}};
             row = outRange.start.first;
-            col = static_cast<std::size_t>(outRange.start.second);
+            col = startCol;
             return true;
         }
+        return false;
+    }
+
+    const std::size_t middleStartRow = firstCandidateRow + 1;
+    const std::size_t lastMiddleRow = lastCandidateRow + middleCount;
+    std::size_t matched = 0;
+    for (std::size_t middleRow = middleStartRow;
+         middleRow <= lastMiddleRow; ++middleRow) {
+        const std::string& line = m_lines[middleRow];
+        while (matched > 0 && line != m_findSegments[matched + 1]) {
+            matched = m_findMiddleFailure[matched - 1];
+        }
+        if (line == m_findSegments[matched + 1]) ++matched;
+        if (matched != middleCount) continue;
+
+        const std::size_t candidateRow = middleRow - middleCount;
+        const std::string& firstLine = m_lines[candidateRow];
+        std::size_t startCol = 0;
+        const std::size_t searchFrom = candidateRow == firstCandidateRow
+            ? std::min(col, firstLine.size()) : 0;
+        if (boundaryStart(firstLine, startCol) && startCol >= searchFrom
+            && boundaryEnd(m_lines[middleRow + 1])) {
+            outRange = {{static_cast<int>(candidateRow), static_cast<int>(startCol)},
+                        {static_cast<int>(middleRow + 1),
+                         static_cast<int>(lastSegment.size())}};
+            row = outRange.start.first;
+            col = startCol;
+            return true;
+        }
+
+        matched = m_findMiddleFailure[matched - 1];
     }
     return false;
 }

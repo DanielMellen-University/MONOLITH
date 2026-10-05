@@ -267,6 +267,7 @@ private:
     std::size_t m_findQueryLineBreaks = 0;
     std::size_t m_replaceTextLineBreaks = 0;
     std::vector<std::string_view> m_findSegments;
+    std::vector<std::size_t> m_findMiddleFailure;
     std::size_t m_findCursorPos = 0;
     std::size_t m_replaceCursorPos = 0;
     int m_statusHorizontalScrollPx = 0;

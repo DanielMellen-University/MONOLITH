@@ -1805,6 +1805,42 @@ int main() {
               && editor.findMatchAtIndex(1) == std::pair<int, int>{0, 2},
           "find uses non-overlapping matches like replace all");
 
+    TestEditor multilineSequenceFindEditor(nullptr, &fs, "");
+    multilineSequenceFindEditor.m_lines = {
+        "A", "x", "x", "x", "y", "B",
+        "A", "x", "x", "y", "B",
+        "A", "x", "x", "y", "B"
+    };
+    multilineSequenceFindEditor.m_findQuery = "A\nx\nx\ny\nB";
+    multilineSequenceFindEditor.updateFindMatches();
+    check(multilineSequenceFindEditor.m_findMatchCount == 2
+              && multilineSequenceFindEditor.m_findMiddleFailure
+                  == std::vector<std::size_t>{0, 1, 0}
+              && multilineSequenceFindEditor.findMatchAtIndex(0)
+                  == std::pair<int, int>{6, 0}
+              && multilineSequenceFindEditor.findMatchRangeAtIndex(0).end
+                  == std::pair<int, int>{10, 1}
+              && multilineSequenceFindEditor.findMatchAtIndex(1)
+                  == std::pair<int, int>{11, 0}
+              && multilineSequenceFindEditor.findMatchRangeAtIndex(1).end
+                  == std::pair<int, int>{15, 1},
+          "multiline Find uses overlapping row prefixes without losing later exact matches");
+
+    TestEditor multilineEmptyBoundaryFindEditor(nullptr, &fs, "");
+    multilineEmptyBoundaryFindEditor.m_lines = {"", "x", "", "", "x", ""};
+    multilineEmptyBoundaryFindEditor.m_findQuery = "\nx\n";
+    multilineEmptyBoundaryFindEditor.updateFindMatches();
+    check(multilineEmptyBoundaryFindEditor.m_findMatchCount == 2
+              && multilineEmptyBoundaryFindEditor.findMatchAtIndex(0)
+                  == std::pair<int, int>{0, 0}
+              && multilineEmptyBoundaryFindEditor.findMatchRangeAtIndex(0).end
+                  == std::pair<int, int>{2, 0}
+              && multilineEmptyBoundaryFindEditor.findMatchAtIndex(1)
+                  == std::pair<int, int>{3, 0}
+              && multilineEmptyBoundaryFindEditor.findMatchRangeAtIndex(1).end
+                  == std::pair<int, int>{5, 0},
+          "multiline Find preserves empty boundary segments through KMP matching");
+
     TestEditor denseFindEditor(nullptr, &fs, "");
     constexpr std::size_t denseFindCount = 1'048'576;
     denseFindEditor.m_lines = {std::string(denseFindCount, 'x')};
