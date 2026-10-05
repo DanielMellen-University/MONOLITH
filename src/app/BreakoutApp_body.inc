@@ -50,6 +50,30 @@ void BreakoutApp::fieldToScreen(const SDL_Rect& contentRect, float fx, float fy,
     out.h = std::max(1, static_cast<int>(static_cast<float>(fh) * scale));
 }
 
+void BreakoutApp::cacheBrickRects(const SDL_Rect& contentRect, int hudHeight) {
+    if (m_brickRectsValid && m_brickHudHeight == hudHeight
+        && m_brickContentRect.x == contentRect.x
+        && m_brickContentRect.y == contentRect.y
+        && m_brickContentRect.w == contentRect.w
+        && m_brickContentRect.h == contentRect.h) {
+        return;
+    }
+
+    for (int row = 0; row < monolith::breakout::Game::kBrickRows; ++row) {
+        for (int col = 0; col < monolith::breakout::Game::kBrickCols; ++col) {
+            float bx, by, bw, bh;
+            m_game.brickRect(col, row, bx, by, bw, bh);
+            fieldToScreen(contentRect, bx, by, static_cast<int>(bw),
+                          static_cast<int>(bh),
+                          m_brickRects[static_cast<std::size_t>(
+                              row * monolith::breakout::Game::kBrickCols + col)]);
+        }
+    }
+    m_brickContentRect = contentRect;
+    m_brickHudHeight = hudHeight;
+    m_brickRectsValid = true;
+}
+
 void BreakoutApp::render(SDL_Renderer* renderer, const SDL_Rect& contentRect) {
     if (m_clientWidth != contentRect.w || m_clientHeight != contentRect.h) {
         onResize(contentRect.w, contentRect.h);
@@ -75,17 +99,19 @@ void BreakoutApp::render(SDL_Renderer* renderer, const SDL_Rect& contentRect) {
     SDL_SetRenderDrawColor(renderer, 70, 78, 92, 255);
     SDL_RenderDrawRect(renderer, &field);
 
+    cacheBrickRects(contentRect, hudH);
+    std::array<SDL_Rect, monolith::breakout::Game::kBrickCols> rowBricks{};
     for (int row = 0; row < monolith::breakout::Game::kBrickRows; ++row) {
+        int brickCount = 0;
         for (int col = 0; col < monolith::breakout::Game::kBrickCols; ++col) {
             if (!m_game.brickAlive(col, row)) continue;
-            float bx, by, bw, bh;
-            m_game.brickRect(col, row, bx, by, bw, bh);
-            SDL_Rect brick;
-            fieldToScreen(contentRect, bx, by, static_cast<int>(bw), static_cast<int>(bh), brick);
-            const SDL_Color c = brickColor(row);
-            SDL_SetRenderDrawColor(renderer, c.r, c.g, c.b, c.a);
-            SDL_RenderFillRect(renderer, &brick);
+            rowBricks[brickCount++] = m_brickRects[static_cast<std::size_t>(
+                row * monolith::breakout::Game::kBrickCols + col)];
         }
+        if (brickCount == 0) continue;
+        const SDL_Color color = brickColor(row);
+        SDL_SetRenderDrawColor(renderer, color.r, color.g, color.b, color.a);
+        SDL_RenderFillRects(renderer, rowBricks.data(), brickCount);
     }
 
     const float paddleY = static_cast<float>(

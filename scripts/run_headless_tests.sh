@@ -126,6 +126,8 @@ compile_sdl test_snake_state scripts/test_snake_state.cpp \
     src/app/SnakeApp.cpp src/detail/AtomicFile.cpp
 compile_sdl test_minesweeper_state scripts/test_minesweeper_state.cpp \
     src/app/MinesweeperApp.cpp src/detail/AtomicFile.cpp
+compile_sdl test_breakout_render scripts/test_breakout_render.cpp \
+    src/app/BreakoutApp.cpp src/app/BreakoutLogic.cpp
 compile_plain test_pong_state scripts/test_pong_state.cpp src/app/PongLogic.cpp
 compile_plain test_breakout_state scripts/test_breakout_state.cpp src/app/BreakoutLogic.cpp
 compile_plain test_desktop_icons scripts/test_desktop_icons.cpp "${SDL_FLAGS[@]}"
@@ -161,6 +163,7 @@ run_sdl test_text_texture_cache
 run_plain test_session_format
 run_sdl test_snake_state
 run_sdl test_minesweeper_state
+run_sdl test_breakout_render
 run_plain test_pong_state
 run_plain test_breakout_state
 run_sdl test_desktop_icons

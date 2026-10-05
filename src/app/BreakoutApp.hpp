@@ -5,6 +5,7 @@
 #include "../detail/TextTextureCache.hpp"
 #include <SDL2/SDL.h>
 #include <SDL2/SDL_ttf.h>
+#include <array>
 
 namespace monolith::app {
 
@@ -33,6 +34,7 @@ private:
                       SDL_Color color) const;
     void fieldToScreen(const SDL_Rect& contentRect, float fx, float fy, int fw, int fh,
                        SDL_Rect& out) const;
+    void cacheBrickRects(const SDL_Rect& contentRect, int hudHeight);
     int hudHeight() const;
 
     TTF_Font* m_font = nullptr;
@@ -44,6 +46,11 @@ private:
     Uint32 m_lastTickMs = 0;
     int m_clientWidth = 0;
     int m_clientHeight = 0;
+    std::array<SDL_Rect, monolith::breakout::Game::kBrickCols
+        * monolith::breakout::Game::kBrickRows> m_brickRects{};
+    SDL_Rect m_brickContentRect{};
+    int m_brickHudHeight = -1;
+    bool m_brickRectsValid = false;
 };
 
 } // namespace monolith::app
