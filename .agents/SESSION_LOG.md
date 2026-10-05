@@ -1,6 +1,6 @@
 # Session log
 
-| 2026-10-04 | fix | Shared atomic writes now abort on a callback's explicit `false` result instead of publishing partial output; void callbacks remain compatible. Added preservation, cleanup, and success coverage. |
+| 2026-10-04 | fix | Shared atomic writes now abort on a callback's explicit `false` result instead of publishing partial output; void callbacks remain compatible. Preservation, cleanup, and success coverage pass with the production build and hosted run #456 verify/sanitize. |
 
 | 2026-10-04 | fix | Conditional writes for absent files now publish with `RENAME_NOREPLACE`, preserving a host/other-process create that lands after the last stamp check; the atomic-writer race regression, production build, and hosted run #454 verify/sanitize pass. Existing-file final check-to-rename limitation remains. |
 

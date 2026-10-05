@@ -34,7 +34,7 @@ The human funds token budget and lives in the desktop. You:
 
 | When | Kind | Note |
 |------|------|------|
-| 2026-10-04 | atomic-writer-callback-result | Honor false-returning atomic writer callbacks so partial output is discarded; void callbacks remain supported; preserve previous files and clean staging workspaces |
+| 2026-10-04 | atomic-writer-callback-result | Honor false-returning atomic writer callbacks so partial output is discarded; void callbacks remain supported; preserve previous files and clean staging workspaces; hosted run #456 verify and sanitize passed |
 | 2026-10-04 | conditional-create-no-replace | Publish expected-absent bound saves with Linux RENAME_NOREPLACE, preventing a host/other-process create after the final stamp check from being overwritten; hosted run #454 verify and sanitize passed |
 | 2026-10-04 | bound-save-final-version-check | Recheck the expected stamp before atomic replacement for Text Editor and Drawing bound saves; staged-time conflicts preserve the newer file and retry through Ctrl+D; hosted run #452 verify and sanitize passed; final stat-to-rename race remains |
 | 2026-10-04 | bound-file-external-verification | Fast-path unchanged bound files by identity/version stamp; stream-compare changed stamps with the loaded/saved baseline, then route divergence through the existing Ctrl+D/Esc decision; hosted run #450 passed; note the remaining check-to-replace race |
@@ -417,7 +417,7 @@ Older recent-work rows: [`SESSION_LOG.md`](SESSION_LOG.md).
 | 7.156 | Detect unannounced changes before bound saves | done | Skip content reads when the bound-file stamp is unchanged; stream-compare changed versions against Text Editor/Drawing baselines, preserve divergence behind Ctrl+D/Esc, normalize Editor line endings, and document the remaining check-to-replace race |
 | 7.157 | Recheck bound-file versions before replacement | done | Add conditional atomic writes with a final stamp check; guard Text Editor/Drawing bound saves, preserve newer files on staged-time conflicts, retry via Ctrl+D, document the remaining final check-to-rename race, and pass hosted run #452 |
 | 7.158 | Preserve creates racing an absent-target save | done | Publish expected-absent conditional writes with Linux no-replace rename; report a concurrent create as Conflict and prove the target survives a last-instant race; hosted run #454 passed |
-| 7.159 | Abort atomic writes on callback failure | done | Honor boolean callback failure in the shared atomic writer while preserving void callbacks; verify the old target remains intact, staged workspace is removed, and success callbacks still commit |
+| 7.159 | Abort atomic writes on callback failure | done | Honor boolean callback failure in the shared atomic writer while preserving void callbacks; verify the old target remains intact, staged workspace is removed, and success callbacks still commit; hosted run #456 passed |
 | fs-browser-filter-cache | Reuse Filesystem Browser filter snapshots | done | Reuse one directory listing for filter edits; refresh it on F5 and Monolith filesystem notifications, including while filtering |
 | terminal-input-editing | Terminal command-line selection | done | Support UTF-8-safe keyboard/mouse selection and Ctrl+A/C/X/V; normalize all clipboard lines and tabs into the single-line prompt |
 | terminal-touch-mtime | Complete Terminal touch semantics | done | Update existing regular-file last-write time without truncation; reject outside-root symlink targets |
