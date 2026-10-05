@@ -77,7 +77,7 @@ private:
     void clearSelection();
     void prepareMove(bool extendSelection);
     void getOrderedSelection(int& r0, int& c0, int& r1, int& c1) const;
-    std::string selectedSingleLineText(int& row, int& column) const;
+    std::string selectedFindText(int& row, int& column) const;
     std::string selectedText() const;
     bool selectedSerializedSize(size_t& bytes, size_t& lineBreaks) const;
     bool editFitsFileLimits(size_t insertedBytes, size_t insertedLineBreaks,
@@ -138,6 +138,16 @@ private:
         int row = 0;
         int col = 0;
     };
+    struct FindMatchRange {
+        std::pair<int, int> start{-1, -1};
+        std::pair<int, int> end{-1, -1};
+    };
+    struct RenderedFindFragment {
+        int row = 0;
+        int col = 0;
+        int matchStartRow = 0;
+        int matchStartCol = 0;
+    };
     static constexpr std::size_t kFindCheckpointStride = 256;
 
     void enterFindMode();
@@ -145,6 +155,10 @@ private:
     void exitFindMode();
     void invalidateFindHighlightCache();
     void updateFindMatches();
+    bool findMatchAt(int row, std::size_t col, FindMatchRange& outRange) const;
+    bool findNextMatch(int& row, std::size_t& col, FindMatchRange& outRange,
+                       int maxStartRow) const;
+    FindMatchRange findMatchRangeAtIndex(std::size_t index) const;
     std::pair<int, int> findMatchAtIndex(std::size_t index) const;
     void moveFindMatch(int direction);
     void applyCurrentFindMatch();
@@ -250,6 +264,9 @@ private:
     SearchField m_searchField = SearchField::Query;
     std::string m_findQuery;
     std::string m_replaceText;
+    std::size_t m_findQueryLineBreaks = 0;
+    std::size_t m_replaceTextLineBreaks = 0;
+    std::vector<std::string_view> m_findSegments;
     std::size_t m_findCursorPos = 0;
     std::size_t m_replaceCursorPos = 0;
     int m_statusHorizontalScrollPx = 0;
@@ -261,11 +278,12 @@ private:
     std::size_t m_currentFindMatch = 0;
     bool m_hasCurrentFindMatch = false;
     std::pair<int, int> m_currentFindPosition{-1, -1};
+    std::pair<int, int> m_currentFindEndPosition{-1, -1};
     int m_renderedFindStartRow = -1;
     int m_renderedFindLineCount = -1;
     int m_renderedFindHorizontalOffset = -1;
     int m_renderedFindTextWidth = -1;
-    std::vector<std::pair<int, int>> m_renderedFindVisibleMatches;
+    std::vector<RenderedFindFragment> m_renderedFindVisibleMatches;
     std::vector<int> m_renderedFindPrefixWidths;
     std::vector<int> m_renderedFindVisibleWidths;
 

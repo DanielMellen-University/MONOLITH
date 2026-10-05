@@ -574,6 +574,71 @@ int main() {
                       && fontGeometryInvalidated,
                   "Find query and font changes invalidate cached highlight geometry");
 
+            TestEditor multilineRenderEditor(scaleFont, &fs, "");
+            multilineRenderEditor.m_lines = {"A", "B", "A", "B"};
+            multilineRenderEditor.m_searchMode = TestEditor::SearchMode::Find;
+            multilineRenderEditor.m_findQuery = "A\nB";
+            multilineRenderEditor.updateFindMatches();
+            multilineRenderEditor.onResize(240, 200);
+            SDL_BlendMode oldMultilineBlend = SDL_BLENDMODE_NONE;
+            SDL_GetRenderDrawBlendMode(renderer, &oldMultilineBlend);
+            SDL_SetRenderDrawBlendMode(renderer, SDL_BLENDMODE_NONE);
+            multilineRenderEditor.render(renderer, {0, 0, 240, 200});
+            const auto* multilineGeometryStorage =
+                multilineRenderEditor.m_renderedFindVisibleMatches.data();
+            const int multilineLineHeight = multilineRenderEditor.getLineHeight();
+            const SDL_Rect firstMultilineSample = {
+                TestEditor::kPadding + TestEditor::kLineNumWidth + 1,
+                TestEditor::kPadding + 1, 1, 1
+            };
+            const SDL_Rect secondMultilineSample = {
+                TestEditor::kPadding + TestEditor::kLineNumWidth + 1,
+                TestEditor::kPadding + 2 * multilineLineHeight + 1, 1, 1
+            };
+            Uint8 firstActivePixel[4]{};
+            Uint8 secondInactivePixel[4]{};
+            const bool firstMultilineSamplesRead =
+                SDL_RenderReadPixels(renderer, &firstMultilineSample,
+                                     SDL_PIXELFORMAT_RGBA32, firstActivePixel,
+                                     sizeof(firstActivePixel)) == 0
+                && SDL_RenderReadPixels(renderer, &secondMultilineSample,
+                                        SDL_PIXELFORMAT_RGBA32, secondInactivePixel,
+                                        sizeof(secondInactivePixel)) == 0;
+            multilineRenderEditor.moveFindMatch(1);
+            multilineRenderEditor.render(renderer, {0, 0, 240, 200});
+            Uint8 firstInactivePixel[4]{};
+            Uint8 secondActivePixel[4]{};
+            const bool secondMultilineSamplesRead =
+                SDL_RenderReadPixels(renderer, &firstMultilineSample,
+                                     SDL_PIXELFORMAT_RGBA32, firstInactivePixel,
+                                     sizeof(firstInactivePixel)) == 0
+                && SDL_RenderReadPixels(renderer, &secondMultilineSample,
+                                        SDL_PIXELFORMAT_RGBA32, secondActivePixel,
+                                        sizeof(secondActivePixel)) == 0;
+            SDL_SetRenderDrawBlendMode(renderer, oldMultilineBlend);
+            check(multilineRenderEditor.m_renderedFindVisibleMatches.size() == 4
+                      && multilineRenderEditor.m_renderedFindVisibleMatches.data()
+                          == multilineGeometryStorage,
+                  "multiline Find caches visible fragments for each row without rebuilding on navigation");
+            check(multilineRenderEditor.m_renderStatusText.find("Find: _A\\nB")
+                          != std::string::npos
+                      && multilineRenderEditor.m_renderStatusText.find(
+                             "Ctrl+Enter newline") != std::string::npos,
+                  "multiline Find escapes query line breaks and advertises Ctrl+Enter in the status field");
+            check(firstMultilineSamplesRead && secondMultilineSamplesRead
+                      && firstActivePixel[0] == 54 && firstActivePixel[1] == 92
+                      && firstActivePixel[2] == 116
+                      && secondInactivePixel[0] == 36 && secondInactivePixel[1] == 48
+                      && secondInactivePixel[2] == 58,
+                  "multiline Find initially highlights every visible fragment of the active match");
+            check(multilineRenderEditor.m_currentFindPosition
+                          == std::pair<int, int>{2, 0}
+                      && firstInactivePixel[0] == 36 && firstInactivePixel[1] == 48
+                      && firstInactivePixel[2] == 58
+                      && secondActivePixel[0] == 54 && secondActivePixel[1] == 92
+                      && secondActivePixel[2] == 116,
+                  "multiline Find moves active styling between cached matches");
+
             TestEditor denseViewportEditor(scaleFont, &fs, "/dense-find.txt");
             denseViewportEditor.m_lines = {std::string(100'000, 'x')};
             denseViewportEditor.m_findQuery = "x";
@@ -1272,7 +1337,7 @@ int main() {
           "undoing after save compares against the new saved content");
 
     TestEditor findPasteEditor(nullptr, &fs, "");
-    findPasteEditor.m_lines = {"a\xC3\xA9!b"};
+    findPasteEditor.m_lines = {"a\xC3\xA9", "!b"};
     findPasteEditor.m_searchMode = TestEditor::SearchMode::Find;
     findPasteEditor.m_findQuery = "ab";
     findPasteEditor.m_findCursorPos = 1;
@@ -1283,12 +1348,12 @@ int main() {
     const bool setFindClipboard = SDL_SetClipboardText("\xC3\xA9\n!") == 0;
     if (setFindClipboard) findPasteEditor.handleEvent(searchPasteEvent);
     check(setFindClipboard
-              && findPasteEditor.m_findQuery == "a\xC3\xA9!b"
-              && findPasteEditor.m_findCursorPos == 4
+              && findPasteEditor.m_findQuery == "a\xC3\xA9\n!b"
+              && findPasteEditor.m_findCursorPos == 5
               && findPasteEditor.m_findMatchCount == 1,
-          "Ctrl+V inserts UTF-8 clipboard text at the Find caret and refreshes matches");
+          "Ctrl+V preserves normalized line breaks and finds multiline clipboard text");
 
-    findPasteEditor.m_lines = {"axyb"};
+    findPasteEditor.m_lines = {"ax", "yb"};
     findPasteEditor.m_findQuery = "ab";
     findPasteEditor.m_findCursorPos = 1;
     SDL_Event searchTextEvent{};
@@ -1297,10 +1362,10 @@ int main() {
     searchTextEvent.text.text[1] = '\n';
     searchTextEvent.text.text[2] = 'y';
     findPasteEditor.handleEvent(searchTextEvent);
-    check(findPasteEditor.m_findQuery == "axyb"
-              && findPasteEditor.m_findCursorPos == 3
+    check(findPasteEditor.m_findQuery == "ax\nyb"
+              && findPasteEditor.m_findCursorPos == 4
               && findPasteEditor.m_findMatchCount == 1,
-          "typed Find input shares clipboard filtering and match refresh behavior");
+          "typed Find input retains line breaks and refreshes multiline matches");
 
     TestEditor boundedSearchEditor(nullptr, &fs, "");
     boundedSearchEditor.m_searchMode = TestEditor::SearchMode::Find;
@@ -1321,7 +1386,7 @@ int main() {
     boundedSearchEditor.handleEvent(excessFindTextEvent);
     check(boundedSearchEditor.m_findQuery.size() == TestEditor::kMaxDocumentBytes
               && boundedSearchEditor.m_statusMessage
-                  == "Find query limit reached (16 MiB)",
+                  == "Find limit reached (16 MiB / 65,536 lines)",
           "typing beyond the Find query limit is rejected with status feedback");
 
     boundedSearchEditor.m_findQuery.assign(TestEditor::kMaxDocumentBytes - 1, 'q');
@@ -1333,8 +1398,21 @@ int main() {
     check(boundedSearchEditor.m_findQuery.size() == TestEditor::kMaxDocumentBytes - 1
               && boundedSearchEditor.m_findQuery.back() == 'q'
               && boundedSearchEditor.m_statusMessage
-                  == "Find query limit reached (16 MiB)",
+                  == "Find limit reached (16 MiB / 65,536 lines)",
           "pasting across the Find query limit drops the whole UTF-8 character");
+
+    TestEditor boundedSearchLinesEditor(nullptr, &fs, "");
+    boundedSearchLinesEditor.m_searchMode = TestEditor::SearchMode::Find;
+    boundedSearchLinesEditor.m_findQuery.assign(TestEditor::kMaxDocumentLines - 1, '\n');
+    boundedSearchLinesEditor.m_findQueryLineBreaks =
+        TestEditor::kMaxDocumentLines - 1;
+    boundedSearchLinesEditor.m_findCursorPos = boundedSearchLinesEditor.m_findQuery.size();
+    sendKey(boundedSearchLinesEditor, SDLK_RETURN, KMOD_CTRL);
+    check(boundedSearchLinesEditor.m_findQuery.size()
+                  == TestEditor::kMaxDocumentLines - 1
+              && boundedSearchLinesEditor.m_statusMessage
+                  == "Find limit reached (16 MiB / 65,536 lines)",
+          "search fields reject a line break beyond their 65,536-line limit");
 
     boundedSearchEditor.m_searchMode = TestEditor::SearchMode::Replace;
     boundedSearchEditor.m_searchField = TestEditor::SearchField::Replacement;
@@ -1347,7 +1425,7 @@ int main() {
     check(boundedSearchEditor.m_replaceText.size() == TestEditor::kMaxDocumentBytes - 1
               && boundedSearchEditor.m_replaceText.back() == 'r'
               && boundedSearchEditor.m_statusMessage
-                  == "Replacement limit reached (16 MiB)",
+                  == "Replacement limit reached (16 MiB / 65,536 lines)",
           "pasting across the replacement limit drops the whole UTF-8 character");
     SDL_Event exactReplaceTextEvent{};
     exactReplaceTextEvent.type = SDL_TEXTINPUT;
@@ -1360,7 +1438,7 @@ int main() {
     check(replacementAcceptsExactFit
               && boundedSearchEditor.m_replaceText.size() == TestEditor::kMaxDocumentBytes
               && boundedSearchEditor.m_statusMessage
-                  == "Replacement limit reached (16 MiB)",
+                  == "Replacement limit reached (16 MiB / 65,536 lines)",
           "typed replacement input reaches but cannot exceed its byte limit");
 
     SDL_Event ctrlFindEvent{};
@@ -1406,10 +1484,12 @@ int main() {
     multilineFindEditor.m_selAnchorCol = 3;
     multilineFindEditor.m_hasSelection = true;
     multilineFindEditor.handleEvent(ctrlFindEvent);
-    check(multilineFindEditor.m_findQuery.empty()
-              && multilineFindEditor.m_findMatchCount == 0
-              && !multilineFindEditor.m_hasSelection,
-          "Ctrl+F leaves multi-line selections out of the single-line search field");
+    check(multilineFindEditor.m_findQuery == "ore\naft"
+              && multilineFindEditor.m_findMatchCount == 1
+              && multilineFindEditor.m_currentFindPosition == std::pair<int, int>{0, 3}
+              && multilineFindEditor.m_currentFindEndPosition == std::pair<int, int>{1, 3}
+              && multilineFindEditor.hasSelection(),
+          "Ctrl+F seeds and selects the occurrence of a multi-line selection");
 
     TestEditor controlFindEditor(nullptr, &fs, "");
     controlFindEditor.m_lines = {"before\t after"};
@@ -1434,11 +1514,51 @@ int main() {
     const bool setReplacementClipboard = SDL_SetClipboardText("a\r\n\t\xC3\xA9") == 0;
     if (setReplacementClipboard) replacementPasteEditor.handleEvent(searchPasteEvent);
     check(setReplacementClipboard
-              && replacementPasteEditor.m_replaceText == "xa\xC3\xA9y"
-              && replacementPasteEditor.m_replaceCursorPos == 4
+              && replacementPasteEditor.m_replaceText == "xa\n\xC3\xA9y"
+              && replacementPasteEditor.m_replaceCursorPos == 5
               && replacementPasteEditor.m_findQuery == "needle"
               && replacementPasteEditor.m_findMatchCount == 1,
-          "Ctrl+V pastes into the active replacement field as single-line text");
+          "Ctrl+V normalizes line breaks in the active replacement field");
+
+    TestEditor ctrlEnterFindEditor(nullptr, &fs, "");
+    ctrlEnterFindEditor.m_lines = {"a", "b"};
+    ctrlEnterFindEditor.m_searchMode = TestEditor::SearchMode::Find;
+    ctrlEnterFindEditor.m_findQuery = "ab";
+    ctrlEnterFindEditor.m_findCursorPos = 1;
+    ctrlEnterFindEditor.updateFindMatches();
+    sendKey(ctrlEnterFindEditor, SDLK_RETURN, KMOD_CTRL);
+    check(ctrlEnterFindEditor.m_findQuery == "a\nb"
+              && ctrlEnterFindEditor.m_findCursorPos == 2
+              && ctrlEnterFindEditor.m_findMatchCount == 1,
+          "Ctrl+Enter inserts a line break in the active search field");
+
+    TestEditor searchLineCounterEditor(nullptr, &fs, "");
+    searchLineCounterEditor.m_searchMode = TestEditor::SearchMode::Find;
+    searchLineCounterEditor.m_findQuery = "ab\ncd";
+    searchLineCounterEditor.m_findQueryLineBreaks = 1;
+    searchLineCounterEditor.m_findCursorPos = 3;
+    sendKey(searchLineCounterEditor, SDLK_BACKSPACE);
+    const bool searchBackspaceUpdatesLineCount =
+        searchLineCounterEditor.m_findQuery == "abcd"
+        && searchLineCounterEditor.m_findQueryLineBreaks == 0;
+    sendKey(searchLineCounterEditor, SDLK_RETURN, KMOD_CTRL);
+    searchLineCounterEditor.m_findCursorPos = 2;
+    sendKey(searchLineCounterEditor, SDLK_DELETE);
+    check(searchBackspaceUpdatesLineCount
+              && searchLineCounterEditor.m_findQuery == "abcd"
+              && searchLineCounterEditor.m_findQueryLineBreaks == 0,
+          "Find newline counts stay correct across Ctrl+Enter, Backspace, and Delete");
+
+    TestEditor replacementLineCounterEditor(nullptr, &fs, "");
+    replacementLineCounterEditor.m_searchMode = TestEditor::SearchMode::Replace;
+    replacementLineCounterEditor.m_searchField = TestEditor::SearchField::Replacement;
+    replacementLineCounterEditor.m_replaceText = "r\ns";
+    replacementLineCounterEditor.m_replaceTextLineBreaks = 1;
+    replacementLineCounterEditor.m_replaceCursorPos = 1;
+    sendKey(replacementLineCounterEditor, SDLK_DELETE);
+    check(replacementLineCounterEditor.m_replaceText == "rs"
+              && replacementLineCounterEditor.m_replaceTextLineBreaks == 0,
+          "replacement newline counts stay correct after deletion");
 
     TestEditor coalescedEditor(nullptr, &fs, "");
     setEditorLines(coalescedEditor, {"base"});
@@ -1477,6 +1597,58 @@ int main() {
           "replace all with identical text preserves undo history");
     check(noOpReplaceEditor.m_statusMessage == "Replace all: text is unchanged",
           "replace all with identical text reports a no-op");
+
+    TestEditor multilineReplaceEditor(nullptr, &fs, "");
+    setEditorLines(multilineReplaceEditor, {"left needle", "across", "tail end"});
+    multilineReplaceEditor.m_searchMode = TestEditor::SearchMode::Replace;
+    multilineReplaceEditor.m_findQuery = "needle\nacross\ntail";
+    multilineReplaceEditor.m_replaceText = "NEW\nline";
+    multilineReplaceEditor.updateFindMatches();
+    multilineReplaceEditor.replaceCurrentMatch();
+    const std::vector<std::string> replacedMultilineLines = {"left NEW", "line end"};
+    check(multilineReplaceEditor.m_lines == replacedMultilineLines
+              && multilineReplaceEditor.m_documentSerializedBytes == 17
+              && multilineReplaceEditor.m_cursorRow == 1
+              && multilineReplaceEditor.m_cursorCol == 4
+              && multilineReplaceEditor.m_findMatchCount == 0
+              && multilineReplaceEditor.m_undoStack.size() == 1,
+          "Replace Current replaces across rows with multiline text and updates document size");
+    multilineReplaceEditor.undo();
+    check(multilineReplaceEditor.m_lines
+                  == std::vector<std::string>{"left needle", "across", "tail end"}
+              && multilineReplaceEditor.m_documentSerializedBytes == 27,
+          "undo restores the full source range after a multiline current replacement");
+    multilineReplaceEditor.redo();
+    check(multilineReplaceEditor.m_lines == replacedMultilineLines
+              && multilineReplaceEditor.m_documentSerializedBytes == 17,
+          "redo restores a multiline current replacement");
+
+    TestEditor multilineReplaceAllEditor(nullptr, &fs, "");
+    setEditorLines(multilineReplaceAllEditor, {"A", "B", "xA", "Bz"});
+    multilineReplaceAllEditor.m_searchMode = TestEditor::SearchMode::Replace;
+    multilineReplaceAllEditor.m_findQuery = "A\nB";
+    multilineReplaceAllEditor.m_replaceText = "C";
+    multilineReplaceAllEditor.replaceAllMatches();
+    check(multilineReplaceAllEditor.m_lines == std::vector<std::string>{"C", "xCz"}
+              && multilineReplaceAllEditor.m_documentSerializedBytes == 5
+              && multilineReplaceAllEditor.m_undoStack.size() == 1,
+          "Replace All replaces every non-overlapping multiline match in source order");
+    multilineReplaceAllEditor.undo();
+    check(multilineReplaceAllEditor.m_lines
+                  == std::vector<std::string>{"A", "B", "xA", "Bz"}
+              && multilineReplaceAllEditor.m_documentSerializedBytes == 9,
+          "one undo step restores all multiline Replace All results");
+
+    TestEditor newlineReplaceAllEditor(nullptr, &fs, "");
+    setEditorLines(newlineReplaceAllEditor, {"left", "right"});
+    newlineReplaceAllEditor.m_searchMode = TestEditor::SearchMode::Replace;
+    newlineReplaceAllEditor.m_findQuery = "\n";
+    newlineReplaceAllEditor.m_replaceText = "\nmid\n";
+    newlineReplaceAllEditor.replaceAllMatches();
+    check(newlineReplaceAllEditor.m_lines
+                  == std::vector<std::string>{"left", "mid", "right"}
+              && newlineReplaceAllEditor.m_documentSerializedBytes == 14,
+          "Replace All handles newline-only matches and leading or trailing replacement breaks");
 
     check(fs.writeFile("/same.txt", "same"), "write identical selection editor fixture");
     TestEditor noOpSelectionEditor(nullptr, &fs, "/same.txt");
