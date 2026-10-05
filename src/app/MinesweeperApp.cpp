@@ -5,6 +5,7 @@
 #include "../detail/RendererClip.hpp"
 
 #include <algorithm>
+#include <charconv>
 #include <filesystem>
 #include <fstream>
 #include <queue>
@@ -21,6 +22,16 @@ constexpr SDL_Color kBtnBg{55, 60, 75, 255};
 constexpr SDL_Color kBtnActive{70, 95, 145, 255};
 constexpr SDL_Color kGold{230, 190, 70, 255};
 constexpr SDL_Color kSaveWarning{240, 160, 90, 255};
+
+char* appendText(char* output, const char* text) {
+    while (*text) *output++ = *text++;
+    return output;
+}
+
+char* appendNumber(char* output, char* end, int value) {
+    const auto result = std::to_chars(output, end, value);
+    return result.ec == std::errc{} ? result.ptr : output;
+}
 } // namespace
 
 using monolith::detail::RendererClipState;
@@ -674,23 +685,30 @@ void MinesweeperApp::render(SDL_Renderer* renderer, const SDL_Rect& contentRect)
 
     const int remaining = std::max(0, m_mineCount - flagCount());
     const int best = bestTimeFor(m_difficulty);
-    std::string status = "Mines: " + std::to_string(remaining) +
-                         "   Time: " + std::to_string(m_elapsedSec);
+    char status[96];
+    char* statusEnd = status;
+    statusEnd = appendText(statusEnd, "Mines: ");
+    statusEnd = appendNumber(statusEnd, status + sizeof(status) - 1, remaining);
+    statusEnd = appendText(statusEnd, "   Time: ");
+    statusEnd = appendNumber(statusEnd, status + sizeof(status) - 1, m_elapsedSec);
     if (best > 0) {
-        status += "   Best: " + std::to_string(best) + "s";
+        statusEnd = appendText(statusEnd, "   Best: ");
+        statusEnd = appendNumber(statusEnd, status + sizeof(status) - 1, best);
+        *statusEnd++ = 's';
     }
-    status += "   ";
-    status += specFor(m_difficulty).name;
+    statusEnd = appendText(statusEnd, "   ");
+    statusEnd = appendText(statusEnd, specFor(m_difficulty).name);
     if (m_focusPaused && m_state == State::Playing) {
-        status += "   PAUSED";
+        statusEnd = appendText(statusEnd, "   PAUSED");
     }
+    *statusEnd = '\0';
     const SDL_Rect statusClip = {
         contentRect.x + 10,
         contentRect.y,
         std::max(0, m_faceBtnRect.x - 8 - (contentRect.x + 10)),
         kDifficultyButtonY
     };
-    drawText(renderer, status.c_str(), contentRect.x + 10,
+    drawText(renderer, status, contentRect.x + 10,
              contentRect.y + std::max(0, (kDifficultyButtonY - fontHeight) / 2),
              kHudText, &statusClip);
 
@@ -841,16 +859,25 @@ void MinesweeperApp::render(SDL_Renderer* renderer, const SDL_Rect& contentRect)
         restoreRendererBlend(renderer, previousBlend);
 
         const char* title = (m_state == State::Won) ? "YOU WIN!" : "BOOM!";
-        std::string line2;
-        std::string line3;
+        char overlayLine[96];
+        const char* line2 = nullptr;
+        const char* line3 = nullptr;
         SDL_Color line3Color = kDimText;
 
         if (m_state == State::Won) {
-            line2 = "Time " + std::to_string(m_elapsedSec) + "s";
+            char* overlayEnd = appendText(overlayLine, "Time ");
+            overlayEnd = appendNumber(
+                overlayEnd, overlayLine + sizeof(overlayLine) - 1, m_elapsedSec);
+            overlayEnd = appendText(overlayEnd, "s");
             const int bestNow = bestTimeFor(m_difficulty);
             if (bestNow > 0) {
-                line2 += "  ·  Best " + std::to_string(bestNow) + "s";
+                overlayEnd = appendText(overlayEnd, "  ·  Best ");
+                overlayEnd = appendNumber(
+                    overlayEnd, overlayLine + sizeof(overlayLine) - 1, bestNow);
+                overlayEnd = appendText(overlayEnd, "s");
             }
+            *overlayEnd = '\0';
+            line2 = overlayLine;
             if (m_bestTimesSaveFailed) {
                 line3 = "BEST TIME NOT SAVED";
                 line3Color = kSaveWarning;
@@ -866,18 +893,18 @@ void MinesweeperApp::render(SDL_Renderer* renderer, const SDL_Rect& contentRect)
 
         const int lineH = std::max(18, m_font ? TTF_FontHeight(m_font) : 18);
         const int gap = 4;
-        const int lines = 1 + (!line2.empty() ? 1 : 0) + (!line3.empty() ? 1 : 0);
+        const int lines = 1 + (line2 && *line2 ? 1 : 0) + (line3 && *line3 ? 1 : 0);
         const int blockH = lines * lineH + (lines - 1) * gap;
         int y = boardRect.y + (boardRect.h - blockH) / 2;
 
         drawCenteredLine(renderer, title, boardRect, y, kOverlayText);
         y += lineH + gap;
-        if (!line2.empty()) {
-            drawCenteredLine(renderer, line2.c_str(), boardRect, y, kDimText);
+        if (line2 && *line2) {
+            drawCenteredLine(renderer, line2, boardRect, y, kDimText);
             y += lineH + gap;
         }
-        if (!line3.empty()) {
-            drawCenteredLine(renderer, line3.c_str(), boardRect, y, line3Color);
+        if (line3 && *line3) {
+            drawCenteredLine(renderer, line3, boardRect, y, line3Color);
         }
     }
 }

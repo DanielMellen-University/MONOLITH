@@ -10,6 +10,7 @@
 #include <fstream>
 #include <iostream>
 #include <iterator>
+#include <new>
 #include <string>
 
 #include "TestTempDir.hpp"
@@ -20,6 +21,28 @@
 #undef private
 
 using monolith::app::MinesweeperApp;
+
+namespace {
+bool g_trackAllocations = false;
+std::size_t g_trackedAllocations = 0;
+}
+
+void* operator new(std::size_t size) {
+    if (g_trackAllocations) ++g_trackedAllocations;
+    if (void* memory = std::malloc(size == 0 ? 1 : size)) return memory;
+    throw std::bad_alloc();
+}
+
+void* operator new[](std::size_t size) {
+    if (g_trackAllocations) ++g_trackedAllocations;
+    if (void* memory = std::malloc(size == 0 ? 1 : size)) return memory;
+    throw std::bad_alloc();
+}
+
+void operator delete(void* memory) noexcept { std::free(memory); }
+void operator delete(void* memory, std::size_t) noexcept { std::free(memory); }
+void operator delete[](void* memory) noexcept { std::free(memory); }
+void operator delete[](void* memory, std::size_t) noexcept { std::free(memory); }
 
 int main() {
     int failures = 0;
@@ -321,6 +344,30 @@ int main() {
             game.m_cells[i].revealed = true;
             game.m_cells[i].adjacent = static_cast<uint8_t>(i % 8 + 1);
         }
+        game.m_difficulty = MinesweeperApp::Difficulty::Beginner;
+        game.m_mineCount = 10;
+        game.m_bestBeginner = 75;
+        game.m_elapsedSec = 12;
+        game.m_state = MinesweeperApp::State::Playing;
+        game.m_focusPaused = false;
+        game.m_clientWidth = 1;
+        game.m_clientHeight = 1;
+        game.render(minesweeperRenderer, {0, 0, 240, 240});
+        g_trackedAllocations = 0;
+        g_trackAllocations = true;
+        game.render(minesweeperRenderer, {0, 0, 240, 240});
+        g_trackAllocations = false;
+        check(g_trackedAllocations == 0,
+              "Minesweeper warmed timer HUD rendering performs no heap allocations");
+        const size_t hudTextureCount = game.m_textTextureCache.size();
+        const auto hudTexture = game.m_textTextureCache.get(
+            minesweeperRenderer, font,
+            "Mines: 10   Time: 12   Best: 75s   Beginner",
+            {200, 200, 210, 255});
+        check(hudTexture.handle
+                  && game.m_textTextureCache.size() == hudTextureCount,
+              "Minesweeper stack-formatted HUD preserves its text and spacing");
+
         game.m_state = MinesweeperApp::State::Lost;
         game.m_clientWidth = 1;
         game.m_clientHeight = 1;
@@ -336,6 +383,19 @@ int main() {
         game.m_newBest = true;
         game.m_bestTimesSaveFailed = true;
         game.render(minesweeperRenderer, {0, 0, 240, 240});
+        g_trackedAllocations = 0;
+        g_trackAllocations = true;
+        game.render(minesweeperRenderer, {0, 0, 240, 240});
+        g_trackAllocations = false;
+        check(g_trackedAllocations == 0,
+              "Minesweeper warmed win overlay rendering performs no heap allocations");
+        const size_t overlayTextureCount = game.m_textTextureCache.size();
+        const auto overlayTexture = game.m_textTextureCache.get(
+            minesweeperRenderer, font, "Time 12s  ·  Best 75s",
+            {140, 140, 150, 255});
+        check(overlayTexture.handle
+                  && game.m_textTextureCache.size() == overlayTextureCount,
+              "Minesweeper stack-formatted win overlay preserves its time and best text");
         const size_t warningTextureCount = game.m_textTextureCache.size();
         const auto warningTexture = game.m_textTextureCache.get(
             minesweeperRenderer, font, "BEST TIME NOT SAVED",
