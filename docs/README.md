@@ -6,7 +6,8 @@ Documentation hub for the Monolith project. Start with the [root README](../READ
 
 | Document | Description |
 |----------|-------------|
-| [Vision & Philosophy](vision.md) | Long-term goals, design philosophy, and phased roadmap |
+| [1.0 Roadmap](ROADMAP.md) | Portfolio 1.0 milestones, in/out of scope, soft next chunks |
+| [Vision & Philosophy](vision.md) | Long-term goals and design philosophy |
 | [Architecture](architecture.md) | System structure: window manager, app model, rendering, input |
 
 ## Shared Subsystems
