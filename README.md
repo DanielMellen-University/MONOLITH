@@ -2,9 +2,9 @@
 
 A personal mini operating system that runs as one application.
 
-Monolith is an experimental, self-contained environment written in C++ using SDL2. It aims to feel like a small personal operating system inside a single Linux program, with its own window manager, apps, filesystem, and (planned) scripting language.
+Monolith is a self-contained environment written in C++ using SDL2. It is meant to feel like a small personal operating system inside a single Linux program, with its own window manager, apps, and filesystem.
 
-**This project is in early development.**
+**Status:** heading to a **1.0** portfolio release. See [`docs/ROADMAP.md`](docs/ROADMAP.md) for milestones, what is in or out of 1.0, and soft next chunks.
 
 ## Current Status
 
@@ -14,7 +14,7 @@ Monolith has a working desktop environment with overlapping windows:
 - **Built-in Apps** - Terminal, Text Editor, Filesystem Browser, Drawing, Settings (desktop background color, BMP/PNG/JPEG wallpaper path and fit, taskbar clock 12/24-hour, interface text scale), Snake, Minesweeper, Pong, and Breakout. Each has its own documentation (see below).
 - **Internal Filesystem** - Host-backed persistence under `~/.monolith/fs/` with shared recursive copy/remove and a clean virtual path namespace.
 
-**Still early** - no custom language yet, wallpaper images support BMP/PNG/JPEG, and polish is ongoing. The focus is a coherent, self-contained environment that grows over time.
+Wallpaper images support BMP/PNG/JPEG. Headless and sanitizer CI run on `main` and `beta`. A custom scripting language is **not** part of this repository; that work belongs in a separate **MONOLITH 2** repo (see the roadmap).
 
 ## Building
 
@@ -66,6 +66,7 @@ Full documentation lives in [`docs/`](docs/README.md).
 | Topic | Link |
 |-------|------|
 | Documentation hub | [docs/README.md](docs/README.md) |
+| 1.0 roadmap | [docs/ROADMAP.md](docs/ROADMAP.md) |
 | Vision & philosophy | [docs/vision.md](docs/vision.md) |
 | Architecture | [docs/architecture.md](docs/architecture.md) |
 | Filesystem | [docs/filesystem.md](docs/filesystem.md) |

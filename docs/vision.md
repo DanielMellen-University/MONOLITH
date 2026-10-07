@@ -2,7 +2,8 @@
 
 > This document contains the original vision and philosophy for Monolith.
 > It is kept for reference. For practical information about building and running the project,
-> see the main [README.md](../README.md), the [documentation hub](README.md), and [architecture.md](architecture.md).
+> see the main [README.md](../README.md), the [documentation hub](README.md), [architecture.md](architecture.md),
+> and the active [1.0 roadmap](ROADMAP.md).
 
 ---
 
@@ -10,7 +11,7 @@
 
 **A personal mini operating system that runs as one application.**
 
-Monolith is a single Linux program that contains its own little world. It has a filesystem, a custom programming language, a terminal, and multiple built-in apps. You can keep adding new apps and features to it over the years.
+Monolith is a single Linux program that contains its own little world. It has a filesystem, a terminal, and multiple built-in apps. You can keep adding new native apps and features to it over the years.
 
 It takes some inspiration from TempleOS - the idea of a personal, direct, self-contained machine that you live inside - but it is much easier because it runs as a normal application on Linux instead of being a full operating system.
 
@@ -19,7 +20,7 @@ You don't use Monolith like a regular program. You enter it.
 ## What Monolith Is
 
 - One executable that feels like a small operating system
-- Everything important lives inside it (filesystem, apps, language, settings)
+- Everything important for daily use lives inside it (filesystem, apps, settings)
 - Built primarily as a personal machine for one person
 - Designed to grow slowly and deliberately over a long time
 - Keyboard-driven and direct
@@ -30,6 +31,7 @@ You don't use Monolith like a regular program. You enter it.
 - Not primarily for other people
 - Not trying to be a modern productivity tool or creative suite
 - Not bare metal
+- Not the home of a custom programming language (that is a separate project; see below)
 
 ---
 
@@ -49,25 +51,21 @@ Monolith is meant to contain several distinct apps and subsystems. Implemented a
 | Shipped | Pong | [apps/pong.md](apps/pong.md) |
 | Shipped | Breakout | [apps/breakout.md](apps/breakout.md) |
 | Shipped (partial) | Wallpaper images (BMP/PNG/JPEG via Settings; solid color fallback) | [apps/settings.md](apps/settings.md) |
-| Planned | IDE | - |
 
-New apps can be added over time, either as native features or written in the custom language.
+New native apps can still be added after 1.0 when they earn a place. Settings for the 1.0 tag ships as-is (no open-ended appearance expansion before the release).
 
-## The Language
+## Custom language (not this repository)
 
-Monolith is planned to have its own custom programming language (not implemented yet).
+A custom programming language and IDE were part of the original long-range sketch (old Phase 5 / Phase 6). That work is **out of this repository entirely**.
 
-The language sits at a **medium** level of power:
-- It includes graphics and drawing primitives
-- It can generate and play sound
-- It can interact with the filesystem and other parts of the system
-- It is powerful enough to write real tools, apps, and automations that run inside Monolith
+- **MONOLITH 1.0** (this repo) is the personal mini-OS: shell, apps, VFS, stability, polish.
+- **MONOLITH 2** is a **separate repository**, built in Daniel's own custom language. It is not a "2.0" tag of this tree.
 
-The goal is to have a language that feels good to use for extending the system, without making the language itself overwhelmingly complex to implement and maintain.
+Do not plan language or IDE chunks against this codebase.
 
 ## Core Principles
 
-- Everything lives inside one program
+- Everything for daily use lives inside one program
 - It is *your* machine first
 - Constraints are intentional
 - The system should feel solid and direct
@@ -82,36 +80,17 @@ The goal is to have a language that feels good to use for extending the system, 
 
 ## Roadmap
 
-The project will be built in phases, roughly in this order:
+Active release planning lives in [ROADMAP.md](ROADMAP.md) (MONOLITH 1.0 portfolio track).
 
-1. **Core Foundation**
-   - Basic window and input
-   - Internal filesystem
-   - Terminal app
-   - Simple text editor
+Historical build order (mostly complete for this repo):
 
-2. **The Language**
-   - Custom language interpreter
-   - Ability to run programs from the terminal and editor
-   - Basic graphics and sound support in the language
+1. **Core Foundation** - window, filesystem, Terminal, text editor (done)
+2. **Desktop shell** - multi-instance titles, session restore, Alt+Tab, taskbar clock (done)
+3. **Native apps** - Drawing, Settings, games, wallpaper (done through Phase 7 growth work)
+4. **1.0 packaging** - surface freeze, stability bar, version/tag (in progress; see roadmap)
 
-3. **More Apps** *(partially complete)*
-   - ~~Drawing program~~ - shipped
-   - ~~Settings panel~~ - shipped
-   - Desktop background color - shipped via Settings
-   - Wallpaper images (BMP/PNG/JPEG) - shipped (partial; richer appearance controls still planned)
-   - Simple IDE experience for the language - planned
-   - Richer appearance options - planned
-
-4. **Growth** *(ongoing)*
-   - ~~Games~~ - Snake, Minesweeper, Pong, and Breakout shipped
-   - Session restore, open-with routing, editor find/replace, FS multi-select - shipped (see [CHANGELOG](../CHANGELOG.md))
-   - Deeper integration between apps
-   - Richer wallpaper controls, richer Settings, custom language / IDE - still planned
-   - Whatever feels worth adding over time
-
-The priority is to make the environment feel alive and usable early, even if many apps are still missing.
+Language / IDE phases from the old plan are retired here and moved to the separate MONOLITH 2 repo.
 
 ## Final Note
 
-Monolith is intended as a long-term personal project. The aim is to build something deliberately over time rather than trying to create a complete product quickly.
+Monolith is intended as a long-term personal project. The near-term bar is a complete 1.0 you can show; further native growth can continue after that without turning this tree into a language testbed.
