@@ -6,6 +6,18 @@
 #include <set>
 #include <string>
 
+// Desktop icon definitions are resolved at compile time, so the per-frame
+// layout path only copies a fixed array.
+static_assert(monolith::window::kDesktopIconDefs.size()
+                  == static_cast<std::size_t>(monolith::window::kDesktopIconCount),
+              "desktop icon defs size matches the registry count");
+static_assert(monolith::window::kDesktopIconDefs.front().action
+                  == monolith::window::AppAction::Terminal,
+              "desktop icon order is sorted at compile time");
+static_assert(monolith::window::collectDesktopIconDefs().back().action
+                  == monolith::window::AppAction::Settings,
+              "desktop icon collector is usable in constant expressions");
+
 int main() {
     using namespace monolith::window;
     int failures = 0;

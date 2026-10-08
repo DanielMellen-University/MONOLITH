@@ -203,32 +203,39 @@ struct DesktopIconDef {
     Uint8 b;
 };
 
-inline std::array<DesktopIconDef, kDesktopIconCount> collectDesktopIconDefs() {
-    struct Item {
-        int order;
-        DesktopIconDef def;
-    };
-    std::array<Item, kDesktopIconCount> items{};
-    std::size_t count = 0;
-    for (const auto& app : kAppRegistry) {
-        if (!app.showDesktopIcon) continue;
-        items[count++] = {
-            app.desktopOrder,
-            DesktopIconDef{
-                app.desktopLabel ? app.desktopLabel : app.displayName,
-                app.desktopGlyph,
-                app.action,
-                app.iconR,
-                app.iconG,
-                app.iconB,
-            },
+// Built once at compile time so per-frame desktop icon layout does not rescan
+// and re-sort the registry.
+inline constexpr std::array<DesktopIconDef, kDesktopIconCount> kDesktopIconDefs =
+    []() constexpr {
+        struct Item {
+            int order;
+            DesktopIconDef def;
         };
-    }
-    std::sort(items.begin(), items.begin() + count,
-              [](const Item& a, const Item& b) { return a.order < b.order; });
-    std::array<DesktopIconDef, kDesktopIconCount> out{};
-    for (std::size_t i = 0; i < count; ++i) out[i] = items[i].def;
-    return out;
+        std::array<Item, kDesktopIconCount> items{};
+        std::size_t count = 0;
+        for (const auto& app : kAppRegistry) {
+            if (!app.showDesktopIcon) continue;
+            items[count++] = {
+                app.desktopOrder,
+                DesktopIconDef{
+                    app.desktopLabel ? app.desktopLabel : app.displayName,
+                    app.desktopGlyph,
+                    app.action,
+                    app.iconR,
+                    app.iconG,
+                    app.iconB,
+                },
+            };
+        }
+        std::sort(items.begin(), items.begin() + count,
+                  [](const Item& a, const Item& b) { return a.order < b.order; });
+        std::array<DesktopIconDef, kDesktopIconCount> out{};
+        for (std::size_t i = 0; i < count; ++i) out[i] = items[i].def;
+        return out;
+    }();
+
+inline constexpr std::array<DesktopIconDef, kDesktopIconCount> collectDesktopIconDefs() {
+    return kDesktopIconDefs;
 }
 
 } // namespace monolith::window
