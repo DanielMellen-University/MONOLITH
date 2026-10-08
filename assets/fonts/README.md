@@ -1,21 +1,13 @@
 # Fonts
 
-This folder should contain TrueType fonts used by Monolith.
+`DejaVuSans.ttf` is the interface font for every window, menu and app. MONOLITH loads it at 14 pt, and the Settings text size option scales it.
 
-## Current Requirements
+MONOLITH opens `assets/fonts/DejaVuSans.ttf` relative to the current directory, so run the app from the repository root. If the file is not found it tries:
 
-- `DejaVuSans.ttf` (or another .ttf font) is expected at 14pt for window titles.
+1. `/usr/share/fonts/truetype/dejavu/DejaVuSans.ttf`
+2. `/usr/share/fonts/dejavu/DejaVuSans.ttf`
+3. `/usr/share/fonts/truetype/DejaVuSans.ttf`
 
-## How to get a font
+If none exist, MONOLITH prints a warning and text does not render. Installing `fonts-dejavu` provides the system copy.
 
-On most Linux systems you can copy one from the system:
-
-```bash
-cp /usr/share/fonts/truetype/dejavu/DejaVuSans.ttf .
-```
-
-Or download DejaVu Sans from https://dejavu-fonts.github.io/
-
-## Future Plans
-
-We may move to bitmap fonts or embed a default font later to reduce external dependencies.
+DejaVu fonts are free software, distributed under the DejaVu Fonts License (based on the Bitstream Vera license). Project page: https://dejavu-fonts.github.io/
