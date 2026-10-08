@@ -6,7 +6,7 @@ Code: `src/window/WindowManager.{hpp,cpp}`, `src/window/Window.hpp`, and the bod
 
 ## Geometry
 
-- The desktop is a logical surface, 1280x720 by default. Taskbar bounds, the usable desktop rectangle, title-bar button rectangles and logical-to-screen conversion are computed in one place and shared by rendering, hit testing, maximize, resize, drag clamping and new-window placement. Drawn controls and click targets therefore always line up.
+- The desktop is a logical surface, 1280x720 in the app (tests also use other sizes). Taskbar bounds, the usable desktop rectangle, title-bar button rectangles and logical-to-screen conversion are computed in one place and shared by rendering, hit testing, maximize, resize, drag clamping and new-window placement. Drawn controls and click targets therefore always line up.
 - Screen-to-logical conversion floors scaled coordinates, so a point just outside the desktop never lands in row or column zero.
 - New and restored windows get the shared minimum size, then are clamped so the title bar stays above the taskbar. On a very narrow desktop a frame can shrink below the minimum. If the usable height is shorter than a title bar, the app gets a zero-height client rather than negative geometry.
 - Maximize fills the usable area. Restoring clamps the old rectangle back above the taskbar. A minimized maximized window picks up the current usable area when it comes back, even if the desktop grew meanwhile.

@@ -10,7 +10,6 @@ The idea comes partly from TempleOS: a direct, self-contained machine that one p
 - A place for everyday tools: a terminal, an editor, a file browser, a drawing app, settings and a few games.
 - A personal machine, built for one user first.
 - Keyboard-friendly. Every app has shortcuts, and the shell has Alt+Tab and Ctrl+Escape.
-- Something meant to grow slowly over years without turning into a mess.
 
 ## What it is not
 

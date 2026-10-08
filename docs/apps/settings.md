@@ -71,8 +71,6 @@ The footer normally reads `Changes take effect immediately.`
 | Page Up / Page Down, mouse wheel | Anywhere else | Scroll the window |
 | Home / End | Anywhere else | Scroll to the top / bottom |
 
-Everything else is done with the mouse.
-
 ## Settings file
 
 Settings are saved to `~/.monolith/desktop_settings.txt` with the [atomic writer](../internals/atomic-writes.md). One `key=value` per line:

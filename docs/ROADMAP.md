@@ -22,14 +22,11 @@ Not included: screenshots. The checklist keeps that item open.
 | Milestone | Chunk | Outcome |
 |-----------|-------|---------|
 | A. Retarget planning | `1.0-docs-retarget` | Added this roadmap and moved the chunk pointer to the 1.0 track |
-| B. Surface freeze | `1.0-surface-freeze` | App set frozen at nine; Settings shipped as it was; parked branch left unmerged |
+| B. Surface freeze | `1.0-surface-freeze` | App set frozen at nine; Settings shipped as it was |
 | C. Stability | `1.0-stability-audit` | Headless and sanitizer CI green on the release commit; zero compiler warnings; CI package install bounded with timeouts and retries |
 | D. Release packaging | `1.0-release-packaging` | Version strings, README, CHANGELOG entry, tag |
 
-Two decisions from the 1.0 work:
-
-- **The host-writer race stays a documented limitation.** MONOLITH's own writers serialize on a directory lock, but an outside program that ignores that lock can still replace a file between MONOLITH's last check and its rename. See [atomic-writes.md](internals/atomic-writes.md#the-host-writer-race).
-- **`wip/7.52-drawing-modr-io` stays parked.** It is not part of 1.0 and should not be merged into it.
+One known limit was left documented rather than fixed: MONOLITH's own writers serialize on a directory lock, but an outside program that ignores that lock can still replace a file between MONOLITH's last check and its rename. See [the host-writer race](internals/atomic-writes.md#the-host-writer-race).
 
 ## Out of scope
 
@@ -45,9 +42,7 @@ No chunk is required after the tag. Post-1.0 work is limited to small, concrete 
 - Add screenshots under `docs/images/`.
 - Commit `assets/wallpapers/sample.png` (or generate it during the build) so `/Wallpapers/sample.png` is seeded on first launch. Today only the BMP sample is created; see [settings.md](apps/settings.md#wallpaper-image).
 
-## How this list was built
-
-Work was done in small chunks. The active chunk name is kept in [`CURRENT_CHUNK`](../CURRENT_CHUNK) (copy in [`.agents/CURRENT_CHUNK`](../.agents/CURRENT_CHUNK)), which now reads `1.0-released`. Earlier phases:
+## Earlier phases
 
 | Phase | Content |
 |-------|---------|

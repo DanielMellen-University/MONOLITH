@@ -11,6 +11,7 @@ Start with the [root README](../README.md) for the overview, build steps and fir
 | [1.0 checklist](1.0-CHECKLIST.md) | Tick-box status of the 1.0 milestones |
 | [Architecture](architecture.md) | How the window manager, apps, rendering and input fit together |
 | [Filesystem](filesystem.md) | Virtual paths, host storage under `~/.monolith/`, the `Filesystem` API |
+| [Changelog](../CHANGELOG.md) | Full change history, newest first |
 
 ## Apps
 
@@ -49,13 +50,6 @@ Reference notes for the low-level details. The pages above link here when it mat
 | [repo-layout.md](development/repo-layout.md) | What lives where in the source tree |
 | [contributing.md](development/contributing.md) | Branches, commits, adding an app, doc rules |
 
-## History
-
-| Doc | What it covers |
-|-----|----------------|
-| [CHANGELOG.md](../CHANGELOG.md) | Full change history, newest first |
-| [phase-7-slices.md](changelog/phase-7-slices.md) | Notes for feature slices 7.1 to 7.7 (September 2026) |
-
 ## Files MONOLITH keeps on the host
 
 | Path | Contents |
@@ -65,5 +59,3 @@ Reference notes for the low-level details. The pages above link here when it mat
 | `~/.monolith/desktop_settings.txt` | Settings app preferences |
 | `~/.monolith/snake_highscore.txt` | Snake high score |
 | `~/.monolith/minesweeper_best.txt` | Minesweeper best times |
-
-Agent instructions live in [`.agents/AGENTS.md`](../.agents/AGENTS.md). They are not needed to build or use MONOLITH.
