@@ -22,10 +22,15 @@ jobs:
     steps:
       - uses: actions/checkout@v5
 
+      # Bound the package install so a stalled mirror connection fails fast
+      # instead of burning the whole job timeout; apt retries stalled fetches.
       - name: Install build dependencies
+        timeout-minutes: 10
         run: |
-          sudo apt-get update
-          sudo apt-get install --yes --no-install-recommends \
+          sudo apt-get -o Acquire::Retries=3 -o Acquire::http::Timeout=30 \
+            -o Acquire::https::Timeout=30 update
+          sudo apt-get -o Acquire::Retries=3 -o Acquire::http::Timeout=30 \
+            -o Acquire::https::Timeout=30 install --yes --no-install-recommends \
             cmake g++ pkg-config python3 libsdl2-dev libsdl2-ttf-dev
 
       - name: Configure
@@ -44,10 +49,15 @@ jobs:
     steps:
       - uses: actions/checkout@v5
 
+      # Bound the package install so a stalled mirror connection fails fast
+      # instead of burning the whole job timeout; apt retries stalled fetches.
       - name: Install build dependencies
+        timeout-minutes: 10
         run: |
-          sudo apt-get update
-          sudo apt-get install --yes --no-install-recommends \
+          sudo apt-get -o Acquire::Retries=3 -o Acquire::http::Timeout=30 \
+            -o Acquire::https::Timeout=30 update
+          sudo apt-get -o Acquire::Retries=3 -o Acquire::http::Timeout=30 \
+            -o Acquire::https::Timeout=30 install --yes --no-install-recommends \
             cmake g++ pkg-config python3 libsdl2-dev libsdl2-ttf-dev
 
       - name: Configure sanitized application
