@@ -7,6 +7,7 @@ Documentation hub for the Monolith project. Start with the [root README](../READ
 | Document | Description |
 |----------|-------------|
 | [1.0 Roadmap](ROADMAP.md) | Portfolio 1.0 milestones, in/out of scope, soft next chunks |
+| [1.0 Checklist](1.0-CHECKLIST.md) | Tick-box status for each 1.0 milestone |
 | [Vision & Philosophy](vision.md) | Long-term goals and design philosophy |
 | [Architecture](architecture.md) | System structure: window manager, app model, rendering, input |
 

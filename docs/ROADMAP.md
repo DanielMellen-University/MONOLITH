@@ -4,6 +4,8 @@ Planning track for shipping a complete, production-ready personal mini-OS you ca
 
 Active chunk pointer: [`CURRENT_CHUNK`](../CURRENT_CHUNK) (also [`.agents/CURRENT_CHUNK`](../.agents/CURRENT_CHUNK)).
 
+Tick-box status: [1.0 checklist](1.0-CHECKLIST.md).
+
 ## Where we are
 
 Tip at retarget time: `9fc16be` on `main` and `beta` (verify before tagging; tip may move).
@@ -49,6 +51,7 @@ This is not a language milestone. Custom language work does not belong in this r
 - Only concrete polish from known debts (for example visible bugs or docs mismatches), not open-ended feature work.
 - Keep the host-writer race as a **documented limitation**: Monolith atomic writers serialize on the destination directory lock; external tools that do not take that lock can still race between final validation and rename (see `docs/filesystem.md`).
 - Audit pass 1 (Oct 8, 2026): CI `verify` and `sanitize` green on `main` `95d0267`; on `beta` `b541e7e` `sanitize` passed and `verify` was cancelled at its 30 minute timeout inside `apt-get` (runner package install, not a test failure). Local Release and ASan/UBSan `ctest` green with GCC 14. Fixed: desktop icon definitions now resolve at compile time (removes a per-frame registry sort and GCC 14 `-Warray-bounds` noise), and 16 focused test commands in `docs/development/scripts.md` that failed to link without the atomic writer sources. Still open: one GCC `-Waddress` warning in `FilesystemApp::handleEvent` (`event.text.text` is an array and never null).
+- Audit pass 2 (Oct 8, 2026): both CI `Install build dependencies` steps now have `timeout-minutes: 10` and pass `Acquire::Retries=3` with 30 second http and https timeouts to `apt-get update` and `apt-get install`. CI green with it on `beta` `58d3641` (run 564) and `main` `fdbe3d7` (run 565), install steps 20 to 39 seconds. Apt package caching and a pinned mirror were left out: the Oct 7 hang was in the index fetch, which a package cache does not cover, and both add moving parts that cannot be tested outside Actions.
 
 ### D. Release packaging (`1.0-release-packaging`)
 
@@ -83,6 +86,7 @@ Optional after tag (not required for 1.0): small post-1.0 polish debts only when
 
 ## Related docs
 
+- [1.0 checklist](1.0-CHECKLIST.md)
 - [Documentation hub](README.md)
 - [Vision](vision.md) (historical philosophy; language moved to MONOLITH 2)
 - [Architecture](architecture.md)
