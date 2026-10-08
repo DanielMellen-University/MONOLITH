@@ -1518,7 +1518,7 @@ void FilesystemApp::handleKeyDown(const SDL_Keysym& keysym) {
 
 void FilesystemApp::handleEvent(const SDL_Event& event) {
     if (m_renaming && event.type == SDL_TEXTINPUT) {
-        if (event.text.text) {
+        if (event.text.text[0] != '\0') {
             m_renameCursorPos = std::min(m_renameCursorPos, m_renameBuffer.size());
             const std::string inserted = event.text.text;
             m_renameBuffer.insert(m_renameCursorPos, inserted);
