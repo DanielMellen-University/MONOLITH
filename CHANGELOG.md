@@ -2,12 +2,12 @@
 
 ## 1.0 (October 2026)
 
-Portfolio release of the personal mini-OS: one Linux application with a window manager, built-in apps, and a host-backed filesystem.
+Portfolio release, tagged `v1.0.0`: one Linux application with a window manager, nine built-in apps and a host-backed filesystem.
 
-- Shell: overlapping windows, taskbar with Start menu (Games category and type-ahead), multi-column desktop icons, Alt+Tab, Ctrl+Escape, and session restore.
-- Apps: Terminal, Text Editor, Filesystem Browser, Drawing, Settings, Snake, Minesweeper, Pong, and Breakout.
-- Filesystem under `~/.monolith/fs/` with atomic saves. Uncoordinated host writers can still race after the final stamp check; that limit stays documented in `docs/filesystem.md`.
-- Settings About, Terminal `version`, and the CMake project version report 1.0.
+- Shell: overlapping windows, a taskbar, a Start menu with a Games group and type-ahead, multi-column desktop icons, Alt+Tab, Ctrl+Escape and session restore.
+- Apps: Terminal, Text Editor, Filesystem, Drawing, Settings, Snake, Minesweeper, Pong and Breakout.
+- Filesystem under `~/.monolith/fs/` with atomic saves. A host program that ignores MONOLITH's directory lock can still race a save after the final check. This limit is documented in [the host-writer race](docs/internals/atomic-writes.md#the-host-writer-race).
+- Settings, Terminal `version` and the CMake project version report 1.0.
 
 ## 2026-10: Isolate atomic output buffering
 

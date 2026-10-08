@@ -1,95 +1,60 @@
-# MONOLITH 1.0 Roadmap
+# Roadmap
 
-Planning track for shipping a complete, production-ready personal mini-OS you can show in a portfolio.
+Status of each milestone, as tick boxes: [1.0 checklist](1.0-CHECKLIST.md).
 
-Active chunk pointer: [`CURRENT_CHUNK`](../CURRENT_CHUNK) (also [`.agents/CURRENT_CHUNK`](../.agents/CURRENT_CHUNK)).
+## 1.0: shipped (October 2026)
 
-Tick-box status: [1.0 checklist](1.0-CHECKLIST.md).
+The goal of 1.0 was a complete, presentable portfolio piece: one Linux app that feels like a personal mini-OS, which someone can clone, build, run and use without reading any internal notes.
 
-## Where we are
+What 1.0 contains:
 
-**1.0 is the portfolio release** (October 2026). CMake, Settings About, and Terminal `version` report `1.0`. Tag `v1.0.0` sits on the commit where `main` and `beta` match. Screenshots are still absent.
+- **Desktop shell.** Overlapping windows with drag, 8-way resize, minimize, maximize and focus. Taskbar with Start menu (Games category, type-ahead filter) and clock. Desktop icons, Alt+Tab, Ctrl+Escape, numbered window titles, session restore, and open-by-file-type routing.
+- **Nine apps.** Terminal, Text Editor, Filesystem, Drawing, Settings, Snake, Minesweeper, Pong, Breakout.
+- **Internal filesystem** under `~/.monolith/fs/` with atomic saves.
+- **Tests and CI.** A headless suite of 34 test programs and 5 static checks, run in GitHub Actions on every push to `main` and `beta`, both normally and under AddressSanitizer and UndefinedBehaviorSanitizer.
+- **Version 1.0** reported by CMake, the Settings app (`1.0 (October 2026)`) and the Terminal `version` command. The string lives in `src/app/Version.hpp`.
+- **Tag `v1.0.0`** on the commit where `main` and `beta` match.
 
-**Already shipped**
+Not included: screenshots. The checklist keeps that item open.
 
-- **Phase 4 (Living-inside-it)** done: Terminal quoted arguments, Settings UI scale, Editor horizontal scroll, Drawing eyedropper.
-- **Phase 7 growth through 7.196** done: PNG/JPEG wallpaper, Breakout, desktop icons, `AppRegistry`, wallpaper fit, Start type-ahead, multi-column icons, then a long run of memory bounds, texture reuse, dirty-document guards, atomic-save hardening, and render allocation cleanup. Chunk **7.196** isolates atomic output buffering (`AtomicTempOutput.cpp`).
-- **Desktop shell**: window manager (drag, 8-way resize, z-order, focus), taskbar with Start menu (Games category, type-ahead), desktop icons, Alt+Tab, Ctrl+Escape Start, multi-instance titles, session restore (`~/.monolith/session.txt`), extension-based open routing.
-- **Apps**: Terminal, Text Editor, Filesystem Browser, Drawing, Settings, Snake, Minesweeper, Pong, Breakout.
-- **Host VFS** under `~/.monolith/fs/` with atomic saves, advisory locking among Monolith writers, and documented limits for uncoordinated host writers.
-- **CI**: GitHub Actions headless suite plus AddressSanitizer/UndefinedBehaviorSanitizer on pushes and PRs to `main`/`beta` (`.github/workflows/headless.yml`).
+### Milestones
 
-**Settings for 1.0**: ship as-is. Presets, typed wallpaper path (BMP/PNG/JPEG), fit modes, clock 12/24, UI scale 90/100/115. No extra appearance slice before the tag.
+| Milestone | Chunk | Outcome |
+|-----------|-------|---------|
+| A. Retarget planning | `1.0-docs-retarget` | Added this roadmap and moved the chunk pointer to the 1.0 track |
+| B. Surface freeze | `1.0-surface-freeze` | App set frozen at nine; Settings shipped as it was; parked branch left unmerged |
+| C. Stability | `1.0-stability-audit` | Headless and sanitizer CI green on the release commit; zero compiler warnings; CI package install bounded with timeouts and retries |
+| D. Release packaging | `1.0-release-packaging` | Version strings, README, CHANGELOG entry, tag |
 
-**Parked branch**: `wip/7.52-drawing-modr-io` stays parked. Do not merge it for 1.0.
+Two decisions from the 1.0 work:
 
-## 1.0 goal
+- **The host-writer race stays a documented limitation.** MONOLITH's own writers serialize on a directory lock, but an outside program that ignores that lock can still replace a file between MONOLITH's last check and its rename. See [atomic-writes.md](internals/atomic-writes.md#the-host-writer-race).
+- **`wip/7.52-drawing-modr-io` stays parked.** It is not part of 1.0 and should not be merged into it.
 
-Ship a **complete, production-ready portfolio piece**: one Linux app that feels like a personal mini-OS (shell + apps + VFS + stability + polish). Someone can clone, build, run, and use a coherent desktop without reading agent notes.
+## Out of scope
 
-This is not a language milestone. Custom language work does not belong in this repository.
+| Item | Decision |
+|------|----------|
+| A custom programming language | A separate future project, MONOLITH 2, in its own repository |
+| Open-ended Settings growth | Settings shipped as it is. More options would be small post-1.0 polish at most. |
 
-## Milestones
+## After 1.0
 
-### A. Retarget planning (`1.0-docs-retarget`, done)
+No chunk is required after the tag. Post-1.0 work is limited to small, concrete fixes, for example:
 
-- Add this roadmap.
-- Point `CURRENT_CHUNK` at the 1.0 track.
-- Update public docs so the scripting language is clearly out of this repo (see Out of scope).
-- Link this file from the docs hub.
+- Add screenshots under `docs/images/`.
+- Commit `assets/wallpapers/sample.png` (or generate it during the build) so `/Wallpapers/sample.png` is seeded on first launch. Today only the BMP sample is created; see [settings.md](apps/settings.md#wallpaper-image).
 
-### B. Surface freeze (`1.0-surface-freeze`, done)
+## How this list was built
 
-- Freeze the current app set for the 1.0 tag.
-- Keep `wip/7.52-drawing-modr-io` parked; do not merge.
-- No new apps or open-ended Settings features before the tag.
+Work was done in small chunks. The active chunk name is kept in [`CURRENT_CHUNK`](../CURRENT_CHUNK) (copy in [`.agents/CURRENT_CHUNK`](../.agents/CURRENT_CHUNK)), which now reads `1.0-released`. Earlier phases:
 
-### C. Stability bar (`1.0-stability-audit`, done)
+| Phase | Content |
+|-------|---------|
+| 1. Core | Window, filesystem, Terminal, Text Editor |
+| 2. Desktop shell | Numbered titles, session restore, open-with, Alt+Tab, Ctrl+Escape, clock |
+| 3. Native apps | Drawing, Settings, Snake, Minesweeper, BMP wallpaper, Pong |
+| 4. Living in it | Terminal quoting, text size setting, editor horizontal scroll, Drawing color picker |
+| 7. Growth | PNG and JPEG wallpaper, Breakout, desktop icons, app registry, wallpaper fit, Start type-ahead, then a long run of memory bounds, texture reuse, unsaved-work guards and atomic-save hardening (chunks up to 7.196) |
 
-- Headless suite green locally and in CI.
-- Sanitizer job green (ASan/UBSan as in `headless.yml`).
-- Only concrete polish from known debts (for example visible bugs or docs mismatches), not open-ended feature work.
-- Keep the host-writer race as a **documented limitation**: Monolith atomic writers serialize on the destination directory lock; external tools that do not take that lock can still race between final validation and rename (see `docs/filesystem.md`).
-- Audit pass 1 (Oct 8, 2026): CI `verify` and `sanitize` green on `main` `95d0267`; on `beta` `b541e7e` `sanitize` passed and `verify` was cancelled at its 30 minute timeout inside `apt-get` (runner package install, not a test failure). Local Release and ASan/UBSan `ctest` green with GCC 14. Fixed: desktop icon definitions now resolve at compile time (removes a per-frame registry sort and GCC 14 `-Warray-bounds` noise), and 16 focused test commands in `docs/development/scripts.md` that failed to link without the atomic writer sources. Still open: one GCC `-Waddress` warning in `FilesystemApp::handleEvent` (`event.text.text` is an array and never null).
-- Audit pass 2 (Oct 8, 2026): both CI `Install build dependencies` steps now have `timeout-minutes: 10` and pass `Acquire::Retries=3` with 30 second http and https timeouts to `apt-get update` and `apt-get install`. CI green with it on `beta` `58d3641` (run 564) and `main` `fdbe3d7` (run 565), install steps 20 to 39 seconds. Apt package caching and a pinned mirror were left out: the Oct 7 hang was in the index fetch, which a package cache does not cover, and both add moving parts that cannot be tested outside Actions.
-
-### D. Release packaging (`1.0-release-packaging`, done)
-
-- CMake `project(... VERSION ...)` is `1.0`.
-- Settings About reads `1.0 (October 2026)`. The notes status is "Personal environment".
-- Terminal `version` / `ver` prints `Monolith Terminal v1.0`. The shared text lives in `src/app/Version.hpp`.
-- README status line describes the shipped portfolio release.
-- CHANGELOG has a short 1.0 summary at the top.
-- Screenshots under `docs/images/` are still missing and are not part of the tag.
-- Tag `v1.0.0` on the commit where `main` and `beta` match.
-
-## Out of scope for 1.0 (and for this repo)
-
-| Item | Notes |
-|------|--------|
-| Phase 5 custom scripting language + interpreter | **Not in V1.** Lives in a **separate** repository (MONOLITH 2), built in Daniel's own language. Not a 2.0 of this tree. |
-| Phase 6 IDE for that language | **Not in V1.** Same separate MONOLITH 2 repo when that work starts. |
-| Networking / multiplayer | Out. |
-| Bare-metal or "real kernel" claims | Monolith remains a normal Linux SDL2 application. |
-| Open-ended Settings expansion | Ship current Settings; richer appearance stays post-1.0 soft polish at most. |
-| Merging `wip/7.52-drawing-modr-io` | Parked; not part of the 1.0 surface. |
-
-## Soft next chunks
-
-Ordered for daily MONOLITH work:
-
-1. `1.0-docs-retarget` (done) - planning docs and chunk pointer.
-2. `1.0-stability-audit` (done) - headless + sanitize green; concrete polish only; host-writer race stays documented.
-3. `1.0-surface-freeze` (done) - app set confirmed; parked drawing WIP stays off main.
-4. `1.0-release-packaging` (done) - version bumps, README/CHANGELOG, tag `v1.0.0`. Screenshots remain absent.
-
-No required chunk follows the tag. Small post-1.0 polish only when listed concretely in agent notes.
-
-## Related docs
-
-- [1.0 checklist](1.0-CHECKLIST.md)
-- [Documentation hub](README.md)
-- [Vision](vision.md) (historical philosophy; language moved to MONOLITH 2)
-- [Architecture](architecture.md)
-- [Filesystem](filesystem.md)
-- [Development scripts](development/scripts.md)
+Phases 5 and 6 of the original plan were moved out of this repository.

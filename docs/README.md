@@ -1,52 +1,69 @@
-# Monolith Documentation
+# MONOLITH documentation
 
-Documentation hub for the Monolith project. Start with the [root README](../README.md) for build and run instructions.
+Start with the [root README](../README.md) for the overview, build steps and first run.
 
 ## Project
 
-| Document | Description |
-|----------|-------------|
-| [1.0 Roadmap](ROADMAP.md) | Portfolio 1.0 milestones, in/out of scope, soft next chunks |
-| [1.0 Checklist](1.0-CHECKLIST.md) | Tick-box status for each 1.0 milestone |
-| [Vision & Philosophy](vision.md) | Long-term goals and design philosophy |
-| [Architecture](architecture.md) | System structure: window manager, app model, rendering, input |
+| Doc | What it covers |
+|-----|----------------|
+| [Vision](vision.md) | What MONOLITH is for and the principles behind it |
+| [Roadmap](ROADMAP.md) | What 1.0 shipped, what is out of scope, what comes after |
+| [1.0 checklist](1.0-CHECKLIST.md) | Tick-box status of the 1.0 milestones |
+| [Architecture](architecture.md) | How the window manager, apps, rendering and input fit together |
+| [Filesystem](filesystem.md) | Virtual paths, host storage under `~/.monolith/`, the `Filesystem` API |
 
-## Shared Subsystems
+## Apps
 
-| Document | Description |
-|----------|-------------|
-| [Filesystem](filesystem.md) | Internal virtual filesystem, host persistence, path rules |
+| Doc | App |
+|-----|-----|
+| [terminal.md](apps/terminal.md) | Terminal: commands, quoting, history, completion |
+| [text-editor.md](apps/text-editor.md) | Text Editor: editing, Find and Replace, saving |
+| [filesystem-browser.md](apps/filesystem-browser.md) | Filesystem: browsing, file operations, filter |
+| [drawing.md](apps/drawing.md) | Drawing: tools, colors, `.modr` files |
+| [settings.md](apps/settings.md) | Settings: desktop color, wallpaper, clock, text size |
+| [snake.md](apps/snake.md) | Snake |
+| [minesweeper.md](apps/minesweeper.md) | Minesweeper |
+| [pong.md](apps/pong.md) | Pong |
+| [breakout.md](apps/breakout.md) | Breakout |
 
-## Built-in Apps
+## Internals
 
-| App | Document |
-|-----|----------|
-| Terminal | [apps/terminal.md](apps/terminal.md) |
-| Text Editor | [apps/text-editor.md](apps/text-editor.md) |
-| Filesystem Browser | [apps/filesystem-browser.md](apps/filesystem-browser.md) |
-| Drawing | [apps/drawing.md](apps/drawing.md) |
-| Settings | [apps/settings.md](apps/settings.md) |
-| Snake | [apps/snake.md](apps/snake.md) |
-| Minesweeper | [apps/minesweeper.md](apps/minesweeper.md) |
-| Pong | [apps/pong.md](apps/pong.md) |
-| Breakout | [apps/breakout.md](apps/breakout.md) |
+Reference notes for the low-level details. The pages above link here when it matters.
+
+| Doc | What it covers |
+|-----|----------------|
+| [window-manager.md](internals/window-manager.md) | Focus rules, taskbar, instance titles, callback safety, close and quit, session restore |
+| [desktop-shell.md](internals/desktop-shell.md) | App registry, Start menu and type-ahead, desktop icons |
+| [rendering.md](internals/rendering.md) | Clip rules, text texture caches, per-app render work |
+| [atomic-writes.md](internals/atomic-writes.md) | How every file write is staged and published, workspace cleanup, the host-writer race |
+| [wallpaper.md](internals/wallpaper.md) | Image decoding, fit modes, reload rules |
+| [limits.md](internals/limits.md) | Every size and count limit in one table |
 
 ## Development
 
-| Document | Description |
-|----------|-------------|
-| [Scripts & Verification](development/scripts.md) | Headless tests and integration checks |
+| Doc | What it covers |
+|-----|----------------|
+| [building.md](development/building.md) | Dependencies, CMake build, generated sources, running |
+| [testing.md](development/testing.md) | Headless suite, sanitizer build, every test program |
+| [ci.md](development/ci.md) | GitHub Actions workflow |
+| [repo-layout.md](development/repo-layout.md) | What lives where in the source tree |
+| [contributing.md](development/contributing.md) | Branches, commits, adding an app, doc rules |
 
-## Host layout (quick reference)
+## History
 
-| Location | Role |
-|----------|------|
-| `~/.monolith/fs/` | Virtual filesystem |
-| `~/.monolith/session.txt` | Window session restore |
-| `~/.monolith/desktop_settings.txt` | Desktop background + wallpaper path |
-| `~/.monolith/snake_highscore.txt` / `minesweeper_best.txt` | Game scores |
+| Doc | What it covers |
+|-----|----------------|
+| [CHANGELOG.md](../CHANGELOG.md) | Full change history, newest first |
+| [phase-7-slices.md](changelog/phase-7-slices.md) | Notes for feature slices 7.1 to 7.7 (September 2026) |
 
-## For Contributors & Agents
+## Files MONOLITH keeps on the host
 
-- [AGENTS.md](../.agents/AGENTS.md) - project rules, chunk playbook, commit workflow
-- [CHANGELOG.md](../CHANGELOG.md) - short current-state summary (history in git)
+| Path | Contents |
+|------|----------|
+| `~/.monolith/fs/` | The internal filesystem |
+| `~/.monolith/session.txt` | Open windows, restored on next launch |
+| `~/.monolith/desktop_settings.txt` | Settings app preferences |
+| `~/.monolith/snake_highscore.txt` | Snake high score |
+| `~/.monolith/minesweeper_best.txt` | Minesweeper best times |
+
+Agent instructions live in [`.agents/AGENTS.md`](../.agents/AGENTS.md). They are not needed to build or use MONOLITH.

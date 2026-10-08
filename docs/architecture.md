@@ -1,300 +1,148 @@
-# Monolith Architecture
+# Architecture
 
-## Overview
+MONOLITH is one SDL2 program. Inside its window a small desktop shell (the window manager) draws window frames, a taskbar and a Start menu, and hosts native C++ apps. All apps share one internal filesystem that is stored on the host under `~/.monolith/fs/`.
 
-Monolith is a single Linux application that contains a complete, self-contained desktop-like environment. It is designed to feel like a small personal operating system that the user "enters," while remaining a normal application on the host.
-
-The core experience is built around **overlapping windows** with traditional desktop behaviors. Most functionality lives in native applications that run inside these windows.
-
-## Goals
-
-- Create a cohesive, personal computational environment that feels like a mini OS.
-- Support multiple things open at once with a polished windowing experience.
-- Keep the system growable over many years as a personal project.
-- Maintain a clear separation between the core environment and the individual apps.
-- Provide a custom scripting language primarily for automation and extension.
-
-## High-Level Model
-
-```
-┌──────────────────────────────────────────────────────────────┐
-│                        Monolith (SDL2)                       │
-├──────────────────────────────────────────────────────────────┤
-│  Window Manager / desktop shell                              │
-│  - Frames, drag/resize, focus, taskbar (+ clock), Start menu │
-│  - Session restore, openPath routing, launchers              │
-├──────────────────────────────────────────────────────────────┤
-│  App Host / Client Areas                                     │
-│  - Native C++ apps render into their window content          │
-├──────────────────────────────────────────────────────────────┤
-│  Built-in Apps (native)                                      │
-│  - Terminal, Filesystem, Editor, Drawing, Settings,          │
-│    Snake, Minesweeper, Pong, Breakout                         │
-├──────────────────────────────────────────────────────────────┤
-│  Basic Filesystem                                            │
-│  - Hierarchical, persisted under ~/.monolith/fs/             │
-├──────────────────────────────────────────────────────────────┤
-│  Language Runtime (planned — not implemented)                │
-│  - Scripting / automation from Terminal and other apps       │
-└──────────────────────────────────────────────────────────────┘
+```text
++-------------------------------------------------------------+
+| main.cpp: SDL setup, event loop, session save on exit        |
++-------------------------------------------------------------+
+| WindowManager (desktop shell)                               |
+|   frames, drag/resize, focus, taskbar, Start menu, clock,   |
+|   desktop icons, wallpaper, Alt+Tab, session restore        |
++-------------------------------------------------------------+
+| Apps (one App object per window)                            |
+|   Terminal, TextEditor, Filesystem, Drawing, Settings,      |
+|   Snake, Minesweeper, Pong, Breakout                        |
++-------------------------------------------------------------+
+| Filesystem (virtual paths -> ~/.monolith/fs/)               |
+|   atomic writes, recursive copy/remove, listings            |
++-------------------------------------------------------------+
 ```
 
-## Core Components
+## Startup and main loop
 
-### 1. Window Manager
+`src/main.cpp` (its body is stored compressed; see [building.md](development/building.md#generated-sources)) does the following:
 
-The Window Manager is the most foundational subsystem.
+1. Starts SDL video and SDL_ttf, then creates a fixed 1280x720 window titled "Monolith" and an accelerated renderer with VSync.
+2. Loads `DejaVuSans.ttf` at 14 pt, trying `assets/fonts/` relative to the working directory first, then the usual system font paths.
+3. Opens the filesystem at `~/.monolith/fs` (or `./monolith_fs` if `HOME` is unset) and creates `/home/monolith`, `/home/monolith/documents`, `/home/monolith/drawings`, `/Wallpapers`, `welcome.txt` and the sample wallpaper if they are missing.
+4. Creates the `WindowManager`, loads `~/.monolith/desktop_settings.txt`, and restores `~/.monolith/session.txt`. If there is no valid session it opens Terminal, Filesystem, Text Editor on `welcome.txt`, and Settings.
+5. Runs the loop: pass each SDL event to the window manager, set the mouse cursor for resize edges, call `update()`, clear to the desktop color, call `render()`, present.
+6. On quit, saves the session. If that fails it shows a warning dialog while SDL is still running. The window manager and its apps are destroyed before the renderer and SDL shut down, so app textures are freed while the renderer is still valid.
 
-**Responsibilities:**
-- Owns all top-level windows
-- Draws window frames (title bar + three buttons)
-- Handles window dragging and resizing
-- Manages z-order and focus
-- Provides a taskbar for window switching and status (local-time clock on the right)
-- Routes input events to the correct window
+SDL text input is started once after the renderer exists and stopped before shutdown, so every app receives typed UTF-8 text the same way.
 
-**Window Model:**
-- Every window has a title bar with a title and three standard buttons.
-- Windows support dragging by the title bar.
-- Windows support resizing from edges and corners.
-- Windows can be minimized via the title-bar minimize button or by clicking the active window's taskbar button (XP-style toggle), and restored by clicking its taskbar entry.
-- When the focused window is closed, focus moves to the topmost non-minimized remaining window (z-order), with `onFocusLost` / `onFocusGained` fired so apps stay consistent. Focus is published before those callbacks, so a callback-triggered close cannot restore a destroyed pointer afterward. If every survivor is minimized, focus stays clear until the user activates a window.
-- Start-menu dismissal is a single focus transition: clicking another window, choosing a taskbar entry, or using Alt+Tab consumes the menu's suspension marker during the real handoff, so the previously focused app is not resumed and immediately suspended again.
-- Minimizing the focused window uses the same handoff rule: the topmost non-minimized survivor becomes focused, or focus is cleared when none remain. Minimized apps never receive keyboard events.
-- When focus is cleared because every window is minimized, the shell invalidates taskbar hit targets immediately because the focused-first taskbar ordering no longer applies.
-- When many windows are open, the taskbar scrolls horizontally (arrow buttons and mouse wheel). Arrow hit targets are recorded during render (same pattern as taskbar window buttons) and handled in the taskbar click path.
-- Closing a window immediately removes its cached taskbar hit target, so keyboard- or app-triggered closes cannot leave a raw pointer for a later event between renders.
-- Minimizing a window invalidates cached taskbar hit targets immediately, including when the minimized window was not focused and no z-order handoff occurs.
-- Taskbar scrolling is clamped to the measured button strip after arrow controls reserve their space, so repeated input cannot scroll every window button out of view.
-- On narrow logical desktops, the taskbar button viewport is clamped to non-negative space; scroll arrows are shown only when both controls fit, stale scroll offsets reset after a shrink, and button rendering plus hit rectangles are clipped to the visible viewport.
-- The Start button is also clipped to the logical desktop edge, and its hit target stops there, so an undersized desktop cannot paint or activate shell chrome outside its own surface.
-- The Start menu clamps its width to the logical desktop and its visible height to the usable area above the taskbar; partially visible rows are clipped and only their visible portions remain clickable on undersized desktops.
-- Start-menu registry rows are built once, and filtered rows plus actionable hit targets use bounded arrays sized from the app registry, avoiding frame-time vector allocations during type-ahead.
-- The clock tray yields the button strip when the available width is too small for both controls, preventing taskbar status UI from overlapping window-button input.
-- Maximize, restore, and logical desktop resizing keep maximized frames aligned to the usable area, clamp restored frames above the taskbar, and notify the app after the final client geometry is known.
-- Bringing a minimized maximized window forward reapplies the current usable desktop rectangle immediately, including after the logical desktop grows while it was hidden.
-- Taskbar window labels stay at native text size, render through SDL_ttf's UTF-8 API, and each button measures its UTF-8 title before allocating width, so Unicode filenames, larger fonts, and long titles clip inside their own button without drawing over neighbors.
-- Taskbar layout traverses windows in focused-first order directly and uses cached title measurements to compute widths, avoiding temporary order and width vectors while keeping drawing and hit targets aligned.
-- Taskbar buttons and the clock tray also derive their height from the active font, capped by the taskbar band, so scaled labels remain vertically contained.
-- Window title labels stay at native text size and render through SDL_ttf's UTF-8 API. The cached texture contains only complete codepoints fitting in the available title area, avoiding full-width surfaces for long filenames; cached prefixes are recalculated after width changes, while focus changes only rebuild the color variant.
-- The taskbar shows a compact local-time clock on the right (12-hour by default; Settings can switch to 24-hour via `DesktopSettings`). Time/date strings are formatted once per minute, and their textures are rebuilt only when displayed text or font changes; hovering the clock tray shows the full local date in a small tooltip above the bar.
-- The clock date tooltip clamps to the usable desktop in both axes and clips its contents to the caller's renderer clip, so short or narrow clients cannot place it outside the shell surface.
-- Settings can change the shared interface font to 90%, 100%, or 115%. `WindowManager` applies the selected point size to the shared `TTF_Font`, then invalidates title, clock, and Start-menu header textures so the change appears immediately in existing windows.
-- Shell labels and taskbar titles are keyed by UTF-8 text and color and cached between frames; this includes the taskbar Start button, window buttons, Start-menu header, category labels, and normal or hovered rows. The texture cache is LRU-bounded to 256 entries and an estimated 16 MiB, then rebuilt as needed after font changes or eviction.
-- Taskbar button widths reuse each window's measured title width between layouts; renames and shared UI font-size changes invalidate those per-window measurements.
-- Desktop icon glyphs and labels are cached per icon, with separate normal and selected label textures, and are rebuilt only after the shared font changes.
-- Desktop icon registry ordering and placement use fixed-capacity arrays, so steady-state shell rendering and icon hit testing do not allocate temporary vectors.
-- After a shared font change, `WindowManager` calls `App::onUiScaleChanged()` on every app, including minimized ones, from a stable window snapshot, so cached layout and pixel-based scroll state can be rebuilt without pretending the window itself was resized.
-- Desktop wallpaper images (BMP through SDL, PNG/JPEG through `WallpaperImage`) are optional: Settings stores a virtual FS path; the Window Manager cover-scales the texture over the solid background color before drawing windows. All formats reject images above 16,777,216 pixels before pixel decoding; BMP dimensions are read from the same open file handle SDL later decodes. Empty or unloadable paths fall back to solid color only. A later creation of a missing configured image (or one of its parent directories), including a successful move into that path, invalidates the failed-load cache so the next render retries it.
-- Desktop appearance setters report rejected values and atomic-save failures back to Settings. A failed save leaves the selected preference active for the current session and remains visible in Settings even when the save was triggered by a wallpaper move or deletion. A later successful write stores the full preference set and clears the warning.
-- **Session restore**: on exit, restorable windows (kind, geometry, minimize/maximize, file paths for editors/drawings) are written to `~/.monolith/session.txt` through a uniquely reserved hidden sibling workspace, then atomically replaced after the complete stream is validated. A neighboring `session.txt.tmp` remains ordinary user data. If more than 128 restorable windows are open, save keeps the topmost 128 in their existing stacking order so the persisted entries fit the restore limit. A failed save shows a warning before SDL teardown; the atomic writer leaves the previous snapshot unchanged. File paths are quoted so virtual names containing spaces, quotes, or backslashes survive a restart; older unquoted path tokens remain readable. On next launch, restore inspects at most 1,024 records after the header and stops processing session entries once 128 windows are live; blank and comment rows count toward the record limit. A valid session file is accepted even when it restores no windows, so missing or invalid file-backed entries are skipped rather than becoming blank untitled apps or triggering the demo window set; missing files and invalid headers still use the demo fallback. Restore applies geometry by the launched window's monotonic ID, so a lifecycle callback that opens another window cannot redirect the saved geometry to the callback-created window.
-- **Game records**: Snake reads at most 16 rows of 32 bytes and accepts only a complete score in the playable range (0–397). Minesweeper reads at most 16 rows of 64 bytes and accepts complete best times from 1–999 seconds; an oversized row stops loading without discarding earlier valid times.
-- Restoring a minimized final session entry hands keyboard focus to the topmost visible survivor instead of leaving focus attached to the hidden app.
-- Session path quoting escapes line breaks so unusual filenames stay within their bounded record while existing quoted and legacy unquoted paths remain readable.
-- Session geometry callbacks are identity-checked after `onResize()`, so an app that closes during restore cannot leave the loader inspecting a dead window or count a vanished entry as restored.
-- Screen-to-logical pointer conversion floors scaled coordinates, so positions just above the host header or left of the desktop remain outside logical row and column zero instead of leaking into an edge window.
-- **Open-with routing**: `WindowManager::openPath` / `IWindowController::openPath` maps a case-insensitive `.modr` suffix → Drawing and all other files → Text Editor (used by Terminal `open` and the Filesystem Browser default Open).
-- Focusing an already-open file through the editor or Drawing singleton bridge also restores that window from minimized state before bringing it forward.
-- Bringing a minimized window forward re-applies desktop clamping first, so stale session geometry cannot put its title bar under the taskbar or off the desktop.
-- New and restored frames honor the shared minimum size before desktop clamping. Desktop clamping keeps visible frames above the taskbar, shrinking below that normal minimum only when a narrow logical desktop cannot fit a full-size window. If the usable region is shorter than the title bar, the frame stays anchored at a non-negative origin and rendering passes apps a zero-height client instead of negative geometry.
-- When a logical desktop resize or interactive resize changes a visible window's frame, the Window Manager sends `App::onResize` with the final client dimensions after all clamping. Update and render callbacks use nesting-safe window snapshots whose backing buffers are reused between passes; a pointer-plus-ID index validates snapshot entries in expected constant time, so callbacks may close or open windows without invalidating the pass or triggering a full liveness scan for each entry. Apps never have to infer shell geometry changes from stale render rectangles.
-- The Alt+Tab title overlay converts measured text from screen pixels to logical width before sizing its box, then clips the native-size label inside that box.
-- No snapping or automatic tiling.
+## Window manager
 
-**Design Notes:**
-The Window Manager should be relatively self-contained. Individual apps should not need to know how window frames are drawn or how input is routed.
+`WindowManager` (`src/window/`) owns every window. Each `Window` holds its geometry, minimized and maximized state, title, and the `App` it hosts.
 
-Each window that hosts an app owns a small `IWindowController` (`Window::controller`) created by `createControllerFor`. Controllers are not process-global: they are destroyed with the window after the app’s controller pointer is cleared.
+It is responsible for:
 
-Window geometry that affects the desktop shell is centralized in the Window Manager. Taskbar bounds, usable desktop bounds, logical-to-screen rectangle conversion, and title-bar button rectangles are shared by rendering, hit testing, maximize, resize, drag clamping, and new-window placement. This keeps drawn controls aligned with click targets and keeps window title bars accessible above the taskbar.
+- Drawing frames: a title bar with minimize, maximize and close buttons.
+- Dragging by the title bar and resizing from any edge or corner. There is no snapping or tiling.
+- Z-order and keyboard focus.
+- The taskbar: Start button, one button per window (scrolls when there are many), and a clock (12-hour by default).
+- The Start menu, built from the app registry, with a Games group and a type-ahead filter.
+- Desktop icons for Terminal, Filesystem, Editor, Drawing and Settings.
+- The desktop background color and optional wallpaper image.
+- Numbered titles for multiple windows of one app ("Terminal", "Terminal 2", ...). Closing one renumbers the rest so there are no gaps.
+- Opening files by type: `.modr` files go to Drawing, everything else to Text Editor. Each file opens in at most one window; opening it again focuses that window.
+- Saving and restoring the session.
 
-### Instance Management for Multiple Windows of the Same Type
+The desktop is a 1280x720 logical surface. The window manager converts mouse positions to logical pixels once, at the edge, so apps and hit testing never deal with host-window scaling.
 
-The WM provides first-class support for opening many instances of the same native app (Terminal, Filesystem, Drawing, Settings, bare Text Editor, future apps) without title collisions or confusing numbering.
+Details such as focus handoff, taskbar layout, close guards and restore limits are in [internals/window-manager.md](internals/window-manager.md). The registry, Start menu and icons are in [internals/desktop-shell.md](internals/desktop-shell.md).
 
-- `claimNextAppInstanceTitle(const std::string& base)` finds the lowest free positive instance number for a base ("Terminal", "Settings", "Editor" for bare editors, etc.), reserves it, and returns the display title + number.
-  - Instance 1 → bare name ("Settings").
-  - Instance 2+ → "Settings 2", etc.
-- Each `Window` carries `appBaseTitle` and `appInstanceNumber` (populated by launchers via an extended `createWindow`).
-- On `closeWindow`, if the window held a tracked instance, `compactAppInstances(base)` re-numbers all *remaining* live windows of that base contiguously from 1 (sorted by prior instance number to preserve relative order).
-  - Titles on the survivor `Window` objects are updated in place.
-  - Title caches are invalidated so the change appears immediately in title bars and the taskbar on the next render.
-  - The active set is rebuilt from the compacted numbers.
-- Result: among currently open windows there are never gaps or duplicates for a given type. Closing a lower number causes higher ones to "slide down" (e.g. "Settings" + "Settings 2"; close the first → the second becomes "Settings").
-- File-backed editors use content-derived titles ("Editor - foo") and are deliberately excluded from the bare "Editor" numbering pool (they are already unique and protected by the `m_fileEditors` singleton + `associateEditorWithFile`).
-- Saving a bare Editor or Drawing as a file releases its old bare-app instance reservation and compacts the remaining bare windows, so file-backed titles never consume numbered bare-app slots.
-- Direct `createWindow` calls (rare fallback paths) can opt out of tracking.
+## Apps
 
-Launchers are the canonical place that request instance titles. The mechanism is intentionally centralized in the desktop shell (`WindowManager`) so new app types get correct behavior for free.
+Every app is a class derived from `monolith::app::App` (`src/app/App.hpp`). The window manager calls:
 
-See `src/window/WindowManager.cpp` (`claimNextAppInstanceTitle`, `compactAppInstances`, `closeWindow`, launcher bodies) and `Window.hpp`. The design follows the same "annotate the Window + cleanup on close" pattern used for editor singletons (`editedFilePath` / `m_fileEditors`).
+| Callback | When |
+|----------|------|
+| `render(renderer, contentRect)` | Every frame, for visible windows. The app draws inside its client rectangle. |
+| `handleEvent(event)` | Keyboard and text input when focused; mouse input inside the client area. |
+| `update()` | Every frame for non-minimized windows. Games use it for their timers. |
+| `onFocusGained()` / `onFocusLost()` | Focus changes, including when the Start menu opens. Games pause here. |
+| `onResize(w, h)` | After the client size changes, with the final size. |
+| `onUiScaleChanged()` | After Settings changes the text size. |
+| `allowClose()` | Before the window closes. Editor and Drawing return false while there is unsaved work. |
+| `onVirtualPathCreated/Changed/Moved/Removed` | After any app changes the filesystem, so others can refresh. |
+| `onBoundFileMoved` / `onBoundFileRemoved` | When the file an Editor or Drawing window has open is moved or deleted. |
 
-### 2. Application Model
+Apps never reference each other. When an app needs the shell, it calls its `IWindowController`:
 
-Core applications are written in **native C++**.
+| Group | Methods |
+|-------|---------|
+| Window | `close`, `setTitle`, `requestClientSize`, `restoreTrackedInstanceTitle` |
+| Opening files | `openPath` (by file type), `openInTextEditor`, `openInDrawing`, `focusEditorForFile`, `focusDrawingForFile` |
+| File ownership | `bindEditorFile`, `bindDrawingFile`, and their `clear...` counterparts |
+| Change broadcasts | `notifyVirtualPathCreated`, `...Changed`, `...Moved`, `...Removed` |
+| Shared clipboard | `get/set/clearFilesystemClipboard` (copy and cut between Filesystem windows) |
+| Desktop settings | background color, wallpaper path and fit, 12/24-hour clock, text size, logical desktop size |
 
-Each app runs inside a window provided by the Window Manager. The app is primarily responsible for:
-- Rendering its content area (the area inside the window frame)
-- Handling input events delivered to its client area
-- Managing its own internal state
-- Managing app-local modes such as editor find, rename prompts, or terminal search
+Each window gets its own controller, created with the window and destroyed with it.
 
-The Window Manager handles the frame, decorations, and top-level input routing.
+Apps are started through launcher methods on the window manager (`launchTerminal()`, `launchTextEditor(path)`, `launchFilesystem()`, `launchDrawing()`, `launchSettings()`, `launchSnake()`, `launchMinesweeper()`, `launchPong()`, `launchBreakout()`). The Start menu, desktop icons, session restore and file routing all go through these.
 
-### Desktop Shell & App Coordination
+### Callback safety
 
-The Window Manager also acts as a small "desktop shell". It provides launcher methods (`launchTerminal()`, `launchTextEditor(path)`, `launchFilesystem()`, `launchDrawing()`, `launchSettings()`, `launchSnake()`, `launchMinesweeper()`, `launchPong()`, `launchBreakout()`) used by the Start Menu and by apps.
+An app callback may close its own window, close a sibling, or open new windows. The window manager handles this by:
 
-The Start menu keeps most apps as top-level entries. Games that clearly form a group (**Snake**, **Minesweeper**, **Pong**, **Breakout**) sit under a non-clickable **Games** category header with a slight indent; only categories that make sense are introduced this way. Type-ahead input retains at most 64 UTF-8 bytes, which exceeds every current actionable label and prevents an unbounded query from growing the shell's rendered text.
+- Deferring a close requested from inside a callback until the outermost callback returns, then checking that the window still exists.
+- Iterating over a snapshot of windows (checked by pointer and ID) during update, render and broadcasts, so a window closed mid-pass is skipped instead of dereferenced.
 
-Each frame, `WindowManager::update()` calls `App::update()` on every non-minimized window's app. Update and render traversals reuse a snapshot buffer per nested callback depth and skip entries that an earlier callback closed; a pointer/ID index keeps liveness validation expected constant-time. Controller-driven self-closes therefore remain safe without allocating a fresh snapshot on every pass or scanning the full window vector for each entry. Most apps leave updates as a no-op; games use them for fixed-rate ticks and timers. Pong and Breakout convert SDL's wrapping 32-bit tick counter through the shared `detail::tickDeltaSeconds()` helper, which caps a stalled frame at 50 ms before passing it to their rule engines.
+See [internals/window-manager.md](internals/window-manager.md#callback-safety).
 
-Apps can request shell actions through `IWindowController`: `close()`, `setTitle()`, `requestClientSize()` (clamped to usable desktop bounds and retained behind maximization), `restoreTrackedInstanceTitle()`, `openInTextEditor` / `openInDrawing` / **`openPath`** (extension-based default), editor/drawing singleton focus and file-binding helpers, virtual path lifecycle notifications for created, changed, moved, and removed entries, the shared virtual filesystem clipboard, desktop background get/set, wallpaper path get/set, taskbar clock 12/24-hour get/set, and interface text scale get/set. Apps do not depend on each other directly. Temporary title overrides (e.g. Drawing after save) restore via `restoreTrackedInstanceTitle()`.
+## Rendering
 
-Renderer clip capture, intersection, and restoration live in `src/detail/RendererClip.hpp`, shared by the shell, native apps, and games. WindowManager client dispatch and Browser context menus use the same intersection helper as app renderers. Any nested clip must intersect the caller's clip and restore it before returning; this keeps embedded app rendering from leaking into neighboring shell regions.
+- The window manager draws the wallpaper, then desktop icons, then windows back to front, then the shell chrome on top: the Start menu when open, the taskbar, and the Alt+Tab overlay.
+- Each app draws with SDL draw calls and SDL_ttf text, clipped to its client rectangle. The client rectangle can shrink to zero on a tiny desktop but is never negative.
+- Apps that use a narrower clip inside their window intersect it with the caller's clip and restore it afterwards. The helpers for this are in `src/detail/RendererClip.hpp`.
+- Text is rendered once into textures and reused through a bounded LRU cache per app (256 entries, about 16 MiB).
 
-Text Editor, Drawing, Terminal, and Settings share the UTF-8 editing helpers in `src/app/Utf8.hpp`. Path completion uses the same complete-codepoint common-prefix rule as caret movement and deletion, so ambiguous multibyte filenames cannot leave a partial character in an app prompt.
+More in [internals/rendering.md](internals/rendering.md).
 
-Text Editor and Drawing path prompts retain their input, caret, and horizontal offset after recoverable validation or file-operation failures. Successful operations, cancellation, and singleton focus redirects close the prompt. Dirty Open remains active until an explicit discard or cancellation; changing its target requires a fresh decision. Text Editor and Drawing require `Ctrl+D` to discard dirty content. Before replacing a bound file, each app compares its current file stamp with the last loaded/saved version; unchanged stamps avoid rereading content, while changed stamps trigger an exact streamed comparison and the existing `Ctrl+D`/`Esc` overwrite decision if content differs or the file is missing. This detects ordinary host and other-process writes without relying on in-process notifications. Text Editor compares normalized line content; Drawing compares the serialized `.modr` stream in bounded chunks. Bound-path saves then use a conditional atomic write, checking the expected stamp before staging and again immediately before rename; a conflict during generation preserves the newer file and asks for Ctrl+D confirmation again. An expected-absent target is published with no-replace rename, preventing a racing create from being overwritten. For existing targets, this is not a cross-process compare-and-swap: a writer can still race in the final interval between the stamp check and rename. Save As remains an explicit target choice. Drawing also offers `Ctrl+S` to save then complete pending Close or New, while saving first during Open cancels that Open prompt.
+## Input
 
-The descriptor-backed atomic output stream lives in `src/detail/AtomicTempOutput.cpp`, separate from the workspace, cleanup, and publication lifecycle in `src/detail/AtomicFile.cpp`.
+Events are handled in this order:
 
-The Window Manager broadcasts virtual path creation, change, move, and removal events to every open app from a stable window snapshot. Snapshot storage is retained per nested traversal depth, and live pointer/ID checks use the shell's identity index. Text Editor and Drawing claim newly saved file bindings before broadcasting creation, so a synchronous observer opening that path focuses the existing owner instead of creating a duplicate. Bound editor and drawing remaps also identity-check each target before invoking app callbacks, so one callback can close a sibling without invalidating the remaining binding pass. An app may close or open windows from a lifecycle callback without invalidating the broadcast or skipping a surviving app. Filesystem Browser uses creation and change events to refresh a visible parent directory, including an ancestor listing when a write creates missing parents, refreshes the directory itself when that directory is the changed path, and remaps a selected direct child when an external rename changes its name. Terminal, Text Editor, and Drawing use move/remove events to keep working directories and file bindings coherent. Recursive Terminal copies into existing trees broadcast each changed destination path so bound documents below the tree are not stale. Text Editor and Drawing keep their in-memory documents stable when another app overwrites a bound file, reporting the change instead of silently reloading it; opening the currently bound path explicitly reloads that external version, with `Ctrl+D` required to discard dirty content. Change events invalidate the cached wallpaper when the changed path contains the active image, and move events also invalidate it when the destination supplies a previously missing configured image. The broadcast is sent only after the filesystem operation succeeds.
+1. **Host focus.** If the MONOLITH window itself is not focused, queued key events are dropped.
+2. **Shell hotkeys.** Alt+Tab and Alt+Shift+Tab cycle windows. Ctrl+Escape toggles the Start menu. While the menu is open it takes all keys: type to filter, Up/Down to select, Enter to launch, Escape to clear the filter or close.
+3. **Taskbar, Start menu, title bars and frame edges.**
+4. **Desktop icons**, when the click hits no window.
+5. **The focused app**, for keyboard input, or the app under the pointer for mouse input.
 
-All app callbacks enter through a small lifecycle scope. If a callback requests a window close, the shell records the window identity and defers destruction until the outermost callback returns, then rechecks that identity before closing it. This keeps synchronous observers, focus handlers, resize callbacks, input handlers, and app updates from destroying an app while its own callback is still executing.
+A mouse press inside an app captures the pointer: that app keeps getting motion and the matching release even if the pointer leaves the window, so drags in Drawing or text selection in the editor always end cleanly. If MONOLITH loses host focus mid-drag, the shell sends the app a release and finishes any frame drag.
 
-### 3. Rendering
+The Start menu is modal. Opening it sends `onFocusLost` to the focused app; closing it sends `onFocusGained` back if that app still has focus.
 
-- The entire environment is rendered inside a single SDL2 window. The shell uses a runtime logical desktop size (1280 × 720 by default) and maps it to the host window; apps receive the resulting client geometry through `onResize`.
-- The Window Manager is responsible for compositing window frames and delegating content drawing to apps.
-- Rendering is clipped to the caller's renderer clip for the full WindowManager frame, then each app is additionally clipped to its window's client rectangle, so tiny or undersized app layouts cannot paint into title bars or the taskbar. WindowManager composes each frame with neutral draw blend and color state, restores both after every app callback, and returns the caller's original blend mode and draw color after the frame. Apps and shell overlays that use narrower internal clips must intersect and restore the caller clip; temporary translucent overlays also restore the caller's draw blend mode. Browser text and context menus, Settings, Terminal, Text Editor, Drawing, Pong, Snake, Minesweeper, Breakout, title bars, taskbar buttons, and Alt+Tab follow this rule explicitly. Client rectangles may be zero-sized on an undersized desktop, but are never negative.
-- WindowManager renders from a live identity snapshot, so an app that closes or replaces its window during `render()` cannot invalidate the frame loop or leave the shell drawing through a dead window pointer; newly opened windows render on the next frame.
-- Rendering uses SDL2's accelerated renderer with VSYNC; apps draw text via SDL_ttf and primitives via SDL draw calls. The Alt+Tab overlay reuses the WindowManager shell text cache for its active title instead of rasterizing a new texture every frame.
-- The main loop explicitly starts SDL text input after the renderer is created and stops it before SDL shutdown, so Terminal, Text Editor, Drawing, and Settings receive printable UTF-8 input through the same owned lifecycle.
-- The main loop scopes the Window Manager and its SDL-backed apps before destroying the renderer or shutting down SDL, so texture-owning destructors run while their renderer and SDL services are still valid.
-- Filesystem Browser, Text Editor, Terminal, Drawing, and Settings cache rendered text as renderer-owned textures in per-app 256-entry LRUs with estimated 16 MiB budgets. Text, color, and font are part of each key, so unchanged text can be reused across listing, document, or output changes, prompt updates, scrolling, and resizing; renderer switches and shared UI-scale changes clear the caches. Lookups accept borrowed text views and create owned cache keys only on misses. Cache misses measure text first and reject a single raster whose estimated RGBA size exceeds the budget, so the retained LRU stays within its bound even for unusually wide labels. Filesystem Browser uses cached filename texture widths for row clipping and reuses filter and rename caret-prefix widths until their prefixes or the shared font change. Its status bar reuses a retained string and appends item counts, selected names, and feedback without per-frame concatenation temporaries. Active filter labels are built in a retained buffer, measured from that buffer, and bounded to 255 UTF-8 bytes; reaching the cap reports it and the current match count in the status bar. Append-only filter edits narrow existing source indices in place, while broadening edits and directory refreshes rebuild matches from the folder snapshot. Rename-prefix comparison reads the current name directly and only updates the owned measured prefix when it changes. Text Editor streams file opens in 16 KiB chunks, caps documents at 16 MiB and 65,536 lines, and leaves the active buffer unchanged when a read is rejected; saves validate the same limits and stream LF-separated content through a 16 KiB scratch buffer before atomic replacement. It caches lexical spans and UTF-8 viewport bounds for current visible rows, carries block-comment state forward, and invalidates downstream state and measurements after edits. It rasterizes only viewport-intersecting syntax spans and passes visible slices as borrowed views, so warmed syntax-texture hits avoid substring allocation; active Find counters use stack formatting. Find highlight geometry is cached for visible rows until the query, viewport, or shared font changes, and status-bar caret-prefix widths are reused until their text or shared font changes. Terminal passes visible scrollback byte ranges directly to the text cache as borrowed views, avoiding copies of each clipped history row while retaining row measurements by horizontal offset and viewport width; Shift+Page Up/Down pans the current rows. Row widths are measured lazily and only viewport-sized segments are rasterized. A warmed frame with clipped scrollback is verified to allocate no C++ heap memory. Terminal bounds scrollback to 2,000 rows and 8 MiB (64 KiB per row), command history to 500 entries and 2 MiB (64 KiB per entry), seeks to a bounded history-file tail before streaming it, and caps oversized-record recovery at 16 MiB. Drawing captures reversible 32×32 tile preimages on actual stroke, Fill, and Clear writes instead of copying the whole canvas for each edit, and tracks modified state in a compact dirty-tile map so sparse undo/redo checks only affected tile bytes against the saved image. Stroke capture and Fill/Clear dirty-tracking maps are reused between edits and reset only indices touched by the prior operation. Its streaming canvas texture uploads the accumulated bounds of changed pixels, fill spans, or restored history tiles instead of copying the full raster after every edit; resize, load, and Clear still refresh the full texture. Raster primitives validate the RGBA buffer once, brush strokes share one Bresenham traversal, rectangle work is clipped to visible canvas bounds, and Fill uses horizontal spans to preserve four-connected selection. Status and caret-prefix text are assembled from direct path-buffer slices into retained strings, so warmed Open and Save prompt frames avoid temporary substrings; caret widths are remeasured only after prompt text or the shared font changes. Prompt and status variants remain within the bounded app LRU.
-- Filesystem Browser, Text Editor, Terminal, Drawing, and Settings cache rendered text as renderer-owned textures in per-app 256-entry LRUs with estimated 16 MiB budgets. Text, color, and font are part of each key, so unchanged text can be reused across listing, document, or output changes, prompt updates, scrolling, and resizing; renderer switches and shared UI-scale changes clear the caches. Cache misses measure text first and reject a single raster whose estimated RGBA size exceeds the budget, so the retained LRU stays within its bound even for unusually wide labels. Filesystem Browser uses cached filename texture widths for row clipping and reuses filter and rename caret-prefix widths until their prefixes or the shared font change. Active filter labels are built in a retained buffer, measured from that buffer, and bounded to 255 UTF-8 bytes; reaching the cap reports it and the current match count in the status bar. Append-only filter edits narrow existing source indices in place, while broadening edits and directory refreshes rebuild matches from the folder snapshot. Rename-prefix comparison reads the current name directly and only updates the owned measured prefix when it changes. Text Editor streams file opens in 16 KiB chunks, caps documents at 16 MiB and 65,536 lines, and leaves the active buffer unchanged when a read is rejected; saves validate the same limits and stream LF-separated content through a 16 KiB scratch buffer before atomic replacement. It caches lexical spans and UTF-8 viewport bounds for current visible rows, carries block-comment state forward, and invalidates downstream state and measurements after edits. It rasterizes only viewport-intersecting syntax spans and caches Find highlight geometry for visible rows until the query, viewport, or shared font changes; status-bar caret-prefix widths are reused until their text or shared font changes. Terminal caches each visible scrollback row's UTF-8 range by horizontal offset and viewport width; Shift+Page Up/Down pans the currently visible rows, row widths are measured lazily, and render-time textures contain only viewport-sized segments. Font changes invalidate those measurements. Terminal bounds scrollback to 2,000 rows and 8 MiB (64 KiB per row), command history to 500 entries and 2 MiB (64 KiB per entry), seeks to a bounded history-file tail before streaming it, and caps oversized-record recovery at 16 MiB. Drawing captures reversible 32×32 tile preimages on actual stroke, Fill, and Clear writes instead of copying the whole canvas for each edit, and tracks modified state in a compact dirty-tile map so sparse undo/redo checks only affected tile bytes against the saved image. Stroke capture and Fill/Clear dirty-tracking maps are reused between edits and reset only indices touched by the prior operation. Its streaming canvas texture uploads the accumulated bounds of changed pixels, fill spans, or restored history tiles instead of copying the full raster after every edit; resize, load, and Clear still refresh the full texture. Raster primitives validate the RGBA buffer once, brush strokes share one Bresenham traversal, rectangle work is clipped to visible canvas bounds, and Fill uses horizontal spans to preserve four-connected selection. Prompt caret-prefix width is cached until text or shared font changes, and status/prompt variants stay in the bounded app LRU.
-- The Window Manager shell uses this same renderer-aware cache. Borrowed composite-key lookups avoid building a new owned string on each warmed taskbar, Start-menu, and Alt+Tab text hit; estimated entry cost includes text storage and cache bookkeeping in addition to raster pixels.
-- Text Editor keeps status, Find/Replace, and path-prompt text in retained render buffers and uses borrowed document/path/text views, avoiding per-frame filename, query, and syntax-slice copies while preserving cached caret measurements. Active Find match counts are formatted without temporary strings. Visible Find prefixes and match slices use a 4 KiB stack scratch buffer during geometry rebuilds, with temporary storage only for exceptionally large slices; warmed frames and isolated rebuilds are covered by zero-allocation regressions for ordinary visible text. Each Find/Replace field is bounded to 16 MiB and 65,536 lines, renders a UTF-8-safe excerpt around its caret, and measures match highlights only within the visible text viewport. Find and replacement support queries and replacement values spanning document rows; viewport scans start from sparse result checkpoints to preserve non-overlapping match order, and active multiline fragments update without rebuilding cached geometry.
-- Text Editor shifts cached syntax-span vectors between same-sized overlapping viewports, so scrolling only tokenizes newly exposed rows while edits and syntax-mode changes retain their explicit invalidation paths.
-- Drawing's undo/redo history keeps exact preimage-pixel byte totals per entry and stack, so insertion, eviction, undo, and redo update capped history accounting without rescanning retained tile contents.
-- Filesystem Browser shares caret insertion, control-byte filtering, and the 255-byte UTF-8 boundary across typed and pasted filter text. While filter editing is active, Ctrl+V means system-text paste; after Enter exits editing, it remains the file-paste command.
-- Shared text texture caches use transparent font/text/color lookup views, avoiding a temporary owned composite string on each cache hit. LRU nodes are non-owning views into stable map keys, so cached text is stored once and misses do not duplicate key strings.
-- Drawing persists `.modr` RGB payloads directly through the filesystem's atomic producer, using a fixed 16 KiB scratch buffer rather than allocating a second full encoded canvas before saving; producer or stream failure leaves the previous file intact.
-- Terminal persists its bounded command history through the atomic filesystem producer with a fixed 16 KiB scratch buffer, avoiding a second history-sized string while preserving the existing failure warning and retry behavior.
-- Terminal caches its abbreviated working-directory prompt until the directory changes and reuses normal input, caret-prefix, selection, and reverse-search strings across frames; mouse hit-testing reuses one prefix buffer during width measurements.
-- Drawing copies its saved comparison baseline in place when its buffer has enough capacity, avoiding a temporary full RGBA allocation after same-size saves, reloads, and clean-canvas resets.
-- Drawing opens `.modr` files through an incremental decoder and adopts its validated RGBA buffer directly as the canvas, avoiding a full encoded-file string and an immediately discarded blank-canvas allocation.
-- Text Editor Find stores one range-start checkpoint per 256 non-overlapping results rather than retaining every match. Next/previous navigation scans at most one checkpoint interval, and single- or multiline highlight geometry is built only for fragments intersecting both the visible rows and horizontal text viewport. Multiline matching uses a precomputed KMP failure table over exact middle-row segments, then checks only the boundary suffix and prefix, avoiding repeated full-query scans on long near-matches. Matches select and replace ranges across row boundaries; status prompts render embedded query breaks as `\n`.
-- Filesystem Browser filtering reuses its directory snapshot and stores visible matches as source indices, avoiding per-keystroke filename copies; query-only refreshes remap selection through those ordered indices instead of allocating filename identity sets. It normalizes a query once per pass and compares names without per-entry lowercase allocations. Case-insensitive sorting also compares names directly.
-- Text Editor mouse hit testing uses one `TTF_MeasureUTF8` scan to map pixel position to a UTF-8 byte column, rather than allocating and remeasuring every growing prefix.
-- Text Editor multi-line paste assembles replacement rows and inserts them as one range, avoiding repeated shifts of the untouched document tail.
-- Pong, Breakout, Snake, and Minesweeper use renderer-bound text texture caches capped at 256 entries and an estimated 16 MiB. Repeated HUD, overlay, and cell-glyph draws reuse the same SDL texture between frames; cache entries are rebuilt after interface-scale changes and discarded when the renderer changes. Snake caches its 200 alternating checkerboard-cell rectangles until board geometry changes and submits them in one SDL batch per frame. It formats its game-over score/best line into a bounded stack buffer; Minesweeper does the same for its live status and win-overlay time/best lines. Their warmed HUD/overlay renders avoid temporary heap strings. App destruction occurs before renderer shutdown so cached textures are released safely.
-- Breakout caches each screen-space brick rectangle until playfield geometry changes and batches live bricks by row color, reducing up to 50 per-brick draw submissions to at most five row batches per frame.
+## Filesystem
 
-### 4. Input System
+The `Filesystem` class (`src/fs/`) maps virtual paths such as `/home/monolith/notes.txt` to files under `~/.monolith/fs/`. It provides listing, create, rename, remove, recursive copy and remove, and atomic writes. Terminal, Text Editor, Filesystem, Drawing and Settings all use the same instance.
 
-- All input enters through the main SDL2 event loop.
-- **Shell hotkeys** are handled first (and not forwarded to apps): **Alt+Tab** / **Alt+Shift+Tab** cycles focused windows (minimized ones restore; the shell consumes the matching Tab and Alt releases after the title overlay closes); **Ctrl+Escape** toggles the Start menu and consumes the matching Escape release; while the Start menu is open, **Up/Down** selects an item, **Enter** activates it and consumes its matching release, and **Escape** closes it while consuming its matching release too.
-- The Start menu is modal: opening it sends `onFocusLost` to the previously focused visible app and suppresses client keyboard input, while closing it restores `onFocusGained` only when that same app still owns focus. Host focus loss while the menu is open does not resume the app until host focus returns.
-- Focus callbacks and input dispatch reflect actual client activity: host-unfocused and Start-menu transitions suppress app input and nested handoff callbacks, and closing the menu resumes the window that owns logical focus after any callback-triggered changes. A direct handoff to another window suppresses the old app's duplicate resume and loss pair.
-- The host-focus guard runs before shell-hotkey dispatch, so queued key events cannot open Start, cycle Alt+Tab focus, or reach an app while the SDL host window is unfocused. An already-open Start menu may still be dismissed with Escape without resuming its suspended app.
-- The Window Manager performs hit testing to determine which window (and which part of the window) should receive the event.
-- Screen-space mouse events are converted to logical desktop pixels once at the shell boundary before window hit testing, drag/resize math, or client-area forwarding.
-- Mouse-up commits its own pointer coordinates for an active title-bar drag or frame resize before clearing the gesture, so motion and release events batched in one SDL queue drain cannot drop the final geometry update.
-- A client that receives a left-button press keeps receiving matching motion and release events until that button is released, even if the pointer leaves the window or focus changes. A press handled by the desktop or a window frame is never followed by a synthetic client release. This keeps drag interactions such as Drawing strokes from getting stuck without leaking releases into another app.
-- Captured app gestures own the pointer until release: Drawing clamps captured strokes to the canvas edge, Text Editor clamps captured selection motion to the nearest visible document edge, and focus-loss callbacks end active app gestures when a modal shell transition cannot provide a matching release.
-- Taskbar and Start-menu left-button presses use a separate shell capture, so their release is consumed by the shell and never appears as an orphaned client mouse-up.
-- Shell and window-frame presses also suppress client motion until a client owns a press; dragging a title bar or moving across the desktop cannot inject hover motion into an app.
-- If the host SDL window loses focus during a drag, the shell synthesizes the captured client release and finalizes any active frame drag/resize at the last known pointer position before clearing capture and sending focus callbacks; regaining host focus restores the focused app callback without reviving stale pointer state.
-- The shell records the latest pointer position from motion and button events, and refreshes it from SDL for wheel events, so scrolling with a stationary pointer does not reuse a stale position.
-- Screen-space taskbar, clock, and Start-menu hit targets are rebuilt during render or on demand before an event when needed. Taskbar geometry, including the Start button and scroll arrows, is shared between rendering and hit testing, and all shell targets are invalidated whenever desktop geometry, display scale, header offset, clock format, interface font metrics, window creation, z-order, close, title, or taskbar-scroll changes, so queued input before the next frame cannot see an empty or stale layout.
-- After shell hotkeys are handled, a focused app owns its client keyboard event through the end of dispatch. The shell does not bubble that same event into desktop-icon activation if the callback closes the focused window.
-- App callbacks may close or replace their window while shell input is being dispatched. Activation and initial sizing verify the original window identity before continuing, so stale event pointers are never dereferenced after a callback.
-- Window frame interactions (dragging, resizing, buttons) are handled by the Window Manager.
-- Client area events are forwarded to the active application.
+Every write goes to a hidden temporary workspace next to the target and is renamed into place only after the whole file is written and synced. A crash or failed write leaves the old file untouched.
 
-### 5. Filesystem
+See [filesystem.md](filesystem.md) for paths and the API, and [internals/atomic-writes.md](internals/atomic-writes.md) for how writes are staged and cleaned up.
 
-The filesystem is **basic** by design: hierarchical virtual paths, simple CRUD operations, and host-backed persistence under `~/.monolith/fs/`. Regular file writes use the same shared binary-capable atomic writer as host snapshots, with uniquely reserved hidden sibling workspaces and atomic replacement while preserving existing permission bits and in-root file symlink targets. Before syncing staged data, the writer pins the staged inode with a no-follow descriptor; restrictive-mode recovery changes that inode through the descriptor rather than following a replaceable pathname, then verifies a no-follow writable open refers to the same file. Staged content is fsynced before rename; the destination-directory sync is attempted after publication, and a post-rename sync error does not negate an already-completed write. Final validation and publication hold a short-lived advisory lock on the destination directory, so competing Monolith atomic writers cannot slip a replacement between a conditional version check and rename; host tools and uncoordinated filesystem operations do not honor this lock. New v4 workspaces use a 128-bit OS-random name, publish a validated ownership token as a symlink in one filesystem operation, and hold an OS lock for their lifetime; validated regular-file markers from earlier v4 writers remain supported. Per-directory maintenance removes incomplete v4 workspaces only when marked as Monolith-owned, except an unmarked pre-publication remnant whose name has the strict random-token format and whose directory is still empty. That orphan cleanup uses empty-directory removal semantics, so a concurrent or user-added entry prevents deletion. Completed v4/v3/v2 workspaces are reclaimed only when their lease lock is free. Neighboring `<target>.tmp` entries are never used as scratch space. Terminal, Text Editor, Filesystem Browser, and Drawing all share the same `Filesystem` API, including shared **recursive** helpers (`copyRecursive`, `removeRecursive`, `isSameOrDescendant`, `join`) so apps do not reimplement tree walks. Recursive copies iterate source directories directly rather than allocating and sorting UI listing snapshots, derive ordinary child paths from validated parents, stream file data atomically, and reject physical source/destination aliases through in-root symlinks. A rollback journal restores replaced files and destination-directory times and removes new entries if a later child fails; existing files are held by same-volume hard links when supported, with a bounded-memory copy fallback. Recursive deletes validate each target's parent against the virtual root before mutation, unlink final symlinks without following them, and do not traverse symlink entries. Directory listings share visibility and containment checks, resolve the host root once per listing, and validate symlink targets and directories without canonicalizing regular files.
-Atomic-save sweeps read borrowed names directly from a POSIX directory stream and construct paths only for recognized workspace candidates, avoiding per-entry path construction for ordinary siblings. Workspace checks and cleanup borrow basenames from the existing native path storage rather than allocating repeated filename copies. Opportunistic sweeps examine at most 32 destination-directory entries per save or listing operation and retain their cursor between operations; tracked lexical paths, including up to three alternate spellings per parent, resume without repeating canonical path resolution, and the parent lock is reacquired only while advancing each slice. On startup, a resumable depth-first traversal also checks at most 32 host-tree entries per Window Manager frame, borrowing ordinary iterator paths and copying only cleanup candidates or child directories that must outlive the iterator step. If opening the root or a child iterator hits descriptor exhaustion, its path is deferred and retried after active frames unwind; other inaccessible or failed frames are skipped without abandoning readable siblings. Startup cleanup does not follow symlinks, and each candidate goes through the existing parent-lock and workspace validation rules.
-Virtual directory listings share the per-directory cleanup cadence with writes, so abandoned workspaces can also be reclaimed immediately when a user revisits their directory.
+## Files on the host
 
-Startup cleanup probes each candidate's parent lock nonblocking. A contended candidate remains at the current iterator position for a later frame, preventing another Monolith instance from stalling the UI; parent paths that hit descriptor exhaustion are deferred until active traversal handles unwind.
+| Path | Written by | Format |
+|------|------------|--------|
+| `~/.monolith/fs/` | Filesystem | Ordinary files and directories |
+| `~/.monolith/session.txt` | WindowManager on exit | `session_v1` header, then one line per window: kind, x, y, w, h, minimized, maximized, quoted path |
+| `~/.monolith/desktop_settings.txt` | Settings changes | `key=value` lines; see [settings.md](apps/settings.md#settings-file) |
+| `~/.monolith/snake_highscore.txt` | Snake | One score |
+| `~/.monolith/minesweeper_best.txt` | Minesweeper | Best time per difficulty |
 
-Workspace reclamation is anchored to the locked parent descriptor and opens candidates with `O_NOFOLLOW`; marker validation and removal stay relative to the pinned workspace directory. Failed-save cleanup retains its original parent descriptor so a retargeted symlink alias cannot redirect deletion.
+All of them are written atomically.
 
-Atomic-save setup, output, sync, publication, and rollback now remain anchored to the same retained parent/workspace descriptors. Workspace entries are created with `mkdirat`/`openat`; a buffered, seekable `std::ostream` adapter writes to an exclusively created descriptor-relative content file and flushes before repositioning; sync verifies the pinned inode; and `renameat` or no-replace `renameat2` publishes into the originally opened parent. A restrictive umask can be normalized through the workspace's `O_PATH` descriptor before opening the usable directory handle.
+## Design decisions
 
-Conditional publication prepares the destination basename before its final version-check callback. The callback verifies that the visible parent path still resolves to the pinned publication directory and checks the target entry relative to that descriptor before rename. This prevents a parent-symlink retarget from validating one directory and publishing into another, but host tools that ignore Monolith's advisory lock can still race between the final entry check and rename.
+- **Windows, not full-screen modes.** Several things can be open and visible at once.
+- **Native apps.** Every app is plain C++ compiled into the one binary.
+- **The window manager is the foundation.** Everything else sits on top of it, and apps do not need to know how frames are drawn or input is routed.
+- **A basic filesystem.** Paths, files and directories, with no permissions or metadata layer. Reliability over features.
+- **One registry.** Adding an app means one table row, one launcher and one dispatch case.
+- **Session restore is layout only.** It remembers windows and open files, not unsaved content.
 
-See [filesystem.md](filesystem.md) for virtual path rules, host mapping, and app usage. Advanced features (permissions, metadata, versioning, etc.) are explicitly out of scope for the foreseeable future.
-
-### 6. Built-in Applications
-
-Native C++ apps render into window client areas and are launched via shell methods on the Window Manager. Each app has dedicated user documentation:
-
-| App | Doc | Implementation |
-|-----|-----|----------------|
-| Terminal | [apps/terminal.md](apps/terminal.md) | `TerminalApp` |
-| Text Editor | [apps/text-editor.md](apps/text-editor.md) | `TextEditorApp` |
-| Filesystem Browser | [apps/filesystem-browser.md](apps/filesystem-browser.md) | `FilesystemApp` |
-| Drawing | [apps/drawing.md](apps/drawing.md) | `DrawingApp` |
-| Settings | [apps/settings.md](apps/settings.md) | `SettingsApp` |
-| Snake | [apps/snake.md](apps/snake.md) | `SnakeApp` |
-| Minesweeper | [apps/minesweeper.md](apps/minesweeper.md) | `MinesweeperApp` |
-| Pong | [apps/pong.md](apps/pong.md) | `PongApp` |
-| Breakout | [apps/breakout.md](apps/breakout.md) | `BreakoutApp` |
-
-**Shell coordination:** Apps use `IWindowController` for close, titles, client-size requests, open/openPath, file bindings, shared virtual filesystem clipboard, desktop color, wallpaper path, clock format, and interface text scale. Settings persists these preferences to `~/.monolith/desktop_settings.txt` through the shared atomic text-writer helper and reads at most 64 records of up to 16 KiB each. Session layout persists to `~/.monolith/session.txt` via `WindowManager::saveSession` / `loadSession` (wired from `main`), with the same replacement guarantee. Restore uses the shared 16 KiB line bound, stops at an overlong record, examines at most 1,024 rows, and stops processing entries when 128 windows are live, keeping malformed host data from growing an unbounded line buffer or restore workload; Snake and Minesweeper use the atomic writer for their host score records as well.
-
-**Input note:** The Window Manager captures the client that receives `SDL_MOUSEBUTTONDOWN` and forwards matching motion and `SDL_MOUSEBUTTONUP` events to that same client, so drag interactions (e.g. Drawing strokes) end cleanly when the mouse leaves or focus changes.
-
-**Close note:** Before destroying a window, the shell calls `App::allowClose()`. Text Editor and Drawing can block a dirty close until the user explicitly discards, saves where supported, or cancels; repeating Close never confirms discard. Close requests made from app callbacks are deferred until the outermost callback returns, then the target identity is rechecked before `allowClose()` or destruction. The close path also rechecks target identity after `allowClose()` and the focused app's `onFocusLost()` callback, re-finding the target after that callback because it may close a sibling and invalidate vector storage. This prevents a callback that closes its own window or a sibling from leaving an outer close operation using destroyed storage. Start menu Shut Down and the host window's `SDL_QUIT` event both call the same contract on every open app in each request, using a live identity snapshot and revisiting IDs opened by callbacks before accepting quit. That prevents a callback-created dirty document from bypassing shutdown validation while still arming multiple original dirty documents together. Apps without unsaved-work guards allow close by default.
-
-### 7. Language Runtime
-
-The custom language is intended primarily for **scripting and automation**.
-
-Details are deferred. Initial goals include standard language features (variables, functions, control flow, basic data structures, recursion, modules) plus the ability to call useful host functions from scripts.
-
-The language is not expected to create or manage its own windows in the early phases.
-
-## Key Design Decisions
-
-- **Windowed environment over modal/fullscreen switching.** Multiple things can be open and visible at once.
-- **Native-first apps.** The main applications are written in C++ rather than the custom language.
-- **Window Manager as foundation.** Most other systems sit on top of the windowing layer.
-- **Basic filesystem.** Simplicity and reliability over feature richness.
-- **Language as automation tool.** Not the primary way to build full applications (at least initially).
-
-## Non-Goals / Constraints
-
-- Not a real operating system.
-- Not primarily intended for other users.
-- Not trying to match the power or complexity of a modern desktop environment.
-- The language is not required to build GUI applications directly.
-- Session restore is best-effort layout only (not a full workspace product).
-
-## Host-side paths (outside the virtual FS)
-
-| Path | Purpose |
-|------|---------|
-| `~/.monolith/fs/` | Virtual filesystem host root |
-| `~/.monolith/desktop_settings.txt` | Desktop background color, wallpaper path, clock format, and interface text scale |
-| `~/.monolith/session.txt` | Window session for restore |
-| `~/.monolith/snake_highscore.txt` | Snake high score |
-| `~/.monolith/minesweeper_best.txt` | Minesweeper best times |
-
-## Next Areas to Explore
-
-- Custom language interpreter and host bindings (Phase 2)
-- IDE, richer wallpaper controls, and more Settings preferences
-- Richer open-with table (more types beyond `.modr` / text)
-- Deeper app integration and additional native apps/games
-
-Per-app limitations and planned work are tracked in each [app guide](README.md#built-in-apps).
-
----
-
-*This document reflects the architecture as of the current codebase. It will evolve as decisions change.*
+For where each piece lives in the tree, see [repo-layout.md](development/repo-layout.md).

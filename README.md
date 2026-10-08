@@ -1,91 +1,79 @@
-# Monolith
+# MONOLITH
 
-A personal mini operating system that runs as one application.
+MONOLITH is a personal mini-OS that runs as a single Linux program. It is a desktop environment written in C++23 on SDL2: a window manager with a taskbar, Start menu and desktop icons, nine built-in apps, and its own filesystem stored under `~/.monolith/`. You start one binary and do your work inside it.
 
-Monolith is a self-contained environment written in C++ using SDL2. It is meant to feel like a small personal operating system inside a single Linux program, with its own window manager, apps, and filesystem.
+**Status:** 1.0, released October 2026 (tag `v1.0.0`). See the [roadmap](docs/ROADMAP.md).
 
-**Status:** **1.0** portfolio release (October 2026). See [`docs/ROADMAP.md`](docs/ROADMAP.md) for what shipped, what is out of scope, and what stays parked.
+## Apps
 
-## Current Status
+| App | What it does | Guide |
+|-----|--------------|-------|
+| Terminal | Command line for the internal filesystem: `ls`, `cd`, `cp`, `mv`, `rm`, `cat`, `open`, history, Tab completion | [terminal.md](docs/apps/terminal.md) |
+| Text Editor | Plain text editor with syntax colors, undo, Find and Replace | [text-editor.md](docs/apps/text-editor.md) |
+| Filesystem | Graphical file browser: create, rename, delete, copy, cut, paste, filter | [filesystem-browser.md](docs/apps/filesystem-browser.md) |
+| Drawing | Pixel sketching with pen, eraser, fill, line, rectangle and color picker; saves `.modr` files | [drawing.md](docs/apps/drawing.md) |
+| Settings | Desktop color, wallpaper image and fit, clock format, text size | [settings.md](docs/apps/settings.md) |
+| Snake | Classic Snake on a 20x20 board with a saved high score | [snake.md](docs/apps/snake.md) |
+| Minesweeper | Three difficulties with saved best times | [minesweeper.md](docs/apps/minesweeper.md) |
+| Pong | One player against a simple AI, first to 5 | [pong.md](docs/apps/pong.md) |
+| Breakout | Five rows of bricks, three lives | [breakout.md](docs/apps/breakout.md) |
 
-Monolith has a working desktop environment with overlapping windows:
+Every app can run in several windows at once. Open them from the Start menu (games are under **Games**) or from the desktop icons.
 
-- **Window Manager** - Dragging, 8-way resizing, title bars, z-order, focus, taskbar with Start menu (including a **Games** category and type-ahead filter) and a local-time clock, **Alt+Tab** window switcher, **Ctrl+Escape** Start menu, multi-instance titles, session restore (`~/.monolith/session.txt`), extension-based open routing, and an `AppRegistry` for Start menu / multi-column desktop icons / session kinds.
-- **Built-in Apps** - Terminal, Text Editor, Filesystem Browser, Drawing, Settings (desktop background color, BMP/PNG/JPEG wallpaper path and fit, taskbar clock 12/24-hour, interface text scale), Snake, Minesweeper, Pong, and Breakout. Each has its own documentation (see below).
-- **Internal Filesystem** - Host-backed persistence under `~/.monolith/fs/` with shared recursive copy/remove and a clean virtual path namespace.
+## Build and run
 
-Wallpaper images support BMP/PNG/JPEG. Headless and sanitizer CI run on `main` and `beta`. A custom scripting language is **not** part of this repository; that work belongs in a separate **MONOLITH 2** repo (see the roadmap).
+You need a C++23 compiler (CI uses GCC 13 on Ubuntu 24.04), CMake 3.16 or newer, pkg-config, Python 3, SDL2, and SDL2_ttf 2.0.18 or newer.
 
-## Building
-
-### Requirements
-
-- C++23 compatible compiler (GCC 11+ or Clang 14+ recommended)
-- CMake 3.16 or newer
-- SDL2 and SDL2_ttf 2.0.18 or newer development libraries
-- pkg-config
-
-### Ubuntu / Debian / Pop!_OS
+On Ubuntu, Debian or Pop!_OS:
 
 ```bash
-sudo apt update
-sudo apt install build-essential cmake pkg-config libsdl2-dev libsdl2-ttf-dev
+sudo apt install build-essential cmake pkg-config python3 libsdl2-dev libsdl2-ttf-dev
 ```
 
-Optional (system font fallback if the vendored DejaVu font is missing): `fonts-dejavu`.
-
-### Build
+Build:
 
 ```bash
 git clone https://github.com/DanielMellen-University/MONOLITH.git
 cd MONOLITH
-
-mkdir build
-cd build
-cmake ..
-make -j$(nproc)
+cmake -S . -B build -DCMAKE_BUILD_TYPE=Release
+cmake --build build -j"$(nproc)"
 ```
 
-The resulting binary will be at `build/monolith`. Run it from the repo root (or ensure `assets/fonts/` is findable) so the bundled font loads.
+The first build downloads `stb_image.h` (used for PNG and JPEG wallpapers) and checks its SHA-256, so it needs network access. See [Building](docs/development/building.md) for details.
 
-## Running
+Run from the repository root so the bundled font in `assets/fonts/` is found (otherwise MONOLITH looks for DejaVu Sans in the system font folders):
 
 ```bash
-# from repository root
 ./build/monolith
 ```
 
-**First launch** (no session file): opens a demo set - Terminal, Filesystem Browser, Text Editor on `welcome.txt`, and Settings. The virtual filesystem is seeded with `/home/monolith/documents/`, `/home/monolith/drawings/`, `/Wallpapers/sample.bmp` and `/Wallpapers/sample.png`, and `welcome.txt` if needed.
+On first launch MONOLITH creates `~/.monolith/fs/` and opens Terminal, Filesystem, Text Editor (on `welcome.txt`) and Settings. When you quit, it saves your open windows to `~/.monolith/session.txt` and restores them next time.
 
-**Later launches**: restores windows from `~/.monolith/session.txt` when present; otherwise uses the demo set again.
+## How it works
+
+- **One SDL window.** The whole desktop is drawn inside a fixed 1280x720 SDL window. The window manager draws frames, the taskbar and the Start menu, and gives each app a client rectangle to render into.
+- **Native apps.** Each app is a C++ class implementing the `App` interface (`render`, `handleEvent`, `update`, plus focus, resize and file callbacks). Apps never call each other. They ask the shell for things through `IWindowController`, for example "open this path" or "set the wallpaper".
+- **Internal filesystem.** Apps use virtual paths like `/home/monolith/notes.txt`. The `Filesystem` class maps them to `~/.monolith/fs/` on the host and writes every file atomically, so a failed save never leaves a half-written file.
+- **App registry.** One table in `src/window/AppRegistry.hpp` drives the Start menu, the desktop icons and session restore.
+
+Read [Architecture](docs/architecture.md) for the full picture.
 
 ## Documentation
 
-Full documentation lives in [`docs/`](docs/README.md).
+| Page | Contents |
+|------|----------|
+| [Documentation hub](docs/README.md) | Index of every doc |
+| [Architecture](docs/architecture.md) | Window manager, app model, rendering, input |
+| [Filesystem](docs/filesystem.md) | Virtual paths, host storage, file API |
+| [App guides](docs/README.md#apps) | One page per app |
+| [Development](docs/README.md#development) | Building, testing, CI, repo layout, contributing |
+| [Roadmap](docs/ROADMAP.md) | What 1.0 includes and what it leaves out |
+| [Changelog](CHANGELOG.md) | Change history |
 
-| Topic | Link |
-|-------|------|
-| Documentation hub | [docs/README.md](docs/README.md) |
-| 1.0 roadmap | [docs/ROADMAP.md](docs/ROADMAP.md) |
-| Vision & philosophy | [docs/vision.md](docs/vision.md) |
-| Architecture | [docs/architecture.md](docs/architecture.md) |
-| Filesystem | [docs/filesystem.md](docs/filesystem.md) |
-| Changelog | [CHANGELOG.md](CHANGELOG.md) |
+## Scope
 
-### App Guides
-
-| App | Guide |
-|-----|-------|
-| Terminal | [docs/apps/terminal.md](docs/apps/terminal.md) |
-| Text Editor | [docs/apps/text-editor.md](docs/apps/text-editor.md) |
-| Filesystem Browser | [docs/apps/filesystem-browser.md](docs/apps/filesystem-browser.md) |
-| Drawing | [docs/apps/drawing.md](docs/apps/drawing.md) |
-| Settings | [docs/apps/settings.md](docs/apps/settings.md) |
-| Snake | [docs/apps/snake.md](docs/apps/snake.md) |
-| Minesweeper | [docs/apps/minesweeper.md](docs/apps/minesweeper.md) |
-| Pong | [docs/apps/pong.md](docs/apps/pong.md) |
-| Breakout | [docs/apps/breakout.md](docs/apps/breakout.md) |
+MONOLITH is a normal Linux application, not an operating system kernel. A custom programming language is a separate future project, MONOLITH 2, in its own repository.
 
 ## License
 
-See [LICENSE](LICENSE) for details.
+MIT. See [LICENSE](LICENSE).
