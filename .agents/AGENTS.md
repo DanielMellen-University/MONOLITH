@@ -285,17 +285,17 @@ Older recent-work rows: [`SESSION_LOG.md`](SESSION_LOG.md).
 | 4.3 | Editor wrap or horizontal scroll | done | Long lines remain editable with cursor-following horizontal scroll and Shift + wheel panning; `docs/apps/text-editor.md` updated |
 | 4.4 | Drawing eyedropper | done | Pick samples a canvas pixel into custom RGB without changing pixels or undo history; still saves `.modr` |
 
-## Phase 5 - Language (parked)
+## Phase 5 - Language (moved to MONOLITH 2)
 
 | ID | Chunk | Status |
 |----|--------|--------|
-| 5.1-5.6 | Language design through sound | parked |
+| 5.1-5.6 | Language design through sound | moved to the separate MONOLITH 2 repository; not planned in this tree |
 
-## Phase 6 - IDE (parked)
+## Phase 6 - IDE (moved to MONOLITH 2)
 
 | ID | Chunk | Status |
 |----|--------|--------|
-| 6.1 | IDE shell | parked |
+| 6.1 | IDE shell | moved to the separate MONOLITH 2 repository; not planned in this tree |
 
 ## Phase 7 - Growth
 
@@ -303,12 +303,12 @@ Older recent-work rows: [`SESSION_LOG.md`](SESSION_LOG.md).
 |----|--------|--------|-----------------------------|
 | 7.1 | PNG/JPEG wallpaper | done | stb_image build-time fetch; BMP via SDL_LoadBMP; PNG/JPEG via WallpaperImage |
 | 7.2 | Fourth game (Breakout) | done | Same Start -> Games pattern + `verify_games_integration.sh` |
-| 7.3 | Desktop icons | done | Left-column icons under wallpaper; windows win hit-testing; see `docs/notes/7.3-desktop-icons.md` |
-| 7.4 | App registry | done | `AppRegistry` drives Start menu, desktop icons, session kinds; see `docs/notes/7.4-app-registry.md` |
-| shell-polish | Start menu hit unify | done | Hit targets rebuild from AppRegistry rows; hardcoded entries table retired; see `docs/notes/shell-polish.md` |
-| 7.5 | Wallpaper fit | done | cover/contain/center display modes; see `docs/notes/7.5-wallpaper-fit.md` |
-| 7.6 | Start menu type-ahead | done | filter by label while open; see `docs/notes/7.6-start-menu-typeahead.md` |
-| 7.7 | Multi-column desktop icons | done | Fill extra columns left-to-right when height is short; see `docs/notes/7.7-desktop-icon-columns.md` |
+| 7.3 | Desktop icons | done | Left-column icons under wallpaper; windows win hit-testing; see `docs/internals/desktop-shell.md` |
+| 7.4 | App registry | done | `AppRegistry` drives Start menu, desktop icons, session kinds; see `docs/internals/desktop-shell.md` |
+| shell-polish | Start menu hit unify | done | Hit targets rebuild from AppRegistry rows; hardcoded entries table retired; see `docs/internals/desktop-shell.md` |
+| 7.5 | Wallpaper fit | done | cover/contain/center display modes; see `docs/internals/wallpaper.md` |
+| 7.6 | Start menu type-ahead | done | filter by label while open; see `docs/internals/desktop-shell.md` |
+| 7.7 | Multi-column desktop icons | done | Fill extra columns left-to-right when height is short; see `docs/internals/desktop-shell.md` |
 | 7.8 | Drawing history memory | done | Cap combined undo/redo to 32 states and 64 MiB; retain move-based snapshot traversal |
 | 7.9 | Text Editor history memory | done | Cap combined undo/redo to 50 states and estimated 64 MiB; retain typing coalescing and move-based traversal |
 | 7.10 | Terminal scrollback memory | done | Cap scrollback at 2,000 rows, 8 MiB total, and 64 KiB per row; render only visible UTF-8 prefixes |
@@ -508,7 +508,7 @@ Older recent-work rows: [`SESSION_LOG.md`](SESSION_LOG.md).
 
 ## Wallpaper dependency (7.1)
 
-Prefer pinned `stb_image` fetch (`third_party/stb/`) over `SDL_image`. See `third_party/stb/README.md` and `docs/notes/7.1-wallpaper-decode.md`.
+Prefer pinned `stb_image` fetch (`third_party/stb/`) over `SDL_image`. See `third_party/stb/README.md` and `docs/internals/wallpaper.md`.
 
 ## Do not
 
