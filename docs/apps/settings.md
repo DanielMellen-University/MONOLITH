@@ -31,7 +31,7 @@ Type a path in the internal filesystem to a `.bmp`, `.png`, `.jpg` or `.jpeg` fi
 - An empty path, a missing file or a file that cannot be decoded leaves the plain background color.
 - Images over 16,777,216 pixels are refused.
 - If you rename or move the image in Terminal or Filesystem, the setting follows it. If you delete it, the setting is cleared.
-- `/Wallpapers/sample.bmp` is always available. `/Wallpapers/sample.png` exists only if `assets/wallpapers/sample.png` was present at launch; run `python3 scripts/gen_sample_wallpaper.py` to create both sample files. See [wallpaper.md](../internals/wallpaper.md#sample-wallpapers).
+- Two samples are ready to use: `/Wallpapers/sample.bmp` and `/Wallpapers/sample.png`. See [wallpaper.md](../internals/wallpaper.md#sample-wallpapers).
 
 ### Wallpaper fit
 

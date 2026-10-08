@@ -32,7 +32,9 @@ Unknown values are treated as `cover`, both when loading and when setting. The i
 
 On every launch MONOLITH creates `/Wallpapers/sample.bmp` if it is missing: it copies `assets/wallpapers/sample.bmp` (or `../assets/wallpapers/sample.bmp`, relative to the current directory) when present, otherwise it writes a 64x48 gradient BMP generated in code.
 
-`/Wallpapers/sample.png` is created only if `assets/wallpapers/sample.png` or `../assets/wallpapers/sample.png` exists. The code is in `src/detail/main_seed_png.inc`. The repository does not include that file, so in a fresh clone there is no PNG sample. Run `python3 scripts/gen_sample_wallpaper.py` from the repo root to generate both samples into `assets/wallpapers/` before launching.
+`/Wallpapers/sample.png` is created the same way from `assets/wallpapers/sample.png` (or `../assets/wallpapers/sample.png`), with no generated fallback. The code is in `src/detail/main_seed_png.inc`.
+
+Both files are committed in `assets/wallpapers/` (64x48 gradients, 9,270 and 2,966 bytes). They were made with `python3 scripts/gen_sample_wallpaper.py`, which writes identical bytes on every run; rerunning it is optional.
 
 ## Tests
 

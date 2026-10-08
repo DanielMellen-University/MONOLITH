@@ -41,7 +41,7 @@ cmake --build build -j"$(nproc)"
 
 The first build downloads `stb_image.h` (used for PNG and JPEG wallpapers) and checks its SHA-256, so it needs network access. See [Building](docs/development/building.md) for details.
 
-Run from the repository root so the bundled font in `assets/fonts/` is found (otherwise MONOLITH looks for DejaVu Sans in the system font folders):
+Run from the repository root so the bundled font and sample wallpapers in `assets/` are found (without the font, MONOLITH looks for DejaVu Sans in the system font folders):
 
 ```bash
 ./build/monolith

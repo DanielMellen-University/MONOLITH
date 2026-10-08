@@ -10,6 +10,7 @@ MONOLITH/
 ├── .github/workflows/      headless.yml, the CI workflow
 ├── .agents/                Instructions and logs for coding agents
 ├── assets/fonts/           DejaVuSans.ttf, the UI font
+├── assets/wallpapers/      sample.bmp and sample.png, seeded into /Wallpapers/
 ├── docs/                   Documentation (start at docs/README.md)
 ├── scripts/                Tests, static checks and helper scripts
 ├── src/                    Application source
@@ -58,7 +59,7 @@ MONOLITH/
 | `verify_*.sh` | Static wiring checks |
 | `TestTempDir.hpp` | Temporary directory helper for tests |
 | `headless_drawing_smoke.sh` | Optional smoke test of the real binary under Xvfb |
-| `gen_sample_wallpaper.py` | Creates `assets/wallpapers/sample.bmp` and `sample.png` |
+| `gen_sample_wallpaper.py` | Regenerates `assets/wallpapers/sample.bmp` and `sample.png` (optional; both are committed) |
 
 ## Build output
 

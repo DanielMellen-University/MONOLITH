@@ -25,7 +25,7 @@ MONOLITH is one SDL2 program. Inside its window a small desktop shell (the windo
 
 1. Starts SDL video and SDL_ttf, then creates a fixed 1280x720 window titled "Monolith" and an accelerated renderer with VSync.
 2. Loads `DejaVuSans.ttf` at 14 pt, trying `assets/fonts/` relative to the working directory first, then the usual system font paths.
-3. Opens the filesystem at `~/.monolith/fs` (or `./monolith_fs` if `HOME` is unset) and creates `/home/monolith`, `/home/monolith/documents`, `/home/monolith/drawings`, `/Wallpapers`, `welcome.txt` and the sample wallpaper if they are missing.
+3. Opens the filesystem at `~/.monolith/fs` (or `./monolith_fs` if `HOME` is unset) and creates `/home/monolith`, `/home/monolith/documents`, `/home/monolith/drawings`, `/Wallpapers`, `welcome.txt` and the two sample wallpapers if they are missing.
 4. Creates the `WindowManager`, loads `~/.monolith/desktop_settings.txt`, and restores `~/.monolith/session.txt`. If there is no valid session it opens Terminal, Filesystem, Text Editor on `welcome.txt`, and Settings.
 5. Runs the loop: pass each SDL event to the window manager, set the mouse cursor for resize edges, call `update()`, clear to the desktop color, call `render()`, present.
 6. On quit, saves the session. If that fails it shows a warning dialog while SDL is still running. The window manager and its apps are destroyed before the renderer and SDL shut down, so app textures are freed while the renderer is still valid.

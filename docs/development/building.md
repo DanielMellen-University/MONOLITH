@@ -39,7 +39,7 @@ The result is `build/monolith`. The build uses `-Wall -Wextra -Wpedantic` and sh
 Run it from the repository root. Two things are looked up relative to the current directory:
 
 - **Font:** `assets/fonts/DejaVuSans.ttf` (14 pt). If it is not found, MONOLITH tries `/usr/share/fonts/truetype/dejavu/`, `/usr/share/fonts/dejavu/` and `/usr/share/fonts/truetype/`. With no font at all, text does not render and a warning is printed.
-- **Sample wallpapers:** `assets/wallpapers/sample.bmp` and `sample.png`. The repository does not include this folder. Run `python3 scripts/gen_sample_wallpaper.py` to create it. Without it, MONOLITH generates a small BMP sample and skips the PNG.
+- **Sample wallpapers:** `assets/wallpapers/sample.bmp` and `sample.png`, copied into `/Wallpapers/` whenever a copy is missing there. If the folder is not found, MONOLITH generates a small BMP sample and skips the PNG.
 
 On launch MONOLITH creates `~/.monolith/fs/` (or `./monolith_fs` if `HOME` is not set). The host files it uses are listed in [architecture.md](../architecture.md#files-on-the-host).
 
@@ -99,4 +99,4 @@ Running the tests against this build is described in [testing.md](testing.md#san
 | `SDL2_ttf>=2.0.18` not found | Install `libsdl2-ttf-dev` |
 | `stb_image.h sha256 mismatch` or a download error | Check network access; see the stb section above |
 | `Warning: Could not find DejaVuSans.ttf` | Run from the repository root, or install `fonts-dejavu` |
-| The window opens but `/Wallpapers/sample.png` is missing | Run `python3 scripts/gen_sample_wallpaper.py` and restart |
+| The window opens but `/Wallpapers/sample.png` is missing | MONOLITH was started outside the repository root. Start it from the root (or from `build/`), then restart |
