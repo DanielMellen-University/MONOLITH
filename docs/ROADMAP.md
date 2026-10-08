@@ -29,7 +29,7 @@ This is not a language milestone. Custom language work does not belong in this r
 
 ## Milestones
 
-### A. Retarget planning (this chunk: `1.0-docs-retarget`)
+### A. Retarget planning (`1.0-docs-retarget`, done)
 
 - Add this roadmap.
 - Point `CURRENT_CHUNK` at the 1.0 track.
@@ -42,12 +42,13 @@ This is not a language milestone. Custom language work does not belong in this r
 - Keep `wip/7.52-drawing-modr-io` parked; do not merge.
 - No new apps or open-ended Settings features before the tag.
 
-### C. Stability bar (`1.0-stability-audit`)
+### C. Stability bar (`1.0-stability-audit`, active chunk)
 
 - Headless suite green locally and in CI.
 - Sanitizer job green (ASan/UBSan as in `headless.yml`).
 - Only concrete polish from known debts (for example visible bugs or docs mismatches), not open-ended feature work.
 - Keep the host-writer race as a **documented limitation**: Monolith atomic writers serialize on the destination directory lock; external tools that do not take that lock can still race between final validation and rename (see `docs/filesystem.md`).
+- Audit pass 1 (Oct 8, 2026): CI `verify` and `sanitize` green on `main` `95d0267`; on `beta` `b541e7e` `sanitize` passed and `verify` was cancelled at its 30 minute timeout inside `apt-get` (runner package install, not a test failure). Local Release and ASan/UBSan `ctest` green with GCC 14. Fixed: desktop icon definitions now resolve at compile time (removes a per-frame registry sort and GCC 14 `-Warray-bounds` noise), and 16 focused test commands in `docs/development/scripts.md` that failed to link without the atomic writer sources. Still open: one GCC `-Waddress` warning in `FilesystemApp::handleEvent` (`event.text.text` is an array and never null).
 
 ### D. Release packaging (`1.0-release-packaging`)
 
@@ -71,10 +72,10 @@ This is not a language milestone. Custom language work does not belong in this r
 
 ## Soft next chunks
 
-Ordered for daily MONOLITH work after this docs land:
+Ordered for daily MONOLITH work:
 
-1. `1.0-docs-retarget` (this) - planning docs and chunk pointer.
-2. `1.0-stability-audit` - headless + sanitize green; concrete polish only; host-writer race stays documented.
+1. `1.0-docs-retarget` (done) - planning docs and chunk pointer.
+2. `1.0-stability-audit` (active) - headless + sanitize green; concrete polish only; host-writer race stays documented.
 3. `1.0-surface-freeze` - confirm app set; keep parked drawing WIP off main.
 4. `1.0-release-packaging` - version bumps, README/CHANGELOG/tag, screenshots if needed.
 
