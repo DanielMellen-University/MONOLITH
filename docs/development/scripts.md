@@ -35,6 +35,8 @@ CXXFLAGS="-g -fsanitize=address,undefined -fno-omit-frame-pointer" \
 
 CMake tracks every decompressed main and Settings fragment as an output and watches the compressed-fragment globs for additions or removals. An incremental build therefore regenerates missing secondary includes and reconfigures when the fragment set changes.
 
+Focused commands for code that saves through the shared atomic writer also compile `src/detail/AtomicFile.cpp` and `src/detail/AtomicTempOutput.cpp`, matching `ATOMIC_FILE_SOURCES` in `scripts/run_headless_tests.sh`. Without them the link fails with undefined `AtomicTempCleanup` and `AtomicTempOutputBuffer` symbols.
+
 The focused SDL commands below only show the compile step and binary name to keep them readable. When running them without a display, use the same drivers as the suite, for example:
 
 ```bash
@@ -111,7 +113,7 @@ g++ -std=c++23 scripts/test_terminal_lexer.cpp src/app/TerminalLexer.cpp -o buil
 Headless Terminal state test for UTF-8-safe input selection and clipboard editing, reusable prompt/render/hit-test buffers, mouse selection, filesystem commands, completion, bounded history loading and streamed saving (including exact 2 MiB output), vertical and horizontal scrollback, and undersized input-bar containment:
 
 ```bash
-g++ -std=c++23 scripts/test_terminal_filesystem_state.cpp src/app/TerminalApp.cpp src/app/TerminalLexer.cpp src/fs/Filesystem.cpp $(pkg-config --cflags --libs sdl2 SDL2_ttf) -o build/test_terminal_filesystem_state && ./build/test_terminal_filesystem_state
+g++ -std=c++23 scripts/test_terminal_filesystem_state.cpp src/app/TerminalApp.cpp src/app/TerminalLexer.cpp src/fs/Filesystem.cpp src/detail/AtomicFile.cpp src/detail/AtomicTempOutput.cpp $(pkg-config --cflags --libs sdl2 SDL2_ttf) -o build/test_terminal_filesystem_state && ./build/test_terminal_filesystem_state
 ```
 
 Headless Pong state test:
@@ -129,7 +131,7 @@ g++ -std=c++23 scripts/test_breakout_state.cpp src/app/BreakoutLogic.cpp -o buil
 Headless Snake state and tiny-client layout test for score persistence, tail movement, growth collisions, font-scaled HUD geometry, and keeping the board inside its content area:
 
 ```bash
-g++ -std=c++23 scripts/test_snake_state.cpp src/app/SnakeApp.cpp $(pkg-config --cflags --libs sdl2 SDL2_ttf) -o build/test_snake_state && ./build/test_snake_state
+g++ -std=c++23 scripts/test_snake_state.cpp src/app/SnakeApp.cpp src/detail/AtomicFile.cpp src/detail/AtomicTempOutput.cpp $(pkg-config --cflags --libs sdl2 SDL2_ttf) -o build/test_snake_state && ./build/test_snake_state
 ```
 
 Headless check of the bounded random helper shared by the built-in games:
@@ -154,7 +156,7 @@ SDL_VIDEODRIVER=dummy SDL_AUDIODRIVER=dummy ./build/test_text_texture_cache
 Headless Minesweeper state and tiny-client layout test for best-time persistence, scaled HUD controls, shared control hitboxes, precise focus pause/resume timing, and keeping the Expert board inside its content area:
 
 ```bash
-g++ -std=c++23 scripts/test_minesweeper_state.cpp src/app/MinesweeperApp.cpp $(pkg-config --cflags --libs sdl2 SDL2_ttf) -o build/test_minesweeper_state && ./build/test_minesweeper_state
+g++ -std=c++23 scripts/test_minesweeper_state.cpp src/app/MinesweeperApp.cpp src/detail/AtomicFile.cpp src/detail/AtomicTempOutput.cpp $(pkg-config --cflags --libs sdl2 SDL2_ttf) -o build/test_minesweeper_state && ./build/test_minesweeper_state
 ```
 
 The full runner also covers difficulty-driven window resizing through WindowManager, including manual sizing, maximized restore geometry, and small logical desktops.
@@ -164,19 +166,19 @@ The full runner also covers difficulty-driven window resizing through WindowMana
 Headless atomic-writer regression for per-directory first-touch and interval sweeps, setup-lock exclusion, incomplete v3 recovery, marked v2 recovery, active lease skipping, and preservation of incomplete v2 and legacy workspaces:
 
 ```bash
-g++ -std=c++23 scripts/test_atomic_file.cpp -o build/test_atomic_file && ./build/test_atomic_file
+g++ -std=c++23 scripts/test_atomic_file.cpp src/detail/AtomicFile.cpp src/detail/AtomicTempOutput.cpp -o build/test_atomic_file && ./build/test_atomic_file
 ```
 
 Headless test of shipped `Filesystem` initialization, stale atomic-save recovery on both directory-listing APIs, shared listing/write sweep cadence, safe last-write-time updates, atomic streaming-writer success and rollback, preservation of neighboring `.tmp` files/symlinks, multi-item copy/paste, `/`-rejecting rename, and listing filter:
 
 ```bash
-g++ -std=c++23 scripts/test_fs_roadmap.cpp src/fs/Filesystem.cpp -o build/test_fs_roadmap && ./build/test_fs_roadmap
+g++ -std=c++23 scripts/test_fs_roadmap.cpp src/fs/Filesystem.cpp src/detail/AtomicFile.cpp src/detail/AtomicTempOutput.cpp -o build/test_fs_roadmap && ./build/test_fs_roadmap
 ```
 
 Headless Filesystem Browser state test for filtered snapshot reuse and F5 refresh, retained filter-label and rename-caret storage, multi-selection restoration, direct inline rename notifications, scaled chrome bands, status-bar hit testing, complete-row hit testing in tiny clients, resize and scale scroll clamping, delete confirmation, and partial or fully blocked copy/cut paste feedback:
 
 ```bash
-g++ -std=c++23 scripts/test_filesystem_app_state.cpp src/app/FilesystemApp.cpp src/fs/Filesystem.cpp $(pkg-config --cflags --libs sdl2 SDL2_ttf) -o build/test_filesystem_app_state && ./build/test_filesystem_app_state
+g++ -std=c++23 scripts/test_filesystem_app_state.cpp src/app/FilesystemApp.cpp src/fs/Filesystem.cpp src/detail/AtomicFile.cpp src/detail/AtomicTempOutput.cpp $(pkg-config --cflags --libs sdl2 SDL2_ttf) -o build/test_filesystem_app_state && ./build/test_filesystem_app_state
 ```
 
 ## Drawing Raster / `.modr` Roadmap Checks
@@ -190,7 +192,7 @@ g++ -std=c++23 scripts/test_drawing_roadmap.cpp src/app/DrawingRaster.cpp -o bui
 Headless Drawing state test for clean loads, bounded `.modr` opens and retry-state preservation, saved-baseline allocation reuse, resize and tile-dirty tracking, sparse Fill/Clear history and scratch-map reuse (including canvases above 64 MiB), save-mid-history undo/redo, sparse multi-tile stroke history (including over-budget stroke fallback), cached byte-account consistency through undo/redo/reset/eviction, sparse-state eviction at the 32-state and 64 MiB caps, font-scaled chrome, scaled canvas pointer mapping, duplicate file singleton rejection, and creation-notification binding order:
 
 ```bash
-g++ -std=c++23 scripts/test_drawing_state.cpp src/app/DrawingApp.cpp src/app/DrawingRaster.cpp src/fs/Filesystem.cpp $(pkg-config --cflags --libs sdl2 SDL2_ttf) -o build/test_drawing_state && ./build/test_drawing_state
+g++ -std=c++23 scripts/test_drawing_state.cpp src/app/DrawingApp.cpp src/app/DrawingRaster.cpp src/fs/Filesystem.cpp src/detail/AtomicFile.cpp src/detail/AtomicTempOutput.cpp $(pkg-config --cflags --libs sdl2 SDL2_ttf) -o build/test_drawing_state && ./build/test_drawing_state
 ```
 
 ## Desktop Settings Persistence Check
@@ -198,7 +200,7 @@ g++ -std=c++23 scripts/test_drawing_state.cpp src/app/DrawingApp.cpp src/app/Dra
 Headless test of desktop preference save/load, UI scale persistence, legacy files, bounded 16 KiB lines and 64-record loading, wallpaper-path persistence limits, and atomic-save behavior beside a neighboring symlink:
 
 ```bash
-g++ -std=c++23 scripts/test_desktop_settings.cpp src/settings/DesktopSettings.cpp -o build/test_desktop_settings && ./build/test_desktop_settings
+g++ -std=c++23 scripts/test_desktop_settings.cpp src/settings/DesktopSettings.cpp src/detail/AtomicFile.cpp src/detail/AtomicTempOutput.cpp -o build/test_desktop_settings && ./build/test_desktop_settings
 ```
 
 Headless wallpaper decoder check for BMP/PNG decoding, pixel-count rejection before decode, and unsupported-extension rejection:
@@ -211,7 +213,7 @@ g++ -std=c++23 -Ibuild/generated scripts/test_wallpaper_image.cpp src/window/Wal
 Headless Settings app test for wallpaper directory/image filename completion, shell binding, font-scaled layout metrics, and tiny-client footer containment:
 
 ```bash
-g++ -std=c++23 -Ibuild/generated/settings scripts/test_settings_app_state.cpp src/app/SettingsApp.cpp src/fs/Filesystem.cpp $(pkg-config --cflags --libs sdl2 SDL2_ttf) -o build/test_settings_app_state && ./build/test_settings_app_state
+g++ -std=c++23 -Ibuild/generated/settings scripts/test_settings_app_state.cpp src/app/SettingsApp.cpp src/fs/Filesystem.cpp src/detail/AtomicFile.cpp src/detail/AtomicTempOutput.cpp $(pkg-config --cflags --libs sdl2 SDL2_ttf) -o build/test_settings_app_state && ./build/test_settings_app_state
 ```
 
 Headless test of quoted session paths, escaped line breaks, legacy unquoted paths, and bounded session-record reads:
@@ -235,38 +237,38 @@ g++ -std=c++23 scripts/test_utf8.cpp -o build/test_utf8 && ./build/test_utf8
 Headless Text Editor state test for bounded streamed file loading and saving, CRLF across read-chunk boundaries, line separators across save chunks, unannounced bound-file changes, oversized open/save rejection, Save As collisions, creation-notification binding order, failed-write recovery, Unicode-safe path completion, font-scaled status geometry, complete-row mouse hit testing, and resize scroll bounds:
 
 ```bash
-g++ -std=c++23 scripts/test_text_editor_state.cpp src/app/TextEditorApp.cpp src/fs/Filesystem.cpp $(pkg-config --cflags --libs sdl2 SDL2_ttf) -o build/test_text_editor_state && ./build/test_text_editor_state
+g++ -std=c++23 scripts/test_text_editor_state.cpp src/app/TextEditorApp.cpp src/fs/Filesystem.cpp src/detail/AtomicFile.cpp src/detail/AtomicTempOutput.cpp $(pkg-config --cflags --libs sdl2 SDL2_ttf) -o build/test_text_editor_state && ./build/test_text_editor_state
 ```
 
 Headless WindowManager test that failed Editor and Drawing opens do not reserve stale file singletons, can be retried, skip stale or overlong session records, stop after 1,024 session rows or once 128 windows are live, save only the topmost 128 restorable windows in stacking order, and release bare-app instance slots when they become file-backed:
 
 ```bash
 cmake --build build --target monolith_settings_bodies monolith_stb_image
-g++ -std=c++23 -Ibuild/generated -Ibuild/generated/settings scripts/test_window_file_open.cpp src/window/WindowManager.cpp src/window/WallpaperImage.cpp src/app/*.cpp src/fs/Filesystem.cpp src/settings/DesktopSettings.cpp $(pkg-config --cflags --libs sdl2 SDL2_ttf) -o build/test_window_file_open && ./build/test_window_file_open
+g++ -std=c++23 -Ibuild/generated -Ibuild/generated/settings scripts/test_window_file_open.cpp src/window/WindowManager.cpp src/window/WallpaperImage.cpp src/app/*.cpp src/fs/Filesystem.cpp src/settings/DesktopSettings.cpp src/detail/AtomicFile.cpp src/detail/AtomicTempOutput.cpp $(pkg-config --cflags --libs sdl2 SDL2_ttf) -o build/test_window_file_open && ./build/test_window_file_open
 ```
 
 Headless test of scaled WindowManager hit testing, drag math, resize edges, client coordinates, renderer client clipping, render-time callback removal, and narrow or undersized desktop geometry:
 
 ```bash
-g++ -std=c++23 -Ibuild/generated -Ibuild/generated/settings scripts/test_window_coordinates.cpp src/window/WindowManager.cpp src/window/WallpaperImage.cpp src/app/*.cpp src/fs/Filesystem.cpp src/settings/DesktopSettings.cpp $(pkg-config --cflags --libs sdl2 SDL2_ttf) -o build/test_window_coordinates && ./build/test_window_coordinates
+g++ -std=c++23 -Ibuild/generated -Ibuild/generated/settings scripts/test_window_coordinates.cpp src/window/WindowManager.cpp src/window/WallpaperImage.cpp src/app/*.cpp src/fs/Filesystem.cpp src/settings/DesktopSettings.cpp src/detail/AtomicFile.cpp src/detail/AtomicTempOutput.cpp $(pkg-config --cflags --libs sdl2 SDL2_ttf) -o build/test_window_coordinates && ./build/test_window_coordinates
 ```
 
 Headless test of WindowManager client mouse capture across focus changes, pointer exit, host focus-loss recovery, and suppression of queued pointer events after focus loss:
 
 ```bash
-g++ -std=c++23 -Ibuild/generated -Ibuild/generated/settings scripts/test_window_mouse_capture.cpp src/window/WindowManager.cpp src/window/WallpaperImage.cpp src/app/*.cpp src/fs/Filesystem.cpp src/settings/DesktopSettings.cpp $(pkg-config --cflags --libs sdl2 SDL2_ttf) -o build/test_window_mouse_capture && ./build/test_window_mouse_capture
+g++ -std=c++23 -Ibuild/generated -Ibuild/generated/settings scripts/test_window_mouse_capture.cpp src/window/WindowManager.cpp src/window/WallpaperImage.cpp src/app/*.cpp src/fs/Filesystem.cpp src/settings/DesktopSettings.cpp src/detail/AtomicFile.cpp src/detail/AtomicTempOutput.cpp $(pkg-config --cflags --libs sdl2 SDL2_ttf) -o build/test_window_mouse_capture && ./build/test_window_mouse_capture
 ```
 
 Headless test of keyboard focus handoff when the active window is minimized, when a minimized file singleton is reopened, when queued app input is suppressed while the host is unfocused, and when focus callbacks close windows during activation or Start-menu suspension:
 
 ```bash
-g++ -std=c++23 -Ibuild/generated -Ibuild/generated/settings scripts/test_window_focus.cpp src/window/WindowManager.cpp src/window/WallpaperImage.cpp src/app/*.cpp src/fs/Filesystem.cpp src/settings/DesktopSettings.cpp $(pkg-config --cflags --libs sdl2 SDL2_ttf) -o build/test_window_focus && ./build/test_window_focus
+g++ -std=c++23 -Ibuild/generated -Ibuild/generated/settings scripts/test_window_focus.cpp src/window/WindowManager.cpp src/window/WallpaperImage.cpp src/app/*.cpp src/fs/Filesystem.cpp src/settings/DesktopSettings.cpp src/detail/AtomicFile.cpp src/detail/AtomicTempOutput.cpp $(pkg-config --cflags --libs sdl2 SDL2_ttf) -o build/test_window_focus && ./build/test_window_focus
 ```
 
 Headless test that app-triggered closes during `App::update()` do not invalidate the WindowManager update pass:
 
 ```bash
-g++ -std=c++23 -Ibuild/generated -Ibuild/generated/settings scripts/test_window_lifecycle.cpp src/window/WindowManager.cpp src/window/WallpaperImage.cpp src/app/*.cpp src/fs/Filesystem.cpp src/settings/DesktopSettings.cpp $(pkg-config --cflags --libs sdl2 SDL2_ttf) -o build/test_window_lifecycle && ./build/test_window_lifecycle
+g++ -std=c++23 -Ibuild/generated -Ibuild/generated/settings scripts/test_window_lifecycle.cpp src/window/WindowManager.cpp src/window/WallpaperImage.cpp src/app/*.cpp src/fs/Filesystem.cpp src/settings/DesktopSettings.cpp src/detail/AtomicFile.cpp src/detail/AtomicTempOutput.cpp $(pkg-config --cflags --libs sdl2 SDL2_ttf) -o build/test_window_lifecycle && ./build/test_window_lifecycle
 ```
 
 The same lifecycle test also covers virtual-path notification dispatch, bound-file remaps, resize callbacks, session restore geometry, click activation, and reentrant close callbacks, including apps closing themselves while the shell broadcasts an event, remaps bindings, reapplies desktop geometry, restores a session entry, finishes focusing an input target, or is already inside `allowClose()` / `onFocusLost()`; it also verifies that a sibling close during focus loss cannot invalidate the outer close.
@@ -276,7 +278,7 @@ The lifecycle assertions record callback activity outside the app objects they d
 Headless test that Shut Down honors app dirty-document guards before allowing the shell to exit, including an app opening another window while the close contract is checked and a callback-created editor becoming dirty before validation completes:
 
 ```bash
-g++ -std=c++23 -Ibuild/generated -Ibuild/generated/settings scripts/test_window_quit.cpp src/window/WindowManager.cpp src/window/WallpaperImage.cpp src/app/*.cpp src/fs/Filesystem.cpp src/settings/DesktopSettings.cpp $(pkg-config --cflags --libs sdl2 SDL2_ttf) -o build/test_window_quit && ./build/test_window_quit
+g++ -std=c++23 -Ibuild/generated -Ibuild/generated/settings scripts/test_window_quit.cpp src/window/WindowManager.cpp src/window/WallpaperImage.cpp src/app/*.cpp src/fs/Filesystem.cpp src/settings/DesktopSettings.cpp src/detail/AtomicFile.cpp src/detail/AtomicTempOutput.cpp $(pkg-config --cflags --libs sdl2 SDL2_ttf) -o build/test_window_quit && ./build/test_window_quit
 ```
 
 ## `.modr` Format Roundtrip
