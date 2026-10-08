@@ -1,6 +1,7 @@
 #include "SettingsApp.hpp"
 #include "FilePath.hpp"
 #include "Utf8.hpp"
+#include "Version.hpp"
 #include "../detail/RendererClip.hpp"
 
 #include <algorithm>

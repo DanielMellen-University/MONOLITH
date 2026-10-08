@@ -206,6 +206,19 @@ int main() {
 
     terminal.m_history.clear();
     terminal.m_historyBytes = 0;
+    terminal.executeCommand("version");
+    check(terminal.m_history.size() >= 1
+              && terminal.m_history.front() == "Monolith Terminal v1.0",
+          "Terminal version reports 1.0");
+    terminal.m_history.clear();
+    terminal.m_historyBytes = 0;
+    terminal.executeCommand("ver");
+    check(terminal.m_history.size() >= 1
+              && terminal.m_history.front() == "Monolith Terminal v1.0",
+          "Terminal ver reports 1.0");
+
+    terminal.m_history.clear();
+    terminal.m_historyBytes = 0;
     for (int i = 0; i < 2002; ++i) {
         terminal.addOutput("line " + std::to_string(i));
     }

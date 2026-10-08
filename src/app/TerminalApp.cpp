@@ -2,6 +2,7 @@
 #include "FilePath.hpp"
 #include "TerminalLexer.hpp"
 #include "Utf8.hpp"
+#include "Version.hpp"
 #include "../detail/BufferedStreamWriter.hpp"
 #include "../detail/RendererClip.hpp"
 #include <algorithm>
@@ -409,7 +410,7 @@ void TerminalApp::executeCommand(const std::string& commandLine) {
             rejectExtraOperand(args[1]);
             return;
         }
-        addOutput("Monolith Terminal v0.1");
+        addOutput(std::string("Monolith Terminal v") + monolith::kVersion);
         addOutput("Built on SDL2 + custom window manager");
     }
     else if (cmd == "ls") {

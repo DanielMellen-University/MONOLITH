@@ -174,9 +174,18 @@ int main() {
     controller.logicalHeight = 640;
     settings.onResize(400, 240);
     check(settings.m_lines.size() > 5
+              && settings.m_lines[1].label == "Version"
+              && settings.m_lines[1].value == "1.0 (October 2026)"
               && settings.m_lines[5].label == "Logical desktop"
               && settings.m_lines[5].value == "1024 x 640",
-          "Settings reports the live logical desktop size");
+          "Settings reports the 1.0 release and the live logical desktop size");
+    bool releaseStatus = false;
+    for (const auto& line : settings.m_lines) {
+        if (line.label == "Status" && line.value == "Personal environment") {
+            releaseStatus = true;
+        }
+    }
+    check(releaseStatus, "Settings status describes the shipped personal environment");
     settings.m_wallpaperFieldFocused = true;
 
     settings.m_wallpaperEditBuffer = "/Wallpapers/al";
