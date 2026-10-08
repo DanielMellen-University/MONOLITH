@@ -4,7 +4,7 @@ A personal mini operating system that runs as one application.
 
 Monolith is a self-contained environment written in C++ using SDL2. It is meant to feel like a small personal operating system inside a single Linux program, with its own window manager, apps, and filesystem.
 
-**Status:** heading to a **1.0** portfolio release. See [`docs/ROADMAP.md`](docs/ROADMAP.md) for milestones, what is in or out of 1.0, and soft next chunks.
+**Status:** **1.0** portfolio release (October 2026). See [`docs/ROADMAP.md`](docs/ROADMAP.md) for what shipped, what is out of scope, and what stays parked.
 
 ## Current Status
 

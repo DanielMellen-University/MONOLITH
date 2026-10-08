@@ -85,7 +85,7 @@ Below the appearance controls, Settings shows read-only details:
 - Virtual home path (`/home/monolith`)
 
 **Notes**
-- Development status reminder
+- Status line: personal environment
 - Hint to use the Start menu or taskbar to launch apps
 
 Long information labels and values stay at their normal text size. If a Settings window is too narrow to show all of a string, the excess is clipped at the panel boundary instead of being stretched.

@@ -30,10 +30,11 @@ The human funds token budget and lives in the desktop. You:
 
 ## Current state snapshot
 
-**CURRENT_CHUNK:** `await-5.x-unpark` (Phase 5 language remains parked)
+**CURRENT_CHUNK:** `1.0-released` (portfolio tag `v1.0.0`; no active chunk)
 
 | When | Kind | Note |
 |------|------|------|
+| 2026-10-08 | 1.0-release-packaging | CMake, Settings About, and Terminal `version` report 1.0 (October 2026); README and CHANGELOG describe the portfolio ship; app set stays frozen |
 | 2026-10-05 | snake-gameover-frame-allocation | Format the score/best overlay into a bounded stack buffer; a warmed game-over frame preserves the exact line and performs zero C++ heap allocations; full headless suite and Release build pass |
 | 2026-10-05 | minesweeper-hud-frame-allocation | Format the live timer HUD and win-overlay time/best text into bounded stack buffers; warmed gameplay and win renders now allocate no C++ heap memory; full headless suite and Release build pass |
 | 2026-10-05 | drawing-path-prompt-frame-allocation | Assemble Drawing status/caret text directly from path-buffer slices into retained strings; warmed active path-prompt rendering preserves caret metrics with zero C++ heap allocations |
@@ -260,11 +261,20 @@ Older recent-work rows: [`SESSION_LOG.md`](SESSION_LOG.md).
 
 ## Priority order for "next / continue"
 
-1. **5.x** language only after they unpark it (`await-5.x-unpark`)
-2. **6.x** IDE only after a `run` loop exists
-3. Further shell soft polish only when a concrete debt is listed
+1. No required chunk after the 1.0 tag. Post-1.0 polish only when a concrete debt is listed.
+2. Custom language and IDE stay in the separate MONOLITH 2 repository. Do not start them in this tree.
+3. Keep `wip/7.52-drawing-modr-io` parked.
 
 **Cut order if scope tight:** never cut core shell work for another game.
+
+## 1.0 release
+
+| ID | Chunk | Status | Deliverable / exit criteria |
+|----|--------|--------|-----------------------------|
+| 1.0-docs-retarget | Planning docs | done | Roadmap and checklist; language called out as MONOLITH 2 |
+| 1.0-stability-audit | Stability bar | done | Headless and sanitizer green; host-writer race documented only |
+| 1.0-surface-freeze | App freeze | done | Current apps only; drawing WIP stays parked |
+| 1.0-release-packaging | Version and notes | done | 1.0 strings, README, CHANGELOG; tag `v1.0.0` |
 
 ## Phase 4 - Living-inside-it
 
