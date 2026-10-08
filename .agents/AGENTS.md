@@ -26,7 +26,7 @@ The human funds token budget and lives in the desktop. You:
 3. Build green; add focused tests when practical.
 4. Update CHANGELOG + relevant public docs.
 5. Mark chunk `done`, note debts, set `CURRENT_CHUNK` to next pending (also update `.agents/CURRENT_CHUNK`).
-6. Prefer 3-5 logical commits on `beta`, then PR merge to `main`.
+6. Prefer 3-5 logical commits on `beta`. Push with local git, wait for green headless CI on `beta`, then fast-forward `main` to the same commit with a plain push (no PR) and confirm `main` == `beta`.
 
 ## Current state snapshot
 
@@ -513,5 +513,5 @@ Prefer pinned `stb_image` fetch (`third_party/stb/`) over `SDL_image`. See `thir
 ## Do not
 
 - Placeholders / `__LOAD_FROM__` stubs
-- Cloud Agents when unavailable; push via user-Github MCP
-- Force-push main; work on beta then PR
+- Cloud Agents when unavailable; pushes through an MCP connector (push with local git; `gh` is the credential helper)
+- Force-push or reset `main`/`beta`; land work on `beta` first, then fast-forward `main` once CI is green (no PR)
