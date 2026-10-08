@@ -33,14 +33,7 @@ One known limit was left documented rather than fixed: MONOLITH's own writers se
 | Item | Decision |
 |------|----------|
 | A custom programming language | A separate future project, MONOLITH 2, in its own repository |
-| Open-ended Settings growth | Settings shipped as it is. More options would be small post-1.0 polish at most. |
-
-## After 1.0
-
-No chunk is required after the tag. Post-1.0 work is limited to small, concrete fixes, for example:
-
-- Add screenshots under `docs/images/`.
-- Commit `assets/wallpapers/sample.png` (or generate it during the build) so `/Wallpapers/sample.png` is seeded on first launch. Today only the BMP sample is created; see [settings.md](apps/settings.md#wallpaper-image).
+| Open-ended Settings growth | Settings shipped as it is |
 
 ## Earlier phases
 

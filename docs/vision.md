@@ -33,4 +33,4 @@ The idea comes partly from TempleOS: a direct, self-contained machine that one p
 
 ## Where it stands
 
-Version 1.0 (October 2026) is the complete portfolio release: the desktop shell, nine apps, the internal filesystem, and a headless test suite that runs normally and under sanitizers in CI. See the [roadmap](ROADMAP.md) for what comes next.
+Version 1.0 (October 2026) is the complete portfolio release: the desktop shell, nine apps, the internal filesystem, and a headless test suite that runs normally and under sanitizers in CI. See the [roadmap](ROADMAP.md) for what it includes.
