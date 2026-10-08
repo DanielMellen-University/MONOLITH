@@ -1,51 +1,43 @@
 # Breakout
 
-Classic Breakout as a native Monolith app. Steer the paddle, bounce the ball through the brick wall, clear the board with three lives.
+Bounce the ball off your paddle and break every brick. You have three lives.
 
-## Launching
+## Using it
 
-Open **Breakout** from the Start menu under **Games**. Multiple independent games are supported:
+Open **Breakout** from the Start menu under **Games**. Each window is a separate game.
 
-- `Breakout`
-- `Breakout 2`
-- `Breakout 3`
+- The wall has 10 columns and 5 rows of bricks.
+- Breaking a brick scores more the higher its row: 10 points for the bottom row up to 50 for the top row.
+- Missing the ball costs a life. Losing all 3 ends the game. Clearing every brick wins.
+- The top bar shows score, lives and bricks left.
+- The game pauses when another window gets focus or the Start menu opens.
 
-## Controls
+## Keyboard shortcuts
 
 | Input | Action |
 |-------|--------|
-| Arrow Left / A | Move paddle left |
-| Arrow Right / D | Move paddle right |
-| Space / P / click | Pause or resume |
+| A, Left arrow | Move left |
+| D, Right arrow | Move right |
+| Space, P, mouse click | Pause or resume |
+| Enter | Resume, or start again after the game ends |
 | R | Restart |
-| Enter | Resume if paused; restart after win or game over |
 
-Focusing another window or opening the Start menu auto-pauses. Resume with Space, P, Enter, or click when you return.
+## Limits
 
-## Rules
+- No sound, power-ups or extra levels.
+- The playfield scales with the window.
 
-- Paddle along the bottom, bricks in five colored rows above
-- Ball bounces off walls, paddle, and bricks
-- Hitting a brick removes it and adds score (higher rows worth more)
-- Losing the ball below the paddle costs a life; three lives
-- Clearing every brick wins; zero lives is game over
+## Developer notes
 
-## Presentation
+- `src/app/BreakoutLogic.{hpp,cpp}`: rules, with no SDL dependency.
+- `src/app/BreakoutApp.{hpp,cpp}`: window, drawing and input.
+- `WindowManager::launchBreakout()` in `src/window/detail/wm_body_08a.inc`; Start menu action `8`.
+- Frame time comes from `detail::tickDeltaSeconds()`, as in Pong.
 
-The playfield scales to the window. Score, lives, and remaining bricks appear in a font-aware HUD whose height follows the shared interface text scale. The HUD clips at the client boundary when the window is narrow. Repeated HUD and overlay labels reuse a bounded renderer-owned texture cache between frames; changing the shared text scale rebuilds its entries. Frame timing uses the shared wrap-safe SDL tick helper and caps a stalled update at 50 ms. Session restore reopens Breakout windows.
-Direct render-size changes refresh the cached client geometry before drawing, keeping the app lifecycle consistent with normal window resizes.
-Brick rectangles are cached until playfield geometry changes, and live bricks are drawn in batches grouped by row color.
-
-## Developer Notes
-
-Main implementation files:
-
-- `src/app/BreakoutLogic.hpp` / `BreakoutLogic.cpp` - rules (input, tick, Playing / Won / GameOver); no SDL
-- `src/app/BreakoutApp.hpp` / `BreakoutApp.cpp` - window, render, keyboard
-- `src/window/WindowManager.cpp` - `launchBreakout()`, Start -> Games
-
-Headless state test:
+Tests:
 
 ```bash
 g++ -std=c++23 scripts/test_breakout_state.cpp src/app/BreakoutLogic.cpp -o build/test_breakout_state && ./build/test_breakout_state
 ```
+
+`test_breakout_render` (in the full suite) checks drawing.

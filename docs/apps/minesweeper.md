@@ -1,83 +1,52 @@
 # Minesweeper
 
-Classic Minesweeper as a native Monolith app. Clear the board without detonating mines.
+Open every cell that does not hide a mine.
 
-## Launching
+## Using it
 
-Open **Minesweeper** from the Start menu under **Games**. Multiple independent games are supported:
+Open **Minesweeper** from the Start menu under **Games**. Each window is a separate game.
 
-- `Minesweeper`
-- `Minesweeper 2`
-- `Minesweeper 3`
+| Level | Board | Mines |
+|-------|-------|-------|
+| Beginner (default) | 9x9 | 10 |
+| Intermediate | 16x16 | 40 |
+| Expert | 30x16 | 99 |
 
-## Controls
+- The first cell you open is never a mine. On Beginner and Intermediate its 8 neighbors are also safe.
+- A cell with no neighboring mines opens its neighbors automatically.
+- **Chord:** clicking an open number whose neighboring flag count matches it opens all unflagged neighbors. A wrong flag can still set off a mine.
+- You win when every safe cell is open; the remaining mines are flagged for you. If you open a mine, all mines are shown, the one you hit is highlighted and wrong flags are marked **X**.
+- The timer starts on the first click and stops at the end of the game. It pauses (the top bar shows **PAUSED**) while another window has focus or the Start menu is open.
+- The top bar shows mines left (mines minus flags), the timer, the best time for this level and the level name.
+- Changing level starts a new game and resizes the window to fit, if the desktop has room. A maximized window stays maximized.
+
+## Keyboard and mouse
 
 | Input | Action |
 |-------|--------|
-| Left-click | Reveal cell; on an already-open number with matching flags, **chord** (open neighbors) |
-| Right-click | Cycle mark: empty → flag → question → empty |
-| Middle-click | Chord on a revealed number (same as left-click chord; no held preview) |
-| Face button (`:)` / `B)` / `X(`) | New game at current difficulty |
-| R / Enter | New game (same difficulty) |
-| 1 / 2 / 3 | Beginner / Intermediate / Expert (restarts) |
-| HUD difficulty buttons | Same as 1 / 2 / 3 |
-| Click after win/lose | New game |
-
-## Difficulties
-
-| Level | Size | Mines |
-|-------|------|-------|
-| Beginner (default) | 9×9 | 10 |
-| Intermediate | 16×16 | 40 |
-| Expert | 30×16 | 99 |
-
-Changing difficulty immediately starts a new game.
-
-## Rules
-
-- **First-click safety**: the first reveal never hits a mine. On Beginner and Intermediate, the 3×3 neighborhood around the first click is also kept clear.
-- Empty cells (zero adjacent mines) flood-reveal neighbors.
-- **Chord**: when a revealed number’s adjacent flag count equals that number, opening (left or middle) reveals all unmarked neighbors. Wrong flags can still explode.
-- Win when all non-mine cells are revealed (remaining mines are auto-flagged).
-- Lose when a mine is revealed; all mines are shown, the hit mine is highlighted, and incorrect flags are marked with **X**.
-- Timer starts on the first reveal and freezes on win/lose (displayed up to 999s).
-- Timer **pauses while the Minesweeper window is unfocused or the Start menu is open** (HUD shows **PAUSED**) and resumes from the exact elapsed time when you focus it again; this matches Snake.
-- Losing focus also clears a pressed-cell preview, so reopening the Start menu or another window cannot leave the face button or board cell visually pressed.
-- HUD shows remaining mines (total − flags), timer, best time for the difficulty, and difficulty name.
-- Mine placement samples uniformly without replacement from cells allowed by first-click safety, using a private random stream so opening or resetting Snake cannot alter the board sequence.
+| Left click | Open a cell, or chord on an open number |
+| Right click | Cycle the mark: flag, question mark, none |
+| Middle click | Chord on an open number |
+| Face button | New game at the same level |
+| R, Enter | New game at the same level |
+| 1 / 2 / 3, or the level buttons | Beginner / Intermediate / Expert (starts a new game) |
+| Click after the game ends | New game |
 
 ## Best times
 
-Per-difficulty best times are stored on the host at `~/.monolith/minesweeper_best.txt` and shown in the HUD. The record is written through a unique hidden sibling workspace and replaced only after the complete text record succeeds, so a failed save preserves the previous times and a neighboring `.tmp` file remains untouched. Loading scans at most 16 rows of 64 bytes and accepts only complete times from 1 to 999; an oversized row stops loading while previously read best times remain intact. A new record shows **NEW BEST!** on the win overlay; if persistence fails, the footer and overlay show **BEST TIME NOT SAVED** instead, with another save attempt on focus return or when starting a new game.
+Best times per level are shown in the top bar and saved to `~/.monolith/minesweeper_best.txt`. A new record shows **NEW BEST!** If saving fails, **BEST TIME NOT SAVED** is shown and the save is retried on focus or at the next game. Times from 1 to 999 seconds are accepted when loading.
 
-## Presentation
+## Limits
 
-- Face button reflects play / press / win / lose
-- Face and difficulty button hitboxes share the same client-space geometry as their drawn controls, including after resize and interface-scale changes
-- Pressed unopened cell darkens briefly
-- The HUD status line clips before the face button, and the footer clips at the window edge, so narrow windows do not cover controls with text
-- The three difficulty buttons compress below their normal width when necessary to stay before the face button instead of overlapping it
-- On an extremely narrow client with no room for both controls, the face button uses the available width and the difficulty buttons hide instead of overlapping; `1` / `2` / `3` remain available from the keyboard
-- HUD, footer, and difficulty button geometry grow with the shared interface font, keeping the 90%, 100%, and 115% scale choices aligned without clipping labels
-- Win / lose messages are a **centered vertical stack** on the board (title, time/best or restart hint, optional **NEW BEST!**)
-- Overlay line spacing follows the active interface font so scaled text does not overlap on end-state screens
+- No sound.
+- The timer display stops at 999 seconds.
+- Expert in a small window uses small cells; numbers are hidden when they would not fit. Maximize the window for comfort.
+- In a very narrow window the level buttons are hidden; 1, 2 and 3 still work.
 
-The board letterboxes inside the window. Expert on a small window uses compressed cells so the full board remains inside the client area; maximize for comfort. Tiny cells prioritize keeping the board and footer contained over drawing number glyphs that would not fit.
-Direct render-size changes refresh the cached client geometry before board layout, keeping the drawn controls and client-space hitboxes aligned.
+## Developer notes
 
-HUD, overlay, and repeated cell-glyph draws reuse a bounded renderer-owned text texture cache between frames. The live status line and win-overlay time/best line are formatted into bounded stack buffers, avoiding temporary heap strings on warmed frames. Changing the shared interface text scale clears the cache so labels and numbers use the new font metrics.
-
-Changing difficulty resizes the window for roughly 24-pixel cells when the desktop has room. A maximized window stays maximized and remembers the new restore size; restarting the same difficulty keeps any manual window resize.
-
-## Current Limitations
-
-- No sound
-
-## Developer Notes
-
-- `src/app/MinesweeperApp.{hpp,cpp}`
-- `scripts/test_minesweeper_window_size.cpp` covers difficulty-driven resize requests through WindowManager, including maximized windows and small desktops
-- `src/detail/Random.hpp` provides the per-game bounded random helper shared with Snake
-- `scripts/test_minesweeper_state.cpp` covers focus pause/resume, render-state restoration, and text texture reuse
-- `WindowManager::launchMinesweeper()` and Start menu action `6` (listed under the **Games** category)
-- Timer advances in `App::update()` while playing and focused; `onFocusLost` / `onFocusGained` freeze and resume
+- `src/app/MinesweeperApp.{hpp,cpp}`.
+- `src/detail/Random.hpp`: mines are chosen uniformly from the cells allowed by first-click safety, using the game's own random stream.
+- `WindowManager::launchMinesweeper()` in `src/window/detail/wm_body_08a.inc`; Start menu action `6`.
+- The timer advances in `App::update()`; `onFocusLost` and `onFocusGained` pause and resume it.
+- Tests: `test_minesweeper_state` (focus pause, rendering, text reuse) and `test_minesweeper_window_size` (level-driven window resizing).

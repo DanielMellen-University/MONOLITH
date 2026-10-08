@@ -1,66 +1,44 @@
 # Snake
 
-Classic Snake as a native Monolith app. Steer the snake, eat food, avoid walls and yourself.
+Steer the snake, eat food to grow, and avoid the walls and your own body.
 
-## Launching
+## Using it
 
-Open **Snake** from the Start menu under **Games**. Multiple independent games are supported:
+Open **Snake** from the Start menu under **Games**. Each window is a separate game (`Snake`, `Snake 2`, ...).
 
-- `Snake`
-- `Snake 2`
-- `Snake 3`
+- The board is 20x20. The snake starts 3 long, moving right.
+- Each food is worth 1 point and adds one segment.
+- The game starts at one step every 120 ms and gets 6 ms faster every 4 points, never faster than 55 ms.
+- Hitting a wall or your body ends the game. Moving into the square your tail is leaving is allowed, unless you are eating food on that move.
+- Filling the whole board wins.
+- The game pauses when another window gets focus or the Start menu opens.
 
-## Controls
+## Keyboard shortcuts
 
 | Input | Action |
 |-------|--------|
-| Arrow keys / WASD | Change direction (queued turns) |
-| Space / P | Pause or resume |
-| Click | Pause or resume (or restart after game over) |
+| Arrow keys, WASD | Turn (up to 2 turns are queued between steps) |
+| Space, P | Pause or resume |
+| Enter | Resume, or start again after the game ends |
 | R | Restart |
-| Enter | Resume if paused; restart after game over / win |
+| Mouse click | Pause or resume, or start again after the game ends |
 
-Direction cannot reverse 180° in one step (no instant suicide). Up to two rapid turns can be queued so quick corners are not lost between steps.
-
-Focusing another window or opening the Start menu auto-pauses the game. Resume with Space, P, Enter, or click when you return.
-
-## Rules
-
-- 20×20 grid; snake starts length 3, moving right
-- Eat food to grow and score +1
-- Mild speed-up as score rises (floor at a still-playable rate)
-- Hit a wall or your body → game over
-- Moving into the current tail square is legal when no food is being eaten, because the tail vacates that square; food on that square makes it a collision
-- Filling the entire board (rare) → win
+You cannot reverse straight into yourself in one step.
 
 ## High score
 
-The best score is saved on the host at `~/.monolith/snake_highscore.txt` and shown in the HUD. The record is written through a unique hidden sibling workspace and replaced only after the complete text record succeeds, so a failed save preserves the previous score and a neighboring `.tmp` file remains untouched. Loading scans at most 16 rows of 32 bytes, accepts only a complete score from 0 to 397, and ignores malformed or oversized records. Beating the loaded record shows **NEW BEST!** on the end screen; if persistence fails, the game shows **BEST NOT SAVED** instead and retries when focus returns or the game is restarted.
+The best score is shown in the top bar and saved to `~/.monolith/snake_highscore.txt`. Beating it shows **NEW BEST!** If the save fails, the game shows **BEST NOT SAVED** and tries again when the window regains focus or the game restarts. Loading accepts only a whole score from 0 to 397 (the most a 20x20 board allows).
 
-## Presentation
+## Limits
 
-- Checkerboard board, food highlight, body gradient, and directional head eyes
-- **HUD**: score, best, and length on the left (laid out from measured text widths so labels never collide); controls hint right-aligned when the window is wide enough; all HUD text clips within the strip
-- Pause / game over / win messages are a **centered vertical stack** on the board (title + detail lines)
-- Overlay line spacing follows the active interface font so scaled text does not overlap on end-state screens
-- HUD height follows the active interface font with a stable minimum, keeping the board below the text strip after Settings text scaling
-- Brief flash when food is eaten; the deadline remains correct across SDL tick wraparound
-- Food placement uses a private unbiased random stream, so opening or resetting Minesweeper cannot alter Snake's sequence
+- No sound.
+- The board size is fixed.
+- The board is letterboxed in the window. In a very small window the cells shrink so the whole board stays visible.
 
-The board letterboxes inside the window when resized or maximized. If the client area becomes very small, cells compress so the full board remains inside the window instead of covering the HUD.
-Direct render-size changes refresh the cached client geometry before layout, so input and rendering stay aligned even before the next Window Manager resize callback.
+## Developer notes
 
-Repeated HUD and overlay labels reuse a bounded renderer-owned text texture cache between frames. The checkerboard's 200 alternating-cell rectangles are cached until the board geometry changes and submitted in one SDL batch per frame. The game-over score/best line is formatted into a bounded stack buffer, avoiding a temporary heap string on warmed game-over frames. Changing the shared interface text scale clears the cache so labels use the new font metrics.
-
-## Current Limitations
-
-- No sound
-- Fixed 20×20 grid (not configurable)
-
-## Developer Notes
-
-- `src/app/SnakeApp.{hpp,cpp}`
-- `src/detail/Random.hpp` provides the per-game bounded random helper shared with Minesweeper
-- `scripts/test_snake_state.cpp` covers tail movement, growth collision rules, and text texture reuse during rendering
-- `WindowManager::launchSnake()` and Start menu action `5` (listed under the **Games** category)
-- Game steps run from `App::update()`, dispatched by `WindowManager::update()` for non-minimized windows
+- `src/app/SnakeApp.{hpp,cpp}`.
+- `src/detail/Random.hpp`: each game has its own random stream, so Snake and Minesweeper do not affect each other's sequences.
+- `WindowManager::launchSnake()` in `src/window/detail/wm_body_08a.inc`; Start menu action `5`.
+- Steps run in `App::update()`, which the window manager calls for windows that are not minimized.
+- Test: `test_snake_state` (tail movement, growth collisions, text texture reuse).

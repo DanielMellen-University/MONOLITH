@@ -1,49 +1,39 @@
 # Pong
 
-Classic Pong as a native Monolith app. Steer the left paddle, bounce the ball past the AI, first to 5 wins.
+Move the left paddle and get the ball past the computer. First to 5 points wins.
 
-## Launching
+## Using it
 
-Open **Pong** from the Start menu under **Games**. Multiple independent games are supported:
+Open **Pong** from the Start menu under **Games**. Each window is a separate game.
 
-- `Pong`
-- `Pong 2`
-- `Pong 3`
+- You control the left paddle; the computer plays the right one.
+- The ball bounces off the top and bottom walls and the paddles. Where it hits the paddle changes its angle, with a cap on vertical speed so it stays catchable.
+- A point is scored when the ball passes a paddle. The first side to 5 wins.
+- The game pauses when another window gets focus or the Start menu opens.
 
-## Controls
+## Keyboard shortcuts
 
 | Input | Action |
 |-------|--------|
-| Arrow Up / W | Move paddle up |
-| Arrow Down / S | Move paddle down |
-| Space / P / click | Pause or resume |
+| W, Up arrow | Move up |
+| S, Down arrow | Move down |
+| Space, P, mouse click | Pause or resume |
+| Enter | Resume, or start again after the match |
 | R | Restart |
-| Enter | Resume if paused; restart after game over |
 
-Focusing another window or opening the Start menu auto-pauses. Resume with Space, P, Enter, or click when you return.
+## Limits
 
-## Rules
+- No sound and no two-player mode.
+- The playfield scales with the window.
 
-- Player paddle on the left, simple AI on the right
-- Ball bounces off top/bottom walls and paddles
-- Paddle deflection changes the vertical angle but caps vertical speed so the ball stays catchable
-- Point if the ball leaves the opponent's side
-- First to 5 ends the match (You win / AI wins)
+## Developer notes
 
-## Presentation
+- `src/app/PongLogic.{hpp,cpp}`: rules, with no SDL dependency.
+- `src/app/PongApp.{hpp,cpp}`: window, drawing and input.
+- `WindowManager::launchPong()` in `src/window/detail/wm_body_08a.inc`; Start menu action `7`.
+- Frame time comes from `detail::tickDeltaSeconds()`, which handles SDL tick wraparound and caps a stalled frame at 50 ms.
 
-The playfield scales to the window. Score is shown in a font-aware HUD whose height follows the shared interface text scale, keeping the field below the score strip when Settings changes font size. The HUD clips at the client boundary when the window is narrow. Repeated HUD and overlay labels reuse a bounded renderer-owned texture cache between frames; changing the shared text scale rebuilds its entries. Frame timing uses the shared wrap-safe SDL tick helper and caps a stalled update at 50 ms. Session restore reopens Pong windows.
-Direct render-size changes refresh the cached client geometry before drawing, keeping the app lifecycle consistent with normal window resizes.
-
-## Developer Notes
-
-Main implementation files:
-
-- `src/app/PongLogic.hpp` / `PongLogic.cpp` — rules (input, tick, Playing vs GameOver); no SDL
-- `src/app/PongApp.hpp` / `PongApp.cpp` — window, render, keyboard
-- `src/window/WindowManager.cpp` — `launchPong()`, Start → Games
-
-Headless state test:
+Test:
 
 ```bash
 g++ -std=c++23 scripts/test_pong_state.cpp src/app/PongLogic.cpp -o build/test_pong_state && ./build/test_pong_state
