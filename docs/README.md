@@ -7,8 +7,9 @@ Start with the [root README](../README.md) for the overview, build steps and fir
 | Doc | What it covers |
 |-----|----------------|
 | [Vision](vision.md) | What MONOLITH is for and the principles behind it |
-| [Roadmap](ROADMAP.md) | What 1.0 shipped, what is out of scope, what comes after |
+| [Roadmap](ROADMAP.md) | What 1.0 shipped and what is out of scope |
 | [1.0 checklist](1.0-CHECKLIST.md) | Tick-box status of the 1.0 milestones |
+| [Using the desktop](desktop.md) | Windows, taskbar, Start menu, desktop icons, shell shortcuts |
 | [Architecture](architecture.md) | How the window manager, apps, rendering and input fit together |
 | [Filesystem](filesystem.md) | Virtual paths, host storage under `~/.monolith/`, the `Filesystem` API |
 | [Changelog](../CHANGELOG.md) | Full change history, newest first |
@@ -52,10 +53,4 @@ Reference notes for the low-level details. The pages above link here when it mat
 
 ## Files MONOLITH keeps on the host
 
-| Path | Contents |
-|------|----------|
-| `~/.monolith/fs/` | The internal filesystem |
-| `~/.monolith/session.txt` | Open windows, restored on next launch |
-| `~/.monolith/desktop_settings.txt` | Settings app preferences |
-| `~/.monolith/snake_highscore.txt` | Snake high score |
-| `~/.monolith/minesweeper_best.txt` | Minesweeper best times |
+See [architecture.md](architecture.md#files-on-the-host) for the list of host files and their formats.

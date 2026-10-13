@@ -104,6 +104,7 @@ Highlighting is a simple token scan, not a language parser. Multi-line string li
 - Documents: 16 MiB and 65,536 lines. A larger file is refused on open and the current document stays as it was. Edits, pastes and replacements that would go over either limit are refused.
 - Undo and redo: 50 states and about 64 MiB in total. Typing or backspacing within about a second is one undo step. If a single snapshot is too large to keep, the status bar says history is unavailable.
 - One document per window; no tabs.
+- The Tab key does nothing in the document: no tab character, no indent. Pasted tabs are kept.
 - No line wrapping. Long lines scroll horizontally.
 - Combining characters are separate cursor positions.
 - No file picker dialog; Open and Save As use the path prompt.

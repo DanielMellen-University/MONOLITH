@@ -8,10 +8,11 @@ MONOLITH/
 ├── LICENSE                 MIT
 ├── CURRENT_CHUNK           Name of the current work chunk (1.0-released)
 ├── .github/workflows/      headless.yml, the CI workflow
-├── .agents/                Instructions and logs for coding agents
+├── .agents/                Instructions and logs for coding agents (has its own CURRENT_CHUNK copy)
 ├── assets/fonts/           DejaVuSans.ttf, the UI font
 ├── assets/wallpapers/      sample.bmp and sample.png, seeded into /Wallpapers/
 ├── docs/                   Documentation (start at docs/README.md)
+├── docs/images/            Screenshots used by the README and app pages
 ├── scripts/                Tests, static checks and helper scripts
 ├── src/                    Application source
 └── third_party/stb/        stb_image fetch script and placeholder header

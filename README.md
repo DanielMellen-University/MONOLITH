@@ -65,6 +65,7 @@ Read [Architecture](docs/architecture.md) for the full picture.
 | Page | Contents |
 |------|----------|
 | [Documentation hub](docs/README.md) | Index of every doc |
+| [Using the desktop](docs/desktop.md) | Windows, taskbar, Start menu, desktop icons, shortcuts |
 | [Architecture](docs/architecture.md) | Window manager, app model, rendering, input |
 | [Filesystem](docs/filesystem.md) | Virtual paths, host storage, file API |
 | [App guides](docs/README.md#apps) | One page per app |

@@ -15,7 +15,7 @@ What 1.0 contains:
 - **Version 1.0** reported by CMake, the Settings app (`1.0 (October 2026)`) and the Terminal `version` command. The string lives in `src/app/Version.hpp`.
 - **Tag `v1.0.0`** on the commit where `main` and `beta` match.
 
-Not included: screenshots. The checklist keeps that item open.
+Screenshots were added after the tag, in `docs/images/`.
 
 ### Milestones
 
@@ -44,5 +44,3 @@ One known limit was left documented rather than fixed: MONOLITH's own writers se
 | 3. Native apps | Drawing, Settings, Snake, Minesweeper, BMP wallpaper, Pong |
 | 4. Living in it | Terminal quoting, text size setting, editor horizontal scroll, Drawing color picker |
 | 7. Growth | PNG and JPEG wallpaper, Breakout, desktop icons, app registry, wallpaper fit, Start type-ahead, then a long run of memory bounds, texture reuse, unsaved-work guards and atomic-save hardening (chunks up to 7.196) |
-
-Phases 5 and 6 of the original plan were moved out of this repository.
