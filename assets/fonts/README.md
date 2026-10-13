@@ -11,3 +11,5 @@ MONOLITH opens `assets/fonts/DejaVuSans.ttf` relative to the current directory, 
 If none exist, MONOLITH prints a warning and text does not render. Installing `fonts-dejavu` provides the system copy.
 
 DejaVu fonts are free software, distributed under the DejaVu Fonts License (based on the Bitstream Vera license). Project page: https://dejavu-fonts.github.io/
+
+The full license text is in `LICENSE-DejaVu.txt`, copied from the upstream dejavu-fonts repository.
