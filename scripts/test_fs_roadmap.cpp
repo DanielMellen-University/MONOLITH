@@ -854,7 +854,7 @@ int main() {
           "write partial-copy regular child");
     check(fs.writeFile("/partial-src/b-new.txt", "new child"),
           "write partial-copy new child");
-    const stdfs::path partialLink = hostRoot / "partial-src/z-broken-link";
+    stdfs::path partialLink = hostRoot / "partial-src/z-broken-link";
     stdfs::create_symlink(hostRoot / "missing-copy-target", partialLink, ec);
     check(!ec, "create partial-copy broken symlink child");
     if (!ec) {
@@ -873,7 +873,7 @@ int main() {
             std::vector<SourceEntry> entries;
             for (const auto& entry : stdfs::directory_iterator(hostRoot / "partial-src")) {
                 const std::string name = entry.path().filename().string();
-                if (name == "z-broken-link") break;
+                if (name == partialLink.filename().string()) break;
                 entries.push_back({name, entry.is_directory()});
             }
             return entries;
@@ -902,6 +902,22 @@ int main() {
             extraSourcesCreated = fs.writeFile(
                 "/partial-src/" + directoryName + "/child.txt", "nested candidate")
                 && extraSourcesCreated;
+            const auto previousCount = entriesBeforeFailure.size();
+            entriesBeforeFailure = sourceEntriesBeforeFailure();
+            if (entriesBeforeFailure.size() > previousCount) continue;
+            // Listing order depends on the host filesystem. The new entries
+            // landed after the link, as on filesystems that list in creation
+            // order, so recreate the link to move it after them.
+            std::error_code relinkError;
+            // Make the new link before removing the old one so it cannot
+            // reuse the old slot.
+            const stdfs::path movedLink =
+                hostRoot / ("partial-src/z-broken-link-" + suffix);
+            stdfs::create_symlink(hostRoot / "missing-copy-target", movedLink,
+                                  relinkError);
+            if (!relinkError) stdfs::remove(partialLink, relinkError);
+            extraSourcesCreated = !relinkError && extraSourcesCreated;
+            if (!relinkError) partialLink = movedLink;
             entriesBeforeFailure = sourceEntriesBeforeFailure();
         }
         std::vector<std::string> filesBeforeFailure;
