@@ -2,6 +2,8 @@
 
 Steer the snake, eat food to grow, and avoid the walls and your own body.
 
+![Snake game in progress](../images/snake.png)
+
 ## Using it
 
 Open **Snake** from the Start menu under **Games**. Each window is a separate game (`Snake`, `Snake 2`, ...).

@@ -2,6 +2,8 @@
 
 Open every cell that does not hide a mine.
 
+![Minesweeper game in progress](../images/minesweeper.png)
+
 ## Using it
 
 Open **Minesweeper** from the Start menu under **Games**. Each window is a separate game.

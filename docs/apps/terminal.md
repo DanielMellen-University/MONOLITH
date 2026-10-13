@@ -2,6 +2,8 @@
 
 A command line for the [internal filesystem](../filesystem.md), with scrollback, history, reverse search and Tab completion.
 
+![Terminal showing version, ls, cd and cat](../images/terminal.png)
+
 ## Using it
 
 Open **Terminal** from the Start menu, the desktop icon or the taskbar. You can open several; they are titled `Terminal`, `Terminal 2` and so on.

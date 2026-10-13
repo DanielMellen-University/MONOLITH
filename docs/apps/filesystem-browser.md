@@ -2,6 +2,8 @@
 
 A graphical file manager for the [internal filesystem](../filesystem.md). It is listed as **Filesystem** in the Start menu and on the desktop.
 
+![Filesystem window listing the home folder](../images/filesystem.png)
+
 ## Using it
 
 The window has a path bar with a filter box on the right, a toolbar, the file list and a status bar. It starts in `/home/monolith`. You can open several windows (`Filesystem`, `Filesystem 2`, ...).

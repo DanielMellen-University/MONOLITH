@@ -2,6 +2,8 @@
 
 A plain-text editor for files in the [internal filesystem](../filesystem.md), with undo, find and replace, go to line and light syntax highlighting.
 
+![Text Editor with syntax colors on a C++ header](../images/text-editor.png)
+
 ## Using it
 
 Open **Text Editor** from the Start menu or desktop, double-click a file in Filesystem, or run `edit <file>` in Terminal.

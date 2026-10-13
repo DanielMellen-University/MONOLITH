@@ -2,6 +2,8 @@
 
 Desktop preferences that apply immediately and are kept for the next launch, plus a read-only information panel.
 
+![Settings with a wallpaper set](../images/settings.png)
+
 ## Using it
 
 Open **Settings** from the Start menu or desktop. You can open several windows (`Settings`, `Settings 2`, ...); they all change the same settings. Each change applies to the whole desktop at once. The selected option in each group has a white border.

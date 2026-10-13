@@ -2,6 +2,8 @@
 
 MONOLITH is a personal mini-OS that runs as a single Linux program. It is a desktop environment written in C++23 on SDL2: a window manager with a taskbar, Start menu and desktop icons, nine built-in apps, and its own filesystem stored under `~/.monolith/`. You start one binary and do your work inside it.
 
+![MONOLITH desktop with Text Editor, Drawing, Terminal and Filesystem open](docs/images/desktop.png)
+
 **Status:** 1.0, released October 2026 (tag `v1.0.0`). See the [roadmap](docs/ROADMAP.md).
 
 ## Apps

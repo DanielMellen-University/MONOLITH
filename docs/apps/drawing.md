@@ -2,6 +2,8 @@
 
 A pixel editor. You draw on an opaque RGB canvas with a few simple tools and save to `.modr` files in the [internal filesystem](../filesystem.md). There are no layers, selections or vector shapes.
 
+![Drawing with a sunset scene](../images/drawing.png)
+
 ## Using it
 
 Open **Drawing** from the Start menu or desktop, double-click a `.modr` file in Filesystem, or run `open <file>.modr` in Terminal.

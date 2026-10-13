@@ -49,6 +49,8 @@ It is responsible for:
 - Opening files by type: `.modr` files go to Drawing, everything else to Text Editor. Each file opens in at most one window; opening it again focuses that window.
 - Saving and restoring the session.
 
+![Start menu with the Games group](images/start-menu.png)
+
 The desktop is a 1280x720 logical surface. The window manager converts mouse positions to logical pixels once, at the edge, so apps and hit testing never deal with host-window scaling.
 
 Details such as focus handoff, taskbar layout, close guards and restore limits are in [internals/window-manager.md](internals/window-manager.md). The registry, Start menu and icons are in [internals/desktop-shell.md](internals/desktop-shell.md).
