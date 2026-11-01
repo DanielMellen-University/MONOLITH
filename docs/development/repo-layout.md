@@ -6,9 +6,7 @@ MONOLITH/
 ├── README.md               Project landing page
 ├── CHANGELOG.md            Change history, newest first
 ├── LICENSE                 MIT
-├── CURRENT_CHUNK           Name of the current work chunk (1.0-released)
 ├── .github/workflows/      headless.yml, the CI workflow
-├── .agents/                Instructions and logs for coding agents (has its own CURRENT_CHUNK copy)
 ├── assets/fonts/           DejaVuSans.ttf (UI font) and its license
 ├── assets/wallpapers/      sample.bmp and sample.png, seeded into /Wallpapers/
 ├── docs/                   Documentation (start at docs/README.md)
