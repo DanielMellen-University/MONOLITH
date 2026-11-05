@@ -1,6 +1,10 @@
 # MONOLITH
 
 [![Headless verification](https://github.com/DanielMellen-University/MONOLITH/actions/workflows/headless.yml/badge.svg?branch=main)](https://github.com/DanielMellen-University/MONOLITH/actions/workflows/headless.yml)
+![C++23](https://img.shields.io/badge/C%2B%2B-23-00599C?style=flat-square)
+![CMake 3.16+](https://img.shields.io/badge/CMake-3.16%2B-064F8C?style=flat-square)
+![Linux](https://img.shields.io/badge/platform-Linux-555555?style=flat-square)
+[![License: MIT](https://img.shields.io/badge/license-MIT-8fd19a?style=flat-square)](LICENSE)
 
 MONOLITH is a personal mini-OS that runs as a single Linux program. It is a desktop environment written in C++23 on SDL2: a window manager with a taskbar, Start menu and desktop icons, nine built-in apps, and its own filesystem stored under `~/.monolith/`. You start one binary and do your work inside it.
 
