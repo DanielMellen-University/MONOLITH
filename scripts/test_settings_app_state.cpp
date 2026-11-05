@@ -175,10 +175,10 @@ int main() {
     settings.onResize(400, 240);
     check(settings.m_lines.size() > 5
               && settings.m_lines[1].label == "Version"
-              && settings.m_lines[1].value == "1.0 (October 2026)"
+              && settings.m_lines[1].value == "1.0.2 (November 2026)"
               && settings.m_lines[5].label == "Logical desktop"
               && settings.m_lines[5].value == "1024 x 640",
-          "Settings reports the 1.0 release and the live logical desktop size");
+          "Settings reports the current release and the live logical desktop size");
     bool releaseStatus = false;
     for (const auto& line : settings.m_lines) {
         if (line.label == "Status" && line.value == "Personal environment") {

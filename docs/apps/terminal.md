@@ -26,7 +26,7 @@ Type a command and press Enter. Run `help` to list commands.
 | `help` | List commands |
 | `date` | Show the date and time |
 | `whoami` | Print `monolith` |
-| `version`, `ver` | Print `Monolith Terminal v1.0` |
+| `version`, `ver` | Print `Monolith Terminal v1.0.2` |
 | `ls [path]` | List a folder (`▶` folder, `•` file, `(empty)` when empty). A file path prints that file name. |
 | `pwd` | Print the current folder |
 | `cd [dir]` | Change folder. With no argument, go to `/home/monolith`. |

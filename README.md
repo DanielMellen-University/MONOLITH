@@ -8,7 +8,7 @@ MONOLITH is finished. Its successor is [M0N0LITH-2](https://github.com/DanielMel
 
 ![MONOLITH desktop with Text Editor, Drawing, Terminal and Filesystem open](docs/images/desktop.png)
 
-**Status:** 1.0, released October 2026 (tag `v1.0.0`). See the [roadmap](docs/ROADMAP.md).
+**Status:** 1.0.2 (November 2026). See the [roadmap](docs/ROADMAP.md).
 
 ## Apps
 
@@ -126,6 +126,14 @@ Snake.
 Minesweeper, Beginner.
 
 ![Minesweeper](docs/images/minesweeper.png)
+
+Pong, first to 5.
+
+![Pong](docs/images/pong.png)
+
+Breakout, five rows of bricks.
+
+![Breakout](docs/images/breakout.png)
 
 ## License
 
