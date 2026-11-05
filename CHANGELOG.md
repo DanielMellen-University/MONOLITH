@@ -1,5 +1,11 @@
 # Changelog
 
+## 1.0.2 (November 2026)
+
+- Portfolio README polish: CI badge, an Assurance link to MONOLITH-FV-AUDIT, and a full app screenshot gallery including Pong and Breakout.
+- The Post-1.0 changelog fold is already on main.
+- Version 1.0.2, reported by CMake, Settings, and the Terminal `version` command.
+
 ## 1.0 (October 2026)
 
 Portfolio release, tagged `v1.0.0`: one Linux application with a window manager, nine built-in apps and a host-backed filesystem.

@@ -55,7 +55,7 @@ Type a path in the internal filesystem to a `.bmp`, `.png`, `.jpg` or `.jpeg` fi
 
 | Section | Shows |
 |---------|-------|
-| MONOLITH | Version (`1.0 (October 2026)`), Engine (`SDL2 + custom window manager`) |
+| MONOLITH | Version (`1.0.2 (November 2026)`), Engine (`SDL2 + custom window manager`) |
 | ENVIRONMENT | Logical desktop size, filesystem root on the host, virtual home (`/home/monolith`) |
 | NOTES | Status (`Personal environment`) and a hint to use the Start menu or taskbar |
 

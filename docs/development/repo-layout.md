@@ -31,7 +31,7 @@ MONOLITH/
 | `app/TerminalApp_rest.inc`, `app/BreakoutApp_body.inc` | Parts of those apps split into include files |
 | `app/SettingsApp_body_*.inc.z64` | Compressed Settings code, plus its compress and decompress scripts |
 | `app/FilePath.hpp`, `app/Utf8.hpp` | Suffix matching and UTF-8 helpers |
-| `app/Version.hpp` | `kVersion` (`1.0`) and `kVersionLabel` |
+| `app/Version.hpp` | `kVersion` (`1.0.2`) and `kVersionLabel` |
 | `window/WindowManager.{hpp,cpp}` | The shell; the `.cpp` includes the fragments in `window/detail/` |
 | `window/WindowManager_private.inc` | Private members of `WindowManager` |
 | `window/detail/wm_*.inc` | Window manager code split by area (launchers in `wm_body_07.inc` and `wm_body_08a.inc`, wallpaper in `wm_body_08b.inc`, file bindings and broadcasts in `wm_body_09_*.inc`) |
@@ -59,6 +59,7 @@ MONOLITH/
 | `TestTempDir.hpp` | Temporary directory helper for tests |
 | `headless_drawing_smoke.sh` | Optional smoke test of the real binary under Xvfb |
 | `gen_sample_wallpaper.py` | Regenerates `assets/wallpapers/sample.bmp` and `sample.png` (optional; both are committed) |
+| `capture_game_shots.cpp` | Regenerates `docs/images/pong.png` and `docs/images/breakout.png` with an SDL software renderer (not part of the test suite) |
 
 ## Build output
 

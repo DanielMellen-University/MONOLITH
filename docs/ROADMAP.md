@@ -12,7 +12,7 @@ What 1.0 contains:
 - **Nine apps.** Terminal, Text Editor, Filesystem, Drawing, Settings, Snake, Minesweeper, Pong, Breakout.
 - **Internal filesystem** under `~/.monolith/fs/` with atomic saves.
 - **Tests and CI.** A headless suite of 34 test programs and 5 static checks, run in GitHub Actions on every push to `main` and `beta`, both normally and under AddressSanitizer and UndefinedBehaviorSanitizer.
-- **Version 1.0** reported by CMake, the Settings app (`1.0 (October 2026)`) and the Terminal `version` command. The string lives in `src/app/Version.hpp`.
+- **Version 1.0** reported at that release by CMake, the Settings app (`1.0 (October 2026)`) and the Terminal `version` command. The string lives in `src/app/Version.hpp`.
 - **Tag `v1.0.0`** on the commit where `main` and `beta` match.
 
 Screenshots were added after the tag, in `docs/images/`.
