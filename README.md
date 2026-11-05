@@ -93,52 +93,6 @@ This is not whole-program formal verification. The models leave SDL, OS locks, a
 
 MONOLITH is a normal Linux application, not an operating system kernel. The programming language is [Relic](https://github.com/DanielMellen-University/Relic). The successor desktop is [M0N0LITH-2](https://github.com/DanielMellen-University/M0N0LITH-2) (MONOLITH 2), in its own repository.
 
-## Screenshots
-
-Desktop, with Text Editor, Drawing, Terminal, and Filesystem open.
-
-![Desktop](docs/images/desktop.png)
-
-Start menu, with the Games group open.
-
-![Start menu](docs/images/start-menu.png)
-
-Terminal on the internal filesystem (`pwd`, `ls`, `cd`, `cat`).
-
-![Terminal](docs/images/terminal.png)
-
-Text Editor, syntax colors on a C++ file.
-
-![Text Editor](docs/images/text-editor.png)
-
-Filesystem browser at `/home/monolith`.
-
-![Filesystem](docs/images/filesystem.png)
-
-Drawing.
-
-![Drawing](docs/images/drawing.png)
-
-Settings: background color, wallpaper path and fit, taskbar clock.
-
-![Settings](docs/images/settings.png)
-
-Snake.
-
-![Snake](docs/images/snake.png)
-
-Minesweeper, Beginner.
-
-![Minesweeper](docs/images/minesweeper.png)
-
-Pong, first to 5.
-
-![Pong](docs/images/pong.png)
-
-Breakout, five rows of bricks.
-
-![Breakout](docs/images/breakout.png)
-
 ## License
 
 MIT. See [LICENSE](LICENSE).
