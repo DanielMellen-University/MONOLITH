@@ -68,7 +68,7 @@ Read [Architecture](docs/architecture.md) for the full picture.
 
 [MONOLITH-FV-AUDIT](https://github.com/DanielMellen-University/MONOLITH-FV-AUDIT) is a separate record of a bounded check against this repository at v1.0.1 (`446e107`). The [assurance summary](https://github.com/DanielMellen-University/MONOLITH-FV-AUDIT/blob/main/docs/05-assurance-summary.md) lists the runs and their limits.
 
-The check is TLA+ models run in TLC, an ASan/UBSan pass over the headless tests, short libFuzzer runs of the terminal lexer and the `.modr` codec, and a CBMC smoke harness. TLC checked small finite models (window lifecycle, atomic workspace publication, two cooperating writers). The fuzz runs sample finite inputs for a few seconds each. CBMC checked an isolated harness only. It could not parse the lexer translation unit, so it did not check MONOLITH source.
+The check is TLA+ models run in TLC, an ASan/UBSan pass over the headless tests, short libFuzzer runs of the terminal lexer and the `.modr` codec, and a CBMC smoke harness. TLC checked small finite models (window lifecycle, atomic workspace publication, two cooperating writers). The fuzz runs sample finite inputs for ten seconds each. CBMC checked an isolated harness only. It could not parse the lexer translation unit, so it did not check MONOLITH source.
 
 This is not whole-program formal verification. The models leave SDL, OS locks, and rename as assumptions. No MONOLITH source was changed for the audit.
 
@@ -82,12 +82,12 @@ This is not whole-program formal verification. The models leave SDL, OS locks, a
 | [Filesystem](docs/filesystem.md) | Virtual paths, host storage, file API |
 | [App guides](docs/README.md#apps) | One page per app |
 | [Development](docs/README.md#development) | Building, testing, CI, repo layout, contributing |
-| [Roadmap](docs/ROADMAP.md) | What 1.0 includes and what it leaves out |
+| [Roadmap](docs/ROADMAP.md) | Current release, what 1.0 includes, and what it leaves out |
 | [Changelog](CHANGELOG.md) | Change history |
 
 ## Scope
 
-MONOLITH is a normal Linux application, not an operating system kernel. A custom programming language is a separate future project, MONOLITH 2, in its own repository.
+MONOLITH is a normal Linux application, not an operating system kernel. The programming language is [Relic](https://github.com/DanielMellen-University/Relic). The successor desktop is [M0N0LITH-2](https://github.com/DanielMellen-University/M0N0LITH-2) (MONOLITH 2), in its own repository.
 
 ## Screenshots
 

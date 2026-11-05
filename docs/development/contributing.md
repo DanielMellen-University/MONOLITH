@@ -9,7 +9,7 @@ MONOLITH is a personal project, but changes follow a fixed routine so `main` alw
 | `beta` | Changes land here first |
 | `main` | Gets the same commits once CI is green on `beta` |
 
-Releases are tagged on `main` (`v1.0.0`). Never force-push either branch.
+Releases are tagged on `main` (`v1.0.0` and `v1.0.1`). The version string on `main` is 1.0.2, and there is no `v1.0.2` tag. Never force-push either branch.
 
 ## Workflow
 
