@@ -1,5 +1,7 @@
 # MONOLITH
 
+[![Headless verification](https://github.com/DanielMellen-University/MONOLITH/actions/workflows/headless.yml/badge.svg?branch=main)](https://github.com/DanielMellen-University/MONOLITH/actions/workflows/headless.yml)
+
 MONOLITH is a personal mini-OS that runs as a single Linux program. It is a desktop environment written in C++23 on SDL2: a window manager with a taskbar, Start menu and desktop icons, nine built-in apps, and its own filesystem stored under `~/.monolith/`. You start one binary and do your work inside it.
 
 MONOLITH is finished. Its successor is [M0N0LITH-2](https://github.com/DanielMellen-University/M0N0LITH-2), written in [Relic](https://github.com/DanielMellen-University/Relic).
@@ -62,6 +64,14 @@ On first launch MONOLITH creates `~/.monolith/fs/` and opens Terminal, Filesyste
 
 Read [Architecture](docs/architecture.md) for the full picture.
 
+## Assurance
+
+[MONOLITH-FV-AUDIT](https://github.com/DanielMellen-University/MONOLITH-FV-AUDIT) is a separate record of a bounded check against this repository at v1.0.1 (`446e107`). The [assurance summary](https://github.com/DanielMellen-University/MONOLITH-FV-AUDIT/blob/main/docs/05-assurance-summary.md) lists the runs and their limits.
+
+The check is TLA+ models run in TLC, an ASan/UBSan pass over the headless tests, short libFuzzer runs of the terminal lexer and the `.modr` codec, and a CBMC smoke harness. TLC checked small finite models (window lifecycle, atomic workspace publication, two cooperating writers). The fuzz runs sample finite inputs for a few seconds each. CBMC checked an isolated harness only. It could not parse the lexer translation unit, so it did not check MONOLITH source.
+
+This is not whole-program formal verification. The models leave SDL, OS locks, and rename as assumptions. No MONOLITH source was changed for the audit.
+
 ## Documentation
 
 | Page | Contents |
@@ -78,6 +88,44 @@ Read [Architecture](docs/architecture.md) for the full picture.
 ## Scope
 
 MONOLITH is a normal Linux application, not an operating system kernel. A custom programming language is a separate future project, MONOLITH 2, in its own repository.
+
+## Screenshots
+
+Desktop, with Text Editor, Drawing, Terminal, and Filesystem open.
+
+![Desktop](docs/images/desktop.png)
+
+Start menu, with the Games group open.
+
+![Start menu](docs/images/start-menu.png)
+
+Terminal on the internal filesystem (`pwd`, `ls`, `cd`, `cat`).
+
+![Terminal](docs/images/terminal.png)
+
+Text Editor, syntax colors on a C++ file.
+
+![Text Editor](docs/images/text-editor.png)
+
+Filesystem browser at `/home/monolith`.
+
+![Filesystem](docs/images/filesystem.png)
+
+Drawing.
+
+![Drawing](docs/images/drawing.png)
+
+Settings: background color, wallpaper path and fit, taskbar clock.
+
+![Settings](docs/images/settings.png)
+
+Snake.
+
+![Snake](docs/images/snake.png)
+
+Minesweeper, Beginner.
+
+![Minesweeper](docs/images/minesweeper.png)
 
 ## License
 
