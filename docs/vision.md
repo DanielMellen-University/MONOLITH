@@ -1,36 +1,22 @@
 # Vision
 
-MONOLITH is a small personal computer that lives inside one Linux program. It has its own desktop, its own apps and its own filesystem. You open it and work inside it, the way you would sit down at a separate machine.
-
-The idea comes partly from TempleOS: a direct, self-contained machine that one person owns completely. MONOLITH keeps that feeling without being a real operating system. It runs as an ordinary SDL2 application on Linux, which keeps it buildable and usable.
+MONOLITH is a finished personal mini-OS demo for a portfolio. It is one Linux program: a small desktop inside a normal application. It is not a machine you boot.
 
 ## What it is
 
-- One executable that behaves like a small desktop OS.
-- A place for everyday tools: a terminal, an editor, a file browser, a drawing app, settings and a few games.
-- A personal machine, built for one user first.
-- Keyboard-friendly. Every app has shortcuts, and the shell has Alt+Tab and Ctrl+Escape.
+- A C++23 program. SDL2 provides the window, input, and drawing. SDL2_ttf provides text.
+- A window manager in a fixed 1280x720 window: overlapping windows, a taskbar, a Start menu, desktop icons, Alt+Tab, and Ctrl+Escape.
+- Nine built-in apps: Terminal, Text Editor, Filesystem, Drawing, Settings, Snake, Minesweeper, Pong, and Breakout. The four games sit under Games in the Start menu.
+- A host-backed filesystem. Apps use virtual paths such as `/home/monolith/notes.txt`. Those are ordinary files under `~/.monolith/fs/` on the host. The session, desktop settings, and the Snake and Minesweeper records sit beside that tree, in `~/.monolith/`.
 
 ## What it is not
 
-- Not an operating system kernel. It is a normal Linux application.
-- Not a clone of a Linux desktop environment.
-- Not a productivity suite or a professional creative tool.
-- Not the home of a programming language. The language is [Relic](https://github.com/DanielMellen-University/Relic). The successor desktop is [M0N0LITH-2](https://github.com/DanielMellen-University/M0N0LITH-2) (MONOLITH 2), in its own repository.
+- Not an operating system kernel. It does not boot hardware, replace Linux, or manage devices. It is a normal Linux application.
+- Not a Linux desktop clone, a productivity suite, or a professional drawing program. The app set is frozen at nine.
+- Not where the programming language lives. The language is [Relic](https://github.com/DanielMellen-University/Relic). The successor desktop, written in Relic, is [M0N0LITH-2](https://github.com/DanielMellen-University/M0N0LITH-2) (MONOLITH 2). Both are separate repositories. This repository stays the C++ demo.
 
-## Principles
+## Why it has this shape
 
-- **Everything lives inside.** Files, settings and apps are part of MONOLITH, stored under `~/.monolith/`.
-- **Constraints are deliberate.** A fixed 1280x720 desktop, a small set of apps, a simple file format for drawings. Fewer features done properly beats many done halfway.
-- **Solid and direct.** Saves are atomic, unsaved work is never discarded without an explicit choice, and the shell recovers cleanly from odd input.
-- **Clear boundaries.** Apps talk to the shell through one interface and never to each other, so new apps can be added without touching old ones.
+The aim was a desktop one person could build and then open: windows, a terminal, an editor, files, a sketchpad, and a few games. TempleOS was part of the reference, a small self-contained machine, without writing a real operating system. Saves are atomic. An editor or a drawing with unsaved work asks before it closes. Apps talk to the shell through one interface and do not call each other.
 
-## Technical direction
-
-- C++23 on Linux, using SDL2 for the window, input and drawing, and SDL2_ttf for text.
-- One executable plus a bundled font.
-- Its own filesystem, stored as ordinary files on the host.
-
-## Where it stands
-
-Version 1.0.2 (November 2026) is the current release: the desktop shell, nine apps, the internal filesystem, and a headless test suite that runs normally and under sanitizers in CI. The 1.0 portfolio milestone shipped in October 2026. See the [roadmap](ROADMAP.md) for what it includes.
+That scope is closed. Version 1.0.2 (November 2026) is the current release. The 1.0 milestone shipped in October 2026. Later desktop and language work is in M0N0LITH-2 and Relic, not here. See the [roadmap](ROADMAP.md).
