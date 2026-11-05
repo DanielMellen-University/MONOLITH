@@ -7,7 +7,7 @@ Start with the [root README](../README.md) for the overview, build steps and fir
 | Doc | What it covers |
 |-----|----------------|
 | [Vision](vision.md) | What MONOLITH is for and the principles behind it |
-| [Roadmap](ROADMAP.md) | What 1.0 shipped and what is out of scope |
+| [Roadmap](ROADMAP.md) | Current release, what 1.0 shipped, and what is out of scope |
 | [1.0 checklist](1.0-CHECKLIST.md) | Tick-box status of the 1.0 milestones |
 | [Using the desktop](desktop.md) | Windows, taskbar, Start menu, desktop icons, shell shortcuts |
 | [Architecture](architecture.md) | How the window manager, apps, rendering and input fit together |

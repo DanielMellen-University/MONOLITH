@@ -16,7 +16,7 @@ The idea comes partly from TempleOS: a direct, self-contained machine that one p
 - Not an operating system kernel. It is a normal Linux application.
 - Not a clone of a Linux desktop environment.
 - Not a productivity suite or a professional creative tool.
-- Not the home of a programming language. That is a separate future project, MONOLITH 2, in its own repository.
+- Not the home of a programming language. The language is [Relic](https://github.com/DanielMellen-University/Relic). The successor desktop is [M0N0LITH-2](https://github.com/DanielMellen-University/M0N0LITH-2) (MONOLITH 2), in its own repository.
 
 ## Principles
 
@@ -33,4 +33,4 @@ The idea comes partly from TempleOS: a direct, self-contained machine that one p
 
 ## Where it stands
 
-Version 1.0 (October 2026) is the complete portfolio release: the desktop shell, nine apps, the internal filesystem, and a headless test suite that runs normally and under sanitizers in CI. See the [roadmap](ROADMAP.md) for what it includes.
+Version 1.0.2 (November 2026) is the current release: the desktop shell, nine apps, the internal filesystem, and a headless test suite that runs normally and under sanitizers in CI. The 1.0 portfolio milestone shipped in October 2026. See the [roadmap](ROADMAP.md) for what it includes.

@@ -2,6 +2,8 @@
 
 Status of each milestone, as tick boxes: [1.0 checklist](1.0-CHECKLIST.md).
 
+Current release: 1.0.2 (November 2026).
+
 ## 1.0: shipped (October 2026)
 
 The goal of 1.0 was a complete, presentable portfolio piece: one Linux app that feels like a personal mini-OS, which someone can clone, build, run and use without reading any internal notes.
@@ -12,7 +14,7 @@ What 1.0 contains:
 - **Nine apps.** Terminal, Text Editor, Filesystem, Drawing, Settings, Snake, Minesweeper, Pong, Breakout.
 - **Internal filesystem** under `~/.monolith/fs/` with atomic saves.
 - **Tests and CI.** A headless suite of 34 test programs and 5 static checks, run in GitHub Actions on every push to `main` and `beta`, both normally and under AddressSanitizer and UndefinedBehaviorSanitizer.
-- **Version 1.0** reported at that release by CMake, the Settings app (`1.0 (October 2026)`) and the Terminal `version` command. The string lives in `src/app/Version.hpp`.
+- **Version 1.0** reported at that release by CMake, the Settings app (`1.0 (October 2026)`) and the Terminal `version` command. Those strings were in `src/app/Version.hpp` at the 1.0 tag. The file now reports `1.0.2` and `1.0.2 (November 2026)`.
 - **Tag `v1.0.0`** on the commit where `main` and `beta` match.
 
 Screenshots were added after the tag, in `docs/images/`.
@@ -32,7 +34,7 @@ One known limit was left documented rather than fixed: MONOLITH's own writers se
 
 | Item | Decision |
 |------|----------|
-| A custom programming language | A separate future project, MONOLITH 2, in its own repository |
+| A custom programming language | [Relic](https://github.com/DanielMellen-University/Relic), in its own repository. The successor desktop is [M0N0LITH-2](https://github.com/DanielMellen-University/M0N0LITH-2) (MONOLITH 2), also separate. |
 | Open-ended Settings growth | Settings shipped as it is |
 
 ## Earlier phases
