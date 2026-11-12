@@ -3,7 +3,10 @@
 
 #include "../src/app/PongLogic.hpp"
 
+#include <cmath>
+#include <initializer_list>
 #include <iostream>
+#include <limits>
 
 using monolith::pong::Game;
 using monolith::pong::Input;
@@ -62,6 +65,21 @@ int main() {
     check(g.ballVX > 0.f, "player paddle sends the ball back toward the AI");
     check(g.ballVY <= Game::kMaxBallVerticalSpeed,
           "paddle deflection caps vertical ball speed");
+
+    Game invalidDelta;
+    invalidDelta.resetMatch();
+    const float initialPlayerY = invalidDelta.playerY;
+    const float initialBallX = invalidDelta.ballX;
+    const float initialBallY = invalidDelta.ballY;
+    for (const float delta : {std::numeric_limits<float>::quiet_NaN(),
+                              std::numeric_limits<float>::infinity()}) {
+        invalidDelta.applyInput(Input::Up, delta);
+        invalidDelta.tick(delta);
+    }
+    check(std::isfinite(invalidDelta.playerY) && invalidDelta.playerY == initialPlayerY
+              && std::isfinite(invalidDelta.ballX) && invalidDelta.ballX == initialBallX
+              && std::isfinite(invalidDelta.ballY) && invalidDelta.ballY == initialBallY,
+          "non-finite frame deltas leave Pong state unchanged");
 
     if (failures == 0) {
         std::cout << "ALL PONG STATE TESTS PASSED\n";
