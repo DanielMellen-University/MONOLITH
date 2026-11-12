@@ -3,7 +3,10 @@
 
 #include "../src/app/BreakoutLogic.hpp"
 
+#include <cmath>
+#include <initializer_list>
 #include <iostream>
+#include <limits>
 
 using monolith::breakout::Game;
 using monolith::breakout::Input;
@@ -55,6 +58,19 @@ int main() {
     g.applyInput(Input::Restart, 0.f);
     check(g.state == State::Playing, "Restart returns to Playing");
     check(g.lives == Game::kStartLives, "Restart restores lives");
+
+    const float paddleBeforeInvalidDelta = g.paddleX;
+    const float ballXBeforeInvalidDelta = g.ballX;
+    const float ballYBeforeInvalidDelta = g.ballY;
+    for (const float delta : {std::numeric_limits<float>::quiet_NaN(),
+                              std::numeric_limits<float>::infinity()}) {
+        g.applyInput(Input::Left, delta);
+        g.tick(delta);
+    }
+    check(std::isfinite(g.paddleX) && g.paddleX == paddleBeforeInvalidDelta
+              && std::isfinite(g.ballX) && g.ballX == ballXBeforeInvalidDelta
+              && std::isfinite(g.ballY) && g.ballY == ballYBeforeInvalidDelta,
+          "non-finite frame deltas leave Breakout state unchanged");
 
     g.bricks.fill(false);
     g.bricksLeft = 1;
