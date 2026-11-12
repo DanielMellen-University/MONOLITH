@@ -84,6 +84,19 @@ int main() {
     g.tick(0.01f);
     check(g.bricksLeft == 0, "last brick increments clear");
     check(g.state == State::Won, "clearing all bricks wins");
+    check(g.score == 50 && g.bricksLeft == 0 && !g.brickAlive(0, 0),
+          "last-brick collision awards its row score and removes it once");
+
+    g.resetMatch();
+    g.bricks.fill(false);
+    g.bricksLeft = 0;
+    g.ballX = 1.f;
+    g.ballY = 100.f;
+    g.ballVX = -100.f;
+    g.ballVY = 0.f;
+    g.tick(0.05f);
+    check(g.ballX == 0.f && g.ballVX > 0.f,
+          "ball reflects from the left wall");
 
     if (failures == 0) {
         std::cout << "ALL BREAKOUT STATE TESTS PASSED\n";
