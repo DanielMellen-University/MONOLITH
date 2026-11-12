@@ -40,6 +40,10 @@ int main() {
     g.tick(0.05f);
     check(g.aiScore == 1, "ball past left edge scores for AI");
     check(g.state == State::Playing, "match still running after one point");
+    check(g.ballX == static_cast<float>(Game::kFieldW) * 0.5f
+              - static_cast<float>(Game::kBallSize) * 0.5f
+              && g.ballVX == Game::kBallSpeed && g.ballVY == 70.f,
+          "conceded point resets the ball for the next serve");
 
     g.playerScore = Game::kWinScore - 1;
     g.ballX = static_cast<float>(Game::kFieldW + 20);
@@ -65,6 +69,20 @@ int main() {
     check(g.ballVX > 0.f, "player paddle sends the ball back toward the AI");
     check(g.ballVY <= Game::kMaxBallVerticalSpeed,
           "paddle deflection caps vertical ball speed");
+
+    g.ballX = 150.f;
+    g.ballY = 1.f;
+    g.ballVX = 0.f;
+    g.ballVY = -100.f;
+    g.tick(0.05f);
+    check(g.ballY == 0.f && g.ballVY > 0.f,
+          "ball reflects from the top wall");
+    g.ballY = static_cast<float>(Game::kFieldH - Game::kBallSize - 1);
+    g.ballVY = 100.f;
+    g.tick(0.05f);
+    check(g.ballY == static_cast<float>(Game::kFieldH - Game::kBallSize)
+              && g.ballVY < 0.f,
+          "ball reflects from the bottom wall");
 
     Game invalidDelta;
     invalidDelta.resetMatch();
