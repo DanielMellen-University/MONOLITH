@@ -185,6 +185,65 @@ int main() {
         }
     }
 
+    MinesweeperApp interactionGame(font);
+    interactionGame.newGame(MinesweeperApp::Difficulty::Beginner);
+    interactionGame.cycleMark(0, 0);
+    interactionGame.revealCell(0, 0);
+    check(interactionGame.m_cells.front().mark == MinesweeperApp::Mark::Flag
+              && !interactionGame.m_cells.front().revealed
+              && !interactionGame.m_minesPlaced,
+          "flagging a cell cycles its mark and blocks reveal before mine placement");
+    interactionGame.cycleMark(0, 0);
+    check(interactionGame.m_cells.front().mark == MinesweeperApp::Mark::Question,
+          "flag marking advances to a question mark");
+    interactionGame.cycleMark(0, 0);
+    check(interactionGame.m_cells.front().mark == MinesweeperApp::Mark::None,
+          "question marking cycles back to clear");
+
+    interactionGame.newGame(MinesweeperApp::Difficulty::Beginner);
+    interactionGame.m_minesPlaced = true;
+    interactionGame.m_state = MinesweeperApp::State::Playing;
+    interactionGame.m_width = 5;
+    interactionGame.m_height = 5;
+    interactionGame.m_mineCount = 4;
+    interactionGame.m_revealedSafe = 1;
+    interactionGame.m_cells.assign(25, MinesweeperApp::Cell{});
+    interactionGame.m_cells[static_cast<std::size_t>(interactionGame.index(2, 2))].revealed = true;
+    interactionGame.m_cells[static_cast<std::size_t>(interactionGame.index(1, 1))].mine = true;
+    interactionGame.m_cells[static_cast<std::size_t>(interactionGame.index(3, 3))].mine = true;
+    interactionGame.m_cells[static_cast<std::size_t>(interactionGame.index(0, 4))].mine = true;
+    interactionGame.m_cells[static_cast<std::size_t>(interactionGame.index(4, 0))].mine = true;
+    interactionGame.computeAdjacents();
+    interactionGame.cycleMark(1, 1);
+    interactionGame.cycleMark(3, 3);
+    interactionGame.chord(2, 2);
+    bool everySafeNeighborRevealed = true;
+    for (int dy = -1; dy <= 1; ++dy) {
+        for (int dx = -1; dx <= 1; ++dx) {
+            if (dx == 0 && dy == 0) continue;
+            const auto& neighbor = interactionGame.m_cells[static_cast<std::size_t>(
+                interactionGame.index(2 + dx, 2 + dy))];
+            if (!neighbor.mine && !neighbor.revealed) everySafeNeighborRevealed = false;
+        }
+    }
+    check(everySafeNeighborRevealed && interactionGame.m_revealedSafe == 7
+              && interactionGame.m_state == MinesweeperApp::State::Playing,
+          "a chord with the correct flag reveals the remaining safe neighbors");
+
+    interactionGame.newGame(MinesweeperApp::Difficulty::Beginner);
+    interactionGame.m_minesPlaced = true;
+    interactionGame.m_state = MinesweeperApp::State::Playing;
+    interactionGame.m_mineCount = 1;
+    interactionGame.m_cells.assign(81, MinesweeperApp::Cell{});
+    interactionGame.m_cells[static_cast<std::size_t>(interactionGame.index(4, 4))].revealed = true;
+    interactionGame.m_cells[static_cast<std::size_t>(interactionGame.index(4, 4))].adjacent = 1;
+    interactionGame.m_cells[static_cast<std::size_t>(interactionGame.index(3, 3))].mine = true;
+    interactionGame.cycleMark(5, 5);
+    interactionGame.chord(4, 4);
+    check(interactionGame.m_state == MinesweeperApp::State::Lost
+              && interactionGame.m_hitX == 3 && interactionGame.m_hitY == 3,
+          "a chord with a wrong flag reveals the unflagged mine");
+
     {
         std::ofstream bestFixture(bestPath, std::ios::binary | std::ios::trunc);
         bestFixture << std::string(16, '\n') << "beginner 42\n";

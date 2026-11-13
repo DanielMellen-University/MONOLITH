@@ -44,6 +44,14 @@ int main() {
     check(readPath(legacy, decoded) && decoded == "/home/monolith/notes.txt",
           "legacy unquoted path remains readable");
 
+    std::istringstream unterminated("\"/home/monolith/unclosed");
+    check(!readPath(unterminated, decoded),
+          "unterminated quoted paths are rejected");
+    std::istringstream trailingEscape(
+        std::string("\"/home/monolith/trailing") + '\\');
+    check(!readPath(trailingEscape, decoded),
+          "quoted paths ending in an incomplete escape are rejected");
+
     std::ostringstream emptyEncoded;
     writePath(emptyEncoded, "");
     check(emptyEncoded.str() == "\"-\"", "empty path uses quoted sentinel");
