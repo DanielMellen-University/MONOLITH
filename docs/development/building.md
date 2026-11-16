@@ -76,9 +76,9 @@ The compressors are deterministic (80-column output), so an unchanged fragment p
 
 ### stb_image
 
-PNG and JPEG wallpapers are decoded with `stb_image.h`. It is not stored in the repository. The `monolith_stb_image` target runs `third_party/stb/amalgamate.py`, which downloads the header from the upstream `master` branch into `build/generated/stb_image.h` and fails unless its SHA-256 matches the value pinned in `CMakeLists.txt`. `third_party/stb/stb_image.h` is a placeholder that stops the build with an error if it is included by mistake. More in [third_party/stb/README.md](../../third_party/stb/README.md).
+PNG and JPEG wallpapers are decoded with `stb_image.h`. It is not stored in the repository. The `monolith_stb_image` target runs `third_party/stb/amalgamate.py`, which downloads the header from the pinned upstream commit `5c205738c191bcb0abc65c4febfa9bd25ff35234` into `build/generated/stb_image.h` and fails unless its SHA-256 matches the value pinned in `CMakeLists.txt`. `third_party/stb/stb_image.h` is a placeholder that stops the build with an error if it is included by mistake. More in [third_party/stb/README.md](../../third_party/stb/README.md).
 
-If upstream `master` changes the file, the hash check fails and the build stops. Update the pinned hash in `CMakeLists.txt` only after reviewing the new header.
+To update the header, review the new upstream version, then change both `STB_COMMIT` in `third_party/stb/amalgamate.py` and the pinned SHA-256 in `CMakeLists.txt`.
 
 ## Sanitizer build
 

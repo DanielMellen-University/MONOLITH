@@ -7,7 +7,8 @@ import pathlib
 import sys
 import urllib.request
 
-STB_IMAGE_URL = "https://raw.githubusercontent.com/nothings/stb/master/stb_image.h"
+STB_COMMIT = "5c205738c191bcb0abc65c4febfa9bd25ff35234"
+STB_IMAGE_URL = f"https://raw.githubusercontent.com/nothings/stb/{STB_COMMIT}/stb_image.h"
 
 
 def main() -> int:
