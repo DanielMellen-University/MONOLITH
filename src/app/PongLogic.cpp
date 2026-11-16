@@ -27,7 +27,7 @@ void Game::applyInput(Input in, float dtSeconds) {
         return;
     }
     if (state != State::Playing) return;
-    if (dtSeconds <= 0.f) return;
+    if (!std::isfinite(dtSeconds) || dtSeconds <= 0.f) return;
     if (in == Input::Up) {
         playerY = std::max(0.f, playerY - kPaddleSpeed * dtSeconds);
     } else if (in == Input::Down) {
@@ -37,7 +37,7 @@ void Game::applyInput(Input in, float dtSeconds) {
 
 void Game::tick(float dtSeconds) {
     if (state != State::Playing) return;
-    if (dtSeconds <= 0.f) return;
+    if (!std::isfinite(dtSeconds) || dtSeconds <= 0.f) return;
     if (dtSeconds > 0.05f) dtSeconds = 0.05f;
 
     // Simple AI: chase the ball, capped to paddle speed.

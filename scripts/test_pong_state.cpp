@@ -3,7 +3,10 @@
 
 #include "../src/app/PongLogic.hpp"
 
+#include <cmath>
+#include <initializer_list>
 #include <iostream>
+#include <limits>
 
 using monolith::pong::Game;
 using monolith::pong::Input;
@@ -37,6 +40,10 @@ int main() {
     g.tick(0.05f);
     check(g.aiScore == 1, "ball past left edge scores for AI");
     check(g.state == State::Playing, "match still running after one point");
+    check(g.ballX == static_cast<float>(Game::kFieldW) * 0.5f
+              - static_cast<float>(Game::kBallSize) * 0.5f
+              && g.ballVX == Game::kBallSpeed && g.ballVY == 70.f,
+          "conceded point resets the ball for the next serve");
 
     g.playerScore = Game::kWinScore - 1;
     g.ballX = static_cast<float>(Game::kFieldW + 20);
@@ -62,6 +69,35 @@ int main() {
     check(g.ballVX > 0.f, "player paddle sends the ball back toward the AI");
     check(g.ballVY <= Game::kMaxBallVerticalSpeed,
           "paddle deflection caps vertical ball speed");
+
+    g.ballX = 150.f;
+    g.ballY = 1.f;
+    g.ballVX = 0.f;
+    g.ballVY = -100.f;
+    g.tick(0.05f);
+    check(g.ballY == 0.f && g.ballVY > 0.f,
+          "ball reflects from the top wall");
+    g.ballY = static_cast<float>(Game::kFieldH - Game::kBallSize - 1);
+    g.ballVY = 100.f;
+    g.tick(0.05f);
+    check(g.ballY == static_cast<float>(Game::kFieldH - Game::kBallSize)
+              && g.ballVY < 0.f,
+          "ball reflects from the bottom wall");
+
+    Game invalidDelta;
+    invalidDelta.resetMatch();
+    const float initialPlayerY = invalidDelta.playerY;
+    const float initialBallX = invalidDelta.ballX;
+    const float initialBallY = invalidDelta.ballY;
+    for (const float delta : {std::numeric_limits<float>::quiet_NaN(),
+                              std::numeric_limits<float>::infinity()}) {
+        invalidDelta.applyInput(Input::Up, delta);
+        invalidDelta.tick(delta);
+    }
+    check(std::isfinite(invalidDelta.playerY) && invalidDelta.playerY == initialPlayerY
+              && std::isfinite(invalidDelta.ballX) && invalidDelta.ballX == initialBallX
+              && std::isfinite(invalidDelta.ballY) && invalidDelta.ballY == initialBallY,
+          "non-finite frame deltas leave Pong state unchanged");
 
     if (failures == 0) {
         std::cout << "ALL PONG STATE TESTS PASSED\n";

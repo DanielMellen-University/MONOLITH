@@ -2,7 +2,7 @@
 
 ## 1.0.2 (November 2026)
 
-- Portfolio README polish: CI badge, an Assurance link to MONOLITH-FV-AUDIT, and a full app screenshot gallery including Pong and Breakout.
+- Portfolio README polish: CI badge, an Assurance link to MONOLITH-FV-AUDIT, and a desktop screenshot. App screenshots, including Pong and Breakout, remain available under `docs/images/`.
 - The Post-1.0 changelog fold is already on main.
 - Version 1.0.2, reported by CMake, Settings, and the Terminal `version` command.
 

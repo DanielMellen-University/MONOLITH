@@ -97,6 +97,7 @@ Any test that saves files needs the two atomic writer sources, `src/detail/Atomi
 | `test_drawing_state` | SDL | `src/app/DrawingApp.cpp src/app/DrawingRaster.cpp src/fs/Filesystem.cpp ATOMIC` | Open and save, undo history, resize, prompts, layout |
 | `test_modr_format` | Plain | `src/app/DrawingRaster.cpp` | `.modr` codec, streaming, size limits |
 | `test_desktop_settings` | Plain | `src/settings/DesktopSettings.cpp ATOMIC` | Settings file save and load, limits |
+| `test_wallpaper_fit_controller` | SDL | none | Wallpaper fit get and set through a fake `IWindowController` |
 | `test_wallpaper_image` | SDL | `-Ibuild/generated src/window/WallpaperImage.cpp` | BMP and PNG decoding, pixel cap, extensions |
 | `test_settings_app_state` | SDL | `-Ibuild/generated/settings src/app/SettingsApp.cpp src/fs/Filesystem.cpp ATOMIC` | Wallpaper completion, layout, footer |
 | `test_text_texture_cache` | SDL | none | Text texture cache keys, LRU eviction, byte limit |
@@ -137,7 +138,6 @@ Because of the second check, renaming or unlinking a game page in `docs/README.m
 
 | Test | How to run | Notes |
 |------|------------|-------|
-| `scripts/test_wallpaper_fit_controller.cpp` | `g++ -std=c++23 scripts/test_wallpaper_fit_controller.cpp $(pkg-config --cflags --libs sdl2) -o build/test_wallpaper_fit_controller && ./build/test_wallpaper_fit_controller` | Wallpaper fit get and set through a fake `IWindowController`. Passes, but the runner does not include it. |
 | `scripts/headless_drawing_smoke.sh` | `Xvfb :198 -screen 0 1280x720x24 &` then `./scripts/headless_drawing_smoke.sh` | Starts `build/monolith` for 3 seconds with a temporary `HOME` and checks the filesystem root and a `.modr` file. Needs Xvfb. Set `MONOLITH_TEST_DISPLAY` to use another display number. |
 
 ## Writing tests

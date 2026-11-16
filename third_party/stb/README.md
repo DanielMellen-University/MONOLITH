@@ -11,10 +11,10 @@ MONOLITH uses `stb_image.h` (v2.30 at the pinned hash) from https://github.com/n
 The header is not stored in the repository.
 
 - The CMake target `monolith_stb_image` runs `amalgamate.py`.
-- `amalgamate.py` downloads `stb_image.h` from the `master` branch of the upstream repository and writes it to `build/generated/stb_image.h`.
+- `amalgamate.py` downloads `stb_image.h` from the pinned upstream commit `5c205738c191bcb0abc65c4febfa9bd25ff35234` and writes it to `build/generated/stb_image.h`.
 - The download must match the SHA-256 pinned in `CMakeLists.txt` (`594c2fe35d49488b4382dbfaec8f98366defca819d916ac95becf3e75f4200b3`). Otherwise the build fails.
 
-The first build therefore needs network access. If upstream changes the file, the hash check fails; review the new header before updating the pinned hash.
+The first build therefore needs network access. To update the header, review the new upstream version, then change both `STB_COMMIT` in `amalgamate.py` and the pinned SHA-256 in `CMakeLists.txt`.
 
 `third_party/stb/stb_image.h` in this folder is a placeholder containing only an `#error`, so including it by mistake stops the build.
 

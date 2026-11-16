@@ -1613,10 +1613,16 @@ int main() {
     // Rename rejects names containing '/'.
     check(!Filesystem::isValidEntryName("foo/bar"), "isValidEntryName rejects slash");
     check(!Filesystem::isValidEntryName(""), "isValidEntryName rejects empty");
+    const std::string nulEntryName("bad\0name", 8);
+    check(!Filesystem::isValidEntryName(nulEntryName),
+          "isValidEntryName rejects embedded NUL bytes");
     check(Filesystem::isValidEntryName("ok.txt"), "isValidEntryName accepts simple name");
     check(fs.renameEntry("/src", "a.txt", "renamed.txt"), "renameEntry valid name");
     check(fs.isFile("/src/renamed.txt"), "renamed file exists");
     check(!fs.renameEntry("/src", "renamed.txt", "foo/bar"), "renameEntry rejects slash name");
+    check(!fs.renameEntry("/src", "renamed.txt", nulEntryName)
+              && fs.isFile("/src/renamed.txt"),
+          "renameEntry rejects embedded NUL without changing the source");
     check(fs.isFile("/src/renamed.txt"), "slash rename left original in place");
     check(!fs.exists("/src/foo"), "slash rename did not create nested path");
     check(!fs.exists("/src/foo/bar"), "slash rename did not write nested file");

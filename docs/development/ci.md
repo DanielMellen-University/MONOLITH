@@ -29,7 +29,7 @@ The install step has its own 10-minute limit, and `apt-get` runs with `Acquire::
 
 ## Network
 
-The build downloads `stb_image.h` from GitHub (see [building.md](building.md#stb_image)). If that download fails or the upstream file changes, both jobs fail at the build step.
+The build downloads `stb_image.h` from a pinned upstream commit on GitHub (see [building.md](building.md#stb_image)). If that download fails or its SHA-256 does not match the pinned hash, both jobs fail at the build step.
 
 ## Checking results
 
